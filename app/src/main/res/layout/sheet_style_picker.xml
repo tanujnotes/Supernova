@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingBottom="20dp">
+
+        <include layout="@layout/sheet_handle" />
+
+        <TextView
+            android:id="@+id/styleTitle"
+            style="@style/SheetTitle" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="20dp">
+
+        <FrameLayout
+            android:id="@+id/stripSurface"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginTop="14dp"
+            android:paddingHorizontal="18dp">
+
+            <TextView
+                android:id="@+id/stripText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start|center_vertical"
+                android:text="@string/style_preview_sample"
+                android:textSize="15sp" />
+
+            <View
+                android:id="@+id/stripAccent"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_gravity="end|center_vertical" />
+        </FrameLayout>
+
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/slotGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            app:checkedButton="@id/slotSurface"
+            app:selectionRequired="true"
+            app:singleSelection="true">
+
+            <Button
+                android:id="@+id/slotSurface"
+                style="@style/Widget.Supernova.Button.Segment"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/style_slot_surface" />
+
+            <Button
+                android:id="@+id/slotText"
+                style="@style/Widget.Supernova.Button.Segment"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/style_slot_text" />
+
+            <Button
+                android:id="@+id/slotAccent"
+                style="@style/Widget.Supernova.Button.Segment"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/style_slot_accent" />
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+        <!-- Minimum contrast, shown on the Text slot. -->
+        <LinearLayout
+            android:id="@+id/contrastRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:labelFor="@id/contrastSeek"
+                    android:text="@string/style_min_contrast"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="15sp" />
+
+                <TextView
+                    android:id="@+id/contrastValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/style_min_contrast_summary"
+                android:textColor="@color/textSecondary"
+                android:textSize="13sp" />
+
+            <SeekBar
+                android:id="@+id/contrastSeek"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:max="12" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/swatchRows"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <Button
+            android:id="@+id/styleDefault"
+            style="@style/Widget.Supernova.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginTop="4dp"
+            android:text="@string/option_default" />
+
+        <LinearLayout
+            android:id="@+id/opacityRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:labelFor="@id/opacitySeek"
+                    android:text="@string/style_opacity"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="15sp" />
+
+                <TextView
+                    android:id="@+id/opacityValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/opacitySeek"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:max="100" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/style_corner_radius"
+                android:textColor="@color/textPrimary"
+                android:textSize="15sp" />
+
+            <ImageButton
+                android:id="@+id/radiusDown"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/stepper_decrease"
+                android:src="@drawable/ic_step_minus" />
+
+            <TextView
+                android:id="@+id/radiusValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:minWidth="56dp"
+                android:textColor="@color/textSecondary"
+                android:textSize="14sp" />
+
+            <ImageButton
+                android:id="@+id/radiusUp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/stepper_increase"
+                android:src="@drawable/ic_step_plus" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/cornerShapeRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/style_corner_shape"
+                android:textColor="@color/textPrimary"
+                android:textSize="15sp" />
+
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/cutGroup"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:checkedButton="@id/cutRound"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <Button
+                    android:id="@+id/cutRound"
+                    style="@style/Widget.Supernova.Button.Segment"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/corner_round" />
+
+                <Button
+                    android:id="@+id/cutSquircle"
+                    style="@style/Widget.Supernova.Button.Segment"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/corner_squircle" />
+
+                <Button
+                    android:id="@+id/cutCut"
+                    style="@style/Widget.Supernova.Button.Segment"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/corner_cut" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+        </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

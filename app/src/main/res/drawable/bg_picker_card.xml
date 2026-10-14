@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Per-app card in the add sheet: a slightly lifted rounded plate that reads
+     on both the light and dark sheet surfaces. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="18dp" />
+    <solid android:color="#1A808080" />
+</shape>

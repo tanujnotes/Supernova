@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Rounded plate behind each feed card; FeedAdapter mutates the solid color
+     to the resolved POPUP surface at bind time. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="16dp" />
+    <solid android:color="#F0202124" />
+</shape>

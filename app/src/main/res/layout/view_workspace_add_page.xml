@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Edit mode's add-page slot, past the last page: an empty page with a "+"
+     disc in the middle. The button asks for a real page; the rest of
+     the page taps like any page's empty space. Sized to read at the marker's
+     scale once the page is zoomed out under edit mode. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/addPageRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Fixed glyph colour, like the marker's: the disc is white in both
+         themes. -->
+    <ImageView
+        android:id="@+id/addPageButton"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:layout_gravity="center"
+        android:background="@drawable/bg_add_page_button"
+        android:contentDescription="@string/add_page"
+        android:elevation="6dp"
+        android:padding="40dp"
+        android:src="@drawable/ic_menu_add"
+        app:tint="#FF11161D" />
+</FrameLayout>

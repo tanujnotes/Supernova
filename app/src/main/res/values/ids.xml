@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- View tag: a label's XML-declared maxLines, so single-line mode can be
+         undone on recycled views. -->
+    <item name="tag_default_max_lines" type="id" />
+    <!-- View tag: the LauncherItem id a workspace child renders, so the
+         reorder preview can find the views to shift aside. -->
+    <item name="tag_item_id" type="id" />
+    <!-- View tag: a child's resting translation before the reorder preview
+         shifted it, which a revert returns it to. Positions themselves come
+         from layout (WorkspaceCanvas), so a freshly bound child rests at
+         zero. -->
+    <item name="tag_preview_base" type="id" />
+    <!-- View tag: the real page a workspace canvas renders, so the drag
+         layer can turn "the canvas under the finger" into a page number. -->
+    <item name="tag_page" type="id" />
+    <!-- View tag: the dock rank a dock slot stands for. -->
+    <item name="tag_dock_rank" type="id" />
+</resources>

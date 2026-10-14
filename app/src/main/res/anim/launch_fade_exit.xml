@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Circle: the launcher holds fully opaque under the app's 150ms fade
+     in. -->
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shareInterpolator="true">
+    <alpha
+        android:duration="150"
+        android:fromAlpha="1"
+        android:toAlpha="1" />
+</set>

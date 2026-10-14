@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Window plate for an AppCompat AlertDialog that resolves alertDialogTheme
+     directly (MaterialAlertDialogBuilder draws its own): the same 28dp
+     surface plate the sheets and popups use. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetLeft="24dp"
+    android:insetRight="24dp"
+    android:insetTop="16dp"
+    android:insetBottom="16dp">
+    <shape android:shape="rectangle">
+        <corners android:radius="28dp" />
+        <solid android:color="@color/surface" />
+    </shape>
+</inset>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Supernova logo: a four-point spark split across the middle, brick red
+     on top and denim blue below, meeting on the midline with no gap, and a
+     small rounded home at its centre in the icon's paper colour, so it reads
+     as cut out. The whole spark is painted blue and the red top half laid
+     over it, so no seam shows where the halves meet. Drawn in the logo's own
+     120-unit box and scaled so its tips sit 29dp from the centre, inside the
+     adaptive icon's 66dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="60"
+        android:pivotY="60"
+        android:scaleX="0.5577"
+        android:scaleY="0.5577"
+        android:translateX="-6"
+        android:translateY="-6">
+        <path
+            android:fillColor="#3F72AF"
+            android:pathData="M8,60Q54,54 60,8Q66,54 112,60Q66,66 60,112Q54,66 8,60Z" />
+        <path
+            android:fillColor="#D4574B"
+            android:pathData="M8,60Q54,54 60,8Q66,54 112,60Z" />
+        <path
+            android:fillColor="@color/launcherIconBackground"
+            android:pathData="M58.5,50.25Q60,49 61.5,50.25L69.69,57.07Q71,58.17 71,59.88L71,69.29Q71,71 69.29,71L63.18,71Q62.44,71 62.44,70.27L62.44,64.64Q62.44,63.67 61.47,63.67L58.53,63.67Q57.56,63.67 57.56,64.64L57.56,70.27Q57.56,71 56.82,71L50.71,71Q49,71 49,69.29L49,59.88Q49,58.17 50.31,57.07Z" />
+    </group>
+</vector>

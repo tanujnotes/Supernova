@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="4dp">
+
+    <com.supernova.launcher.ui.settings.preview.ShapePreviewView
+        android:id="@+id/shapePreview"
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="12dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="44dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/corner_top_left"
+            android:textColor="@color/textPrimary"
+            android:textSize="14sp" />
+
+        <ImageButton
+            android:id="@+id/tlMinus"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/stepper_decrease"
+            android:src="@drawable/ic_step_minus"
+            app:tint="@color/textPrimary" />
+
+        <TextView
+            android:id="@+id/tlValue"
+            android:layout_width="44dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@color/textPrimary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/tlPlus"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/stepper_increase"
+            android:src="@drawable/ic_step_plus"
+            app:tint="@color/textPrimary" />
+
+        <TextView
+            android:id="@+id/tlCut"
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:padding="8dp"
+            android:textColor="@color/textPrimary"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="44dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/corner_top_right"
+            android:textColor="@color/textPrimary"
+            android:textSize="14sp" />
+
+        <ImageButton
+            android:id="@+id/trMinus"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/stepper_decrease"
+            android:src="@drawable/ic_step_minus"
+            app:tint="@color/textPrimary" />
+
+        <TextView
+            android:id="@+id/trValue"
+            android:layout_width="44dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@color/textPrimary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/trPlus"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/stepper_increase"
+            android:src="@drawable/ic_step_plus"
+            app:tint="@color/textPrimary" />
+
+        <TextView
+            android:id="@+id/trCut"
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:padding="8dp"
+            android:textColor="@color/textPrimary"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="44dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/corner_bottom_left"
+            android:textColor="@color/textPrimary"
+            android:textSize="14sp" />
+
+        <ImageButton
+            android:id="@+id/blMinus"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/stepper_decrease"
+            android:src="@drawable/ic_step_minus"
+            app:tint="@color/textPrimary" />
+
+        <TextView
+            android:id="@+id/blValue"
+            android:layout_width="44dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@color/textPrimary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/blPlus"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/stepper_increase"
+            android:src="@drawable/ic_step_plus"
+            app:tint="@color/textPrimary" />
+
+        <TextView
+            android:id="@+id/blCut"
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:padding="8dp"
+            android:textColor="@color/textPrimary"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="44dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/corner_bottom_right"
+            android:textColor="@color/textPrimary"
+            android:textSize="14sp" />
+
+        <ImageButton
+            android:id="@+id/brMinus"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/stepper_decrease"
+            android:src="@drawable/ic_step_minus"
+            app:tint="@color/textPrimary" />
+
+        <TextView
+            android:id="@+id/brValue"
+            android:layout_width="44dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@color/textPrimary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/brPlus"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/stepper_increase"
+            android:src="@drawable/ic_step_plus"
+            app:tint="@color/textPrimary" />
+
+        <TextView
+            android:id="@+id/brCut"
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:padding="8dp"
+            android:textColor="@color/textPrimary"
+            android:textSize="13sp" />
+    </LinearLayout>
+</LinearLayout>

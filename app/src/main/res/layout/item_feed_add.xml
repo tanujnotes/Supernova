@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "Add card": a centered pill after the last card. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingVertical="10dp">
+
+    <TextView
+        android:id="@+id/feedAddCard"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:background="@drawable/bg_card_chip"
+        android:foreground="?attr/selectableItemBackground"
+        android:gravity="center"
+        android:minWidth="140dp"
+        android:paddingHorizontal="28dp"
+        android:paddingVertical="14dp"
+        android:text="@string/feed_add_card"
+        android:textSize="15sp" />
+</FrameLayout>

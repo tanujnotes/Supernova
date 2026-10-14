@@ -1,0 +1,9 @@
+<resources>
+    <!-- The original dark palette. -->
+    <color name="background">#0D1117</color>
+    <color name="surface">#1A2230</color>
+    <color name="drawerBackground">#1E2735</color>
+    <color name="textPrimary">#FFFFFF</color>
+    <color name="textSecondary">#B3FFFFFF</color>
+    <color name="settingsPillBg">#1AFFFFFF</color>
+</resources>

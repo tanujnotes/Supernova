@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The welcome page: the mark, "Welcome to" over the launcher's name, Get
+     started, and Restore backup and Skip setup along the bottom. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <ImageView
+            android:layout_width="112dp"
+            android:layout_height="112dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_onboarding_logo"
+            app:tint="?attr/colorPrimary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/onboarding_welcome_to"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/app_name"
+            android:textColor="@android:color/white"
+            android:textSize="40sp" />
+
+        <TextView
+            android:id="@+id/welcomeGetStarted"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginTop="44dp"
+            android:background="@drawable/bg_onboarding_filled"
+            android:foreground="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:minWidth="120dp"
+            android:paddingHorizontal="28dp"
+            android:text="@string/onboarding_get_started"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/welcomeRestore"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="16dp"
+        android:background="?attr/selectableItemBackground"
+        android:padding="12dp"
+        android:text="@string/onboarding_restore_backup"
+        android:fontFamily="sans-serif-medium"
+        android:textColor="?attr/colorPrimary"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/welcomeSkip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:background="?attr/selectableItemBackground"
+        android:padding="12dp"
+        android:text="@string/onboarding_skip_setup"
+        android:fontFamily="sans-serif-medium"
+        android:textColor="?attr/colorPrimary"
+        android:textSize="16sp" />
+</FrameLayout>

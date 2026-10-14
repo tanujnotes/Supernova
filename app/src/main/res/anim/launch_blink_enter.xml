@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Blink: once the launcher has gone, the app opens out of a squashed
+     frame (the Ice Cream Sandwich style open). -->
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:detachWallpaper="true"
+    android:shareInterpolator="false"
+    android:zAdjustment="top">
+    <scale
+        android:duration="240"
+        android:fillAfter="true"
+        android:fillBefore="true"
+        android:fillEnabled="true"
+        android:fromXScale="1.2"
+        android:fromYScale="0.8"
+        android:interpolator="@android:interpolator/decelerate_quint"
+        android:pivotX="50%p"
+        android:pivotY="50%p"
+        android:startOffset="300"
+        android:toXScale="1"
+        android:toYScale="1" />
+    <alpha
+        android:duration="300"
+        android:fillAfter="true"
+        android:fillBefore="true"
+        android:fillEnabled="true"
+        android:fromAlpha="0"
+        android:interpolator="@android:interpolator/decelerate_quad"
+        android:startOffset="300"
+        android:toAlpha="1" />
+</set>

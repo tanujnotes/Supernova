@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The "Card details" page as a sheet: a toolbar (back, title, Save,
+     overflow), the card rendered live, its name, then Featured content,
+     Actions and Activation sections. Pickers and condition editors are
+     dialogs wired in CustomCardEditorSheet. -->
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingBottom="24dp">
+
+        <include layout="@layout/sheet_handle" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
+
+            <ImageButton
+                android:id="@+id/cardBack"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/back"
+                android:src="@drawable/ic_back" />
+
+            <TextView
+                android:id="@+id/cardEditorTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="@string/card_details"
+                android:textColor="@color/textPrimary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/cardSave"
+                style="@style/Widget.Supernova.Button.Tonal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/save" />
+
+            <ImageButton
+                android:id="@+id/cardEditorMenu"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/card_menu"
+                android:src="@drawable/ic_more_vert"
+                app:tint="@color/textPrimary" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="20dp">
+
+            <!-- The draft, drawn by the same binder the feed uses. -->
+            <FrameLayout
+                android:id="@+id/cardPreview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Supernova.TextInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:hint="@string/card_name">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/cardName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textCapSentences"
+                    android:maxLines="1" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Featured content -->
+            <TextView
+                style="@style/CardEditorHeader"
+                android:text="@string/card_featured" />
+
+            <TextView
+                style="@style/CardEditorDescription"
+                android:text="@string/card_featured_desc" />
+
+            <!-- Nothing featured yet: a "+" row that opens the picker. -->
+            <LinearLayout
+                android:id="@+id/cardFeaturedAdd"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:minHeight="56dp"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="20dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_menu_add"
+                    app:tint="@color/textPrimary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/card_featured_choose"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <!-- Something featured: icon, label, clear. -->
+            <LinearLayout
+                android:id="@+id/cardFeaturedRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:minHeight="56dp"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/cardFeaturedIcon"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_marginEnd="16dp"
+                    android:importantForAccessibility="no" />
+
+                <TextView
+                    android:id="@+id/cardFeaturedLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="16sp" />
+
+                <ImageButton
+                    android:id="@+id/cardFeaturedClear"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/remove"
+                    android:src="@drawable/ic_menu_remove"
+                    app:tint="@color/textPrimary" />
+            </LinearLayout>
+
+            <!-- Widget height: only for a widget-featured card. -->
+            <LinearLayout
+                android:id="@+id/cardWidgetHeightRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/card_widget_height"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:id="@+id/cardWidgetHeightValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="16sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageButton
+                        android:id="@+id/cardWidgetHeightMinus"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/decrease"
+                        android:src="@drawable/ic_step_minus" />
+
+                    <SeekBar
+                        android:id="@+id/cardWidgetHeightSeek"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1" />
+
+                    <ImageButton
+                        android:id="@+id/cardWidgetHeightPlus"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/increase"
+                        android:src="@drawable/ic_step_plus" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Actions -->
+            <TextView
+                style="@style/CardEditorHeader"
+                android:text="@string/card_actions" />
+
+            <TextView
+                style="@style/CardEditorDescription"
+                android:text="@string/card_actions_desc" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/cardActionsList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:overScrollMode="never" />
+
+            <LinearLayout
+                android:id="@+id/cardAddAction"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:minHeight="56dp"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="20dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_menu_add"
+                    app:tint="@color/textPrimary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/card_add_action"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <!-- Activation -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/CardEditorHeader"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="@string/card_activate" />
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/cardActivate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:checked="true" />
+            </LinearLayout>
+
+            <TextView
+                style="@style/CardEditorDescription"
+                android:text="@string/card_activate_desc" />
+
+            <include
+                android:id="@+id/cardCondDay"
+                layout="@layout/row_card_condition" />
+
+            <include
+                android:id="@+id/cardCondWifi"
+                layout="@layout/row_card_condition" />
+
+            <include
+                android:id="@+id/cardCondBt"
+                layout="@layout/row_card_condition" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Per-app Edit sheet. The plate and its corners come from the theme's
+     bottom-sheet style; rows read like settings rows - a title with the
+     current value in a pill - so a row is a thing to change rather than a
+     sentence to parse. The rows scroll between a pinned title and a pinned
+     button row, so Save is in reach however many rows the item has. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="16dp">
+
+    <include layout="@layout/sheet_handle" />
+
+    <TextView
+        android:id="@+id/editTitle"
+        style="@style/SheetTitle" />
+
+    <!-- Labs: the app's component name, selectable to copy. -->
+    <TextView
+        android:id="@+id/editComponent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="20dp"
+        android:paddingBottom="6dp"
+        android:fontFamily="monospace"
+        android:textColor="@color/textSecondary"
+        android:textIsSelectable="true"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="20dp"
+                android:layout_marginTop="12dp"
+                android:hint="@string/rename">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:maxLines="1" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <LinearLayout
+                android:id="@+id/hideLabelRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:minHeight="52dp"
+                android:orientation="horizontal"
+                android:paddingHorizontal="20dp">
+
+                <TextView
+                    style="@style/SheetRowTitle"
+                    android:text="@string/hide_label" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/hideLabelSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/shapeRow"
+                style="@style/SheetRow">
+
+                <TextView
+                    style="@style/SheetRowTitle"
+                    android:text="@string/icon_shape" />
+
+                <TextView
+                    android:id="@+id/shapeValue"
+                    style="@style/SheetRowValue" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/variantRow"
+                style="@style/SheetRow">
+
+                <TextView
+                    style="@style/SheetRowTitle"
+                    android:text="@string/icon_variant" />
+
+                <TextView
+                    android:id="@+id/variantValue"
+                    style="@style/SheetRowValue" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/iconRow"
+                style="@style/SheetRow">
+
+                <TextView
+                    style="@style/SheetRowTitle"
+                    android:text="@string/change_icon" />
+
+                <TextView
+                    android:id="@+id/iconValue"
+                    style="@style/SheetRowValue" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/photoRow"
+                style="@style/SheetRow">
+
+                <TextView
+                    style="@style/SheetRowTitle"
+                    android:text="@string/choose_photo" />
+            </LinearLayout>
+
+            <!-- Folders only: Swipe to open folder, which takes the
+                 swipe up below it over while on. -->
+            <LinearLayout
+                android:id="@+id/swipeToOpenRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:minHeight="56dp"
+                android:orientation="horizontal"
+                android:paddingHorizontal="20dp"
+                android:paddingVertical="10dp"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/swipe_to_open_folder"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/swipe_to_open_folder_summary"
+                        android:textColor="@color/textSecondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/swipeToOpenSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp" />
+            </LinearLayout>
+
+            <!-- Per-item swipe gestures. Shown only when editing a placed
+                 workspace item (drawer edits are app-level and have no swipe
+                 target). -->
+            <LinearLayout
+                android:id="@+id/swipeUpRow"
+                style="@style/SheetRow"
+                android:visibility="gone">
+
+                <TextView
+                    style="@style/SheetRowTitle"
+                    android:text="@string/swipe_up_title" />
+
+                <TextView
+                    android:id="@+id/swipeUpValue"
+                    style="@style/SheetRowValue" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/swipeDownRow"
+                style="@style/SheetRow"
+                android:visibility="gone">
+
+                <TextView
+                    style="@style/SheetRowTitle"
+                    android:text="@string/swipe_down_title" />
+
+                <TextView
+                    android:id="@+id/swipeDownValue"
+                    style="@style/SheetRowValue" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="end|center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp">
+
+        <Button
+            android:id="@+id/resetButton"
+            style="@style/Widget.Supernova.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/reset" />
+
+        <Button
+            android:id="@+id/saveButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/save" />
+    </LinearLayout>
+</LinearLayout>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The spark for themed icons, where only alpha counts: the top half solid
+     and the bottom half at 55%, so the split still reads in one tint, with
+     the home at the centre cut clean through both (even-odd holes). Same box
+     and scale as ic_launcher_spark. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="60"
+        android:pivotY="60"
+        android:scaleX="0.5577"
+        android:scaleY="0.5577"
+        android:translateX="-6"
+        android:translateY="-6">
+        <path
+            android:fillAlpha="0.55"
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M8,60Q54,54 60,8Q66,54 112,60Q66,66 60,112Q54,66 8,60Z M58.5,50.25Q60,49 61.5,50.25L69.69,57.07Q71,58.17 71,59.88L71,69.29Q71,71 69.29,71L63.18,71Q62.44,71 62.44,70.27L62.44,64.64Q62.44,63.67 61.47,63.67L58.53,63.67Q57.56,63.67 57.56,64.64L57.56,70.27Q57.56,71 56.82,71L50.71,71Q49,71 49,69.29L49,59.88Q49,58.17 50.31,57.07Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M8,60Q54,54 60,8Q66,54 112,60Z M49,60L49,59.88Q49,58.17 50.31,57.07L58.5,50.25Q60,49 61.5,50.25L69.69,57.07Q71,58.17 71,59.88L71,60Z" />
+    </group>
+</vector>

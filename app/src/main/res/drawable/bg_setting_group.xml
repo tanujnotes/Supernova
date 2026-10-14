@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- An open settings group's plate (the Label card): the search pill's faint
+     wash, so it reads on any settings surface color. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="20dp" />
+    <solid android:color="@color/settingsPillBg" />
+</shape>

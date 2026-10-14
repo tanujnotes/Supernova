@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds install beside the release app (applicationIdSuffix), so the
+     names the system shows say which is which: drawers, the default-home
+     chooser, recents, and the accessibility and notification-access lists.
+     In-app text keeps app_name. -->
+<resources>
+    <string name="app_label">Supernova Debug</string>
+    <string name="settings_launcher_label">Debug Settings</string>
+</resources>

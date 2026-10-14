@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Full-screen global search panel, the search window: a search pill on
+     top of the drawer-colored plate, then the results list. Colors come from
+     the DRAWER (plate) and SEARCH_BAR (pill) surfaces at runtime; clickable
+     so touches never fall through to the workspace. System back closes it -
+     there is no back arrow. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/searchOverlay"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clickable="true"
+    android:elevation="16dp"
+    android:focusable="true"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/searchPill"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="4dp">
+
+        <ImageView
+            android:id="@+id/searchIcon"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_marginEnd="14dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_search" />
+
+        <!-- Inline completion: the ghost draws the top hit's full
+             name under the field with the typed part transparent, so only
+             the untyped remainder shows, dimmed. Both views share metrics
+             so the letters line up. -->
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1">
+
+            <TextView
+                android:id="@+id/searchGhost"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:importantForAccessibility="no"
+                android:maxLines="1"
+                android:padding="0dp"
+                android:singleLine="true"
+                android:textSize="17sp" />
+
+            <!-- No saved state: a restored query would re-run the search
+                 watcher inside the launcher's view-state restore. -->
+            <EditText
+                android:id="@+id/searchInput"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent"
+                android:gravity="center_vertical"
+                android:hint="@string/search_apps"
+                android:imeOptions="actionSearch"
+                android:importantForAutofill="no"
+                android:inputType="text"
+                android:maxLines="1"
+                android:padding="0dp"
+                android:saveEnabled="false"
+                android:singleLine="true"
+                android:textSize="17sp" />
+        </FrameLayout>
+
+        <ImageButton
+            android:id="@+id/searchClear"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/clear_search"
+            android:src="@drawable/ic_menu_remove"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/searchResults"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingBottom="24dp" />
+</LinearLayout>

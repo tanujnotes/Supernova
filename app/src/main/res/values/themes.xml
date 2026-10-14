@@ -1,0 +1,466 @@
+<resources>
+    <style name="Theme.Supernova" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorPrimaryVariant">@color/accent</item>
+        <item name="colorSecondary">@color/accent</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowShowWallpaper">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Supernova.Dialog</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.Supernova.Dialog</item>
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.Supernova.BottomSheet</item>
+        <item name="materialTimePickerTheme">@style/ThemeOverlay.Supernova.TimePicker</item>
+        <item name="materialButtonStyle">@style/Widget.Supernova.Button</item>
+        <item name="borderlessButtonStyle">@style/Widget.Supernova.Button.Text</item>
+        <item name="checkboxStyle">@style/Widget.Supernova.CheckBox</item>
+        <item name="radioButtonStyle">@style/Widget.Supernova.RadioButton</item>
+        <item name="switchStyle">@style/Widget.Supernova.Switch</item>
+        <item name="textInputStyle">@style/Widget.Supernova.TextInput</item>
+        <item name="android:textColorPrimary">@color/textPrimary</item>
+        <item name="android:textColorSecondary">@color/textSecondary</item>
+        <item name="colorOnSurface">@color/textPrimary</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnPrimary">@color/onAccent</item>
+        <item name="colorOnSecondary">@color/onAccent</item>
+        <item name="elevationOverlayEnabled">false</item>
+    </style>
+
+    <style name="Theme.Supernova.Transparent" parent="Theme.MaterialComponents.DayNight.Dialog.Alert">
+        <item name="colorPrimary">@color/accent</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Supernova.Dialog</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.Supernova.Dialog</item>
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.Supernova.BottomSheet</item>
+        <item name="materialTimePickerTheme">@style/ThemeOverlay.Supernova.TimePicker</item>
+        <item name="materialButtonStyle">@style/Widget.Supernova.Button</item>
+        <item name="borderlessButtonStyle">@style/Widget.Supernova.Button.Text</item>
+        <item name="checkboxStyle">@style/Widget.Supernova.CheckBox</item>
+        <item name="radioButtonStyle">@style/Widget.Supernova.RadioButton</item>
+        <item name="switchStyle">@style/Widget.Supernova.Switch</item>
+        <item name="textInputStyle">@style/Widget.Supernova.TextInput</item>
+        <item name="android:textColorPrimary">@color/textPrimary</item>
+        <item name="android:textColorSecondary">@color/textSecondary</item>
+        <item name="colorOnSurface">@color/textPrimary</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnPrimary">@color/onAccent</item>
+        <item name="colorOnSecondary">@color/onAccent</item>
+        <item name="elevationOverlayEnabled">false</item>
+    </style>
+
+    <!-- Enter is driven in-view (the card expands out of the tapped folder
+         icon); this style only covers dismiss paths that bypass the animated
+         collapse, e.g. the back key or launching an app from the folder. -->
+    <style name="FolderPopupAnimation">
+        <item name="android:windowExitAnimation">@anim/folder_out</item>
+    </style>
+
+    <!-- Drawer group tabs: title case at label weight, not Material's
+         all-caps micro-type. -->
+    <style name="TextAppearance.Supernova.DrawerTab" parent="TextAppearance.MaterialComponents.Button">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+
+    <style name="ThemeOverlay.Supernova.Blue" parent="">
+        <item name="colorPrimary">@color/accentBlue</item>
+        <item name="colorSecondary">@color/accentBlue</item>
+        <item name="colorAccent">@color/accentBlue</item>
+    </style>
+
+    <style name="ThemeOverlay.Supernova.Indigo" parent="">
+        <item name="colorPrimary">@color/accentIndigo</item>
+        <item name="colorSecondary">@color/accentIndigo</item>
+        <item name="colorAccent">@color/accentIndigo</item>
+    </style>
+
+    <style name="ThemeOverlay.Supernova.Purple" parent="">
+        <item name="colorPrimary">@color/accentPurple</item>
+        <item name="colorSecondary">@color/accentPurple</item>
+        <item name="colorAccent">@color/accentPurple</item>
+    </style>
+
+    <style name="ThemeOverlay.Supernova.Pink" parent="">
+        <item name="colorPrimary">@color/accentPink</item>
+        <item name="colorSecondary">@color/accentPink</item>
+        <item name="colorAccent">@color/accentPink</item>
+    </style>
+
+    <style name="ThemeOverlay.Supernova.Red" parent="">
+        <item name="colorPrimary">@color/accentRed</item>
+        <item name="colorSecondary">@color/accentRed</item>
+        <item name="colorAccent">@color/accentRed</item>
+    </style>
+
+    <style name="ThemeOverlay.Supernova.Orange" parent="">
+        <item name="colorPrimary">@color/accentOrange</item>
+        <item name="colorSecondary">@color/accentOrange</item>
+        <item name="colorAccent">@color/accentOrange</item>
+    </style>
+
+    <style name="ThemeOverlay.Supernova.Amber" parent="">
+        <item name="colorPrimary">@color/accentAmber</item>
+        <item name="colorSecondary">@color/accentAmber</item>
+        <item name="colorAccent">@color/accentAmber</item>
+    </style>
+
+    <style name="ThemeOverlay.Supernova.Green" parent="">
+        <item name="colorPrimary">@color/accentGreen</item>
+        <item name="colorSecondary">@color/accentGreen</item>
+        <item name="colorAccent">@color/accentGreen</item>
+    </style>
+
+    <style name="ThemeOverlay.Supernova.Teal" parent="">
+        <item name="colorPrimary">@color/accentTeal</item>
+        <item name="colorSecondary">@color/accentTeal</item>
+        <item name="colorAccent">@color/accentTeal</item>
+    </style>
+
+    <style name="ThemeOverlay.Supernova.Cyan" parent="">
+        <item name="colorPrimary">@color/accentCyan</item>
+        <item name="colorSecondary">@color/accentCyan</item>
+        <item name="colorAccent">@color/accentCyan</item>
+    </style>
+
+    <!-- ============================================================ -->
+    <!-- Popups, dialogs and sheets: one surface language.            -->
+    <!--                                                              -->
+    <!-- Every floating surface in the app - the item popup, the      -->
+    <!-- choice menu, dialogs and bottom sheets - is a rounded plate  -->
+    <!-- in @color/surface with the theme's text on it. The popup and -->
+    <!-- choice menu draw that themselves; dialogs and sheets get it  -->
+    <!-- from these overlays, so a plain AlertDialog.Builder or        -->
+    <!-- BottomSheetDialog(context) lands on the same look with no    -->
+    <!-- per-call styling.                                            -->
+    <!-- ============================================================ -->
+
+    <style name="ThemeOverlay.Supernova.Dialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/textPrimary</item>
+        <item name="colorPrimary">?attr/colorAccent</item>
+        <item name="colorSecondary">?attr/colorAccent</item>
+        <item name="colorControlActivated">?attr/colorAccent</item>
+        <item name="colorControlNormal">@color/textSecondary</item>
+        <item name="android:textColorPrimary">@color/textPrimary</item>
+        <item name="android:textColorSecondary">@color/textSecondary</item>
+        <item name="android:textColorAlertDialogListItem">@color/textPrimary</item>
+        <item name="elevationOverlayEnabled">false</item>
+        <!-- 28dp corners, the same radius the popup and the sheets use. -->
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.Supernova.Dialog</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/TextAppearance.Supernova.DialogTitle</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/TextAppearance.Supernova.DialogBody</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.Supernova.Button.Dialog</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.Supernova.Button.Dialog</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.Supernova.Button.Dialog</item>
+        <!-- The stock AppCompat dialog window, for the few paths that
+             still resolve alertDialogTheme (e.g. a builder on a plain
+             ContextThemeWrapper): same plate, same corners. -->
+        <item name="android:windowBackground">@drawable/bg_dialog_window</item>
+        <item name="android:backgroundDimAmount">0.5</item>
+        <item name="listPreferredItemPaddingLeft">24dp</item>
+        <item name="listPreferredItemPaddingRight">24dp</item>
+        <item name="checkboxStyle">@style/Widget.Supernova.CheckBox</item>
+        <item name="radioButtonStyle">@style/Widget.Supernova.RadioButton</item>
+        <item name="materialButtonStyle">@style/Widget.Supernova.Button</item>
+        <item name="borderlessButtonStyle">@style/Widget.Supernova.Button.Text</item>
+        <item name="textInputStyle">@style/Widget.Supernova.TextInput</item>
+    </style>
+
+    <style name="ThemeOverlay.Supernova.TimePicker" parent="ThemeOverlay.MaterialComponents.TimePicker">
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/textPrimary</item>
+        <item name="colorPrimary">?attr/colorAccent</item>
+        <item name="colorOnPrimary">@color/onAccent</item>
+        <item name="colorSecondary">?attr/colorAccent</item>
+        <item name="elevationOverlayEnabled">false</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearanceOverlay.Supernova.Dialog</item>
+        <item name="materialButtonStyle">@style/Widget.Supernova.Button</item>
+        <item name="borderlessButtonStyle">@style/Widget.Supernova.Button.Text</item>
+    </style>
+
+    <style name="ShapeAppearanceOverlay.Supernova.Dialog" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">28dp</item>
+    </style>
+
+    <style name="TextAppearance.Supernova.DialogTitle" parent="MaterialAlertDialog.MaterialComponents.Title.Text">
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="TextAppearance.Supernova.DialogBody" parent="MaterialAlertDialog.MaterialComponents.Body.Text">
+        <item name="android:textColor">@color/textSecondary</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:lineSpacingMultiplier">1.15</item>
+    </style>
+
+    <!-- Bottom sheets: the plate, its top corners, and a navigation bar
+         painted to match so the sheet runs under it instead of stopping at
+         a black strip. -->
+    <style name="ThemeOverlay.Supernova.BottomSheet" parent="ThemeOverlay.MaterialComponents.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Widget.Supernova.BottomSheet</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/textPrimary</item>
+        <item name="colorPrimary">?attr/colorAccent</item>
+        <item name="colorSecondary">?attr/colorAccent</item>
+        <item name="colorControlActivated">?attr/colorAccent</item>
+        <item name="android:textColorPrimary">@color/textPrimary</item>
+        <item name="android:textColorSecondary">@color/textSecondary</item>
+        <item name="elevationOverlayEnabled">false</item>
+        <item name="android:navigationBarColor">@color/surface</item>
+        <item name="android:windowLightNavigationBar">@bool/lightSystemBars</item>
+        <item name="android:backgroundDimAmount">0.5</item>
+        <item name="materialButtonStyle">@style/Widget.Supernova.Button</item>
+        <item name="borderlessButtonStyle">@style/Widget.Supernova.Button.Text</item>
+        <item name="checkboxStyle">@style/Widget.Supernova.CheckBox</item>
+        <item name="radioButtonStyle">@style/Widget.Supernova.RadioButton</item>
+        <item name="switchStyle">@style/Widget.Supernova.Switch</item>
+        <item name="textInputStyle">@style/Widget.Supernova.TextInput</item>
+    </style>
+
+    <style name="Widget.Supernova.BottomSheet" parent="Widget.MaterialComponents.BottomSheet.Modal">
+        <item name="backgroundTint">@color/surface</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.Supernova.BottomSheet</item>
+        <item name="android:elevation">0dp</item>
+        <!-- Sheets open fully; a sheet that peeks at half height and needs a
+             second drag to read is a step, not a shortcut. -->
+        <item name="behavior_skipCollapsed">true</item>
+        <!-- Material squares a sheet's corners the moment it is expanded,
+             even when it stops well short of the top; the plate keeps its
+             corners wherever it stops. -->
+        <item name="shouldRemoveExpandedCorners">false</item>
+    </style>
+
+    <style name="ShapeAppearanceOverlay.Supernova.BottomSheet" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">28dp</item>
+        <item name="cornerSizeTopRight">28dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+    <!-- Buttons: pills in the accent, and text buttons in the accent, in
+         sentence case. Material's all-caps default reads as shouting next
+         to sentence-case rows. -->
+    <style name="Widget.Supernova.Button" parent="Widget.MaterialComponents.Button">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:minHeight">44dp</item>
+        <item name="android:paddingStart">22dp</item>
+        <item name="android:paddingEnd">22dp</item>
+        <item name="cornerRadius">22dp</item>
+        <item name="elevation">0dp</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+
+    <style name="Widget.Supernova.Button.Text" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:minHeight">44dp</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="cornerRadius">22dp</item>
+    </style>
+
+    <!-- A quiet tonal button: the surface tint with the text in the accent.
+         For secondary actions that still deserve a shape (Reset, Delete). -->
+    <style name="Widget.Supernova.Button.Tonal" parent="Widget.Supernova.Button">
+        <item name="backgroundTint">@color/settingsPillBg</item>
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="iconTint">@color/textPrimary</item>
+    </style>
+
+    <!-- One segment of a toggle group: a hairline pill that fills with a
+         tint of the accent when chosen. -->
+    <style name="Widget.Supernova.Button.Segment" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:minHeight">40dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">14dp</item>
+        <item name="android:maxLines">1</item>
+        <item name="cornerRadius">20dp</item>
+        <item name="strokeColor">@color/textInputStroke</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="backgroundTint">@color/segment_background</item>
+        <item name="android:textColor">@color/segment_text</item>
+    </style>
+
+    <style name="Widget.Supernova.Button.Dialog" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:minHeight">44dp</item>
+        <item name="cornerRadius">22dp</item>
+    </style>
+
+    <!-- Selection controls tinted to the accent with a quiet unchecked
+         state, so the checked one is the one that stands out. -->
+    <style name="Widget.Supernova.CheckBox" parent="Widget.MaterialComponents.CompoundButton.CheckBox">
+        <item name="buttonTint">@color/selection_control_tint</item>
+        <item name="android:textColor">@color/textPrimary</item>
+    </style>
+
+    <style name="Widget.Supernova.RadioButton" parent="Widget.MaterialComponents.CompoundButton.RadioButton">
+        <item name="buttonTint">@color/selection_control_tint</item>
+        <item name="android:textColor">@color/textPrimary</item>
+    </style>
+
+    <style name="Widget.Supernova.Switch" parent="Widget.MaterialComponents.CompoundButton.Switch">
+        <item name="android:textColor">@color/textPrimary</item>
+    </style>
+
+    <!-- The group switch (the Label card's header) is Material 3's, the
+         thumb riding inside a wide track that the accent fills when on. It
+         reads M3 color roles this MaterialComponents theme doesn't define,
+         so the overlay maps them onto the settings palette. -->
+    <style name="Widget.Supernova.MaterialSwitch" parent="Widget.Material3.CompoundButton.MaterialSwitch">
+        <item name="materialThemeOverlay">@style/ThemeOverlay.Supernova.MaterialSwitch</item>
+        <item name="android:textAppearance">@style/TextAppearance.MaterialComponents.Body2</item>
+        <item name="android:minHeight">48dp</item>
+    </style>
+
+    <style name="ThemeOverlay.Supernova.MaterialSwitch" parent="">
+        <item name="colorOutline">@color/textSecondary</item>
+        <item name="colorOnSurfaceVariant">@color/textSecondary</item>
+        <item name="colorSurfaceContainerHighest">@color/settingsPillBg</item>
+        <!-- The thumb while pressed on; M3's own tint would all but vanish
+             into the accent track. -->
+        <item name="colorPrimaryContainer">@color/onAccent</item>
+        <item name="colorOnPrimaryContainer">?attr/colorPrimary</item>
+    </style>
+
+    <!-- Text fields: outlined, rounded to match the plates they sit on. -->
+    <style name="Widget.Supernova.TextInput" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
+        <item name="boxCornerRadiusTopStart">14dp</item>
+        <item name="boxCornerRadiusTopEnd">14dp</item>
+        <item name="boxCornerRadiusBottomStart">14dp</item>
+        <item name="boxCornerRadiusBottomEnd">14dp</item>
+        <item name="boxStrokeColor">@color/text_input_stroke</item>
+        <item name="hintTextColor">?attr/colorAccent</item>
+        <item name="android:textColorHint">@color/textSecondary</item>
+    </style>
+
+    <!-- The settings tab bar: the surface color, an accent pill under the
+         selected tab, and no elevation overlay greying it. -->
+    <style name="Widget.Supernova.BottomNavigation" parent="Widget.MaterialComponents.BottomNavigationView">
+        <item name="android:background">@color/surface</item>
+        <item name="elevation">0dp</item>
+        <item name="itemIconTint">@color/bottom_nav_item</item>
+        <item name="itemTextColor">@color/bottom_nav_item</item>
+        <item name="itemTextAppearanceActive">@style/TextAppearance.Supernova.BottomNavLabel</item>
+        <item name="itemTextAppearanceInactive">@style/TextAppearance.Supernova.BottomNavLabel</item>
+        <item name="itemActiveIndicatorStyle">@style/Widget.Supernova.BottomNavigation.Indicator</item>
+        <item name="android:minHeight">72dp</item>
+        <item name="itemPaddingTop">12dp</item>
+        <item name="itemPaddingBottom">14dp</item>
+        <item name="activeIndicatorLabelPadding">6dp</item>
+    </style>
+
+    <style name="Widget.Supernova.BottomNavigation.Indicator" parent="">
+        <item name="android:width">64dp</item>
+        <item name="android:height">32dp</item>
+        <item name="marginHorizontal">4dp</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.Supernova.Pill</item>
+        <item name="android:color">@color/accent_container</item>
+    </style>
+
+    <style name="ShapeAppearance.Supernova.Pill" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <style name="TextAppearance.Supernova.BottomNavLabel" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textSize">12sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <!-- Sheet rows: a title with its current value beneath, the way the
+         settings rows read, so "Icon shape" and "Default" are two things
+         rather than one run-on line. -->
+    <style name="SheetRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:minHeight">56dp</item>
+        <item name="android:paddingHorizontal">20dp</item>
+        <item name="android:paddingVertical">10dp</item>
+    </style>
+
+    <style name="SheetRowTitle">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+
+    <style name="SheetRowValue">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">12dp</item>
+        <item name="android:background">@drawable/bg_value_pill</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:maxWidth">180dp</item>
+        <item name="android:paddingHorizontal">14dp</item>
+        <item name="android:paddingVertical">7dp</item>
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <!-- Card editor sections: an accent group label over a muted blurb. -->
+    <style name="CardEditorHeader">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingTop">22dp</item>
+        <item name="android:paddingBottom">4dp</item>
+        <item name="android:textColor">@color/accent</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="CardEditorDescription">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingBottom">6dp</item>
+        <item name="android:textColor">@color/textSecondary</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <style name="SheetTitle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingHorizontal">20dp</item>
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingBottom">4dp</item>
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <!-- The big page titles of the first run. -->
+    <style name="OnboardingTitle" parent="">
+        <item name="android:layout_marginTop">36dp</item>
+        <item name="android:layout_marginBottom">20dp</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:textSize">34sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>

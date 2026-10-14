@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The desktopPadding prefs are applied at bind time as the canvas's margins,
+     not as padding here, so the drag grid can span the whole page. The grid
+     is split around the canvas: the sparkles under the page's items, which
+     they should never cover, and the target outline over them, where a
+     widget it may overlap cannot hide it. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.supernova.launcher.ui.DragGridView
+        android:id="@+id/dragSparkles"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:gridLayer="sparkles" />
+
+    <com.supernova.launcher.ui.WorkspaceCanvas
+        android:id="@+id/workspaceCanvas"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <com.supernova.launcher.ui.DragGridView
+        android:id="@+id/dragOutline"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:gridLayer="outline" />
+</FrameLayout>

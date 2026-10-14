@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The fast scrollbar's letter bubble, as Launcher3 draws it: round
+     but for the corner that points down at the finger. Tinted to the thumb's
+     color at runtime (FastScrollerView.setColors). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners
+        android:bottomLeftRadius="44dp"
+        android:bottomRightRadius="0dp"
+        android:topLeftRadius="44dp"
+        android:topRightRadius="44dp" />
+    <solid android:color="#FFFFFFFF" />
+</shape>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The icon size slider's minus and plus: small accent discs. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:inset="8dp">
+    <shape android:shape="oval">
+        <solid android:color="?attr/colorPrimary" />
+    </shape>
+</inset>

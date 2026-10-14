@@ -1,0 +1,1058 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:AppCatalog.kt$AppCatalog$enabled == themedIcons &amp;&amp; background == themedIconBg &amp;&amp; foreground == themedIconFg &amp;&amp; autogen == themedIconsAutogen</ID>
+    <ID>ComplexCondition:AppDrawerAdapter.kt$AppDrawerAdapter$this.iconScale == iconScale &amp;&amp; this.showLabels == showLabels &amp;&amp; !labelStyleChanged &amp;&amp; !badgeStyleChanged</ID>
+    <ID>ComplexCondition:AppMatcher.kt$AppMatcher$q[i] == l[s + i + 1] &amp;&amp; q[i + 1] == l[s + i] &amp;&amp; l.regionMatches(s, q, 0, i) &amp;&amp; l.regionMatches(s + i + 2, q, i + 2, n - i - 2)</ID>
+    <ID>ComplexCondition:AppMatcher.kt$AppMatcher$s + max &lt; l.length &amp;&amp; qi + max &lt; q.length &amp;&amp; l[s + max] == q[qi + max] &amp;&amp; (max == 0 || !isSeparator(l[s + max]))</ID>
+    <ID>ComplexCondition:DragGridView.kt$DragGridView$slideTo.left != left || slideTo.top != top || slideTo.right != right || slideTo.bottom != bottom</ID>
+    <ID>ComplexCondition:DrawerController.kt$DrawerController$host == null || !cardsShown || selectedTab != null || !binding.drawerSearch.text.isNullOrBlank()</ID>
+    <ID>ComplexCondition:DrawerController.kt$DrawerController$pagerAdapter.infinite &amp;&amp; pages.size &gt; 1 &amp;&amp; (wasEmpty || pager.currentItem == 0)</ID>
+    <ID>ComplexCondition:DrawerController.kt$DrawerController$searchFieldVisible &amp;&amp; !searchGlobalOnTap &amp;&amp; wanted &amp;&amp; !isLandscape()</ID>
+    <ID>ComplexCondition:HomeGestureDetector.kt$HomeGestureDetector$twoFingerTracking &amp;&amp; event.pointerCount == 2 &amp;&amp; !rotateHandled &amp;&amp; !pinchHandled</ID>
+    <ID>ComplexCondition:HomeGestureDetector.kt$HomeGestureDetector$twoFingerTracking &amp;&amp; event.pointerCount &gt;= 2 &amp;&amp; !scaleDetector.isInProgress &amp;&amp; !rotateHandled &amp;&amp; !pinchHandled</ID>
+    <ID>ComplexCondition:LauncherActivity.kt$LauncherActivity$!cameFromBackground &amp;&amp; reachedHome &amp;&amp; !closed &amp;&amp; !drag.isActive</ID>
+    <ID>ComplexCondition:LauncherActivity.kt$LauncherActivity$(::drawer.isInitialized &amp;&amp; drawer.isVisible) || (::search.isInitialized &amp;&amp; search.isOpen) || // Edit mode: sheet drags and chip taps must not read as gestures. (::editMode.isInitialized &amp;&amp; editMode.isOpen) || // Desktop previews: its thumbnails take their own taps and // drags; a swipe there pulled the shade or opened the drawer // behind them, and a double tap ran the double-tap action. desktopPreviews.isShowing</ID>
+    <ID>ComplexCondition:LauncherActivity.kt$LauncherActivity$last != null &amp;&amp; (last.apps !== state.apps || last.prefs.hiddenApps != state.prefs.hiddenApps || last.prefs.drawerGroups != state.prefs.drawerGroups || last.model.appOverrides != state.model.appOverrides)</ID>
+    <ID>ComplexCondition:LauncherActivity.kt$LauncherActivity$last != null &amp;&amp; last.model === state.model &amp;&amp; last.prefs === state.prefs &amp;&amp; last.apps === state.apps &amp;&amp; last.iconGeneration == state.iconGeneration</ID>
+    <ID>ComplexCondition:LauncherActivity.kt$LauncherActivity$prefs.iconSwipeIndicator &amp;&amp; (item.swipeAction != null || item.swipeActionDown != null || item.swipeToOpen)</ID>
+    <ID>ComplexCondition:LauncherRepository.kt$LauncherRepository$item.packageName == packageName &amp;&amp; item.className == className &amp;&amp; item.userSerial == userSerial &amp;&amp; item.itemType == ItemType.APP</ID>
+    <ID>ComplexCondition:LauncherViewModel.kt$LauncherViewModel$!packChanged &amp;&amp; !shapeChanged &amp;&amp; !normalizeChanged &amp;&amp; !shadowChanged &amp;&amp; !themedChanged &amp;&amp; !resolutionChanged</ID>
+    <ID>ComplexCondition:LiveDragController.kt$LiveDragController$direction &gt; 0 &amp;&amp; pendingDragPageFlip &lt; 0 &amp;&amp; activeDragPayload != null &amp;&amp; host.workspaceAdapter.realPageCount &lt; LauncherRepository.MAX_PAGES</ID>
+    <ID>ComplexCondition:PinRequestActivity.kt$PinRequestActivity$result.resultCode == RESULT_OK &amp;&amp; request != null &amp;&amp; info != null &amp;&amp; widgetId != AppWidgetManager.INVALID_APPWIDGET_ID</ID>
+    <ID>ComplexCondition:SearchController.kt$SearchController$query.isEmpty() || label == null || label.length &lt;= query.length || !label.startsWith(query, ignoreCase = true)</ID>
+    <ID>ComplexCondition:WidgetController.kt$WidgetController$current != null &amp;&amp; (cellX != current.cellX || cellY != current.cellY || spanX != current.spanX || spanY != current.spanY)</ID>
+    <ID>ComplexCondition:WidgetResizeFrame.kt$WidgetResizeFrame$newSpanX == spanX &amp;&amp; newSpanY == spanY &amp;&amp; newCellX == cellX &amp;&amp; newCellY == cellY</ID>
+    <ID>ComplexCondition:WidgetResizeFrame.kt$WidgetResizeFrame$x &lt; 0f || y &lt; 0f || x &gt;= width || y &gt;= height</ID>
+    <ID>ComplexCondition:WorkspaceGeometry.kt$WorkspaceGeometry$area.left &lt; -EPSILON || area.top &lt; -EPSILON || area.right &gt; cols + EPSILON || area.bottom &gt; rows + EPSILON</ID>
+    <ID>ComplexCondition:WorkspaceGeometry.kt$WorkspaceGeometry$moved.left &lt; -EPSILON || moved.top &lt; -EPSILON || moved.right &gt; cols + EPSILON || moved.bottom &gt; rows + EPSILON</ID>
+    <ID>ComplexCondition:WorkspaceGeometry.kt$WorkspaceGeometry$target.left &lt; -EPSILON || target.top &lt; -EPSILON || target.right &gt; cols + EPSILON || target.bottom &gt; rows + EPSILON</ID>
+    <ID>ComplexCondition:WorkspacePagerAdapter.kt$WorkspacePagerAdapter.PageViewHolder$margins.leftMargin != padH || margins.topMargin != padV || margins.rightMargin != padH || margins.bottomMargin != padV</ID>
+    <ID>CyclomaticComplexMethod:ActionIcons.kt$ActionIcons$@DrawableRes fun of(action: GestureAction): Int</ID>
+    <ID>CyclomaticComplexMethod:AppCatalog.kt$AppCatalog$fun iconFor(app: LaunchableApp): Drawable?</ID>
+    <ID>CyclomaticComplexMethod:AppDrawerAdapter.kt$AppDrawerAdapter$fun setDisplay(iconScale: Float, showLabels: Boolean, prefs: com.supernova.launcher.data.LauncherPrefs? = null)</ID>
+    <ID>CyclomaticComplexMethod:AppEditSheet.kt$AppEditSheet$fun show( context: Context, scope: CoroutineScope, viewModel: LauncherViewModel, // Null only with itemLabel, for an item with no app behind it. app: LaunchableApp?, // Host-provided photo picker (the ActivityResult launcher must be // registered on the activity); null hides the photo option. pickPhoto: (((android.net.Uri?) -&gt; Unit) -&gt; Unit)? = null, // Per-item swipe editing. Non-null only when editing a placed // workspace item: `swipeLabels` reads the current up/down labels and // `onEditSwipe` opens the host picker, calling back with the chosen // label (null = cleared) so the row can refresh without racing the // async model write. swipeLabels: ((down: Boolean) -&gt; String?)? = null, onEditSwipe: ((down: Boolean, onPicked: (String?) -&gt; Unit) -&gt; Unit)? = null, itemLabel: ItemLabel? = null )</ID>
+    <ID>CyclomaticComplexMethod:AppMatcher.kt$AppMatcher$private fun oneTypo(l: String, starts: List&lt;Int&gt;, q: String): IntRange?</ID>
+    <ID>CyclomaticComplexMethod:BottomChrome.kt$BottomChrome$fun layout(s: Spec): Result</ID>
+    <ID>CyclomaticComplexMethod:Calculator.kt$Calculator$private fun toRpn(tokens: List&lt;Token&gt;): List&lt;Token&gt;?</ID>
+    <ID>CyclomaticComplexMethod:Calculator.kt$Calculator$private fun tokenize(text: String): List&lt;Token&gt;?</ID>
+    <ID>CyclomaticComplexMethod:CustomCardEditorSheet.kt$CustomCardEditorSheet$fun show( activity: AppCompatActivity, viewModel: LauncherViewModel, existing: FeedCard?, // Opens the widget picker for a Widget-featured card; the card is saved // first so the bound widget attaches to a persisted id. onPickWidget: ((cardId: String) -&gt; Unit)? = null )</ID>
+    <ID>CyclomaticComplexMethod:DesktopPreviewsOverlay.kt$DesktopPreviewsOverlay$private fun buildThumbColumn( page: Int, pages: Int, current: Int, default: Int, accent: Int ): View</ID>
+    <ID>CyclomaticComplexMethod:DrawerController.kt$DrawerController$private fun applyStyle(prefs: LauncherPrefs)</ID>
+    <ID>CyclomaticComplexMethod:DrawerController.kt$DrawerController$private fun rebuildTabs(prefs: LauncherPrefs)</ID>
+    <ID>CyclomaticComplexMethod:EnumLabels.kt$EnumLabels$@StringRes fun of(action: GestureAction): Int</ID>
+    <ID>CyclomaticComplexMethod:EnumLabels.kt$EnumLabels$@StringRes fun of(effect: ScrollEffect): Int</ID>
+    <ID>CyclomaticComplexMethod:EnumLabels.kt$EnumLabels$@StringRes fun of(shape: IconShape): Int</ID>
+    <ID>CyclomaticComplexMethod:FeedController.kt$FeedController$fun onTouch(ev: MotionEvent): TouchResult</ID>
+    <ID>CyclomaticComplexMethod:FeedController.kt$FeedController$private fun rebuild()</ID>
+    <ID>CyclomaticComplexMethod:FolderEditSheet.kt$FolderEditSheet$fun show( context: Context, scope: CoroutineScope, viewModel: LauncherViewModel, folder: LauncherItem, // Host-provided photo picker (the ActivityResult launcher is // registered on the activity). pickPhoto: ((android.net.Uri?) -&gt; Unit) -&gt; Unit, // Opens the host's swipe action picker, calling back with the chosen // label (null = cleared) so the row can refresh without racing the // async model write. onEditSwipe: (down: Boolean, onPicked: (String?) -&gt; Unit) -&gt; Unit )</ID>
+    <ID>CyclomaticComplexMethod:FolderPopup.kt$FolderPopup$fun show( anchor: View, title: String, members: List&lt;LauncherItem&gt;, adapter: FolderMemberAdapter, columnsOverride: Int = 0, sortAz: Boolean = false, mode: FolderMode = FolderMode.WINDOW, scroll: FolderScroll = FolderScroll.VERTICAL, // Resolved FOLDER surface; null keeps the drawable's default color. surfaceColor: Int? = null, // Style-engine radii/cuts for the card, in dp; null keeps bg_folder's // built-in 24dp round corners. cornerRadiiDp: FloatArray? = null, cornerCuts: List&lt;com.supernova.launcher.data.CornerCut&gt;? = null, // folderShowName pref: hides the title text, keeping the edit button. showTitle: Boolean = true, // folderShadow pref: the card's own elevation, not the window's - the // popup background is transparent, so the layout's 8dp is the shadow // anyone actually sees. Matches the menus; the window fills the screen, // so the only thing that could cut this shadow off is the card sitting // too close to the window's edge, which the margin below covers. shadow: Boolean = true, // Animations.enabled: false skips the open/close transition. animate: Boolean = true, // Duration multiplier from the animation-speed pref. speed: Float = 1f, onRename: (String) -&gt; Unit, onEdit: (() -&gt; Unit)? = null, onDismiss: (() -&gt; Unit)? = null ): PopupWindow</ID>
+    <ID>CyclomaticComplexMethod:HomeGestureDetector.kt$HomeGestureDetector$fun onTouchEvent(event: MotionEvent): Boolean</ID>
+    <ID>CyclomaticComplexMethod:IconPackRepository.kt$IconPackRepository$@Synchronized fun load(packageName: String?)</ID>
+    <ID>CyclomaticComplexMethod:IconShape.kt$IconShape$fun pathFor(size: Float, custom: CustomShapeSpec? = null): Path?</ID>
+    <ID>CyclomaticComplexMethod:LabelStyler.kt$LabelStyler$fun apply( view: TextView, prefs: LauncherPrefs, onWallpaper: Boolean, context: LabelContext = LabelContext.DESKTOP )</ID>
+    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$override fun dispatchTouchEvent(ev: MotionEvent): Boolean</ID>
+    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$override fun handleDropToDock(payload: DragPayload, rank: Int): Boolean</ID>
+    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$override fun onDropToWorkspace( payload: DragPayload, page: Int, cellX: Int, cellY: Int, workspaceX: Float, workspaceY: Float, rawCellX: Float, rawCellY: Float ): Boolean</ID>
+    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$override fun viewForItem(item: LauncherItem): View</ID>
+    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun applyDockChrome(prefs: LauncherPrefs)</ID>
+    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun attachIconSwipe(view: View, item: LauncherItem)</ID>
+    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun launchWithAnimation(item: View?, launch: (Rect?, android.os.Bundle?) -&gt; Boolean)</ID>
+    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun observeState()</ID>
+    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun pressOnItem(rawX: Float, rawY: Float): Boolean</ID>
+    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun previewReorder(offsets: Map&lt;String, Pair&lt;Int, Int&gt;&gt;, animate: Boolean = true)</ID>
+    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun resetToHome(animate: Boolean, keepDrawer: Boolean): Boolean</ID>
+    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun runAction(bound: GestureBinding): Boolean</ID>
+    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun showDrawerItemMenu( anchor: View, app: LaunchableApp, source: android.widget.PopupWindow? = null ): SupernovaPopupMenu</ID>
+    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun showFolderChecklist(folder: LauncherItem)</ID>
+    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun showWorkspaceItemMenu(anchor: View, item: LauncherItem): SupernovaPopupMenu</ID>
+    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun trackDrawerPull(ev: MotionEvent): Boolean</ID>
+    <ID>CyclomaticComplexMethod:LauncherRepository.kt$LauncherRepository$suspend fun moveItemToWorkspace( itemId: String, page: Int, cellX: Int, cellY: Int, cols: Int, rows: Int, workspaceX: Float? = null, workspaceY: Float? = null, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList(), mergeFolders: Boolean = true, mergeTargetId: String? = null )</ID>
+    <ID>CyclomaticComplexMethod:LauncherRepository.kt$LauncherRepository.Companion$internal fun movedToDock(current: LauncherModel, itemId: String, rank: Int): LauncherModel</ID>
+    <ID>CyclomaticComplexMethod:LiveDragController.kt$LiveDragController$fun routeGesture(ev: MotionEvent, window: android.widget.PopupWindow?): Boolean</ID>
+    <ID>CyclomaticComplexMethod:LiveDragController.kt$LiveDragController$private fun dragPicture(anchor: View, payload: DragPayload): DragPicture?</ID>
+    <ID>CyclomaticComplexMethod:LiveDragController.kt$LiveDragController$private fun findDragTarget(rawX: Float, rawY: Float): DragTarget</ID>
+    <ID>CyclomaticComplexMethod:LiveDragController.kt$LiveDragController$private fun onLiveDragRelease(rawX: Float, rawY: Float)</ID>
+    <ID>CyclomaticComplexMethod:OnboardingActivity.kt$OnboardingActivity$private fun bindIcons(view: View)</ID>
+    <ID>CyclomaticComplexMethod:PageTransformers.kt$PageTransformers$fun forEffect(effect: ScrollEffect): ViewPager2.PageTransformer?</ID>
+    <ID>CyclomaticComplexMethod:SearchBarView.kt$SearchBarView$fun apply(config: DesktopSearchBarConfig, resolved: ResolvedSurface)</ID>
+    <ID>CyclomaticComplexMethod:SearchResultsAdapter.kt$SearchResultsAdapter$override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int)</ID>
+    <ID>CyclomaticComplexMethod:SearchResultsAdapter.kt$SearchResultsAdapter$private fun rowKey(row: Row): String</ID>
+    <ID>CyclomaticComplexMethod:SettingsActivity.kt$SettingsActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
+    <ID>CyclomaticComplexMethod:SettingsActivity.kt$SettingsActivity$private fun render()</ID>
+    <ID>CyclomaticComplexMethod:SettingsAdapter.kt$SettingsAdapter$private fun rebuild()</ID>
+    <ID>CyclomaticComplexMethod:SettingsCatalogue.kt$SettingsCatalogue$fun sections( context: Context, viewModel: LauncherViewModel, actions: Actions ): List&lt;SettingsSection&gt;</ID>
+    <ID>CyclomaticComplexMethod:SettingsPreviewView.kt$SettingsPreviewView$fun tick(prefs: LauncherPrefs)</ID>
+    <ID>CyclomaticComplexMethod:ShortcutSearchProvider.kt$ShortcutSearchProvider$override fun search(query: String): List&lt;SearchResult&gt;</ID>
+    <ID>CyclomaticComplexMethod:StylePickerSheet.kt$StylePickerSheet$fun show(context: Context, viewModel: LauncherViewModel, surfaceId: SurfaceId)</ID>
+    <ID>CyclomaticComplexMethod:WidgetPickerAdapter.kt$WidgetPickerAdapter$private fun rebuild()</ID>
+    <ID>CyclomaticComplexMethod:WorkspaceGeometry.kt$WorkspaceGeometry$private fun attemptPush( statics: List&lt;LauncherItem&gt;, blockers: List&lt;LauncherItem&gt;, rects: Map&lt;String, CellRect&gt;, target: CellRect, dir: Pair&lt;Int, Int&gt;, cols: Int, rows: Int ): List&lt;ReorderMove&gt;?</ID>
+    <ID>CyclomaticComplexMethod:WorkspacePagerAdapter.kt$WorkspacePagerAdapter.PageViewHolder$fun bind(page: Int)</ID>
+    <ID>ForEachOnRange:DrawerController.kt$DrawerController$(0 until searchRow.childCount).reversed()</ID>
+    <ID>ForEachOnRange:SearchResultsAdapter.kt$SearchResultsAdapter.RowHolder$root.childCount - 1 downTo 0</ID>
+    <ID>ForEachOnRange:WorkspacePagerAdapter.kt$WorkspacePagerAdapter$0 until pageCount</ID>
+    <ID>LargeClass:DrawerController.kt$DrawerController</ID>
+    <ID>LargeClass:LauncherActivity.kt$LauncherActivity : AppCompatActivityHostHostHost</ID>
+    <ID>LargeClass:LauncherRepository.kt$LauncherRepository</ID>
+    <ID>LargeClass:LauncherViewModel.kt$LauncherViewModel : AndroidViewModel</ID>
+    <ID>LargeClass:LiveDragController.kt$LiveDragController</ID>
+    <ID>LargeClass:SettingsActivity.kt$SettingsActivity : AppCompatActivity</ID>
+    <ID>LargeClass:SettingsCatalogue.kt$SettingsCatalogue</ID>
+    <ID>LargeClass:SettingsPreviewView.kt$SettingsPreviewView : FrameLayout</ID>
+    <ID>LongMethod:AppCatalog.kt$AppCatalog$fun iconFor(app: LaunchableApp): Drawable?</ID>
+    <ID>LongMethod:AppEditSheet.kt$AppEditSheet$fun show( context: Context, scope: CoroutineScope, viewModel: LauncherViewModel, // Null only with itemLabel, for an item with no app behind it. app: LaunchableApp?, // Host-provided photo picker (the ActivityResult launcher must be // registered on the activity); null hides the photo option. pickPhoto: (((android.net.Uri?) -&gt; Unit) -&gt; Unit)? = null, // Per-item swipe editing. Non-null only when editing a placed // workspace item: `swipeLabels` reads the current up/down labels and // `onEditSwipe` opens the host picker, calling back with the chosen // label (null = cleared) so the row can refresh without racing the // async model write. swipeLabels: ((down: Boolean) -&gt; String?)? = null, onEditSwipe: ((down: Boolean, onPicked: (String?) -&gt; Unit) -&gt; Unit)? = null, itemLabel: ItemLabel? = null )</ID>
+    <ID>LongMethod:BackupRoundTripTest.kt$BackupRoundTripTest$private fun nonDefaultPrefs()</ID>
+    <ID>LongMethod:BottomChrome.kt$BottomChrome$fun layout(s: Spec): Result</ID>
+    <ID>LongMethod:CardPreviews.kt$CardPreviews$fun builtIn(kind: BuiltInCard, parent: ViewGroup, prefs: LauncherPrefs): View</ID>
+    <ID>LongMethod:CardViewBinder.kt$CardViewBinder$private fun bindFeatured( binding: ItemFeedCustomBinding, card: FeedCard, featuredLabel: String? ): Boolean</ID>
+    <ID>LongMethod:ChoiceMenu.kt$ChoiceMenu$fun show( anchor: View, // Where the finger went down, in window coordinates. A settings row // spans the screen and its value sits at the far end of it, so a menu // pinned to the row's leading edge opens nowhere near the thing that // was pressed. The menu follows the touch instead, and is pushed back // inside the window when the touch is close to an edge. touchX: Float, surface: ResolvedSurface, labels: List&lt;CharSequence&gt;, // Index of the option currently in force, or -1 when the menu is a // plain list of things to do rather than a choice with a value. selected: Int, animate: Boolean = true, onPick: (Int) -&gt; Unit )</ID>
+    <ID>LongMethod:CustomCardEditorSheet.kt$CustomCardEditorSheet$fun editDayTime()</ID>
+    <ID>LongMethod:CustomCardEditorSheet.kt$CustomCardEditorSheet$fun show( activity: AppCompatActivity, viewModel: LauncherViewModel, existing: FeedCard?, // Opens the widget picker for a Widget-featured card; the card is saved // first so the bound widget attaches to a persisted id. onPickWidget: ((cardId: String) -&gt; Unit)? = null )</ID>
+    <ID>LongMethod:DesktopPreviewsOverlay.kt$DesktopPreviewsOverlay$private fun buildThumbColumn( page: Int, pages: Int, current: Int, default: Int, accent: Int ): View</ID>
+    <ID>LongMethod:DrawerController.kt$DrawerController$private fun applyStyle(prefs: LauncherPrefs)</ID>
+    <ID>LongMethod:FeedController.kt$FeedController$fun onTouch(ev: MotionEvent): TouchResult</ID>
+    <ID>LongMethod:FolderEditSheet.kt$FolderEditSheet$fun show( context: Context, scope: CoroutineScope, viewModel: LauncherViewModel, folder: LauncherItem, // Host-provided photo picker (the ActivityResult launcher is // registered on the activity). pickPhoto: ((android.net.Uri?) -&gt; Unit) -&gt; Unit, // Opens the host's swipe action picker, calling back with the chosen // label (null = cleared) so the row can refresh without racing the // async model write. onEditSwipe: (down: Boolean, onPicked: (String?) -&gt; Unit) -&gt; Unit )</ID>
+    <ID>LongMethod:FolderPopup.kt$FolderPopup$fun show( anchor: View, title: String, members: List&lt;LauncherItem&gt;, adapter: FolderMemberAdapter, columnsOverride: Int = 0, sortAz: Boolean = false, mode: FolderMode = FolderMode.WINDOW, scroll: FolderScroll = FolderScroll.VERTICAL, // Resolved FOLDER surface; null keeps the drawable's default color. surfaceColor: Int? = null, // Style-engine radii/cuts for the card, in dp; null keeps bg_folder's // built-in 24dp round corners. cornerRadiiDp: FloatArray? = null, cornerCuts: List&lt;com.supernova.launcher.data.CornerCut&gt;? = null, // folderShowName pref: hides the title text, keeping the edit button. showTitle: Boolean = true, // folderShadow pref: the card's own elevation, not the window's - the // popup background is transparent, so the layout's 8dp is the shadow // anyone actually sees. Matches the menus; the window fills the screen, // so the only thing that could cut this shadow off is the card sitting // too close to the window's edge, which the margin below covers. shadow: Boolean = true, // Animations.enabled: false skips the open/close transition. animate: Boolean = true, // Duration multiplier from the animation-speed pref. speed: Float = 1f, onRename: (String) -&gt; Unit, onEdit: (() -&gt; Unit)? = null, onDismiss: (() -&gt; Unit)? = null ): PopupWindow</ID>
+    <ID>LongMethod:HomeEditController.kt$HomeEditController$fun enter()</ID>
+    <ID>LongMethod:HomeGestureDetector.kt$HomeGestureDetector$fun onTouchEvent(event: MotionEvent): Boolean</ID>
+    <ID>LongMethod:LauncherActivity.kt$LauncherActivity$override fun onDropToWorkspace( payload: DragPayload, page: Int, cellX: Int, cellY: Int, workspaceX: Float, workspaceY: Float, rawCellX: Float, rawCellY: Float ): Boolean</ID>
+    <ID>LongMethod:LauncherActivity.kt$LauncherActivity$override fun viewForItem(item: LauncherItem): View</ID>
+    <ID>LongMethod:LauncherActivity.kt$LauncherActivity$private fun applyDockChrome(prefs: LauncherPrefs)</ID>
+    <ID>LongMethod:LauncherActivity.kt$LauncherActivity$private fun observeState()</ID>
+    <ID>LongMethod:LauncherActivity.kt$LauncherActivity$private fun runAction(bound: GestureBinding): Boolean</ID>
+    <ID>LongMethod:LauncherActivity.kt$LauncherActivity$private fun setupSearch()</ID>
+    <ID>LongMethod:LauncherActivity.kt$LauncherActivity$private fun showDrawerFolderPopup(anchor: View, group: DrawerGroup, members: List&lt;LaunchableApp&gt;)</ID>
+    <ID>LongMethod:LauncherActivity.kt$LauncherActivity$private fun showDrawerItemMenu( anchor: View, app: LaunchableApp, source: android.widget.PopupWindow? = null ): SupernovaPopupMenu</ID>
+    <ID>LongMethod:LauncherActivity.kt$LauncherActivity$private fun showFolderChecklist(folder: LauncherItem)</ID>
+    <ID>LongMethod:LauncherActivity.kt$LauncherActivity$private fun showFolderPopup(anchor: View, folder: LauncherItem)</ID>
+    <ID>LongMethod:LauncherActivity.kt$LauncherActivity$private fun showWorkspaceItemMenu(anchor: View, item: LauncherItem): SupernovaPopupMenu</ID>
+    <ID>LongMethod:LauncherPreferences.kt$LauncherPreferences.Companion$fun writeAll(target: MutablePreferences, prefs: LauncherPrefs)</ID>
+    <ID>LongMethod:LiveDragController.kt$LiveDragController$fun routeGesture(ev: MotionEvent, window: android.widget.PopupWindow?): Boolean</ID>
+    <ID>LongMethod:LiveDragController.kt$LiveDragController$private fun onLiveDragRelease(rawX: Float, rawY: Float)</ID>
+    <ID>LongMethod:OnboardingActivity.kt$OnboardingActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
+    <ID>LongMethod:OnboardingActivity.kt$OnboardingActivity$private fun bindSearch(view: View)</ID>
+    <ID>LongMethod:SettingsActivity.kt$SettingsActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
+    <ID>LongMethod:SettingsActivity.kt$SettingsActivity$private fun render()</ID>
+    <ID>LongMethod:SettingsActivity.kt$SettingsActivity$private fun showDrawerSearchBarEditor()</ID>
+    <ID>LongMethod:SettingsActivity.kt$SettingsActivity$private fun showSearchBarEditor()</ID>
+    <ID>LongMethod:SettingsCatalogue.kt$SettingsCatalogue$fun sections( context: Context, viewModel: LauncherViewModel, actions: Actions ): List&lt;SettingsSection&gt;</ID>
+    <ID>LongMethod:SettingsPreviewView.kt$SettingsPreviewView$private fun folderWindowView( prefs: LauncherPrefs, viewModel: LauncherViewModel, resolved: com.supernova.launcher.ui.theme.ResolvedSurface ): View</ID>
+    <ID>LongMethod:StylePickerSheet.kt$StylePickerSheet$fun show(context: Context, viewModel: LauncherViewModel, surfaceId: SurfaceId)</ID>
+    <ID>LongMethod:WorkspacePagerAdapter.kt$WorkspacePagerAdapter.PageViewHolder$fun bind(page: Int)</ID>
+    <ID>LongParameterList:AppDrawerAdapter.kt$AppDrawerAdapter$( private val appCatalog: AppCatalog, private val decorateIcon: (Drawable?, LaunchableApp) -&gt; Drawable?, private val decorateFolderIcon: (Drawable, FolderEntry) -&gt; Drawable = { icon, _ -&gt; icon }, private val onClick: (View, LaunchableApp) -&gt; Unit, private val onLongPress: (View, LaunchableApp) -&gt; Unit, private val onWebSearch: () -&gt; Unit, // Tap on one of the "Search with" marks shown when nothing matched. private val onChip: (com.supernova.launcher.search.SearchChip, String) -&gt; Unit = { _, _ -&gt; }, private val onFolderClick: (View, FolderEntry) -&gt; Unit = { _, _ -&gt; }, // A folder long-pressed: its menu, and a drag that puts a copy on the // home screen. private val onFolderLongPress: (View, FolderEntry) -&gt; Unit = { _, _ -&gt; } )</ID>
+    <ID>LongParameterList:AppEditSheet.kt$AppEditSheet$( context: Context, scope: CoroutineScope, viewModel: LauncherViewModel, // Null only with itemLabel, for an item with no app behind it. app: LaunchableApp?, // Host-provided photo picker (the ActivityResult launcher must be // registered on the activity); null hides the photo option. pickPhoto: (((android.net.Uri?) -&gt; Unit) -&gt; Unit)? = null, // Per-item swipe editing. Non-null only when editing a placed // workspace item: `swipeLabels` reads the current up/down labels and // `onEditSwipe` opens the host picker, calling back with the chosen // label (null = cleared) so the row can refresh without racing the // async model write. swipeLabels: ((down: Boolean) -&gt; String?)? = null, onEditSwipe: ((down: Boolean, onPicked: (String?) -&gt; Unit) -&gt; Unit)? = null, itemLabel: ItemLabel? = null )</ID>
+    <ID>LongParameterList:AppEditSheet.kt$IconPickerSheet$( context: Context, scope: CoroutineScope, viewModel: LauncherViewModel, allowDefault: Boolean = false, // When set, a "Photo" entry lets the caller pick a gallery image. onPickPhoto: (() -&gt; Unit)? = null, onPick: (pack: String?, name: String?) -&gt; Unit )</ID>
+    <ID>LongParameterList:BottomChrome.kt$BottomChrome.Spec$( val density: Float, val landscape: Boolean, // The navigation bar's height: the chrome sits above it while the // wallpaper keeps running underneath. val navInset: Int, val dockEnabled: Boolean, // An overlay dock draws over the workspace and reserves nothing. val dockOverlay: Boolean, // The dock's background runs to the window's bottom edge, the // navigation bar folded into its own padding. val dockBehindNav: Boolean, // The dock's background rests on the navigation bar. val dockFullBleed: Boolean, // As laid out, padding included. val dockHeight: Int, // From the dock's top edge down to its icons' top. val dockIconInset: Int, // No background: the dock's padding is empty space. val dockBare: Boolean, val slot: BarSlot?, val arrowWanted: Boolean, val arrowHeight: Int, val indicatorOn: Boolean, // The page padding under the grid's bottom row. val pagePadding: Int )</ID>
+    <ID>LongParameterList:BottomChromeTest.kt$BottomChromeTest$( landscape: Boolean = false, dockEnabled: Boolean = true, dockOverlay: Boolean = false, dockBehindNav: Boolean = false, dockHeight: Int = 80, dockIconInset: Int = 6, dockBare: Boolean = true, slot: BarSlot? = BarSlot.BELOW_DOCK, arrowWanted: Boolean = false, indicatorOn: Boolean = false, pagePadding: Int = 12 )</ID>
+    <ID>LongParameterList:CardViewBinder.kt$CardViewBinder.Companion$( context: Context, icon: Drawable?, label: CharSequence, textColor: Int, // Search's shortcut pills: menu and drag. Cards leave it off. onLongPress: ((View) -&gt; Unit)? = null, onTap: (View) -&gt; Unit )</ID>
+    <ID>LongParameterList:ChoiceMenu.kt$ChoiceMenu$( anchor: View, // Where the finger went down, in window coordinates. A settings row // spans the screen and its value sits at the far end of it, so a menu // pinned to the row's leading edge opens nowhere near the thing that // was pressed. The menu follows the touch instead, and is pushed back // inside the window when the touch is close to an edge. touchX: Float, surface: ResolvedSurface, labels: List&lt;CharSequence&gt;, // Index of the option currently in force, or -1 when the menu is a // plain list of things to do rather than a choice with a value. selected: Int, animate: Boolean = true, onPick: (Int) -&gt; Unit )</ID>
+    <ID>LongParameterList:ChoiceMenu.kt$ChoiceMenu$( context: Context, surface: ResolvedSurface, label: CharSequence, checked: Boolean, density: Float, onClick: () -&gt; Unit )</ID>
+    <ID>LongParameterList:DockSwapTest.kt$DockSwapTest$(id: String, container: ContainerType, page: Int = 0, x: Int = 0, y: Int = 0, rank: Int = 0, folder: String? = null)</ID>
+    <ID>LongParameterList:DragGridView.kt$DragGridView$( cols: Int, rows: Int, gridRect: RectF, fingerX: Float, fingerY: Float, target: WorkspaceGeometry.CellRect?, slideMs: Long, fadeMs: Long )</ID>
+    <ID>LongParameterList:DragLayer.kt$DragLayer$(bitmap: Bitmap, fingerRawX: Float, fingerRawY: Float, source: Rect?, scale: Float, durationMs: Long)</ID>
+    <ID>LongParameterList:DrawerController.kt$DrawerController$( private val binding: ActivityLauncherBinding, private val viewModel: LauncherViewModel, private val decorateIcon: (Drawable?, LaunchableApp) -&gt; Drawable?, private val onAppClick: (View?, LaunchableApp) -&gt; Unit, private val onAppLongPress: (View, LaunchableApp) -&gt; Unit, private val onWebSearch: (String) -&gt; Unit, // Empty-state "Search with" marks hand off to the same opener the overlay // uses, so a drawer search and a global one end up in the same place. private val onChipSearch: (com.supernova.launcher.search.SearchChip, String) -&gt; Unit, private val onGlobalSearch: () -&gt; Unit, // FOLDER-type groups: icon composition and tap handling live in the // activity, which owns FolderPopup and the icon pipeline. private val buildFolderIcon: (List&lt;LaunchableApp&gt;) -&gt; Drawable, // A drawer folder's badge (its members' summed count), applied at bind // so a count moving needs no new composition. private val decorateFolderIcon: (Drawable, List&lt;LaunchableApp&gt;) -&gt; Drawable = { icon, _ -&gt; icon }, private val onFolderClick: (View, DrawerGroup, List&lt;LaunchableApp&gt;) -&gt; Unit, // A folder long-pressed: its menu, and a drag to the home screen. private val onFolderLongPress: (View, DrawerGroup, List&lt;LaunchableApp&gt;) -&gt; Unit, // Activated custom cards above the list (the drawer cards); null // leaves the slot empty. private val cards: CardHost? = null )</ID>
+    <ID>LongParameterList:DrawerController.kt$DrawerController$( to: Float, duration: Long, interpolator: android.view.animation.Interpolator, translate: Boolean = true, content: Boolean = true, end: (() -&gt; Unit)? = null )</ID>
+    <ID>LongParameterList:FeedController.kt$FeedController$( private val binding: ActivityLauncherBinding, private val viewModel: LauncherViewModel, private val scope: CoroutineScope, private val activation: CardActivation, private val cardBinder: CardViewBinder, private val host: Host, // Whether a swipe that started at (x, y) on the workspace may pull the // feed in like a pager page (first page, no wrap-around, nothing armed). private val canPullFromWorkspace: (x: Float, y: Float) -&gt; Boolean = { _, _ -&gt; false }, // A long-press has armed an item drag (its menu is up): the gesture is // that drag's, wherever it started. private val itemDragArmed: () -&gt; Boolean = { false } )</ID>
+    <ID>LongParameterList:FolderDissolveTest.kt$FolderDissolveTest$(id: String, container: ContainerType, page: Int = 0, x: Int = 0, y: Int = 0, rank: Int = 0, folder: String? = null)</ID>
+    <ID>LongParameterList:FolderEditSheet.kt$FolderEditSheet$( context: Context, scope: CoroutineScope, viewModel: LauncherViewModel, folder: LauncherItem, // Host-provided photo picker (the ActivityResult launcher is // registered on the activity). pickPhoto: ((android.net.Uri?) -&gt; Unit) -&gt; Unit, // Opens the host's swipe action picker, calling back with the chosen // label (null = cleared) so the row can refresh without racing the // async model write. onEditSwipe: (down: Boolean, onPicked: (String?) -&gt; Unit) -&gt; Unit )</ID>
+    <ID>LongParameterList:FolderIconDrawable.kt$FolderIconDrawable$( private val members: List&lt;Drawable&gt;, private val sizePx: Int, private val style: FolderPreviewStyle = FolderPreviewStyle.GRID, plateColor: Int = DEFAULT_PLATE_COLOR, private val shape: IconShape? = null, private val customSpec: CustomShapeSpec? = null, outlineColor: Int = 0, private val outlineWidthPx: Float = 0f, private val clipMembers: Boolean = true, // First member drawn large and centred, the next three small along the // bottom; overrides the arrangement of every style. private val prioritizeFirst: Boolean = false )</ID>
+    <ID>LongParameterList:FolderPopup.kt$FolderPopup$( anchor: View, title: String, members: List&lt;LauncherItem&gt;, adapter: FolderMemberAdapter, columnsOverride: Int = 0, sortAz: Boolean = false, mode: FolderMode = FolderMode.WINDOW, scroll: FolderScroll = FolderScroll.VERTICAL, // Resolved FOLDER surface; null keeps the drawable's default color. surfaceColor: Int? = null, // Style-engine radii/cuts for the card, in dp; null keeps bg_folder's // built-in 24dp round corners. cornerRadiiDp: FloatArray? = null, cornerCuts: List&lt;com.supernova.launcher.data.CornerCut&gt;? = null, // folderShowName pref: hides the title text, keeping the edit button. showTitle: Boolean = true, // folderShadow pref: the card's own elevation, not the window's - the // popup background is transparent, so the layout's 8dp is the shadow // anyone actually sees. Matches the menus; the window fills the screen, // so the only thing that could cut this shadow off is the card sitting // too close to the window's edge, which the margin below covers. shadow: Boolean = true, // Animations.enabled: false skips the open/close transition. animate: Boolean = true, // Duration multiplier from the animation-speed pref. speed: Float = 1f, onRename: (String) -&gt; Unit, onEdit: (() -&gt; Unit)? = null, onDismiss: (() -&gt; Unit)? = null )</ID>
+    <ID>LongParameterList:LaunchPrelude.kt$IconLift$( iconLeft: Float, iconTop: Float, iconWidth: Float, iconHeight: Float, windowWidth: Float, windowHeight: Float, cellHeight: Float )</ID>
+    <ID>LongParameterList:LaunchPrelude.kt$LaunchPrelude$( icon: View, iconRect: RectF, snapshot: Bitmap, cellHeight: Float, speed: Float, onHandOff: (Rect) -&gt; Unit )</ID>
+    <ID>LongParameterList:LauncherActivity.kt$LauncherActivity$( model: com.supernova.launcher.data.LauncherModel, page: Int, target: WorkspaceGeometry.CellRect, spanX: Int, spanY: Int, excludeIds: Set&lt;String&gt; )</ID>
+    <ID>LongParameterList:LauncherActivity.kt$LauncherActivity$( packageName: String, shortcutId: String, className: String?, userSerial: Long, label: String, iconBase64: String? )</ID>
+    <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$( app: LaunchableApp, page: Int, cellX: Int, cellY: Int, cols: Int, rows: Int, workspaceX: Float? = null, workspaceY: Float? = null, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList(), mergeFolders: Boolean = true, mergeTargetId: String? = null )</ID>
+    <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$( app: LaunchableApp, shortcutId: String, label: String, iconBase64: String?, rank: Int, cols: Int, rows: Int, preferredPage: Int = 0 )</ID>
+    <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$( app: LaunchableApp, shortcutId: String, label: String, page: Int, cellX: Int, cellY: Int, cols: Int, rows: Int, workspaceX: Float? = null, workspaceY: Float? = null, iconBase64: String? = null, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList(), mergeFolders: Boolean = true, mergeTargetId: String? = null )</ID>
+    <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$( current: LauncherModel, page: Int, cellX: Int, cellY: Int, excludeId: String?, targetId: String? )</ID>
+    <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$( intentUri: String, label: String, iconBase64: String?, page: Int, cellX: Int, cellY: Int, cols: Int, rows: Int, workspaceX: Float? = null, workspaceY: Float? = null, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList() )</ID>
+    <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$( item: LauncherItem, cols: Int, rows: Int, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList(), mergeFolders: Boolean = true, mergeTargetId: String? = null )</ID>
+    <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$( item: LauncherItem, members: List&lt;LauncherItem&gt;, rank: Int, cols: Int, rows: Int, preferredPage: Int )</ID>
+    <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$( itemId: String, page: Int, cellX: Int, cellY: Int, cols: Int, rows: Int, workspaceX: Float? = null, workspaceY: Float? = null, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList(), mergeFolders: Boolean = true, mergeTargetId: String? = null )</ID>
+    <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$( label: String, apps: List&lt;LaunchableApp&gt;, page: Int, cellX: Int, cellY: Int, cols: Int, rows: Int, workspaceX: Float? = null, workspaceY: Float? = null, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList() )</ID>
+    <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$( label: String, apps: List&lt;LaunchableApp&gt;, rank: Int, cols: Int, rows: Int, preferredPage: Int = 0 )</ID>
+    <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$( page: Int, cellX: Int, cellY: Int, cols: Int, rows: Int, appWidgetId: Int, provider: String, label: String, spanX: Int, spanY: Int, // Neighbours a drag previewed aside; re-validated like every other // displacement, and dropped wholesale if the layout moved on. displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList() )</ID>
+    <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$(itemId: String, cellX: Int, cellY: Int, spanX: Int, spanY: Int, cols: Int, rows: Int)</ID>
+    <ID>LongParameterList:LauncherRepository.kt$LauncherRepository.Companion$( current: LauncherModel, item: LauncherItem, members: List&lt;LauncherItem&gt;, rank: Int, cols: Int, rows: Int, preferredPage: Int )</ID>
+    <ID>LongParameterList:LauncherRepository.kt$LauncherRepository.Companion$( original: LauncherModel, folder: LauncherItem, members: List&lt;LauncherItem&gt;, displace: List&lt;WorkspaceGeometry.ReorderMove&gt;, cols: Int, rows: Int )</ID>
+    <ID>LongParameterList:LauncherViewModel.kt$LauncherViewModel$( app: LaunchableApp, page: Int, cellX: Int, cellY: Int, workspaceX: Float? = null, workspaceY: Float? = null, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList(), mergeFolders: Boolean = true, mergeTargetId: String? = null )</ID>
+    <ID>LongParameterList:LauncherViewModel.kt$LauncherViewModel$( app: LaunchableApp, shortcutId: String, label: String, iconBase64: String?, rank: Int, preferredPage: Int = 0 )</ID>
+    <ID>LongParameterList:LauncherViewModel.kt$LauncherViewModel$( app: LaunchableApp, shortcutId: String, label: String, page: Int, cellX: Int, cellY: Int, workspaceX: Float? = null, workspaceY: Float? = null, iconBase64: String? = null, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList(), mergeFolders: Boolean = true, mergeTargetId: String? = null )</ID>
+    <ID>LongParameterList:LauncherViewModel.kt$LauncherViewModel$( intentUri: String, label: String, iconBase64: String?, page: Int, cellX: Int, cellY: Int, workspaceX: Float? = null, workspaceY: Float? = null, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList() )</ID>
+    <ID>LongParameterList:LauncherViewModel.kt$LauncherViewModel$( itemId: String, page: Int, cellX: Int, cellY: Int, workspaceX: Float? = null, workspaceY: Float? = null, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList(), mergeFolders: Boolean = true, mergeTargetId: String? = null )</ID>
+    <ID>LongParameterList:LauncherViewModel.kt$LauncherViewModel$( label: String, apps: List&lt;LaunchableApp&gt;, page: Int, cellX: Int, cellY: Int, workspaceX: Float? = null, workspaceY: Float? = null, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList() )</ID>
+    <ID>LongParameterList:LauncherViewModel.kt$LauncherViewModel$( page: Int, cellX: Int, cellY: Int, appWidgetId: Int, provider: String, label: String, spanX: Int, spanY: Int, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList() )</ID>
+    <ID>LongParameterList:LauncherViewModel.kt$LauncherViewModel$(itemId: String, cellX: Int, cellY: Int, spanX: Int, spanY: Int, onRefused: () -&gt; Unit = {})</ID>
+    <ID>LongParameterList:LiveDragController.kt$LiveDragController.Host$( payload: DragPayload, page: Int, canvas: ViewGroup, cellWidth: Int, cellHeight: Int, cellX: Int, cellY: Int, rawCellX: Float, rawCellY: Float )</ID>
+    <ID>LongParameterList:LiveDragController.kt$LiveDragController.Host$( payload: DragPayload, page: Int, cellX: Int, cellY: Int, workspaceX: Float, workspaceY: Float, rawCellX: Float, rawCellY: Float )</ID>
+    <ID>LongParameterList:SearchController.kt$SearchController$( input: android.widget.EditText, ghost: android.widget.TextView, results: androidx.recyclerview.widget.RecyclerView, cards: CardViewBinder?, afterLaunch: () -&gt; Unit, dismiss: () -&gt; Unit )</ID>
+    <ID>LongParameterList:SearchController.kt$SearchController$( private val binding: ActivityLauncherBinding, private val viewModel: LauncherViewModel, private val scope: CoroutineScope, private val onLaunchApp: (View?, LaunchableApp) -&gt; Unit, private val onLaunchShortcut: (View?, SearchResult.Shortcut) -&gt; Unit, private val onOpenUri: (String) -&gt; Unit, // The top hit's gear: the system App info page for the app. private val onAppInfo: (LaunchableApp) -&gt; Unit = {}, // Folder search (D3): cheap name hits, match-time icons, and the opener. private val folderHits: () -&gt; List&lt;com.supernova.launcher.search.FolderSearchProvider.Hit&gt; = { emptyList() }, private val folderIcon: (com.supernova.launcher.search.FolderSearchProvider.Hit) -&gt; android.graphics.drawable.Drawable? = { null }, private val onOpenFolder: (SearchResult.Folder) -&gt; Unit = {}, // Custom cards matched by name render as full cards; the activity builds // the binder so launches route (and hide the overlay) its way. private val cardBinder: CardViewBinder? = null, // The drawer's column count, which the app tiles share so they line up // with the drawer's grid in either orientation. private val drawerColumns: (() -&gt; Int)? = null, // The overlay has closed. private val onHidden: () -&gt; Unit = {}, // Long-presses on an app, an app shortcut or a drawer folder in the // results, on either surface: the item's menu, and a drag to the home // screen. private val onAppLongPress: (View, LaunchableApp) -&gt; Unit = { _, _ -&gt; }, private val onShortcutLongPress: (View, SearchResult.Shortcut) -&gt; Unit = { _, _ -&gt; }, private val onFolderLongPress: (View, SearchResult.Folder) -&gt; Unit = { _, _ -&gt; } )</ID>
+    <ID>LongParameterList:SearchController.kt$SearchController.Surface$( val input: android.widget.EditText, val ghost: android.widget.TextView, val results: androidx.recyclerview.widget.RecyclerView, val cards: CardViewBinder?, // After an app or shortcut launch. val afterLaunch: () -&gt; Unit, // After anything else that leaves search behind (a web search, a // contact, a folder, App info). val dismiss: () -&gt; Unit, // What an empty query shows. val onEmptyQuery: (Surface) -&gt; Unit )</ID>
+    <ID>LongParameterList:SearchResultsAdapter.kt$SearchResultsAdapter.Callbacks$( val onApp: (View, LaunchableApp) -&gt; Unit, val onShortcut: (View, SearchResult.Shortcut) -&gt; Unit, val onContact: (SearchResult.Contact) -&gt; Unit, val onContactCall: (String) -&gt; Unit, val onContactMessage: (String) -&gt; Unit, val onChip: (SearchChip, String) -&gt; Unit, val onCopyCalculation: (String) -&gt; Unit, val onFrequentApp: (View, LaunchableApp) -&gt; Unit, val onFolder: (SearchResult.Folder) -&gt; Unit, // The top hit's gear. val onAppInfo: (LaunchableApp) -&gt; Unit, // Long-presses on an app, an app shortcut, or a drawer folder: the // item's menu, and a drag to the home screen. The view is the one to // lift the picture from and to anchor the menu on. val onAppLongPress: (View, LaunchableApp) -&gt; Unit = { _, _ -&gt; }, val onShortcutLongPress: (View, SearchResult.Shortcut) -&gt; Unit = { _, _ -&gt; }, val onFolderLongPress: (View, SearchResult.Folder) -&gt; Unit = { _, _ -&gt; } )</ID>
+    <ID>LongParameterList:SettingItem.kt$SettingItem.LabelGroup$( @StringRes override val title: Int, val shown: (LauncherPrefs) -&gt; Boolean, val setShown: (Boolean) -&gt; Unit, val sizeMin: Int, val sizeMax: Int, val size: (LauncherPrefs) -&gt; Int, val setSize: (Int) -&gt; Unit, val sizeDisplay: (Int) -&gt; String, val font: (LauncherPrefs) -&gt; CharSequence, val pickFont: () -&gt; Unit, val shadow: (LauncherPrefs) -&gt; Boolean, val setShadow: (Boolean) -&gt; Unit, val singleLine: (LauncherPrefs) -&gt; Boolean, val setSingleLine: (Boolean) -&gt; Unit, // As Slider.preview, for the size bar. val previewSize: ((LauncherPrefs, Int) -&gt; LauncherPrefs)? = null, override val searchTitles: List&lt;Int&gt; = emptyList(), override val visibleIf: (LauncherPrefs) -&gt; Boolean = { true } )</ID>
+    <ID>LongParameterList:SettingItem.kt$SettingItem.Slider$( @StringRes override val title: Int, val min: Int, val max: Int, val step: Int = 1, val get: (LauncherPrefs) -&gt; Int, val set: (Int) -&gt; Unit, val display: (Int) -&gt; String, // Maps an uncommitted drag value onto a prefs snapshot so the section's // Preview row can render it without a DataStore round-trip. val preview: ((LauncherPrefs, Int) -&gt; LauncherPrefs)? = null, override val visibleIf: (LauncherPrefs) -&gt; Boolean = { true }, // The max while Labs' Big grid size options is on; null = max. val bigGridMax: Int? = null )</ID>
+    <ID>LongParameterList:SettingsCatalogue.kt$SettingsCatalogue.Actions$( // Every plain single-choice setting: the catalogue builds the Choice // (its values, labels and setter) and the activity only shows it. val pickChoice: (Choice) -&gt; Unit = {}, val pickIconPack: () -&gt; Unit = {}, val pickIconShape: () -&gt; Unit = {}, val resetCustomIcons: () -&gt; Unit = {}, val clearIconCache: () -&gt; Unit = {}, val exportIcons: () -&gt; Unit = {}, val managePermission: (LabsPermission) -&gt; Unit = {}, val pickDesktopGrid: () -&gt; Unit = {}, val editDrawerSearchBar: () -&gt; Unit = {}, val editThemeSchedule: () -&gt; Unit = {}, val showLicense: () -&gt; Unit = {}, val editDrawerButtons: () -&gt; Unit = {}, val editGesture: (Gesture) -&gt; Unit = {}, val pickLockMethod: () -&gt; Unit = {}, val editHiddenApps: () -&gt; Unit = {}, val editDrawerGroups: () -&gt; Unit = {}, val editSearchChips: () -&gt; Unit = {}, val pickDrawerGrid: () -&gt; Unit = {}, val editFolderIcon: () -&gt; Unit = {}, val editBadgedApps: () -&gt; Unit = {}, val postTestBadge: () -&gt; Unit = {}, val openPaletteDialog: () -&gt; Unit = {}, val openStylePicker: (SurfaceId) -&gt; Unit = {}, val showAutoBackups: () -&gt; Unit = {}, val exportBackup: () -&gt; Unit = {}, val importBackup: () -&gt; Unit = {}, // Phase 8 backup extras: ACTION_SEND a fresh export, factory-reset // the layout and prefs, re-run the onboarding wizard, and the // exit-and-relaunch process restart. val shareBackup: () -&gt; Unit = {}, val resetToDefaults: () -&gt; Unit = {}, val quickStart: () -&gt; Unit = {}, val restartLauncher: () -&gt; Unit = {}, // About &gt; Crash log: share the crash handler's log, or clear it. val showCrashLog: () -&gt; Unit = {}, // Fired only on a genuine user enable, so the activity can route to // the notification-access screen when permission is missing. val onBadgesEnabled: () -&gt; Unit = {}, // Fired on a genuine user enable, so the activity can run the // READ_CONTACTS runtime request when it isn't granted yet. val onSearchContactsEnabled: () -&gt; Unit = {}, // Location enhancement for Night mode's Auto: the activity stores it // and, on an enable, runs the coarse-location request. val setNightLocation: (Boolean) -&gt; Unit = {}, val editSearchBar: () -&gt; Unit = {}, val pickHideClock: () -&gt; Unit = {}, val editPopupRows: () -&gt; Unit = {}, // Feed page: contextual permission requests on genuine enables (the // contacts-search pattern), the custom-cards manager, and the // notification-access deep link for the media card note row. val onFeedCalendarEnabled: () -&gt; Unit = {}, val onFeedContactsEnabled: () -&gt; Unit = {}, // null = create a new card. val editCard: (com.supernova.launcher.feed.FeedCard?) -&gt; Unit = {}, val openCards: () -&gt; Unit = {}, val openNotificationAccess: () -&gt; Unit = {}, // Cards page renderings: a custom card through the feed's own binder, // a built-in card with placeholder content. val cardPreview: (com.supernova.launcher.feed.FeedCard, android.view.ViewGroup) -&gt; android.view.View = { _, parent -&gt; android.view.View(parent.context) }, val builtInPreview: (BuiltInCard, android.view.ViewGroup) -&gt; android.view.View = { _, parent -&gt; android.view.View(parent.context) }, // Opens a section by title (a built-in card's own settings page). val openSection: (Int) -&gt; Unit = {} )</ID>
+    <ID>LongParameterList:SettingsCatalogue.kt$SettingsCatalogue.Rows$( @StringRes title: Int, values: List&lt;T&gt;, current: (LauncherPrefs) -&gt; T, label: (T) -&gt; CharSequence, subtitle: (LauncherPrefs) -&gt; CharSequence? = { label(current(it)) }, visibleIf: (LauncherPrefs) -&gt; Boolean = { true }, onPick: (T) -&gt; Unit )</ID>
+    <ID>LongParameterList:SettingsCatalogue.kt$SettingsCatalogue.Rows$( @StringRes title: Int, values: List&lt;T&gt;, current: (LauncherPrefs) -&gt; T, label: (T) -&gt; Int, subtitle: (LauncherPrefs) -&gt; CharSequence? = { context.getString(label(current(it))) }, visibleIf: (LauncherPrefs) -&gt; Boolean = { true }, onPick: (T) -&gt; Unit )</ID>
+    <ID>LongParameterList:WidgetPickerAdapter.kt$WidgetPickerAdapter.RowViewHolder$( cell: View, preview: ImageView, label: TextView, span: TextView, provider: TextView, widget: WidgetPickerEntry.Widget )</ID>
+    <ID>LongParameterList:WidgetPickerGroups.kt$WidgetPickerGroups$( context: Context, cellWidthPx: Int, cellHeightPx: Int, cols: Int, rows: Int, filterPackage: String? = null, filter: ((android.appwidget.AppWidgetProviderInfo) -&gt; Boolean)? = null )</ID>
+    <ID>LongParameterList:WidgetPickerSheet.kt$WidgetPickerSheet$( activity: AppCompatActivity, cellWidthPx: Int, cellHeightPx: Int, cols: Int, rows: Int, // Non-null narrows the sheet to one app (the popup-menu "Widgets" // row); the empty state then means "this app has none". filterPackage: String? = null, // Narrows the list further (Replace offers search widgets only). filter: ((AppWidgetProviderInfo) -&gt; Boolean)? = null, // Current prefs, for the drawer surface color the sheet wears. prefs: com.supernova.launcher.data.LauncherPrefs, onPicked: (AppWidgetProviderInfo) -&gt; Unit, onPickShortcut: ((ShortcutTarget) -&gt; Unit)? = null )</ID>
+    <ID>LongParameterList:WidgetSizing.kt$WidgetSizing$( context: Context, info: AppWidgetProviderInfo, cellWidthPx: Int, cellHeightPx: Int, cols: Int, rows: Int )</ID>
+    <ID>LongParameterList:WidgetSizing.kt$WidgetSizing$( info: AppWidgetProviderInfo?, defaultSpanX: Int, defaultSpanY: Int, cellWidthPx: Int, cellHeightPx: Int, cols: Int, rows: Int )</ID>
+    <ID>LongParameterList:WorkspaceCanvas.kt$WorkspaceCanvas.WidgetParams$( cellX: Int, cellY: Int, spanX: Int, spanY: Int, val cols: Int, val rows: Int, // Settable, so a padding being picked can preview on the widget. var inset: Int )</ID>
+    <ID>LongParameterList:WorkspaceGeometry.kt$WorkspaceGeometry$( model: LauncherModel, page: Int, area: CellRect, cols: Int, rows: Int, excludeIds: Set&lt;String&gt; = emptySet(), // Bounds-only check: occupied cells count as free. Placement paths // pass allowPlacementOverlap here so drops may land on other items. ignoreItems: Boolean = false )</ID>
+    <ID>LongParameterList:WorkspaceGeometry.kt$WorkspaceGeometry$( model: LauncherModel, page: Int, nearCellX: Float, nearCellY: Float, spanX: Int, spanY: Int, cols: Int, rows: Int, excludeIds: Set&lt;String&gt; = emptySet() )</ID>
+    <ID>LongParameterList:WorkspaceGeometry.kt$WorkspaceGeometry$( model: LauncherModel, page: Int, spanX: Int, spanY: Int, cols: Int, rows: Int, excludeIds: Set&lt;String&gt; = emptySet() )</ID>
+    <ID>LongParameterList:WorkspaceGeometry.kt$WorkspaceGeometry$( model: LauncherModel, page: Int, target: CellRect, cols: Int, rows: Int, excludeIds: Set&lt;String&gt; )</ID>
+    <ID>LongParameterList:WorkspaceGeometry.kt$WorkspaceGeometry$( statics: List&lt;LauncherItem&gt;, blockers: List&lt;LauncherItem&gt;, rects: Map&lt;String, CellRect&gt;, target: CellRect, cols: Int, rows: Int )</ID>
+    <ID>LongParameterList:WorkspaceGeometry.kt$WorkspaceGeometry$( statics: List&lt;LauncherItem&gt;, blockers: List&lt;LauncherItem&gt;, rects: Map&lt;String, CellRect&gt;, target: CellRect, dir: Pair&lt;Int, Int&gt;, cols: Int, rows: Int )</ID>
+    <ID>LongParameterList:WorkspacePagerAdapter.kt$( canvasWidth: Int, canvasHeight: Int, cols: Int, rows: Int, subgrid: Boolean, rawX: Float, rawY: Float )</ID>
+    <ID>LongParameterList:WorkspaceReorderTest.kt$WorkspaceReorderTest$( model: LauncherModel, cellX: Int, cellY: Int, spanX: Int = 1, spanY: Int = 1, cols: Int = 5, rows: Int = 5, exclude: Set&lt;String&gt; = emptySet() )</ID>
+    <ID>LongParameterList:WorkspaceStackingTest.kt$WorkspaceStackingTest$(id: String, cellX: Int, cellY: Int, spanX: Int, spanY: Int, page: Int = 0)</ID>
+    <ID>LoopWithTooManyJumpStatements:Calculator.kt$Calculator$while</ID>
+    <ID>LoopWithTooManyJumpStatements:ContactSearchProvider.kt$ContactSearchProvider$while</ID>
+    <ID>LoopWithTooManyJumpStatements:FlowLayout.kt$FlowLayout$for</ID>
+    <ID>LoopWithTooManyJumpStatements:LauncherActivity.kt$LauncherActivity$for</ID>
+    <ID>LoopWithTooManyJumpStatements:SettingsSearchIndex.kt$SettingsSearchIndex.Companion$for</ID>
+    <ID>LoopWithTooManyJumpStatements:ShortcutSearchProvider.kt$ShortcutSearchProvider$for</ID>
+    <ID>LoopWithTooManyJumpStatements:WidgetPickerAdapter.kt$WidgetPickerAdapter$for</ID>
+    <ID>LoopWithTooManyJumpStatements:WorkspaceCanvas.kt$WorkspaceCanvas$for</ID>
+    <ID>LoopWithTooManyJumpStatements:WorkspaceGeometry.kt$WorkspaceGeometry$for</ID>
+    <ID>MagicNumber:Animations.kt$AnimationSpeed.FAST$0.6f</ID>
+    <ID>MagicNumber:Animations.kt$AnimationSpeed.FASTER$0.35f</ID>
+    <ID>MagicNumber:Animations.kt$AnimationSpeed.SLOW$1.6f</ID>
+    <ID>MagicNumber:AppCatalog.kt$AppCatalog$0.15f</ID>
+    <ID>MagicNumber:AppCatalog.kt$AppCatalog$0.2f</ID>
+    <ID>MagicNumber:AppCatalog.kt$AppCatalog$0.35f</ID>
+    <ID>MagicNumber:AppCatalog.kt$AppCatalog$0xFF</ID>
+    <ID>MagicNumber:AppCatalog.kt$AppCatalog$1024</ID>
+    <ID>MagicNumber:AppCatalog.kt$AppCatalog$128</ID>
+    <ID>MagicNumber:AppCatalog.kt$AppCatalog$16</ID>
+    <ID>MagicNumber:AppCatalog.kt$AppCatalog$192</ID>
+    <ID>MagicNumber:AppCatalog.kt$AppCatalog$24</ID>
+    <ID>MagicNumber:AppCatalog.kt$AppCatalog$3</ID>
+    <ID>MagicNumber:AppCatalog.kt$AppCatalog$4</ID>
+    <ID>MagicNumber:AppCatalog.kt$AppCatalog$64</ID>
+    <ID>MagicNumber:AppCatalog.kt$AppCatalog$8</ID>
+    <ID>MagicNumber:AppCatalog.kt$AppCatalog.&lt;no name provided&gt;$1024</ID>
+    <ID>MagicNumber:AppDrawerAdapter.kt$AppDrawerAdapter$16</ID>
+    <ID>MagicNumber:AppEditSheet.kt$IconPickerSheet$5</ID>
+    <ID>MagicNumber:AppMatcher.kt$AppMatcher$4</ID>
+    <ID>MagicNumber:BottomChrome.kt$BottomChrome$10</ID>
+    <ID>MagicNumber:BottomChrome.kt$BottomChrome$16</ID>
+    <ID>MagicNumber:BottomChrome.kt$BottomChrome$6</ID>
+    <ID>MagicNumber:BottomChrome.kt$BottomChrome$8</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$0.001</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$0.01</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$0.0254</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$0.0283495231</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$0.3048</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$0.45359237</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$0.9144</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$1000.0</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$1024</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$1024.0</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$1609.344</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$1e-6</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$1e-9</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$1e15</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$273.15</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$3</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$32</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$3600.0</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$5</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$60.0</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$604800.0</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$86400.0</ID>
+    <ID>MagicNumber:Calculator.kt$Calculator$9</ID>
+    <ID>MagicNumber:CalendarCardSource.kt$CalendarCardSource$3</ID>
+    <ID>MagicNumber:CalendarCardSource.kt$CalendarCardSource$4</ID>
+    <ID>MagicNumber:CardActivation.kt$CardActivation$3</ID>
+    <ID>MagicNumber:CardActivation.kt$CardActivation$4</ID>
+    <ID>MagicNumber:CardActivation.kt$CardActivation$5</ID>
+    <ID>MagicNumber:CardActivation.kt$CardActivation$6</ID>
+    <ID>MagicNumber:CardActivation.kt$CardActivation$7</ID>
+    <ID>MagicNumber:CardPreviews.kt$CardPreviews$0x33</ID>
+    <ID>MagicNumber:CardPreviews.kt$CardPreviews$0xFFFFFF</ID>
+    <ID>MagicNumber:CardPreviews.kt$CardPreviews$10</ID>
+    <ID>MagicNumber:CardPreviews.kt$CardPreviews$14f</ID>
+    <ID>MagicNumber:CardPreviews.kt$CardPreviews$18f</ID>
+    <ID>MagicNumber:CardPreviews.kt$CardPreviews$24</ID>
+    <ID>MagicNumber:CardPreviews.kt$CardPreviews$48</ID>
+    <ID>MagicNumber:CardPreviews.kt$CardPreviews$6</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$0x33</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$0xB3</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$0xFFFFFF</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$10</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$14</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$15f</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$18</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$22f</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$24</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$56</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$6</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$0x26</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$0xFFFFFF</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$14</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$14f</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$22</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$24</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$6</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$8</ID>
+    <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$12</ID>
+    <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$14</ID>
+    <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$15f</ID>
+    <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$16</ID>
+    <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$20</ID>
+    <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$220</ID>
+    <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$4</ID>
+    <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$8</ID>
+    <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$96</ID>
+    <ID>MagicNumber:ContactSearchProvider.kt$ContactSearchProvider$3</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$0.04045</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$0.055</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$0.0722</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$0.2126</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$0.7152</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$0x00FFFFFF</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$0xFF</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$1.055</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$100.0</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$116.0</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$12.92</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$16</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$16.0</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$2.4</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$216.0</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$24</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$24389.0</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$255.0</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$27.0</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$50.0</ID>
+    <ID>MagicNumber:Contrast.kt$Contrast$8</ID>
+    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$20</ID>
+    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$3</ID>
+    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$34</ID>
+    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$4</ID>
+    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$60</ID>
+    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$7</ID>
+    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$8</ID>
+    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$9</ID>
+    <ID>MagicNumber:CustomShapeSpec.kt$CustomShapeSpec$100</ID>
+    <ID>MagicNumber:DesktopPreviewsOverlay.kt$DesktopPreviewsOverlay$10</ID>
+    <ID>MagicNumber:DesktopPreviewsOverlay.kt$DesktopPreviewsOverlay$12</ID>
+    <ID>MagicNumber:DesktopPreviewsOverlay.kt$DesktopPreviewsOverlay$16f</ID>
+    <ID>MagicNumber:DesktopPreviewsOverlay.kt$DesktopPreviewsOverlay$22f</ID>
+    <ID>MagicNumber:DesktopPreviewsOverlay.kt$DesktopPreviewsOverlay$24</ID>
+    <ID>MagicNumber:DesktopPreviewsOverlay.kt$DesktopPreviewsOverlay$32f</ID>
+    <ID>MagicNumber:DesktopPreviewsOverlay.kt$DesktopPreviewsOverlay$4</ID>
+    <ID>MagicNumber:DesktopPreviewsOverlay.kt$DesktopPreviewsOverlay$6</ID>
+    <ID>MagicNumber:Dialogs.kt$DialogField$14</ID>
+    <ID>MagicNumber:Dialogs.kt$DialogField$24</ID>
+    <ID>MagicNumber:Dialogs.kt$DialogField$8</ID>
+    <ID>MagicNumber:DragGridView.kt$DragGridView$255</ID>
+    <ID>MagicNumber:DragLayer.kt$DragLayer$1.5f</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController$0x24</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController$0x33</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController$0x40</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController$0x5A</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController$0x80</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController$0x8A</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController$0xFFFFFF</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController$10</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController$12</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController$12f</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController$16</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController$18</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController$24</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController$250</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController$3</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController$40</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController$4f</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController.&lt;no name provided&gt;$1.5f</ID>
+    <ID>MagicNumber:DrawerController.kt$DrawerController.DrawerPagerAdapter$4</ID>
+    <ID>MagicNumber:DrawerOpenCurve.kt$DrawerOpenCurve$0.7f</ID>
+    <ID>MagicNumber:FastScrollerView.kt$FastScrollerView$16f</ID>
+    <ID>MagicNumber:FastScrollerView.kt$FastScrollerView$3f</ID>
+    <ID>MagicNumber:FastScrollerView.kt$FastScrollerView$52f</ID>
+    <ID>MagicNumber:FastScrollerView.kt$FastScrollerView$6f</ID>
+    <ID>MagicNumber:FastScrollerView.kt$FastScrollerView$8f</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.AddHolder$0x26</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.AddHolder$0xFFFFFF</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.AddHolder$24</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.CalendarHolder$14f</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.CalendarHolder$6</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.ContactsHolder$0x33</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.ContactsHolder$0xFFFFFF</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.ContactsHolder$10</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.ContactsHolder$18f</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.ContactsHolder$24</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.ContactsHolder$48</ID>
+    <ID>MagicNumber:FeedController.kt$FeedController$0xB3</ID>
+    <ID>MagicNumber:FeedController.kt$FeedController$0xFFFFFF</ID>
+    <ID>MagicNumber:FeedController.kt$FeedController$1000</ID>
+    <ID>MagicNumber:FeedController.kt$FeedController$12</ID>
+    <ID>MagicNumber:FeedController.kt$FeedController$200</ID>
+    <ID>MagicNumber:FeedController.kt$FeedController$24</ID>
+    <ID>MagicNumber:FeedController.kt$FeedController$3</ID>
+    <ID>MagicNumber:FeedController.kt$FeedController$4</ID>
+    <ID>MagicNumber:FeedController.kt$FeedController$48</ID>
+    <ID>MagicNumber:FeedController.kt$FeedController$60_000L</ID>
+    <ID>MagicNumber:FeedController.kt$FeedController$8</ID>
+    <ID>MagicNumber:FlowLayout.kt$FlowLayout$8</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$0.03f</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$0.04f</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$0.06f</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$0.08f</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$0.10f</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$0.12f</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$0.20f</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$0.24f</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$0.335f</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$0.3f</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$0.52f</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$0.5f</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$0.62f</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$0.8f</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$14f</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$22f</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$3</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$3f</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$4</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$7</ID>
+    <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$9</ID>
+    <ID>MagicNumber:FolderPopup.kt$FolderPopup$0.15f</ID>
+    <ID>MagicNumber:FolderPopup.kt$FolderPopup$0.3f</ID>
+    <ID>MagicNumber:FolderPopup.kt$FolderPopup$0.45f</ID>
+    <ID>MagicNumber:FolderPopup.kt$FolderPopup$0.6f</ID>
+    <ID>MagicNumber:FolderPopup.kt$FolderPopup$0.72f</ID>
+    <ID>MagicNumber:FolderPopup.kt$FolderPopup$16f</ID>
+    <ID>MagicNumber:FolderPopup.kt$FolderPopup$20</ID>
+    <ID>MagicNumber:FolderPopup.kt$FolderPopup$24</ID>
+    <ID>MagicNumber:FolderPopup.kt$FolderPopup$3</ID>
+    <ID>MagicNumber:FolderPopup.kt$FolderPopup$4</ID>
+    <ID>MagicNumber:FolderPopup.kt$FolderPopup$48</ID>
+    <ID>MagicNumber:FolderPopup.kt$FolderPopup$72</ID>
+    <ID>MagicNumber:FolderPopup.kt$FolderPopup$9</ID>
+    <ID>MagicNumber:FrequentAppsRowView.kt$FrequentAppsRowView$12</ID>
+    <ID>MagicNumber:FrequentAppsRowView.kt$FrequentAppsRowView$12f</ID>
+    <ID>MagicNumber:FrequentAppsRowView.kt$FrequentAppsRowView$4</ID>
+    <ID>MagicNumber:FrequentAppsRowView.kt$FrequentAppsRowView$6</ID>
+    <ID>MagicNumber:FrequentAppsRowView.kt$FrequentAppsRowView$8</ID>
+    <ID>MagicNumber:GalleryIconCodec.kt$GalleryIconCodec$100</ID>
+    <ID>MagicNumber:GestureAction.kt$GestureDefaults$3</ID>
+    <ID>MagicNumber:HomeEditController.kt$HomeEditController$0.55f</ID>
+    <ID>MagicNumber:HomeEditController.kt$HomeEditController$10</ID>
+    <ID>MagicNumber:HomeEditController.kt$HomeEditController$100</ID>
+    <ID>MagicNumber:HomeEditController.kt$HomeEditController$12</ID>
+    <ID>MagicNumber:HomeEditController.kt$HomeEditController$16</ID>
+    <ID>MagicNumber:HomeEditController.kt$HomeEditController$24</ID>
+    <ID>MagicNumber:HomeEditController.kt$HomeEditController$8</ID>
+    <ID>MagicNumber:HomeGestureDetector.kt$HomeGestureDetector$180f</ID>
+    <ID>MagicNumber:HomeGestureDetector.kt$HomeGestureDetector$360f</ID>
+    <ID>MagicNumber:IconExporter.kt$IconExporter$100</ID>
+    <ID>MagicNumber:IconPackRepository.kt$IconPackRepository.Companion$0xFFFFFFFFL</ID>
+    <ID>MagicNumber:IconRenderer.kt$IconRenderer$0.3f</ID>
+    <ID>MagicNumber:IconRenderer.kt$IconRenderer$0.95f</ID>
+    <ID>MagicNumber:IconRenderer.kt$IconRenderer$1.05f</ID>
+    <ID>MagicNumber:IconRenderer.kt$IconRenderer$24</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$0.07f</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$0.08f</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$0.12f</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$0.14f</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$0.22f</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$0.25f</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$0.44f</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$0.47f</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$0.50f</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$0.52f</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$0.53f</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$0.59f</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$0.5f</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$0.62f</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$0.64f</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$0.75f</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$100f</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$180.0</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$3</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$360.0</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$8</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$90.0</ID>
+    <ID>MagicNumber:IconShape.kt$IconShape$90f</ID>
+    <ID>MagicNumber:LabelStyler.kt$LabelStyler$18</ID>
+    <ID>MagicNumber:LabelStyler.kt$LabelStyler$3f</ID>
+    <ID>MagicNumber:LabelStyler.kt$LabelStyler$9</ID>
+    <ID>MagicNumber:LaunchPrelude.kt$IconLift$200f</ID>
+    <ID>MagicNumber:LaunchPrelude.kt$IconLift$250f</ID>
+    <ID>MagicNumber:LaunchPrelude.kt$IconLift$360f</ID>
+    <ID>MagicNumber:LaunchPrelude.kt$IconLift$40f</ID>
+    <ID>MagicNumber:LaunchPrelude.kt$IconLift$450f</ID>
+    <ID>MagicNumber:LaunchPrelude.kt$IconLift$50f</ID>
+    <ID>MagicNumber:LaunchPrelude.kt$LaunchPrelude$255</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$0.2f</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$0.4f</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$0.5f</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$10</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$100</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$1000</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$12</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$120</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$14</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$16</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$18f</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$20</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$200</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$24</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$250</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$34</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$350</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$4</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$48</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$56</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$72</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$8</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$9</ID>
+    <ID>MagicNumber:LauncherActivity.kt$LauncherActivity$96</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences$0.2f</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences$0.6f</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences$0.7f</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences$1.6f</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences$1439</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences$18</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences$24</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences$3</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences$32</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences$48</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences$9</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences.Companion$0.2f</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences.Companion$0.6f</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences.Companion$0.7f</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences.Companion$1.6f</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences.Companion$1439</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences.Companion$18</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences.Companion$24</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences.Companion$3</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences.Companion$32</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences.Companion$48</ID>
+    <ID>MagicNumber:LauncherPreferences.kt$LauncherPreferences.Companion$9</ID>
+    <ID>MagicNumber:LauncherViewModel.kt$LauncherViewModel$0.001f</ID>
+    <ID>MagicNumber:LauncherViewModel.kt$LauncherViewModel$20</ID>
+    <ID>MagicNumber:LauncherViewModel.kt$LauncherViewModel$40</ID>
+    <ID>MagicNumber:LauncherViewModel.kt$LauncherViewModel$5f</ID>
+    <ID>MagicNumber:LauncherViewModel.kt$LauncherViewModel$80</ID>
+    <ID>MagicNumber:LauncherViewModel.kt$LauncherViewModel$90</ID>
+    <ID>MagicNumber:LiveDragController.kt$LiveDragController$12</ID>
+    <ID>MagicNumber:LiveDragController.kt$LiveDragController$150</ID>
+    <ID>MagicNumber:LiveDragController.kt$LiveDragController$150L</ID>
+    <ID>MagicNumber:LiveDragController.kt$LiveDragController$250</ID>
+    <ID>MagicNumber:LiveDragController.kt$LiveDragController$3</ID>
+    <ID>MagicNumber:LiveDragController.kt$LiveDragController$4</ID>
+    <ID>MagicNumber:LiveDragController.kt$LiveDragController$48</ID>
+    <ID>MagicNumber:LiveDragController.kt$LiveDragController$5</ID>
+    <ID>MagicNumber:LiveDragController.kt$LiveDragController$8</ID>
+    <ID>MagicNumber:MediaCardSource.kt$MediaCardSource$16</ID>
+    <ID>MagicNumber:MediaCardSource.kt$MediaCardSource$3</ID>
+    <ID>MagicNumber:MediaCardSource.kt$MediaCardSource$31</ID>
+    <ID>MagicNumber:MediaCardSource.kt$MediaCardSource$31L</ID>
+    <ID>MagicNumber:MediaCardSource.kt$MediaCardSource$4</ID>
+    <ID>MagicNumber:MiniGridView.kt$MiniGridView$3f</ID>
+    <ID>MagicNumber:MiniGridView.kt$MiniGridView$4</ID>
+    <ID>MagicNumber:MiniGridView.kt$MiniGridView$5</ID>
+    <ID>MagicNumber:ModelMigrations.kt$ModelMigrations$3</ID>
+    <ID>MagicNumber:ModelMigrations.kt$ModelMigrations$4</ID>
+    <ID>MagicNumber:Models.kt$DrawerGroup.Companion$3</ID>
+    <ID>MagicNumber:Models.kt$DrawerGroup.Companion$4</ID>
+    <ID>MagicNumber:NightWindow.kt$NightWindow$15.0</ID>
+    <ID>MagicNumber:NightWindow.kt$NightWindow$3600.0</ID>
+    <ID>MagicNumber:OnboardingActivity.kt$OnboardingActivity$100f</ID>
+    <ID>MagicNumber:OnboardingActivity.kt$OnboardingActivity$12</ID>
+    <ID>MagicNumber:OnboardingActivity.kt$OnboardingActivity$15f</ID>
+    <ID>MagicNumber:OnboardingActivity.kt$OnboardingActivity$8</ID>
+    <ID>MagicNumber:PageIndicatorMath.kt$PageIndicatorMath$0.5f</ID>
+    <ID>MagicNumber:PageIndicatorView.kt$PageIndicatorView$255</ID>
+    <ID>MagicNumber:PageTransformers.kt$PageTransformers$0.5f</ID>
+    <ID>MagicNumber:PageTransformers.kt$PageTransformers$90f</ID>
+    <ID>MagicNumber:PaletteSource.kt$PaletteFactory$0.12f</ID>
+    <ID>MagicNumber:PaletteSource.kt$PaletteFactory$0.25f</ID>
+    <ID>MagicNumber:PaletteSource.kt$PaletteFactory$0xFF</ID>
+    <ID>MagicNumber:PaletteSource.kt$PaletteFactory$16</ID>
+    <ID>MagicNumber:PaletteSource.kt$PaletteFactory$24</ID>
+    <ID>MagicNumber:PaletteSource.kt$PaletteFactory$31</ID>
+    <ID>MagicNumber:PaletteSource.kt$PaletteFactory$6</ID>
+    <ID>MagicNumber:SearchBarView.kt$SearchBarView$0x99</ID>
+    <ID>MagicNumber:SearchBarView.kt$SearchBarView$0xFFFFFF</ID>
+    <ID>MagicNumber:SearchBarView.kt$SearchBarView$10</ID>
+    <ID>MagicNumber:SearchBarView.kt$SearchBarView$12</ID>
+    <ID>MagicNumber:SearchBarView.kt$SearchBarView$13f</ID>
+    <ID>MagicNumber:SearchBarView.kt$SearchBarView$15f</ID>
+    <ID>MagicNumber:SearchBarView.kt$SearchBarView$16</ID>
+    <ID>MagicNumber:SearchBarView.kt$SearchBarView$20</ID>
+    <ID>MagicNumber:SearchBarView.kt$SearchBarView$24</ID>
+    <ID>MagicNumber:SearchBarView.kt$SearchBarView$255</ID>
+    <ID>MagicNumber:SearchBarView.kt$SearchBarView$36</ID>
+    <ID>MagicNumber:SearchBarView.kt$SearchBarView$4</ID>
+    <ID>MagicNumber:SearchBarView.kt$SearchBarView$6</ID>
+    <ID>MagicNumber:SearchBarView.kt$SearchBarView$8</ID>
+    <ID>MagicNumber:SearchController.kt$SearchController$0x80</ID>
+    <ID>MagicNumber:SearchController.kt$SearchController$0x99</ID>
+    <ID>MagicNumber:SearchController.kt$SearchController$0xFFFFFF</ID>
+    <ID>MagicNumber:SearchController.kt$SearchController$140L</ID>
+    <ID>MagicNumber:SearchController.kt$SearchController$14f</ID>
+    <ID>MagicNumber:SearchController.kt$SearchController$160L</ID>
+    <ID>MagicNumber:SearchController.kt$SearchController$160f</ID>
+    <ID>MagicNumber:SearchController.kt$SearchController$16f</ID>
+    <ID>MagicNumber:SearchController.kt$SearchController$24</ID>
+    <ID>MagicNumber:SearchController.kt$SearchController$24f</ID>
+    <ID>MagicNumber:SearchController.kt$SearchController$26f</ID>
+    <ID>MagicNumber:SearchController.kt$SearchController$3</ID>
+    <ID>MagicNumber:SearchController.kt$SearchController$48f</ID>
+    <ID>MagicNumber:SearchController.kt$SearchController$72</ID>
+    <ID>MagicNumber:SearchController.kt$SearchController$8</ID>
+    <ID>MagicNumber:SearchGridView.kt$SearchGridView$4</ID>
+    <ID>MagicNumber:SearchMarks.kt$SearchMarks$0x33</ID>
+    <ID>MagicNumber:SearchMarks.kt$SearchMarks$0xFFFFFF</ID>
+    <ID>MagicNumber:SearchMarks.kt$SearchMarks$24</ID>
+    <ID>MagicNumber:SearchOrchestrator.kt$SearchOrchestrator$3</ID>
+    <ID>MagicNumber:SearchOrchestrator.kt$SearchOrchestrator$4</ID>
+    <ID>MagicNumber:SearchOrchestrator.kt$SearchOrchestrator$5</ID>
+    <ID>MagicNumber:SearchOrchestrator.kt$SearchOrchestrator$6</ID>
+    <ID>MagicNumber:SearchOrchestrator.kt$SearchOrchestrator$7</ID>
+    <ID>MagicNumber:SearchResultsAdapter.kt$SearchResultsAdapter$16</ID>
+    <ID>MagicNumber:SearchResultsAdapter.kt$SearchResultsAdapter$4</ID>
+    <ID>MagicNumber:SearchResultsAdapter.kt$SearchResultsAdapter$8</ID>
+    <ID>MagicNumber:SearchResultsAdapter.kt$SearchResultsAdapter.CardHolder$16</ID>
+    <ID>MagicNumber:SearchResultsAdapter.kt$SearchResultsAdapter.DividerHolder$0x4D</ID>
+    <ID>MagicNumber:SearchResultsAdapter.kt$SearchResultsAdapter.DividerHolder$0xFFFFFF</ID>
+    <ID>MagicNumber:SearchResultsAdapter.kt$SearchResultsAdapter.DividerHolder$24</ID>
+    <ID>MagicNumber:SearchResultsAdapter.kt$SearchResultsAdapter.RowHolder$40</ID>
+    <ID>MagicNumber:SearchResultsAdapter.kt$SearchResultsAdapter.TopHitHolder$0x33</ID>
+    <ID>MagicNumber:SearchResultsAdapter.kt$SearchResultsAdapter.TopHitHolder$0xFFFFFF</ID>
+    <ID>MagicNumber:SearchResultsAdapter.kt$SearchResultsAdapter.TopHitHolder$24</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$0x30</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$0xFF42A5F5</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$0xFF66BB6A</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$0xFFEF5350</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$0xFFFFCA28</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$0xFFFFFF</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$100</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$12</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$120</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$13f</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$150</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$16</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$20</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$24</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$3</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$4</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$5</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$500</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$6</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$60</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$72</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$8</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$8f</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$96</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity.IconPackChoiceAdapter$36</ID>
+    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity.IconPackChoiceAdapter$8</ID>
+    <ID>MagicNumber:SettingsAdapter.kt$SettingsAdapter$0x44</ID>
+    <ID>MagicNumber:SettingsAdapter.kt$SettingsAdapter$0xFFFFFF</ID>
+    <ID>MagicNumber:SettingsAdapter.kt$SettingsAdapter$24</ID>
+    <ID>MagicNumber:SettingsAdapter.kt$SettingsAdapter$250</ID>
+    <ID>MagicNumber:SettingsAdapter.kt$SettingsAdapter$750</ID>
+    <ID>MagicNumber:SettingsAdapter.kt$SettingsAdapter.AccordionHolder$180f</ID>
+    <ID>MagicNumber:SettingsAdapter.kt$SettingsAdapter.LabelGroupHolder$180f</ID>
+    <ID>MagicNumber:SettingsAdapter.kt$SettingsAdapter.RowHolder$24</ID>
+    <ID>MagicNumber:SettingsAdapter.kt$SettingsAdapter.StyleTargetHolder$12f</ID>
+    <ID>MagicNumber:SettingsAdapter.kt$SettingsAdapter.StyleTargetHolder$4</ID>
+    <ID>MagicNumber:SettingsCatalogue.kt$SettingsCatalogue$100f</ID>
+    <ID>MagicNumber:SettingsCatalogue.kt$SettingsCatalogue$4</ID>
+    <ID>MagicNumber:SettingsCatalogue.kt$SettingsCatalogue$60</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$0x24</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$0x40</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$0x99</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$0xFFFFFF</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$10</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$12</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$13f</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$14</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$18</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$20</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$22</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$24</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$24f</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$255</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$26</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$30</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$4</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$5</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$6</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$64</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$7</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$8</ID>
+    <ID>MagicNumber:SettingsPreviewView.kt$SettingsPreviewView$9</ID>
+    <ID>MagicNumber:SolarTimes.kt$SolarTimes$0.000075</ID>
+    <ID>MagicNumber:SolarTimes.kt$SolarTimes$0.000907</ID>
+    <ID>MagicNumber:SolarTimes.kt$SolarTimes$0.00148</ID>
+    <ID>MagicNumber:SolarTimes.kt$SolarTimes$0.001868</ID>
+    <ID>MagicNumber:SolarTimes.kt$SolarTimes$0.002697</ID>
+    <ID>MagicNumber:SolarTimes.kt$SolarTimes$0.006758</ID>
+    <ID>MagicNumber:SolarTimes.kt$SolarTimes$0.006918</ID>
+    <ID>MagicNumber:SolarTimes.kt$SolarTimes$0.014615</ID>
+    <ID>MagicNumber:SolarTimes.kt$SolarTimes$0.032077</ID>
+    <ID>MagicNumber:SolarTimes.kt$SolarTimes$0.040849</ID>
+    <ID>MagicNumber:SolarTimes.kt$SolarTimes$0.070257</ID>
+    <ID>MagicNumber:SolarTimes.kt$SolarTimes$0.399912</ID>
+    <ID>MagicNumber:SolarTimes.kt$SolarTimes$229.18</ID>
+    <ID>MagicNumber:SolarTimes.kt$SolarTimes$3</ID>
+    <ID>MagicNumber:SolarTimes.kt$SolarTimes$4</ID>
+    <ID>MagicNumber:SolarTimes.kt$SolarTimes$4.0</ID>
+    <ID>MagicNumber:SolarTimes.kt$SolarTimes$60</ID>
+    <ID>MagicNumber:SolarTimes.kt$SolarTimes$720</ID>
+    <ID>MagicNumber:StylePickerSheet.kt$StylePickerSheet$10</ID>
+    <ID>MagicNumber:StylePickerSheet.kt$StylePickerSheet$100</ID>
+    <ID>MagicNumber:StylePickerSheet.kt$StylePickerSheet$114</ID>
+    <ID>MagicNumber:StylePickerSheet.kt$StylePickerSheet$13f</ID>
+    <ID>MagicNumber:StylePickerSheet.kt$StylePickerSheet$14</ID>
+    <ID>MagicNumber:StylePickerSheet.kt$StylePickerSheet$160_000</ID>
+    <ID>MagicNumber:StylePickerSheet.kt$StylePickerSheet$24</ID>
+    <ID>MagicNumber:StylePickerSheet.kt$StylePickerSheet$255</ID>
+    <ID>MagicNumber:StylePickerSheet.kt$StylePickerSheet$299</ID>
+    <ID>MagicNumber:StylePickerSheet.kt$StylePickerSheet$4</ID>
+    <ID>MagicNumber:StylePickerSheet.kt$StylePickerSheet$40</ID>
+    <ID>MagicNumber:StylePickerSheet.kt$StylePickerSheet$587</ID>
+    <ID>MagicNumber:StylePickerSheet.kt$StylePickerSheet$6</ID>
+    <ID>MagicNumber:StylePickerSheet.kt$StylePickerSheet$8</ID>
+    <ID>MagicNumber:SuggestedShortcuts.kt$SuggestedShortcuts$8</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$0x14</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$0x33</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$0xB3</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$0xFFFFFF</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$10</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$11</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$12</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$13</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$13f</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$14</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$14f</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$18</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$20</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$216</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$220</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$24</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$28</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$4</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$6</ID>
+    <ID>MagicNumber:SupernovaPopupMenu.kt$SupernovaPopupMenu$8</ID>
+    <ID>MagicNumber:SurfaceShapes.kt$SurfaceShapes$3</ID>
+    <ID>MagicNumber:SurfaceShapes.kt$SurfaceShapes$4</ID>
+    <ID>MagicNumber:SurfaceStyleResolver.kt$Styles$0x00FFFFFF</ID>
+    <ID>MagicNumber:SurfaceStyleResolver.kt$Styles$0xFF</ID>
+    <ID>MagicNumber:SurfaceStyleResolver.kt$Styles$24</ID>
+    <ID>MagicNumber:SurfaceStyleResolver.kt$Styles$255</ID>
+    <ID>MagicNumber:SurfaceStyleResolver.kt$Styles$4</ID>
+    <ID>MagicNumber:SwipeArrowDrawable.kt$SwipeArrowDrawable$90</ID>
+    <ID>MagicNumber:SwipeIndicatorDrawable.kt$SwipeIndicatorDrawable$3f</ID>
+    <ID>MagicNumber:SwipeIndicatorDrawable.kt$SwipeIndicatorDrawable$90</ID>
+    <ID>MagicNumber:ThemeEngine.kt$ThemeEngine$1000L</ID>
+    <ID>MagicNumber:ThemeEngine.kt$ThemeEngine$1440</ID>
+    <ID>MagicNumber:ThemeEngine.kt$ThemeEngine$2_000L</ID>
+    <ID>MagicNumber:ThemeEngine.kt$ThemeEngine$60</ID>
+    <ID>MagicNumber:ThemeEngine.kt$ThemeEngine$60_000L</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$0.5f</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$0xFF</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$10</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$100</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$100f</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$120f</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$16</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$180f</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$20</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$24</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$240f</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$255</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$255f</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$30</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$300f</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$360f</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$40</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$4f</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$50</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$60</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$60f</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$6f</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$70</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$8</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$80</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$90</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$95</ID>
+    <ID>MagicNumber:ToneRamp.kt$ToneRamp$99</ID>
+    <ID>MagicNumber:WidgetPickerAdapter.kt$WidgetPickerAdapter$40</ID>
+    <ID>MagicNumber:WidgetPickerAdapter.kt$WidgetPickerAdapter.HeaderViewHolder$180f</ID>
+    <ID>MagicNumber:WidgetResizeFrame.kt$WidgetResizeFrame$8f</ID>
+    <ID>MagicNumber:WorkspaceGeometry.kt$WorkspaceGeometry$0.5f</ID>
+    <ID>MagicNumber:WorkspacePagerAdapter.kt$0.5f</ID>
+    <ID>MagicNumber:WorkspacePagerAdapter.kt$WorkspacePagerAdapter$3</ID>
+    <ID>MagicNumber:WorkspacePagerAdapter.kt$WorkspacePagerAdapter.PageViewHolder$0.5f</ID>
+    <ID>MagicNumber:WorkspacePagerAdapter.kt$WorkspacePagerAdapter.PageViewHolder$3</ID>
+    <ID>MaxLineLength:AppDrawerAdapter.kt$AppDrawerAdapter.FolderRowHolder$labelPrefs?.let { LabelStyler.apply(binding.appLabel, it, onWallpaper = false, context = LabelContext.DRAWER) }</ID>
+    <ID>MaxLineLength:AppDrawerAdapter.kt$AppDrawerAdapter.FolderTileHolder$labelPrefs?.let { LabelStyler.apply(binding.appLabel, it, onWallpaper = false, context = LabelContext.DRAWER) }</ID>
+    <ID>MaxLineLength:AppDrawerAdapter.kt$AppDrawerAdapter.RowHolder$labelPrefs?.let { LabelStyler.apply(binding.appLabel, it, onWallpaper = false, context = LabelContext.DRAWER) }</ID>
+    <ID>MaxLineLength:AppDrawerAdapter.kt$AppDrawerAdapter.TileHolder$labelPrefs?.let { LabelStyler.apply(binding.appLabel, it, onWallpaper = false, context = LabelContext.DRAWER) }</ID>
+    <ID>MaxLineLength:AppMatcher.kt$AppMatcher$private fun isSeparator(c: Char): Boolean</ID>
+    <ID>MaxLineLength:DefaultLayoutBuilderTest.kt$DefaultLayoutBuilderTest$listOf(Seat("settings", x = 4, y = 0), Seat("email", x = 0, y = 5), Seat("gallery", x = 1, y = 5), Seat("market", x = 4, y = 5))</ID>
+    <ID>MaxLineLength:DockSwapTest.kt$DockSwapTest$LauncherItem(id = "g", itemType = ItemType.FOLDER, container = ContainerType.DOCK, rank = 0, label = "G")</ID>
+    <ID>MaxLineLength:DockSwapTest.kt$DockSwapTest$items = listOf(app("w", ContainerType.WORKSPACE, page = 1, x = 2, y = 3), app("d", ContainerType.DOCK, rank = 0))</ID>
+    <ID>MaxLineLength:DockSwapTest.kt$DockSwapTest$private</ID>
+    <ID>MaxLineLength:DragGridView.kt$DragGridView$}</ID>
+    <ID>MaxLineLength:DrawerController.kt$DrawerController$(searchConfig.radius ?: DrawerSearchBarConfig.MAX_RADIUS).coerceIn(0, DrawerSearchBarConfig.MAX_RADIUS) * density</ID>
+    <ID>MaxLineLength:DrawerController.kt$DrawerController$val key = "${tabBarMode.name}|${groups.joinToString { "${it.name}:${it.order}" }}|$workTab|$hideAll|${prefs.drawerDefaultTab}"</ID>
+    <ID>MaxLineLength:DrawerDropTest.kt$DrawerDropTest$val result = LauncherRepository.withNewFolder(model, folder(2, 3), members("x", "y", "z"), emptyList(), cols, rows)</ID>
+    <ID>MaxLineLength:FastScrollerView.kt$FastScrollerView$canvas.drawRoundRect(centre - thumbHalf, top, centre + thumbHalf, top + thumbHeight, thumbHalf, thumbHalf, thumbPaint)</ID>
+    <ID>MaxLineLength:FeedController.kt$FeedController$private</ID>
+    <ID>MaxLineLength:FeedController.kt$FeedController$val header = listOf(prefs.feedShowSearch, prefs.feedShowFrequent, prefs.feedShowShortcuts, prefs.feedShortcutRows)</ID>
+    <ID>MaxLineLength:FolderDissolveTest.kt$FolderDissolveTest$LauncherItem(id = "f", itemType = ItemType.FOLDER, container = ContainerType.DOCK, rank = 3, label = "F")</ID>
+    <ID>MaxLineLength:FolderDissolveTest.kt$FolderDissolveTest$private</ID>
+    <ID>MaxLineLength:FolderIconDrawable.kt$FolderIconDrawable$FolderPreviewStyle.RADIAL_DENSE -&gt; drawRadial(canvas, shownNine, ringScale = 0.22f, centerScale = 0.30f)</ID>
+    <ID>MaxLineLength:HomeGestureDetector.kt$HomeGestureDetector$private</ID>
+    <ID>MaxLineLength:LabsPermission.kt$LabsPermission$CALENDAR : LabsPermission</ID>
+    <ID>MaxLineLength:LabsPermission.kt$LabsPermission$CONTACTS : LabsPermission</ID>
+    <ID>MaxLineLength:LabsPermission.kt$LabsPermission.NEARBY_DEVICES$if (Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.S) arrayOf(Manifest.permission.BLUETOOTH_CONNECT) else emptyArray()</ID>
+    <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$(other.itemType == ItemType.APP || other.itemType == ItemType.SHORTCUT || other.itemType == ItemType.FOLDER)</ID>
+    <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$.</ID>
+    <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$binding.workspacePager</ID>
+    <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$class</ID>
+    <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$iconBase64 = shortcutOwnIcon(shortcut)?.let { com.supernova.launcher.data.GalleryIconCodec.encode(it) }</ID>
+    <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$if</ID>
+    <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$payload.itemId</ID>
+    <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$private</ID>
+    <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$val wx = if (prefs.subgrid) snapToHalfCell((rawCellX / cols).coerceIn(0f, 1f), cols) else (cellX + 0.5f) / cols</ID>
+    <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$val wy = if (prefs.subgrid) snapToHalfCell((rawCellY / rows).coerceIn(0f, 1f), rows) else (cellY + 0.5f) / rows</ID>
+    <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$viewModel.addShortcutToDock(item.owner, payload.shortcutId, payload.label, item.iconBase64, rank, page)</ID>
+    <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$viewModel.moveItemToWorkspace(member.id, page, free.first, free.second, mergeFolders = false)</ID>
+    <ID>MaxLineLength:LauncherPreferences.kt$LauncherPreferences$suspend fun setDrawerColumns(value: Int)</ID>
+    <ID>MaxLineLength:LauncherPreferences.kt$LauncherPreferences$suspend fun setFolderColumns(value: Int)</ID>
+    <ID>MaxLineLength:LauncherRepository.kt$LauncherRepository$suspend</ID>
+    <ID>MaxLineLength:LauncherRepository.kt$LauncherRepository$val folder = LauncherItem(id = id(), itemType = ItemType.FOLDER, container = ContainerType.DOCK, rank = rank, label = label)</ID>
+    <ID>MaxLineLength:LauncherRepository.kt$LauncherRepository.ImportResult$append(res.getQuantityString(R.plurals.backup_widgets_rebind, widgetsNeedingRebind, widgetsNeedingRebind))</ID>
+    <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$// the default tablet dock. The first-run wizard plants it as it opens. Planted once per install, and only over a layout that</ID>
+    <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$fun removeFolderMember(memberId: String, page: Int, cellX: Int, cellY: Int)</ID>
+    <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$fun reorderFolderMember(folderId: String, memberId: String, direction: Int)</ID>
+    <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$fun setCardWidget(cardId: String, appWidgetId: Int, provider: String)</ID>
+    <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$fun setDesktopPadding(horizontal: Int, vertical: Int)</ID>
+    <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$fun setFolderIcon(folderId: String, pack: String?, drawableName: String?, base64: String? = null)</ID>
+    <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$fun setSwipeAction(itemId: String, component: String?, label: String?, down: Boolean = false)</ID>
+    <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$fun setThemeSchedule(startMinute: Int, endMinute: Int)</ID>
+    <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$if (!repository.resizeWidget(itemId, cellX, cellY, spanX, spanY, prefs.gridCols, prefs.gridRows)) onRefused()</ID>
+    <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$repository.restoreItems(items, prefs.gridCols, prefs.gridRows, prefs.dockCount * prefs.dockPages.coerceAtLeast(1))</ID>
+    <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$return state.value.model.items.filter { it.container == ContainerType.FOLDER &amp;&amp; it.folderId == folderId }.sortedBy { it.rank }</ID>
+    <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$viewModelScope.launch(Dispatchers.Default) { catalog.invalidatePackages(listOf(change.packageName)) }</ID>
+    <ID>MaxLineLength:LiveDragController.kt$LiveDragController$?:</ID>
+    <ID>MaxLineLength:LiveDragController.kt$LiveDragController$payload is DragPayload.ExistingItem &amp;&amp; itemById(payload.itemId)?.itemType == ItemType.WIDGET -&gt; anchor.screenRect()</ID>
+    <ID>MaxLineLength:OnboardingActivity.kt$OnboardingActivity$else -&gt; Toast.makeText(this@OnboardingActivity, R.string.onboarding_skip_hint, Toast.LENGTH_SHORT).show()</ID>
+    <ID>MaxLineLength:OnboardingActivity.kt$OnboardingActivity$fun</ID>
+    <ID>MaxLineLength:OnboardingActivity.kt$OnboardingActivity$grid.addView(this, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))</ID>
+    <ID>MaxLineLength:OnboardingActivity.kt$OnboardingActivity$value.contentDescription = getString(R.string.onboarding_dropdown_description, getString(titleRes), labels[current])</ID>
+    <ID>MaxLineLength:OnboardingActivity.kt$OnboardingActivity.Companion$private</ID>
+    <ID>MaxLineLength:PinRequestActivity.kt$PinRequestActivity$private</ID>
+    <ID>MaxLineLength:PinRequestActivity.kt$PinRequestActivity$val (cellWidth, cellHeight) = estimatedCellSizePx(prefs.gridCols, prefs.gridRows, prefs.desktopPaddingH, prefs.desktopPaddingV)</ID>
+    <ID>MaxLineLength:PinRequestActivity.kt$PinRequestActivity$val (spanX, spanY) = WidgetSizing.defaultSpans(this, info, cellWidth, cellHeight, prefs.gridCols, prefs.gridRows)</ID>
+    <ID>MaxLineLength:PinRequestActivity.kt$PinRequestActivity$val options = WidgetSizing.initialBindOptions(spanX, spanY, cellWidth, cellHeight, resources.displayMetrics.density)</ID>
+    <ID>MaxLineLength:SearchBarView.kt$SearchBarView$addIconChip(R.drawable.ic_action_drawer, R.string.action_open_drawer, tint) { onOpenDrawer?.invoke() }</ID>
+    <ID>MaxLineLength:SearchBarView.kt$SearchBarView$addIconChip(R.drawable.ic_assistant, R.string.search_bar_chip_assistant, tint) { startAssistant() }</ID>
+    <ID>MaxLineLength:SearchController.kt$SearchController$private val folderIcon: (com.supernova.launcher.search.FolderSearchProvider.Hit) -&gt; android.graphics.drawable.Drawable? = { null }</ID>
+    <ID>MaxLineLength:SearchResultsAdapter.kt$SearchResultsAdapter$TYPE_PROVIDER_ICONS -&gt; ProviderIconsHolder(fullWidth(FrequentAppsRowView(parent.context)) as FrequentAppsRowView)</ID>
+    <ID>MaxLineLength:SettingsActivity.kt$SettingsActivity$.</ID>
+    <ID>MaxLineLength:SettingsActivity.kt$SettingsActivity$if (actionId != android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) return@setOnEditorActionListener false</ID>
+    <ID>MaxLineLength:SettingsActivity.kt$SettingsActivity$private</ID>
+    <ID>MaxLineLength:SettingsActivity.kt$SettingsActivity$var drawer = fullConfig.drawer.let { it.copy(radius = it.radius?.coerceIn(0, DrawerSearchBarConfig.MAX_RADIUS)) }</ID>
+    <ID>MaxLineLength:SettingsAdapter.kt$SettingsAdapter$TYPE_ACCORDION -&gt; AccordionHolder(ItemSettingAccordionBinding.inflate(inflater, parent, false), ::toggleAccordion)</ID>
+    <ID>MaxLineLength:SettingsCatalogue.kt$SettingsCatalogue$SettingItem.StyleTarget(R.string.settings, SurfaceId.SETTINGS, { actions.openStylePicker(SurfaceId.SETTINGS) })</ID>
+    <ID>MaxLineLength:SettingsCatalogue.kt$SettingsCatalogue$SettingItem.StyleTarget(R.string.settings_section_dock, SurfaceId.DOCK, { actions.openStylePicker(SurfaceId.DOCK) })</ID>
+    <ID>MaxLineLength:SettingsCatalogue.kt$SettingsCatalogue$SettingItem.StyleTarget(R.string.settings_section_drawer, SurfaceId.DRAWER, { actions.openStylePicker(SurfaceId.DRAWER) })</ID>
+    <ID>MaxLineLength:SettingsCatalogue.kt$SettingsCatalogue$SettingItem.StyleTarget(R.string.settings_section_folders, SurfaceId.FOLDER, { actions.openStylePicker(SurfaceId.FOLDER) })</ID>
+    <ID>MaxLineLength:SettingsCatalogue.kt$SettingsCatalogue$SettingItem.StyleTarget(R.string.style_popup, SurfaceId.POPUP, { actions.openStylePicker(SurfaceId.POPUP) })</ID>
+    <ID>MaxLineLength:SettingsCatalogue.kt$SettingsCatalogue$SettingItem.StyleTarget(R.string.style_search_bar, SurfaceId.SEARCH_BAR, { actions.openStylePicker(SurfaceId.SEARCH_BAR) })</ID>
+    <ID>MaxLineLength:SettingsCatalogue.kt$SettingsCatalogue.Rows$)</ID>
+    <ID>MaxLineLength:SettingsPreviewView.kt$SettingsPreviewView$com.supernova.launcher.ui.theme.SurfaceShapes.setColor(surfaceBg, withAlpha(styleAlpha ?: prefs.dockBgOpacity))</ID>
+    <ID>MaxLineLength:SettingsPreviewView.kt$SettingsPreviewView$com.supernova.launcher.ui.theme.SurfaceShapes.setColor(surfaceBg, withAlpha(styleAlpha ?: prefs.drawerBgOpacity))</ID>
+    <ID>MaxLineLength:SettingsPreviewView.kt$SettingsPreviewView$role(android.content.Intent.makeMainSelectorActivity(main, android.content.Intent.CATEGORY_APP_CALCULATOR), "calculator")</ID>
+    <ID>MaxLineLength:SolarTimesTest.kt$SolarTimesTest$assertTrue</ID>
+    <ID>MaxLineLength:SupernovaPopupMenu.kt$SupernovaPopupMenu$addGroupRow(buildRow(label, iconView(R.drawable.ic_menu_notification, context.dp(18)), sub = true, onClick), content)</ID>
+    <ID>MaxLineLength:SupernovaPopupMenu.kt$SupernovaPopupMenu$layoutParams = LinearLayout.LayoutParams(context.dp(24), context.dp(24)).apply { marginEnd = context.dp(14) }</ID>
+    <ID>MaxLineLength:SupernovaPopupMenu.kt$SupernovaPopupMenu$setPadding(0, context.dp(if (style == PopupMenuStyle.ANDROID12) 10 else 8), 0, context.dp(if (style == PopupMenuStyle.ANDROID12) 10 else 8))</ID>
+    <ID>MaxLineLength:SupernovaPopupMenu.kt$SupernovaPopupMenu$setPadding(context.dp(SHADOW_PAD_DP), context.dp(SHADOW_PAD_DP), context.dp(SHADOW_PAD_DP), context.dp(SHADOW_PAD_DP))</ID>
+    <ID>MaxLineLength:WidgetController.kt$WidgetController$label = info.loadLabel(activity.packageManager)?.toString().orEmpty().ifBlank { activity.getString(R.string.widget) }</ID>
+    <ID>MaxLineLength:WidgetController.kt$WidgetController$private</ID>
+    <ID>MaxLineLength:WidgetController.kt$WidgetController$runCatching { appWidgetManager.getAppWidgetInfo(widgetId)?.loadLabel(activity.packageManager)?.toString() }.getOrNull()</ID>
+    <ID>MaxLineLength:WidgetController.kt$WidgetController$val spans = WidgetSizing.defaultSpans(activity, info, cellWidth, cellHeight, prefs.gridCols, prefs.gridRows)</ID>
+    <ID>MaxLineLength:WidgetPickerAdapter.kt$WidgetPickerAdapter$val shortcuts = if (q.isEmpty() || groupMatches) group.shortcuts else group.shortcuts.filter { it.label.lowercase().contains(q) }</ID>
+    <ID>MaxLineLength:WidgetPickerAdapter.kt$WidgetPickerAdapter$val widgets = if (q.isEmpty() || groupMatches) group.widgets else group.widgets.filter { it.label.lowercase().contains(q) }</ID>
+    <ID>MaxLineLength:WorkspaceGeometry.kt$WorkspaceGeometry$isAreaFree(model, item.page, cellRect(item.cellX + item.spanX + right, item.cellY, 1, item.spanY), cols, rows, exclude)</ID>
+    <ID>MaxLineLength:WorkspaceGeometry.kt$WorkspaceGeometry$isAreaFree(model, item.page, cellRect(item.cellX - left - 1, item.cellY, 1, item.spanY), cols, rows, exclude)</ID>
+    <ID>MaxLineLength:WorkspaceGeometry.kt$WorkspaceGeometry$isAreaFree(model, item.page, cellRect(item.cellX, item.cellY + item.spanY + bottom, item.spanX, 1), cols, rows, exclude)</ID>
+    <ID>NestedBlockDepth:AppDrawerAdapter.kt$AppDrawerAdapter.Companion$fun &lt;T&gt; mergeByLabel(apps: List&lt;T&gt;, folders: List&lt;T&gt;, descending: Boolean, label: (T) -&gt; String): List&lt;T&gt;</ID>
+    <ID>NestedBlockDepth:AppMatcher.kt$AppMatcher$private fun oneTypo(l: String, starts: List&lt;Int&gt;, q: String): IntRange?</ID>
+    <ID>NestedBlockDepth:Calculator.kt$Calculator$private fun toRpn(tokens: List&lt;Token&gt;): List&lt;Token&gt;?</ID>
+    <ID>NestedBlockDepth:Calculator.kt$Calculator$private fun tokenize(text: String): List&lt;Token&gt;?</ID>
+    <ID>NestedBlockDepth:CardVisibility.kt$CardVisibility$fun minutesToNextBoundary(cards: List&lt;FeedCard&gt;, env: Environment): Int?</ID>
+    <ID>NestedBlockDepth:FeedAdapter.kt$FeedAdapter.ContactsHolder$fun bind(state: ContactsCardSource.ContactsState)</ID>
+    <ID>NestedBlockDepth:FeedController.kt$FeedController$fun onTouch(ev: MotionEvent): TouchResult</ID>
+    <ID>NestedBlockDepth:HomeGestureDetector.kt$HomeGestureDetector$fun onTouchEvent(event: MotionEvent): Boolean</ID>
+    <ID>NestedBlockDepth:IconRenderer.kt$IconRenderer$private fun normalized(bitmap: Bitmap): Bitmap</ID>
+    <ID>NestedBlockDepth:LauncherActivity.kt$LauncherActivity$private fun pressOnItem(rawX: Float, rawY: Float): Boolean</ID>
+    <ID>NestedBlockDepth:LauncherActivity.kt$LauncherActivity$private fun trackDrawerPull(ev: MotionEvent): Boolean</ID>
+    <ID>NestedBlockDepth:LiveDragController.kt$LiveDragController$fun routeGesture(ev: MotionEvent, window: android.widget.PopupWindow?): Boolean</ID>
+    <ID>NestedBlockDepth:LiveDragController.kt$LiveDragController$private fun onLiveDragRelease(rawX: Float, rawY: Float)</ID>
+    <ID>NestedBlockDepth:OnboardingActivity.kt$OnboardingActivity$private fun showMoreShapes(accent: Int, current: () -&gt; IconShape, onPick: (IconShape) -&gt; Unit)</ID>
+    <ID>NestedBlockDepth:SettingsAdapter.kt$SettingsAdapter$private fun rebuild()</ID>
+    <ID>NestedBlockDepth:WorkspaceGeometry.kt$WorkspaceGeometry$private fun relocateBlockers( statics: List&lt;LauncherItem&gt;, blockers: List&lt;LauncherItem&gt;, rects: Map&lt;String, CellRect&gt;, target: CellRect, cols: Int, rows: Int ): List&lt;ReorderMove&gt;?</ID>
+    <ID>ReturnCount:ActionShortcut.kt$ActionShortcut$fun decode(intentUri: String?): GestureBinding?</ID>
+    <ID>ReturnCount:AppCatalog.kt$AppCatalog$fun iconFor(app: LaunchableApp): Drawable?</ID>
+    <ID>ReturnCount:AppCatalog.kt$AppCatalog$fun mainActivityFor(packageName: String, userSerial: Long, className: String? = null): LaunchableApp?</ID>
+    <ID>ReturnCount:AppCatalog.kt$AppCatalog$fun userForSerial(serial: Long): UserHandle?</ID>
+    <ID>ReturnCount:AppCatalog.kt$AppCatalog$private fun monochromeThemedIcon( packageName: String, className: String, user: UserHandle, force: Boolean = false ): Drawable?</ID>
+    <ID>ReturnCount:AppEditSheet.kt$AppEditSheet$fun show( context: Context, scope: CoroutineScope, viewModel: LauncherViewModel, // Null only with itemLabel, for an item with no app behind it. app: LaunchableApp?, // Host-provided photo picker (the ActivityResult launcher must be // registered on the activity); null hides the photo option. pickPhoto: (((android.net.Uri?) -&gt; Unit) -&gt; Unit)? = null, // Per-item swipe editing. Non-null only when editing a placed // workspace item: `swipeLabels` reads the current up/down labels and // `onEditSwipe` opens the host picker, calling back with the chosen // label (null = cleared) so the row can refresh without racing the // async model write. swipeLabels: ((down: Boolean) -&gt; String?)? = null, onEditSwipe: ((down: Boolean, onPicked: (String?) -&gt; Unit) -&gt; Unit)? = null, itemLabel: ItemLabel? = null )</ID>
+    <ID>ReturnCount:AppMatcher.kt$AppMatcher$fun match(label: String, query: String): Match?</ID>
+    <ID>ReturnCount:AppMatcher.kt$AppMatcher$private fun oneTypo(l: String, starts: List&lt;Int&gt;, q: String): IntRange?</ID>
+    <ID>ReturnCount:AppMatcher.kt$AppMatcher$private fun runsFrom(l: String, starts: List&lt;Int&gt;, from: Int, q: String, qi: Int): List&lt;IntRange&gt;?</ID>
+    <ID>ReturnCount:ApplyIconPackActivity.kt$ApplyIconPackActivity$private fun requestedPack(): String?</ID>
+    <ID>ReturnCount:Calculator.kt$Calculator$fun evaluate(raw: String): Result?</ID>
+    <ID>ReturnCount:Calculator.kt$Calculator$private fun convertUnits(text: String): Result?</ID>
+    <ID>ReturnCount:Calculator.kt$Calculator$private fun evalRpn(rpn: List&lt;Token&gt;): Double?</ID>
+    <ID>ReturnCount:Calculator.kt$Calculator$private fun evaluateExpression(text: String): Result?</ID>
+    <ID>ReturnCount:Calculator.kt$Calculator$private fun formatNumber(value: Double): String</ID>
+    <ID>ReturnCount:Calculator.kt$Calculator$private fun normalizeRun(run: String): String?</ID>
+    <ID>ReturnCount:Calculator.kt$Calculator$private fun toRpn(tokens: List&lt;Token&gt;): List&lt;Token&gt;?</ID>
+    <ID>ReturnCount:Calculator.kt$Calculator$private fun tokenize(text: String): List&lt;Token&gt;?</ID>
+    <ID>ReturnCount:CardVisibility.kt$CardVisibility$private fun dayTimeHolds(condition: CardCondition, env: Environment): Boolean</ID>
+    <ID>ReturnCount:ConditionMonitor.kt$ConditionMonitor$fun locationUsable(): Boolean</ID>
+    <ID>ReturnCount:ContactSearchProvider.kt$ContactSearchProvider$override fun search(query: String): List&lt;SearchResult&gt;</ID>
+    <ID>ReturnCount:ContactSearchProvider.kt$ContactSearchProvider$private fun circularPhoto(photoUri: String?): Drawable?</ID>
+    <ID>ReturnCount:Contrast.kt$Contrast$fun ensure(text: Int, surface: Int, minimum: Int?): Int</ID>
+    <ID>ReturnCount:CustomCardEditorSheet.kt$CustomCardEditorSheet$internal fun iconForTarget(viewModel: LauncherViewModel, target: String): android.graphics.drawable.Drawable?</ID>
+    <ID>ReturnCount:CustomCardEditorSheet.kt$CustomCardEditorSheet$internal fun labelForTarget(viewModel: LauncherViewModel, target: String): String?</ID>
+    <ID>ReturnCount:CustomCardEditorSheet.kt$CustomCardEditorSheet$private fun locationUsable(context: Context): Boolean</ID>
+    <ID>ReturnCount:CustomShapeSpec.kt$CustomShapeSpec.Companion$fun decode(raw: String): CustomShapeSpec</ID>
+    <ID>ReturnCount:DesktopPreviewsOverlay.kt$DesktopPreviewsOverlay$private fun capturePage(page: Int, thumbWidth: Int, thumbHeight: Int): Bitmap?</ID>
+    <ID>ReturnCount:DragPayload.kt$internal fun LauncherItem.toLaunchableApp(): LaunchableApp?</ID>
+    <ID>ReturnCount:DrawerController.kt$DrawerController$private fun columnCount(prefs: LauncherPrefs): Int</ID>
+    <ID>ReturnCount:DrawerController.kt$DrawerController$private fun updateFrequentRow()</ID>
+    <ID>ReturnCount:DrawerController.kt$DrawerController.&lt;no name provided&gt;$override fun onFling( e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float ): Boolean</ID>
+    <ID>ReturnCount:DrawerController.kt$DrawerController.&lt;no name provided&gt;$override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean</ID>
+    <ID>ReturnCount:FastScrollerView.kt$FastScrollerView$@Suppress("ClickableViewAccessibility") override fun onTouchEvent(event: MotionEvent): Boolean</ID>
+    <ID>ReturnCount:FeedController.kt$FeedController$fun onTouch(ev: MotionEvent): TouchResult</ID>
+    <ID>ReturnCount:FeedController.kt$FeedController$private fun scheduleBoundary()</ID>
+    <ID>ReturnCount:GalleryIconCodec.kt$GalleryIconCodec$fun encode(context: Context, uri: Uri): String?</ID>
+    <ID>ReturnCount:GalleryIconCodec.kt$GalleryIconCodec$fun encode(drawable: android.graphics.drawable.Drawable): String?</ID>
+    <ID>ReturnCount:HomeGestureDetector.kt$HomeGestureDetector$private fun fireSwipeIfAny(event: MotionEvent)</ID>
+    <ID>ReturnCount:HomeSwipeClassifier.kt$HomeSwipeClassifier$fun classify( dx: Float, dy: Float, minDistance: Float, bias: Float, canScroll: (direction: Int) -&gt; Boolean ): Gesture?</ID>
+    <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$@Synchronized fun load(packageName: String?)</ID>
+    <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$fun decoration(component: String? = null): IconPackDecoration?</ID>
+    <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$fun themedIcon(packageName: String, className: String): Drawable?</ID>
+    <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$private fun &lt;T&gt; readAppFilter(resources: Resources, packageName: String, block: (XmlPullParser) -&gt; T): T?</ID>
+    <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$private fun drawableByName(name: String, resources: Resources? = packResources): Drawable?</ID>
+    <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$private fun normalizeComponent(raw: String): String?</ID>
+    <ID>ReturnCount:IconRenderer.kt$IconRenderer$private fun drawableToBitmap(drawable: Drawable): Bitmap</ID>
+    <ID>ReturnCount:IconRenderer.kt$IconRenderer$private fun normalized(bitmap: Bitmap): Bitmap</ID>
+    <ID>ReturnCount:IconShape.kt$IconShape$fun pathFor(size: Float, custom: CustomShapeSpec? = null): Path?</ID>
+    <ID>ReturnCount:LabelConfig.kt$LabelConfig.Companion$fun decode(raw: String): LabelConfig</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$@Suppress("DEPRECATION") private fun extractLegacyShortcutIcon(data: Intent): String?</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$@SuppressLint("WrongConstant", "PrivateApi") private fun expandNotificationShade()</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$fun carries(item: LauncherItem): Boolean</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$override fun animateWallpaperZoom(target: Float)</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$override fun dispatchTouchEvent(ev: MotionEvent): Boolean</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$override fun handleDropToDock(payload: DragPayload, rank: Int): Boolean</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$override fun onCanvasTap(page: Int, cellX: Int, cellY: Int, workspaceX: Float, workspaceY: Float)</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$override fun onDragOverWorkspace( payload: DragPayload, page: Int, canvas: ViewGroup, cellWidth: Int, cellHeight: Int, cellX: Int, cellY: Int, rawCellX: Float, rawCellY: Float )</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$override fun onDropToWorkspace( payload: DragPayload, page: Int, cellX: Int, cellY: Int, workspaceX: Float, workspaceY: Float, rawCellX: Float, rawCellY: Float ): Boolean</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$private fun drawerPullAllowed(): Boolean</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$private fun feedPullAllowed(x: Float, y: Float): Boolean</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$private fun folderHover(payload: DragPayload, page: Int, rawCellX: Float, rawCellY: Float): Boolean</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$private fun folderPreviewDrawable(folder: LauncherItem): android.graphics.drawable.Drawable</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$private fun handleMoveModeItemTap(target: LauncherItem): Boolean</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$private fun iconForCardTarget(target: String): android.graphics.drawable.Drawable?</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$private fun intentItemIcon(item: LauncherItem): android.graphics.drawable.Drawable?</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$private fun labelForCardTarget(target: String): String?</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$private fun launchSwipeAction(item: LauncherItem, action: String?, label: String?)</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$private fun launchWithAnimation(item: View?, launch: (Rect?, android.os.Bundle?) -&gt; Boolean)</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$private fun lockScreen(): Boolean</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$private fun pressOnItem(rawX: Float, rawY: Float): Boolean</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$private fun trackDrawerPull(ev: MotionEvent): Boolean</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$private fun withBadge( icon: android.graphics.drawable.Drawable?, packageName: String?, className: String?, userSerial: Long ): android.graphics.drawable.Drawable?</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity.&lt;no name provided&gt;$override fun pageViewFor(page: Int): View?</ID>
+    <ID>ReturnCount:LauncherRepository.kt$LauncherRepository.Companion$internal fun movedToDock(current: LauncherModel, itemId: String, rank: Int): LauncherModel</ID>
+    <ID>ReturnCount:LauncherRepository.kt$LauncherRepository.Companion$internal fun withSparseFolderDissolved(current: LauncherModel, folderId: String?): LauncherModel</ID>
+    <ID>ReturnCount:LauncherRepository.kt$LauncherRepository.Companion$private fun applyDisplacement( current: LauncherModel, displace: List&lt;WorkspaceGeometry.ReorderMove&gt;, movingId: String?, cols: Int, rows: Int ): LauncherModel?</ID>
+    <ID>ReturnCount:LauncherRepository.kt$LauncherRepository.Companion$private fun resolvePlacement( current: LauncherModel, item: LauncherItem, cols: Int, rows: Int ): LauncherItem?</ID>
+    <ID>ReturnCount:LauncherViewModel.kt$LauncherViewModel$fun overrideFor(item: LauncherItem): AppOverride?</ID>
+    <ID>ReturnCount:LauncherViewModel.kt$LauncherViewModel$fun renameGroup(group: DrawerGroup, newName: String): String?</ID>
+    <ID>ReturnCount:LiveDragController.kt$LiveDragController$fun routeGesture(ev: MotionEvent, window: android.widget.PopupWindow?): Boolean</ID>
+    <ID>ReturnCount:LiveDragController.kt$LiveDragController$private fun currentDragSource(payload: DragPayload?): View?</ID>
+    <ID>ReturnCount:LiveDragController.kt$LiveDragController$private fun findDragTarget(rawX: Float, rawY: Float): DragTarget</ID>
+    <ID>ReturnCount:LiveDragController.kt$LiveDragController$private fun flipPageForDrag(direction: Int): Boolean</ID>
+    <ID>ReturnCount:LiveDragController.kt$LiveDragController$private fun hoverWorkspace(target: DragTarget.Workspace, rawX: Float, rawY: Float)</ID>
+    <ID>ReturnCount:LiveDragController.kt$LiveDragController$private fun onLiveDragRelease(rawX: Float, rawY: Float)</ID>
+    <ID>ReturnCount:LiveDragController.kt$LiveDragController$private fun pageSlideX(canvas: View): Int</ID>
+    <ID>ReturnCount:LiveDragController.kt$LiveDragController$private fun showDropTargetBar()</ID>
+    <ID>ReturnCount:MediaCardSource.kt$MediaCardSource$override fun onShown()</ID>
+    <ID>ReturnCount:NightWindow.kt$NightWindow$@SuppressLint("MissingPermission") private fun lastKnown(context: Context): Pair&lt;Double, Double&gt;?</ID>
+    <ID>ReturnCount:PaletteSource.kt$PaletteFactory$private fun parseSeed(hex: String): Int?</ID>
+    <ID>ReturnCount:SearchController.kt$SearchController$private fun gridColumns(): Int</ID>
+    <ID>ReturnCount:SearchController.kt$SearchController$private fun topHit(results: List&lt;SearchResult&gt;, query: String): SearchResultsAdapter.TopHit?</ID>
+    <ID>ReturnCount:SupernovaDeviceAdmin.kt$SupernovaDeviceAdmin.Companion$fun lock(context: Context): Boolean</ID>
+    <ID>ReturnCount:SupernovaPopupMenu.kt$SupernovaPopupMenu$private fun beginGroup(group: Group)</ID>
+    <ID>ReturnCount:SupernovaWidgetHost.kt$SupernovaWidgetHostView$private fun scrollsVertically(view: View): Boolean</ID>
+    <ID>ReturnCount:ViewGeometry.kt$internal fun ViewPager2.currentWorkspaceCanvas(): ViewGroup?</ID>
+    <ID>ReturnCount:WidgetController.kt$WidgetController$fun bindSearchBarWidget(prefs: LauncherPrefs): View?</ID>
+    <ID>ReturnCount:WidgetController.kt$WidgetController$fun buildWidgetView(item: LauncherItem): View</ID>
+    <ID>ReturnCount:WidgetController.kt$WidgetController$fun reportWidgetSize(item: LauncherItem, view: View)</ID>
+    <ID>ReturnCount:WidgetController.kt$WidgetController$private fun anchorResizeFrame(frame: WidgetResizeFrame, item: LauncherItem, widgetView: View): Boolean</ID>
+    <ID>ReturnCount:WidgetController.kt$WidgetController$private fun proceedToConfigure(info: AppWidgetProviderInfo)</ID>
+    <ID>ReturnCount:WidgetResizeFrame.kt$WidgetResizeFrame$fun anchor(widgetView: View, bounds: SpanBounds): Boolean</ID>
+    <ID>ReturnCount:WidgetResizeFrame.kt$WidgetResizeFrame$fun hasHandleAt(rawX: Float, rawY: Float): Boolean</ID>
+    <ID>ReturnCount:WidgetResizeFrame.kt$WidgetResizeFrame$override fun onTouchEvent(event: MotionEvent): Boolean</ID>
+    <ID>ReturnCount:WidgetResizeFrame.kt$WidgetResizeFrame$private fun placeWidget()</ID>
+    <ID>ReturnCount:WorkspaceGeometry.kt$WorkspaceGeometry$fun isAreaFree( model: LauncherModel, page: Int, area: CellRect, cols: Int, rows: Int, excludeIds: Set&lt;String&gt; = emptySet(), // Bounds-only check: occupied cells count as free. Placement paths // pass allowPlacementOverlap here so drops may land on other items. ignoreItems: Boolean = false ): Boolean</ID>
+    <ID>ReturnCount:WorkspaceGeometry.kt$WorkspaceGeometry$fun solveReorder( model: LauncherModel, page: Int, target: CellRect, cols: Int, rows: Int, excludeIds: Set&lt;String&gt; ): List&lt;ReorderMove&gt;?</ID>
+    <ID>ReturnCount:WorkspaceGeometry.kt$WorkspaceGeometry$private fun attemptPush( statics: List&lt;LauncherItem&gt;, blockers: List&lt;LauncherItem&gt;, rects: Map&lt;String, CellRect&gt;, target: CellRect, dir: Pair&lt;Int, Int&gt;, cols: Int, rows: Int ): List&lt;ReorderMove&gt;?</ID>
+    <ID>SpreadOperator:SettingsCatalogue.kt$SettingsCatalogue$( SettingItem.Preview(PreviewKind.DOCK, visibleIf = { it.dockEnabled }), SettingItem.Toggle( R.string.dock_enabled, get = { it.dockEnabled }, set = { viewModel.setDockEnabled(it) } ), SettingItem.Slider( R.string.dock_count, min = 3, max = com.supernova.launcher.data.GridLimits.DOCK, bigGridMax = com.supernova.launcher.data.GridLimits.DOCK_BIG, get = { it.dockCount }, set = { viewModel.setDockCount(it) }, display = { it.toString() }, preview = { p, v -&gt; p.copy(dockCount = v) }, visibleIf = { it.dockEnabled } ), SettingItem.Slider( R.string.dock_pages, min = 1, max = 3, get = { it.dockPages }, set = { viewModel.setDockPages(it) }, display = { it.toString() }, visibleIf = { it.dockEnabled } ), rows.choice( R.string.dock_bg_style, DockBgStyle.entries, { DockBgStyle.fromName(it.dockBgStyle) }, { EnumLabels.of(it) }, visibleIf = { it.dockEnabled } ) { viewModel.setDockBgStyle(it.name) }, SettingItem.Slider( R.string.dock_bg_opacity, min = 0, max = 100, step = 5, get = { (it.dockBgOpacity * 100f).roundToInt() }, set = { viewModel.setDockBgOpacity(it / 100f) }, display = { context.getString(R.string.opacity_percent, it) }, preview = { p, v -&gt; p.copy(dockBgOpacity = v / 100f) }, visibleIf = { it.dockEnabled &amp;&amp; DockBgStyle.fromName(it.dockBgStyle) != DockBgStyle.NONE } ), SettingItem.Toggle( R.string.dock_bg_behind_nav, get = { it.dockBgBehindNav }, set = { viewModel.setDockBgBehindNav(it) }, visibleIf = { it.dockEnabled &amp;&amp; DockBgStyle.fromName(it.dockBgStyle) != DockBgStyle.NONE } ), SettingItem.Toggle( R.string.dock_bg_padding, get = { it.dockBgPadding }, set = { viewModel.setDockBgPadding(it) }, // Behind-nav already forces the slab full-bleed, so the // inset choice only means something without it. visibleIf = { it.dockEnabled &amp;&amp; !it.dockBgBehindNav &amp;&amp; DockBgStyle.fromName(it.dockBgStyle) != DockBgStyle.NONE } ), SettingItem.Toggle( R.string.dock_labels, get = { it.dockLabels }, set = { viewModel.setDockLabels(it) }, // Not tied to the desktop's labels: the dock shows its // own whatever those are, and hiding the switch with // them left no way to turn the dock's off. visibleIf = { it.dockEnabled } ), *labelOverrideItems(context, viewModel, actions, LabelContext.DOCK) { it.dockEnabled &amp;&amp; it.dockLabels }.toTypedArray(), SettingItem.Toggle( R.string.dock_match_desktop, get = { it.dockMatchDesktop }, set = { viewModel.setDockMatchDesktop(it) }, visibleIf = { it.dockEnabled } ), SettingItem.Slider( R.string.dock_icon_scale, min = 70, max = 160, step = 5, get = { (it.dockIconScale * 100f).roundToInt() }, set = { viewModel.setDockIconScale(it / 100f) }, display = { context.getString(R.string.icon_scale_value, it / 100f) }, preview = { p, v -&gt; p.copy(dockIconScale = v / 100f) }, visibleIf = { it.dockEnabled &amp;&amp; !it.dockMatchDesktop } ), SettingItem.Slider( R.string.dock_padding_h, min = 0, max = 48, step = 2, get = { it.dockPaddingH }, set = { viewModel.setDockPaddingH(it) }, display = { context.getString(R.string.padding_dp_value, it) }, visibleIf = { it.dockEnabled } ), SettingItem.Slider( R.string.dock_padding_v, min = 0, max = 48, step = 2, get = { it.dockPaddingV }, set = { viewModel.setDockPaddingV(it) }, display = { context.getString(R.string.padding_dp_value, it) }, visibleIf = { it.dockEnabled } ), SettingItem.Accordion(R.string.advanced), SettingItem.Toggle( R.string.dock_infinite_scroll, get = { it.dockInfiniteScroll }, set = { viewModel.setDockInfiniteScroll(it) }, visibleIf = { it.dockEnabled &amp;&amp; it.dockPages &gt; 1 } ), SettingItem.Toggle( R.string.dock_remember_position, get = { it.dockRememberPosition }, set = { viewModel.setDockRememberPosition(it) }, visibleIf = { it.dockEnabled &amp;&amp; it.dockPages &gt; 1 } ), SettingItem.Toggle( R.string.dock_overlay, get = { it.dockOverlay }, set = { viewModel.setDockOverlay(it) }, visibleIf = { it.dockEnabled } ), SettingItem.Toggle( R.string.dock_auto_close, get = { it.dockAutoClose }, set = { viewModel.setDockAutoClose(it) }, visibleIf = { it.dockEnabled &amp;&amp; it.dockOverlay } ) )</ID>
+    <ID>SpreadOperator:SettingsCatalogue.kt$SettingsCatalogue$( SettingItem.Preview(PreviewKind.DRAWER), rows.choice( R.string.drawer_style, DrawerStyle.entries, { DrawerStyle.fromName(it.drawerStyle) }, { EnumLabels.of(it) } ) { viewModel.setDrawerStyle(it.name) }, rows.choice( R.string.drawer_sort, DrawerSort.entries, { DrawerSort.fromName(it.drawerSort) }, { EnumLabels.of(it) } ) { viewModel.setDrawerSort(it.name) }, rows.choice( R.string.drawer_transition, com.supernova.launcher.ui.DrawerTransition.entries, { com.supernova.launcher.ui.DrawerTransition.fromName(it.drawerTransition) }, { EnumLabels.of(it) } ) { viewModel.setDrawerTransition(it.name) }, SettingItem.Row( R.string.drawer_grid, subtitle = { prefs -&gt; val auto = context.getString(R.string.drawer_columns_auto) context.getString( R.string.drawer_grid_value, prefs.drawerRows.takeIf { it &gt; 0 }?.toString() ?: auto, prefs.drawerColumns.takeIf { it &gt; 0 }?.toString() ?: auto ) }, onClick = actions.pickDrawerGrid, visibleIf = { DrawerStyle.fromName(it.drawerStyle) != DrawerStyle.VERTICAL_LIST } ), SettingItem.Toggle( R.string.drawer_auto_keyboard, get = { it.drawerAutoKeyboard }, set = { viewModel.setDrawerAutoKeyboard(it) }, visibleIf = { SearchBarConfig.decode(it.searchBarConfig).drawer.enabled } ), // Open App Drawer options, offered only while a swipe opens // the drawer. SettingItem.Toggle( R.string.drawer_swipe_indicator, get = { it.drawerSwipeIndicator }, set = { viewModel.setDrawerSwipeIndicator(it) }, visibleIf = { GestureDefaults.swipeUpOpensDrawer(it.gestureBindings) &amp;&amp; it.dockEnabled }, subtitle = R.string.drawer_swipe_indicator_summary ), SettingItem.Toggle( R.string.drawer_swipe_haptic, get = { it.drawerSwipeHaptic }, set = { viewModel.setDrawerSwipeHaptic(it) }, visibleIf = { GestureDefaults.swipeUpOpensDrawer(it.gestureBindings) }, subtitle = R.string.drawer_swipe_haptic_summary ), rows.choice( R.string.drawer_tab_bar, DrawerTabBar.entries, { DrawerTabBar.fromName(it.drawerTabBar) }, { EnumLabels.of(it) }, subtitle = { prefs -&gt; val bar = DrawerTabBar.fromName(prefs.drawerTabBar) if (bar == DrawerTabBar.NONE) { context.getString(R.string.drawer_tab_bar_hidden_note) } else { context.getString(EnumLabels.of(bar)) } }, visibleIf = { viewModel.drawerTabGroups().isNotEmpty() || viewModel.hasWorkApps() } ) { viewModel.setDrawerTabBar(it.name) }, rows.choice( R.string.drawer_tab_style, DrawerTabStyle.entries, { DrawerTabStyle.fromName(it.drawerTabStyle) }, { EnumLabels.of(it) }, visibleIf = { (viewModel.drawerTabGroups().isNotEmpty() || viewModel.hasWorkApps()) &amp;&amp; DrawerTabBar.fromName(it.drawerTabBar) != DrawerTabBar.NONE } ) { viewModel.setDrawerTabStyle(it.name) }, SettingItem.Toggle( R.string.drawer_frequent_row, get = { it.drawerFrequentRow }, set = { viewModel.setDrawerFrequentRow(it) } ), // Horizontal Scroll group: paged style only. SettingItem.Toggle( R.string.drawer_infinite_scroll, get = { it.drawerInfiniteScroll }, set = { viewModel.setDrawerInfiniteScroll(it) }, visibleIf = { DrawerStyle.fromName(it.drawerStyle) == DrawerStyle.PAGED_GRID } ), rows.choice( R.string.drawer_page_effect, ScrollEffect.entries, { ScrollEffect.fromName(it.drawerPageEffect) }, { EnumLabels.of(it) }, visibleIf = { DrawerStyle.fromName(it.drawerStyle) == DrawerStyle.PAGED_GRID } ) { viewModel.setDrawerPageEffect(it.name) }, SettingItem.Accordion(R.string.advanced), SettingItem.Toggle( R.string.drawer_remember_position, get = { it.drawerRememberPosition }, set = { viewModel.setDrawerRememberPosition(it) } ), SettingItem.Toggle( R.string.drawer_auto_close, get = { it.drawerAutoClose }, set = { viewModel.setDrawerAutoClose(it) } ), SettingItem.Header(R.string.group_layout), SettingItem.Toggle( R.string.dock_match_desktop, get = { it.drawerMatchDesktop }, set = { viewModel.setDrawerMatchDesktop(it) } ), SettingItem.Slider( R.string.drawer_icon_scale, min = 70, max = 160, step = 5, get = { (it.drawerIconScale * 100f).roundToInt() }, set = { viewModel.setDrawerIconScale(it / 100f) }, display = { context.getString(R.string.icon_scale_value, it / 100f) }, preview = { p, v -&gt; p.copy(drawerIconScale = v / 100f) }, visibleIf = { !it.drawerMatchDesktop } ), SettingItem.Slider( R.string.drawer_bg_opacity, min = 20, max = 100, step = 5, get = { (it.drawerBgOpacity * 100f).roundToInt() }, set = { viewModel.setDrawerBgOpacity(it / 100f) }, display = { context.getString(R.string.opacity_percent, it) }, preview = { p, v -&gt; p.copy(drawerBgOpacity = v / 100f) } ), SettingItem.Toggle( R.string.drawer_labels, get = { it.drawerLabels }, set = { viewModel.setDrawerLabels(it) }, visibleIf = { DrawerStyle.fromName(it.drawerStyle) != DrawerStyle.VERTICAL_LIST } ), *labelOverrideItems(context, viewModel, actions, LabelContext.DRAWER) { it.drawerLabels }.toTypedArray(), SettingItem.Toggle( R.string.drawer_fast_scroller, get = { it.drawerFastScroller }, set = { viewModel.setDrawerFastScroller(it) }, visibleIf = { DrawerStyle.fromName(it.drawerStyle) != DrawerStyle.PAGED_GRID } ), SettingItem.Toggle( R.string.drawer_pull_to_search, get = { it.drawerPullToSearch }, set = { viewModel.setDrawerPullToSearch(it) } ), SettingItem.Row( R.string.drawer_action_buttons, subtitle = { val buttons = com.supernova.launcher.ui.DrawerActionButton.decode(it.drawerActionButtons) if (buttons.isEmpty()) context.getString(R.string.action_none) else buttons.joinToString(", ") { b -&gt; context.getString( when (b) { com.supernova.launcher.ui.DrawerActionButton.SEARCH -&gt; R.string.action_open_search com.supernova.launcher.ui.DrawerActionButton.PLAY_STORE -&gt; R.string.chip_play_store com.supernova.launcher.ui.DrawerActionButton.SETTINGS -&gt; R.string.settings } ) } }, onClick = actions.editDrawerButtons ), rows.color( R.string.drawer_scrubber_color, { it.drawerScrubberColor }, subtitle = { if (it.drawerScrubberColor.isEmpty()) { context.getString(R.string.option_default) } else { it.drawerScrubberColor } }, visibleIf = { it.drawerFastScroller } ) { viewModel.setDrawerScrubberColor(it) }, SettingItem.Header(R.string.group_tabs), SettingItem.Toggle( R.string.drawer_work_tab, get = { it.drawerWorkTab }, set = { viewModel.setDrawerWorkTab(it) }, visibleIf = { viewModel.hasWorkApps() || it.drawerWorkTab } ), SettingItem.Row( R.string.drawer_default_tab, subtitle = { prefs -&gt; prefs.drawerDefaultTab.ifEmpty { context.getString(R.string.drawer_all) } }, onClick = { // FOLDER-type groups have no tab to default to. val names = listOf("") + viewModel.drawerTabGroups().map { it.name } rows.pick( R.string.drawer_default_tab, names, names.indexOf(viewModel.state.value.prefs.drawerDefaultTab).coerceAtLeast(0), { it.ifEmpty { context.getString(R.string.drawer_all) } } ) { viewModel.setDrawerDefaultTab(it) } }, visibleIf = { viewModel.drawerTabGroups().isNotEmpty() } ), SettingItem.Toggle( R.string.drawer_hide_all_tab, get = { it.drawerHideAllTab }, set = { viewModel.setDrawerHideAllTab(it) }, visibleIf = { viewModel.drawerTabGroups().isNotEmpty() } ), SettingItem.Row(R.string.hidden_apps, onClick = actions.editHiddenApps), SettingItem.Row(R.string.drawer_groups, onClick = actions.editDrawerGroups), // Isolate tabs. Whether a group's apps also stay in // All is the group's own choice now (Keep apps in main app // tab); the old switch of that name only still decides it // for tabs made before, which never chose. SettingItem.Toggle( R.string.drawer_isolate_tabs, get = { it.drawerTabsNoSwipe }, set = { viewModel.setDrawerTabsNoSwipe(it) }, visibleIf = { viewModel.drawerTabGroups().isNotEmpty() || viewModel.hasWorkApps() }, subtitle = R.string.drawer_isolate_tabs_summary ), SettingItem.Toggle( R.string.smart_folders, get = { it.smartFolders }, set = { viewModel.setSmartFolders(it) } ), SettingItem.Toggle( R.string.drawer_folders_first, get = { it.drawerFoldersFirst }, set = { viewModel.setDrawerFoldersFirst(it) }, visibleIf = { it.smartFolders || viewModel.drawerFolderGroups().isNotEmpty() } ) )</ID>
+    <ID>SpreadOperator:SettingsCatalogue.kt$SettingsCatalogue$( SettingItem.Preview(PreviewKind.FOLDER), rows.choice( R.string.folder_preview_style, FolderPreviewStyle.entries, { FolderPreviewStyle.fromName(it.folderPreviewStyle) }, { EnumLabels.of(it) }, onPick = { viewModel.setFolderPreviewStyle(it.name) } ), SettingItem.Toggle( R.string.folder_prioritize_first, get = { it.folderPrioritizeFirst }, set = { viewModel.setFolderPrioritizeFirst(it) } ), SettingItem.Slider( R.string.folder_columns, min = 0, max = com.supernova.launcher.data.GridLimits.FOLDER_COLUMNS, bigGridMax = com.supernova.launcher.data.GridLimits.FOLDER_COLUMNS_BIG, get = { it.folderColumns }, set = { viewModel.setFolderColumns(it) }, display = { if (it == 0) context.getString(R.string.folder_columns_auto) else it.toString() } ), SettingItem.Toggle( R.string.folder_sort_az, get = { it.folderSortAz }, set = { viewModel.setFolderSortAz(it) } ), SettingItem.Toggle( R.string.dock_match_desktop, get = { it.folderMatchDesktop }, set = { viewModel.setFolderMatchDesktop(it) } ), SettingItem.Slider( R.string.folder_icon_scale, min = 70, max = 160, step = 5, get = { (it.folderIconScale * 100f).roundToInt() }, set = { viewModel.setFolderIconScale(it / 100f) }, display = { context.getString(R.string.icon_scale_value, it / 100f) }, visibleIf = { !it.folderMatchDesktop } ), SettingItem.Toggle( R.string.folder_labels, get = { it.folderLabels }, set = { viewModel.setFolderLabels(it) } ), *labelOverrideItems(context, viewModel, actions, LabelContext.FOLDER) { it.folderLabels }.toTypedArray(), SettingItem.Toggle( R.string.folder_badges, get = { it.folderBadges }, set = { viewModel.setFolderBadges(it) }, visibleIf = { it.badges } ), SettingItem.Toggle( R.string.folder_close_on_launch, get = { it.folderCloseOnLaunch }, set = { viewModel.setFolderCloseOnLaunch(it) } ), SettingItem.Toggle( R.string.folder_show_name, get = { it.folderShowName }, set = { viewModel.setFolderShowName(it) } ), SettingItem.Slider( R.string.folder_window_radius, min = 0, max = 32, step = 2, get = { com.supernova.launcher.ui.theme.StyleConfig.decode(it.styleConfig) .styleFor(com.supernova.launcher.ui.theme.SurfaceId.FOLDER) .cornerRadii?.firstOrNull()?.roundToInt() ?: 24 }, set = { v -&gt; val prefs = viewModel.state.value.prefs val config = com.supernova.launcher.ui.theme.StyleConfig.decode(prefs.styleConfig) val style = config.styleFor(com.supernova.launcher.ui.theme.SurfaceId.FOLDER) viewModel.setStyleConfig( config.with( com.supernova.launcher.ui.theme.SurfaceId.FOLDER, style.copy(cornerRadii = List(4) { v.toFloat() }) ).encode() ) }, display = { context.getString(R.string.padding_dp_value, it) } ), rows.choice( R.string.folder_mode, FolderMode.entries, { FolderMode.fromName(it.folderMode) }, { EnumLabels.of(it) } ) { viewModel.setFolderMode(it.name) }, SettingItem.Toggle( R.string.folder_shadow, get = { it.folderShadow }, set = { viewModel.setFolderShadow(it) } ), rows.choice( R.string.folder_scroll, FolderScroll.entries, { FolderScroll.fromName(it.folderScroll) }, { EnumLabels.of(it) } ) { viewModel.setFolderScroll(it.name) }, SettingItem.Row( R.string.folder_icon_appearance, onClick = actions.editFolderIcon ) )</ID>
+    <ID>TooManyFunctions:AppCatalog.kt$AppCatalog</ID>
+    <ID>TooManyFunctions:AppDrawerAdapter.kt$AppDrawerAdapter : Adapter</ID>
+    <ID>TooManyFunctions:Calculator.kt$Calculator</ID>
+    <ID>TooManyFunctions:CardActivation.kt$CardActivation</ID>
+    <ID>TooManyFunctions:CustomCardEditorSheet.kt$CustomCardEditorSheet</ID>
+    <ID>TooManyFunctions:DesktopPreviewsOverlay.kt$DesktopPreviewsOverlay$Host</ID>
+    <ID>TooManyFunctions:DrawerController.kt$DrawerController</ID>
+    <ID>TooManyFunctions:EnumLabels.kt$EnumLabels</ID>
+    <ID>TooManyFunctions:FastScrollerView.kt$FastScrollerView : View</ID>
+    <ID>TooManyFunctions:FeedController.kt$FeedController</ID>
+    <ID>TooManyFunctions:FolderIconDrawable.kt$FolderIconDrawable : Drawable</ID>
+    <ID>TooManyFunctions:HomeEditController.kt$HomeEditController$Host</ID>
+    <ID>TooManyFunctions:IconPackRepository.kt$IconPackRepository</ID>
+    <ID>TooManyFunctions:IconShape.kt$IconShape</ID>
+    <ID>TooManyFunctions:LauncherActivity.kt$LauncherActivity : AppCompatActivityHostHostHost</ID>
+    <ID>TooManyFunctions:LauncherActivity.kt$LauncherActivity$&lt;no name provided&gt; : Host</ID>
+    <ID>TooManyFunctions:LauncherPreferences.kt$LauncherPreferences</ID>
+    <ID>TooManyFunctions:LauncherRepository.kt$LauncherRepository</ID>
+    <ID>TooManyFunctions:LauncherViewModel.kt$LauncherViewModel : AndroidViewModel</ID>
+    <ID>TooManyFunctions:LiveDragController.kt$LiveDragController</ID>
+    <ID>TooManyFunctions:LiveDragController.kt$LiveDragController$Host</ID>
+    <ID>TooManyFunctions:OnboardingActivity.kt$OnboardingActivity : AppCompatActivity</ID>
+    <ID>TooManyFunctions:PageTransformers.kt$PageTransformers</ID>
+    <ID>TooManyFunctions:SearchController.kt$SearchController</ID>
+    <ID>TooManyFunctions:SearchResultsAdapter.kt$SearchResultsAdapter : Adapter</ID>
+    <ID>TooManyFunctions:SettingsActivity.kt$SettingsActivity : AppCompatActivity</ID>
+    <ID>TooManyFunctions:SettingsAdapter.kt$SettingsAdapter : Adapter</ID>
+    <ID>TooManyFunctions:SettingsPreviewView.kt$SettingsPreviewView : FrameLayout</ID>
+    <ID>TooManyFunctions:SupernovaPopupMenu.kt$SupernovaPopupMenu</ID>
+    <ID>TooManyFunctions:WidgetController.kt$WidgetController</ID>
+    <ID>TooManyFunctions:WorkspaceGeometry.kt$WorkspaceGeometry</ID>
+    <ID>TooManyFunctions:WorkspacePagerAdapter.kt$WorkspacePagerAdapter : Adapter</ID>
+    <ID>UnusedParameter:SettingsPreviewView.kt$SettingsPreviewView$prefs: LauncherPrefs</ID>
+    <ID>UnusedPrivateProperty:AppDrawerAdapter.kt$AppDrawerAdapter$private val onWebSearch: () -&gt; Unit</ID>
+    <ID>UnusedPrivateProperty:LauncherActivity.kt$LauncherActivity.Companion$// The dim behind a dialog that previews on the home screen. private const val PREVIEW_DIALOG_DIM = 0.15f</ID>
+  </CurrentIssues>
+</SmellBaseline>

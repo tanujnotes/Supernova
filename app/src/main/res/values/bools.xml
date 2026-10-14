@@ -1,0 +1,5 @@
+<resources>
+    <!-- Dark icons in the status and navigation bars over the light
+         settings surfaces; values-night flips it. -->
+    <bool name="lightSystemBars">true</bool>
+</resources>

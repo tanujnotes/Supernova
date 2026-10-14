@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- clipChildren off: an icon's shadow falls outside its image view, into
+     this layout's padding (data/ShadowedIconDrawable). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:foreground="@drawable/ripple_icon"
+    android:gravity="center_horizontal"
+    android:minHeight="98dp"
+    android:orientation="vertical"
+    android:paddingHorizontal="4dp"
+    android:paddingVertical="12dp"
+    android:clipChildren="false">
+
+    <ImageView
+        android:id="@+id/appIcon"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_supernova" />
+
+    <TextView
+        android:id="@+id/appLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="7dp"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:maxLines="2"
+        android:textColor="@color/textPrimary"
+        android:textSize="13sp" />
+</LinearLayout>

@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Focusable so that it, not the search pill's field, takes the window's
+     first focus - and so the field's clearFocus has somewhere else to go.
+     Without its default focus highlight, which out of touch mode (a hardware
+     key) would wash the whole screen grey. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:defaultFocusHighlightEnabled="false"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    android:orientation="vertical">
+
+    <!-- The id is what saves the app bar's collapse across a recreate: the
+         layout keeps its children's behavior state only when it has one. -->
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:id="@+id/settingsCoordinator"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- The app bar. On the root and Style lists a large title scrolls
+             away with the list and the search pill stays pinned at the top;
+             section screens pin their toolbar and preview instead. A child
+             only scrolls if every visible child above it does, so the title
+             comes first. -->
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/settingsAppBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            app:elevation="0dp">
+
+            <!-- Padding, not margins: a hidden child's margins still count
+                 toward the bar's scroll range. -->
+            <TextView
+                android:id="@+id/rootTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="20dp"
+                android:paddingTop="80dp"
+                android:paddingBottom="20dp"
+                android:text="@string/app_name"
+                android:textColor="@color/textPrimary"
+                android:textSize="32sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                app:layout_scrollFlags="scroll" />
+
+            <LinearLayout
+                android:id="@+id/settingsToolbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="12dp">
+
+                <ImageButton
+                    android:id="@+id/backButton"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/back"
+                    android:src="@drawable/ic_back" />
+
+                <TextView
+                    android:id="@+id/settingsTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:text="@string/settings_title"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <!-- Section search: swapped in for the title while active. -->
+                <EditText
+                    android:id="@+id/settingsSearchInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent"
+                    android:hint="@string/settings_search_hint"
+                    android:imeOptions="actionSearch"
+                    android:importantForAutofill="no"
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="16sp"
+                    android:visibility="gone" />
+
+                <ImageButton
+                    android:id="@+id/settingsSearchButton"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/settings_search_hint"
+                    android:src="@drawable/ic_search"
+                    app:tint="@color/textPrimary" />
+            </LinearLayout>
+
+            <!-- Pinned preview: section screens park their live
+                 preview here so it stays put while the list scrolls. -->
+            <com.supernova.launcher.ui.settings.preview.PreviewPane
+                android:id="@+id/previewPane"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/settingsPillBg"
+                android:paddingVertical="6dp"
+                android:visibility="gone" />
+
+            <!-- The search pill is the search field itself: type
+                 into it and the list below turns into results. -->
+            <FrameLayout
+                android:id="@+id/rootSearch"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="20dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:id="@+id/rootSearchPill"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:background="@drawable/bg_settings_pill"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="6dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_search"
+                        app:tint="@color/textSecondary" />
+
+                    <EditText
+                        android:id="@+id/rootSearchInput"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:background="@android:color/transparent"
+                        android:hint="@string/settings_search_hint"
+                        android:imeOptions="actionSearch"
+                        android:importantForAutofill="no"
+                        android:inputType="text"
+                        android:maxLines="1"
+                        android:textColor="@color/textPrimary"
+                        android:textColorHint="@color/textSecondary"
+                        android:textSize="15sp" />
+
+                    <ImageButton
+                        android:id="@+id/rootSearchClear"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/clear_search"
+                        android:src="@drawable/ic_menu_remove"
+                        android:visibility="gone"
+                        app:tint="@color/textSecondary" />
+                </LinearLayout>
+            </FrameLayout>
+        </com.google.android.material.appbar.AppBarLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/settingsRecycler"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingBottom="24dp" />
+
+            <!-- The Cards page adds cards from a FAB; shown on that page only. -->
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/cardsFab"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|end"
+                android:layout_margin="20dp"
+                android:contentDescription="@string/cards_add"
+                android:visibility="gone"
+                app:srcCompat="@drawable/ic_menu_add" />
+        </FrameLayout>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/settingsTabs"
+        style="@style/Widget.Supernova.BottomNavigation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:labelVisibilityMode="labeled"
+        app:menu="@menu/settings_tabs" />
+</LinearLayout>

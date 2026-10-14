@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A choice, as the first run shows one: the title, and the value in an
+     accent-outlined box with a drop arrow that opens the options. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="64dp"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/rowTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@android:color/white"
+        android:textSize="18sp" />
+
+    <TextView
+        android:id="@+id/rowValue"
+        android:layout_width="wrap_content"
+        android:layout_height="46dp"
+        android:background="@drawable/bg_onboarding_outline"
+        android:drawableEnd="@drawable/ic_arrow_drop_down"
+        android:drawablePadding="12dp"
+        android:foreground="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
+        android:maxLines="1"
+        android:paddingStart="18dp"
+        android:paddingEnd="12dp"
+        android:textColor="@android:color/white"
+        android:textSize="16sp" />
+</LinearLayout>

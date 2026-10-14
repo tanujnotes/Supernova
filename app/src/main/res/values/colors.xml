@@ -1,0 +1,39 @@
+<resources>
+    <!-- Light palette; values-night carries the dark one. -->
+    <color name="background">#F4F5F7</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="accent">#2E89FF</color>
+    <color name="drawerBackground">#FFFFFF</color>
+    <color name="textPrimary">#11161D</color>
+    <color name="textSecondary">#8A11161D</color>
+
+    <!-- Drawn over the wallpaper, never over an app surface: stays light in
+         both themes so labels survive a dark wallpaper in light mode. -->
+    <color name="onWallpaper">#FFFFFFFF</color>
+
+    <!-- Accent swatches for the theme picker. -->
+    <color name="accentBlue">#2E89FF</color>
+    <color name="accentIndigo">#5C6BC0</color>
+    <color name="accentPurple">#8E24AA</color>
+    <color name="accentPink">#EC407A</color>
+    <color name="accentRed">#E53935</color>
+    <color name="accentOrange">#FB8C00</color>
+    <color name="accentAmber">#FFB300</color>
+    <color name="accentGreen">#43A047</color>
+    <color name="accentTeal">#00897B</color>
+    <color name="accentCyan">#00ACC1</color>
+    <color name="settingsPillBg">#14000000</color>
+
+    <!-- Text and icons on an accent-filled control (a pill button, a
+         checked box). Every curated accent is dark enough for white. -->
+    <color name="onAccent">#FFFFFFFF</color>
+    <!-- A hairline around unfocused text fields; reads on both surfaces. -->
+    <color name="textInputStroke">#4D808080</color>
+    <!-- The app icons' background, the logo's warm paper. -->
+    <color name="launcherIconBackground">#F4F0E9</color>
+    <!-- First run: the wallpaper at 15% under this scrim, the progress
+         line's track, and the rows' summaries. -->
+    <color name="onboardingScrim">#D9000000</color>
+    <color name="onboardingTrack">#4DFFFFFF</color>
+    <color name="onboardingSummary">#B3FFFFFF</color>
+</resources>

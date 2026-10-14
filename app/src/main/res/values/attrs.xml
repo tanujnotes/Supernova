@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="DragGridView">
+        <!-- Which half of the drag grid the view draws. -->
+        <attr name="gridLayer" format="enum">
+            <enum name="sparkles" value="0" />
+            <enum name="outline" value="1" />
+        </attr>
+    </declare-styleable>
+</resources>

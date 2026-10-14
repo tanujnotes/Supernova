@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The feed pane: a full-height sibling overlay of the workspace, parked at
+     translationX = -width while closed (FeedController owns the parking and
+     the open/close translate animation). clickable so touches never leak
+     through to the workspace; elevation below the drawer sheet (12dp) so an
+     open drawer still wins. Its background is a wallpaper dim, set by the
+     controller, and the desktop fades out under it as it comes in - the
+     feed page shows dimmed wallpaper, never the home screen. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/feedPane"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clickable="true"
+    android:elevation="10dp"
+    android:focusable="true"
+    android:orientation="vertical"
+    android:visibility="gone">
+
+    <!-- Header: the search pill with an overflow beside it (Add
+         card, Settings). The overflow stays when the pill is hidden. -->
+    <LinearLayout
+        android:id="@+id/feedHeaderRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <com.supernova.launcher.ui.SearchBarView
+            android:id="@+id/feedSearchBar"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:visibility="gone" />
+
+        <ImageButton
+            android:id="@+id/feedMenu"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/feed_menu"
+            android:src="@drawable/ic_more_vert" />
+    </LinearLayout>
+
+    <com.supernova.launcher.ui.FrequentAppsRowView
+        android:id="@+id/feedFrequentRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:visibility="gone" />
+
+    <!-- Placeholder for an empty frequent row. -->
+    <TextView
+        android:id="@+id/feedNoFrequent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingVertical="36dp"
+        android:text="@string/feed_no_frequent"
+        android:textSize="20sp"
+        android:visibility="gone" />
+
+    <!-- Suggested shortcuts as icon+label pills; FeedController caps the
+         FlowLayout's rows to the feedShortcutRows pref. -->
+    <com.supernova.launcher.ui.FlowLayout
+        android:id="@+id/feedShortcutsFlow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:paddingHorizontal="16dp"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/feedRecycler"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingHorizontal="12dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="24dp" />
+</LinearLayout>

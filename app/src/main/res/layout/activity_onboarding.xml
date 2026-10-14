@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- First run: the wallpaper (the theme shows it) under an 85% black
+     scrim, the pages, and over them the back arrow and progress line at the
+     top and the next button at the bottom end. The welcome page hides that
+     chrome; the last page swaps the next button for its own Go home. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/onboardingRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/onboardingScrim">
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/onboardingPager"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <FrameLayout
+        android:id="@+id/onboardingTopBar"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_gravity="top">
+
+        <ImageButton
+            android:id="@+id/onboardingBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="start|center_vertical"
+            android:layout_marginStart="10dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/onboarding_previous"
+            android:src="@drawable/ic_back"
+            app:tint="@android:color/white" />
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/onboardingProgress"
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:max="4"
+            app:indicatorColor="?attr/colorPrimary"
+            app:trackColor="@color/onboardingTrack"
+            app:trackCornerRadius="2dp"
+            app:trackThickness="3dp" />
+    </FrameLayout>
+
+    <ImageButton
+        android:id="@+id/onboardingNext"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:background="@drawable/bg_onboarding_next"
+        android:contentDescription="@string/next"
+        android:src="@drawable/ic_arrow_forward"
+        app:tint="@android:color/white" />
+</FrameLayout>

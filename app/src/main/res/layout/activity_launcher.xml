@@ -1,0 +1,531 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/transparent">
+
+    <!-- Optional status/nav contrast scrims: behind all content, over the
+         wallpaper (the wallpaper renders behind the window). -->
+    <View
+        android:id="@+id/scrimTop"
+        android:layout_width="match_parent"
+        android:layout_height="96dp"
+        android:layout_gravity="top"
+        android:background="@drawable/scrim_top"
+        android:importantForAccessibility="no"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/scrimBottom"
+        android:layout_width="match_parent"
+        android:layout_height="96dp"
+        android:layout_gravity="bottom"
+        android:background="@drawable/scrim_bottom"
+        android:importantForAccessibility="no"
+        android:visibility="gone" />
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/workspacePager"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginBottom="94dp" />
+
+    <!-- Height is wrap_content, not a constant: an icon column is an icon box
+         at the dock's scale plus however many label lines it needs, and a
+         fixed height clipped both. setupDock reads the laid-out height back,
+         and applyDockChrome spaces the workspace, indicator and search bar off
+         it. renderDock sets a minHeight so an empty dock is still a drop
+         target. -->
+    <LinearLayout
+        android:id="@+id/dockBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_margin="10dp"
+        android:background="@android:color/transparent"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="4dp" />
+
+    <!-- Full width for the line style; applyDockChrome centres it over the
+         dock, and it takes no touches, so the workspace under it still
+         gets them. -->
+    <com.supernova.launcher.ui.PageIndicatorView
+        android:id="@+id/pageIndicator"
+        android:layout_width="match_parent"
+        android:layout_height="24dp"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="94dp"
+        android:importantForAccessibility="no" />
+
+    <!-- The swipe indicator, a small arrow above the dock that hints a
+         swipe up opens the drawer. applyDockChrome places it, shows it and
+         gives it its drawable; it takes no touches, so a tap there still
+         reaches the workspace. -->
+    <ImageView
+        android:id="@+id/dockSwipeIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:importantForAccessibility="no"
+        android:visibility="gone" />
+
+    <!-- Desktop search bar: GONE by default; applyDockChrome drives placement
+         margins and visibility from the searchBarConfig pref. -->
+    <com.supernova.launcher.ui.SearchBarView
+        android:id="@+id/desktopSearchBar"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_gravity="bottom"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="16dp"
+        android:visibility="gone" />
+
+    <!-- Replace: a chosen search widget stands in for the bar above, in the
+         same slot with the same margins. -->
+    <FrameLayout
+        android:id="@+id/desktopSearchWidget"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_gravity="bottom"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="16dp"
+        android:visibility="gone" />
+
+    <!-- Dims the wallpaper in step with the drawer coming up (the scrim
+         behind its sheet). DrawerController drives its alpha from the
+         open progress and keeps it GONE while the drawer is closed; clickable
+         so a tap during the slide can't reach the workspace through it. -->
+    <View
+        android:id="@+id/drawerScrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0"
+        android:background="@android:color/black"
+        android:clickable="true"
+        android:importantForAccessibility="no"
+        android:visibility="gone" />
+
+    <!-- clickable so a tap on bare sheet background is consumed here: the
+         views below in the CoordinatorLayout are the workspace and dock, and
+         an unconsumed tap reaches them right through the open drawer. -->
+    <LinearLayout
+        android:id="@+id/drawerSheet"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_drawer"
+        android:clickable="true"
+        android:elevation="12dp"
+        android:orientation="vertical"
+        app:behavior_hideable="true"
+        app:behavior_peekHeight="0dp"
+        app:layout_behavior="@string/bottom_sheet_behavior">
+
+        <!-- Header: a single search pill, edge margins, and no
+             close affordance (back and swipe-down both dismiss the sheet).
+             Action buttons from the drawerActionButtons pref are appended
+             after the field at runtime. -->
+        <LinearLayout
+            android:id="@+id/drawerSearchRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="10dp">
+
+            <!-- A plain pill rather than a TextInputLayout: the drawer field
+                 wants a full-radius background with no floating label or
+                 underline, and the controller paints it from the resolved
+                 DRAWER surface. -->
+            <LinearLayout
+                android:id="@+id/drawerSearchField"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp">
+
+                <ImageView
+                    android:id="@+id/drawerSearchIcon"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_search" />
+
+                <!-- Inline completion: the ghost draws the top hit's
+                     name under the field with the typed part transparent, so
+                     only the untyped remainder shows, dimmed. Same metrics
+                     as the field so the letters line up. -->
+                <FrameLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1">
+
+                    <TextView
+                        android:id="@+id/drawerSearchGhost"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:importantForAccessibility="no"
+                        android:maxLines="1"
+                        android:padding="0dp"
+                        android:singleLine="true"
+                        android:textSize="16sp" />
+
+                    <!-- No saved state: a restored query re-runs the filter
+                         watcher inside the view-state restore, and the
+                         drawer reopens on an empty field anyway. -->
+                    <EditText
+                        android:id="@+id/drawerSearch"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@null"
+                        android:hint="@string/search_apps"
+                        android:imeOptions="actionSearch"
+                        android:importantForAutofill="no"
+                        android:inputType="text"
+                        android:maxLines="1"
+                        android:padding="0dp"
+                        android:saveEnabled="false"
+                        android:singleLine="true"
+                        android:textSize="16sp" />
+                </FrameLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/drawerTabs"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:visibility="gone"
+            app:tabGravity="start"
+            app:tabIndicator="@drawable/tab_indicator_drawer"
+            app:tabIndicatorColor="@color/accent"
+            app:tabIndicatorFullWidth="false"
+            app:tabIndicatorHeight="3dp"
+            app:tabMode="scrollable"
+            app:tabPaddingEnd="12dp"
+            app:tabPaddingStart="12dp"
+            app:tabSelectedTextColor="@color/textPrimary"
+            app:tabTextAppearance="@style/TextAppearance.Supernova.DrawerTab"
+            app:tabTextColor="@color/textSecondary" />
+
+        <!-- Activated custom cards (all conditions met) sit above the list;
+             DrawerController fills and hides this. -->
+        <LinearLayout
+            android:id="@+id/drawerCards"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="12dp"
+            android:visibility="gone" />
+
+        <!-- Frequent apps strip pinned above the list (drawerFrequentRow),
+             with a short centred rule separating it from the list. -->
+        <com.supernova.launcher.ui.FrequentAppsRowView
+            android:id="@+id/drawerFrequentRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
+
+        <View
+            android:id="@+id/drawerFrequentDivider"
+            android:layout_width="72dp"
+            android:layout_height="2dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginVertical="10dp"
+            android:background="@drawable/bg_drawer_divider"
+            android:importantForAccessibility="no"
+            android:visibility="gone" />
+
+        <FrameLayout
+            android:id="@+id/drawerListContainer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/drawerRecycler"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingBottom="18dp"
+                android:scrollbars="vertical" />
+
+            <!-- Paged drawer style only: real page views, so the page effect
+                 and the wrap-around work the way the workspace pager's do. -->
+            <androidx.viewpager2.widget.ViewPager2
+                android:id="@+id/drawerPager"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone" />
+
+            <!-- The drawer search is the search window: while the field
+                 holds a query this list - the search controller's results -
+                 stands in for the drawer's own. -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/drawerSearchResults"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:visibility="gone" />
+
+            <!-- The fast scrollbar: the visible 32dp of its 58dp scroller,
+                 which hangs 26dp past the list's edge. -->
+            <com.supernova.launcher.ui.FastScrollerView
+                android:id="@+id/drawerFastScroller"
+                android:layout_width="32dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="end"
+                android:paddingVertical="12dp"
+                android:visibility="gone" />
+
+            <!-- Its letter bubble, placed by the scroller, at the
+                 fastscroll_popup sizes. -->
+            <TextView
+                android:id="@+id/drawerFastScrollBubble"
+                android:layout_width="75dp"
+                android:layout_height="62dp"
+                android:layout_gravity="top|end"
+                android:layout_marginEnd="19dp"
+                android:background="@drawable/bg_fast_scroll_bubble"
+                android:elevation="3dp"
+                android:gravity="center"
+                android:importantForAccessibility="no"
+                android:includeFontPadding="false"
+                android:paddingHorizontal="13dp"
+                android:textSize="32sp"
+                android:visibility="invisible" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- Drag drop targets (Remove / App info / Uninstall). Kept VISIBLE at
+         alpha 0 so its zones are offered ACTION_DRAG_STARTED when a drag
+         begins (GONE views never receive DragEvents); the activity fades it
+         in only once real drag movement is confirmed. Elevation puts it over
+         the drawer sheet (12dp) for drags that start there. -->
+    <!-- Bounds must hug the zone pills: a drag-accepting subtree becomes the
+         frontmost drop candidate for its WHOLE bounds, so a full-width padded
+         bar silently ate every drop in the top strip that missed a pill
+         (margin positions the bar without growing its droppable area). -->
+    <LinearLayout
+        android:id="@+id/dropTargetBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="40dp"
+        android:alpha="0"
+        android:elevation="20dp"
+        android:gravity="center"
+        android:importantForAccessibility="noHideDescendants"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/dropRemove"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:drawableTop="@drawable/ic_menu_remove"
+            android:drawablePadding="4dp"
+            android:drawableTint="@android:color/white"
+            android:gravity="center"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="8dp"
+            android:shadowColor="#80000000"
+            android:shadowRadius="6"
+            android:text="@string/remove"
+            android:textColor="@android:color/white"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/dropAppInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:drawableTop="@drawable/ic_menu_info"
+            android:drawablePadding="4dp"
+            android:drawableTint="@android:color/white"
+            android:gravity="center"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="8dp"
+            android:shadowColor="#80000000"
+            android:shadowRadius="6"
+            android:text="@string/app_info"
+            android:textColor="@android:color/white"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/dropUninstall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:drawableTop="@drawable/ic_menu_uninstall"
+            android:drawablePadding="4dp"
+            android:drawableTint="@android:color/white"
+            android:gravity="center"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="8dp"
+            android:shadowColor="#80000000"
+            android:shadowRadius="6"
+            android:text="@string/uninstall"
+            android:textColor="@android:color/white"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Global search overlay: stub-lazy so cold start pays nothing; its
+         inflated root out-elevates the drawer sheet (12dp). -->
+    <!-- Home edit mode (part of long-press handling): the overlay with the
+         home marker and chips, and the peeking add sheet. Both stay out of
+         the way until a long-press on empty space. -->
+    <ViewStub
+        android:id="@+id/editModeStub"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout="@layout/view_edit_mode" />
+
+    <!-- clickable for the same reason as the drawer sheet above. -->
+    <LinearLayout
+        android:id="@+id/editWidgetSheet"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_drawer"
+        android:clickable="true"
+        android:elevation="14dp"
+        android:orientation="vertical"
+        android:paddingTop="10dp"
+        app:behavior_hideable="true"
+        app:behavior_peekHeight="0dp"
+        app:layout_behavior="@string/bottom_sheet_behavior">
+
+        <View
+            android:id="@+id/editSheetHandle"
+            android:layout_width="36dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/bg_sheet_handle" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="14dp">
+
+            <ImageView
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_menu_widgets"
+                app:tint="@color/textPrimary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="@string/edit_widgets_title"
+                android:textColor="@color/textPrimary"
+                android:textSize="21sp" />
+        </LinearLayout>
+
+        <!-- No saved state, as with drawerSearch. -->
+        <EditText
+            android:id="@+id/editWidgetSearch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginBottom="10dp"
+            android:background="@drawable/bg_search_card"
+            android:drawableStart="@drawable/ic_search"
+            android:drawablePadding="12dp"
+            android:hint="@string/search_widgets_hint"
+            android:importantForAutofill="no"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:maxLines="1"
+            android:paddingHorizontal="18dp"
+            android:paddingVertical="14dp"
+            android:saveEnabled="false"
+            android:textColor="@color/textPrimary"
+            android:textColorHint="@color/textSecondary"
+            android:textSize="16sp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/editWidgetRecycler"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingBottom="24dp"
+            android:scrollbars="vertical" />
+    </LinearLayout>
+
+    <!-- Behind the floating search window (the WINDOW search style): the
+         home screen around the card is out of reach while search is open,
+         and a tap there closes search. Before the stub, so at the same
+         elevation it draws, and takes touches, under the card. -->
+    <View
+        android:id="@+id/searchBackdrop"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#66000000"
+        android:clickable="true"
+        android:elevation="16dp"
+        android:importantForAccessibility="no"
+        android:visibility="gone" />
+
+    <ViewStub
+        android:id="@+id/searchStub"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:inflatedId="@+id/searchOverlay"
+        android:layout="@layout/view_search_overlay" />
+
+    <!-- Feed page pane: a SIBLING overlay of the workspace pager (never a
+         page inside its infinite-scroll position trick). Stub-lazy: zero
+         cost until the feed first opens; the inflated pane parks at
+         translationX = -width while closed. -->
+    <ViewStub
+        android:id="@+id/feedStub"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:inflatedId="@+id/feedPane"
+        android:layout="@layout/view_feed_pane" />
+
+    <!-- Opaque status and navigation bars, drawn here: from targetSdk 35 the
+         window's bar colours are ignored (edge-to-edge is enforced), so the
+         Transparent status bar / navigation bar settings paint these bands
+         instead. Above every overlay, as the system's own bars were; their
+         heights follow the insets (applyWindowInsets). -->
+    <View
+        android:id="@+id/statusBarBand"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_gravity="top"
+        android:background="@android:color/black"
+        android:elevation="46dp"
+        android:importantForAccessibility="no"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/navBarBand"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_gravity="bottom"
+        android:background="@android:color/black"
+        android:elevation="46dp"
+        android:importantForAccessibility="no"
+        android:visibility="gone" />
+
+    <!-- Own drag layer: the picked-up item's picture rides here, above every
+         sheet and bar. Touches pass through; the activity routes the drag
+         gesture to it directly. -->
+    <com.supernova.launcher.ui.DragLayer
+        android:id="@+id/dragLayer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:elevation="48dp"
+        android:importantForAccessibility="noHideDescendants" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

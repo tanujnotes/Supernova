@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Blink: the launcher fades as it shrinks back a little, and holds until
+     the app is in. -->
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:detachWallpaper="true"
+    android:shareInterpolator="false"
+    android:zAdjustment="normal">
+    <alpha
+        android:duration="200"
+        android:fillAfter="true"
+        android:fillBefore="true"
+        android:fillEnabled="true"
+        android:fromAlpha="1"
+        android:interpolator="@android:interpolator/decelerate_cubic"
+        android:toAlpha="0" />
+    <scale
+        android:duration="300"
+        android:fillAfter="true"
+        android:fillBefore="true"
+        android:fillEnabled="true"
+        android:fromXScale="1"
+        android:fromYScale="1"
+        android:interpolator="@android:interpolator/decelerate_quint"
+        android:pivotX="50%p"
+        android:pivotY="50%p"
+        android:toXScale="0.95"
+        android:toYScale="0.95" />
+    <alpha
+        android:duration="540"
+        android:fromAlpha="1"
+        android:toAlpha="1" />
+</set>

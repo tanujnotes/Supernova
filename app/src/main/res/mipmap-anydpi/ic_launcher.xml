@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Supernova's app icon as adaptive layers, so every launcher (and the
+     default-home chooser) can shape it and theme it: the red-over-blue spark
+     with its home on warm paper, and a two-tone alpha spark for themed icons. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/launcherIconBackground" />
+    <foreground android:drawable="@drawable/ic_launcher_spark" />
+    <monochrome android:drawable="@drawable/ic_launcher_spark_mono" />
+</adaptive-icon>

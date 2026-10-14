@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings root row icon, outlined; tinted by the row. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M6.5,3.5 H17.5 A3,3 0 0,1 20.5,6.5 V17.5 A3,3 0 0,1 17.5,20.5 H6.5 A3,3 0 0,1 3.5,17.5 V6.5 A3,3 0 0,1 6.5,3.5 Z"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M3.5,15 H20.5"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M7,17.75 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M11,17.75 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M15,17.75 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0" />
+</vector>

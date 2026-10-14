@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Folder edit checklist row: app icon on the left, label, checkbox on the
+     right (CheckedTextView draws its check mark at the end). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="20dp"
+    android:paddingVertical="6dp">
+
+    <ImageView
+        android:id="@+id/folderCheckIcon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:importantForAccessibility="no" />
+
+    <CheckedTextView
+        android:id="@+id/folderCheckLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_weight="1"
+        android:checkMark="?android:attr/listChoiceIndicatorMultiple"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:maxLines="1"
+        android:minHeight="44dp"
+        android:textSize="15sp" />
+</LinearLayout>

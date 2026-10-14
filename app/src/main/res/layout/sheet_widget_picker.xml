@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Standalone add sheet (popup "Widgets" row): handle, search pill, list. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_sheet"
+    android:orientation="vertical">
+
+    <include layout="@layout/sheet_handle" />
+
+    <EditText
+        android:id="@+id/widgetSearch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/bg_search_card"
+        android:drawableStart="@drawable/ic_search"
+        android:drawablePadding="12dp"
+        android:hint="@string/search_widgets_hint"
+        android:importantForAutofill="no"
+        android:imeOptions="actionSearch"
+        android:inputType="text"
+        android:maxLines="1"
+        android:paddingHorizontal="18dp"
+        android:paddingVertical="14dp"
+        android:textColor="@color/textPrimary"
+        android:textColorHint="@color/textSecondary"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/widgetPickerEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:text="@string/widget_picker_empty"
+        android:textColor="@color/textPrimary"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/widgetPickerRecycler"
+        android:layout_width="match_parent"
+        android:layout_height="560dp"
+        android:clipToPadding="false"
+        android:paddingBottom="24dp"
+        android:scrollbars="vertical" />
+</LinearLayout>

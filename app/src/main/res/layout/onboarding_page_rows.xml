@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A settings page of the first run: its big title, then rows the
+     activity adds - dropdowns, switches and accent section headers. Clear of
+     the top bar above it and the next button below. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:fillViewport="true"
+    android:paddingTop="64dp"
+    android:paddingBottom="96dp">
+
+    <LinearLayout
+        android:id="@+id/pageRows"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingEnd="16dp">
+
+        <TextView
+            android:id="@+id/pageTitle"
+            style="@style/OnboardingTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+</ScrollView>

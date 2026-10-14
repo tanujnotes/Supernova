@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Folder card: unlike the drawer sheet (bg_drawer, top corners only), the
+     card floats free of the screen edge, so all four corners round. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="24dp" />
+    <solid android:color="@color/drawerBackground" />
+</shape>

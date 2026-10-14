@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Icon style page: sample icons in the shape and size chosen, the
+     icon size, and the shapes, with More opening the rest. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:fillViewport="true"
+    android:paddingTop="64dp"
+    android:paddingBottom="96dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingEnd="16dp">
+
+        <TextView
+            style="@style/OnboardingTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/onboarding_icon_style" />
+
+        <LinearLayout
+            android:id="@+id/iconPreviewRow"
+            android:layout_width="match_parent"
+            android:layout_height="84dp"
+            android:gravity="center"
+            android:orientation="horizontal" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/icon_size"
+                android:textColor="@android:color/white"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/iconSizeValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@android:color/white"
+                android:textSize="18sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/iconSizeDown"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_onboarding_step"
+                android:contentDescription="@string/stepper_decrease"
+                android:padding="12dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_step_minus"
+                app:tint="@android:color/white" />
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/iconSizeSlider"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:stepSize="5"
+                android:valueFrom="70"
+                android:valueTo="160"
+                app:haloRadius="0dp"
+                app:labelBehavior="gone"
+                app:thumbColor="?attr/colorPrimary"
+                app:thumbRadius="10dp"
+                app:tickVisible="false"
+                app:trackColorActive="?attr/colorPrimary"
+                app:trackColorInactive="@android:color/white"
+                app:trackHeight="6dp" />
+
+            <ImageButton
+                android:id="@+id/iconSizeUp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_onboarding_step"
+                android:contentDescription="@string/stepper_increase"
+                android:padding="12dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_step_plus"
+                app:tint="@android:color/white" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/iconShapeRows"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="36dp"
+            android:orientation="vertical" />
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The grab handle every bottom sheet opens with. -->
+<View xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="32dp"
+    android:layout_height="4dp"
+    android:layout_gravity="center_horizontal"
+    android:layout_marginTop="12dp"
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/bg_sheet_handle"
+    android:importantForAccessibility="no" />

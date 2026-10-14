@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Drawer group tabs: a short rounded bar under the label rather than a
+     full-width Material underline. tabIndicatorColor tints it. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="3dp" />
+    <size android:height="3dp" />
+    <solid android:color="@android:color/white" />
+</shape>
