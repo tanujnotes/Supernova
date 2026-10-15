@@ -334,7 +334,6 @@
     <string name="placement_hidden">Hidden</string>
     <string name="drawer_bar_filled">Filled background</string>
     <string name="drawer_search_bar">Drawer search bar</string>
-    <string name="search_bar_chips_order">Buttons show in the order you enable them</string>
     <string name="drawer_scrubber_color">Fast scroller color</string>
     <string name="drawer_action_buttons">Header buttons</string>
     <string name="drawer_isolate_tabs">Isolate tabs</string>
@@ -418,6 +417,7 @@
     <string name="group_providers">Providers</string>
     <string name="group_bars">Search bars</string>
     <string name="group_icons">Icons</string>
+    <string name="group_appearance">Appearance</string>
     <string name="group_label_rows">Labels</string>
     <string name="group_badges">Badges</string>
     <string name="group_popup">Popup menu</string>
@@ -615,6 +615,7 @@
     <string name="home_button_action">Home button action</string>
     <string name="settings_search_hint">Search settings</string>
     <string name="desktop_search_bar">Desktop search bar</string>
+    <string name="search_bar_placement">Placement</string>
     <string name="search_bar_none">None</string>
     <string name="search_bar_above_dock">Above dock</string>
     <string name="search_bar_below_dock">Below dock</string>

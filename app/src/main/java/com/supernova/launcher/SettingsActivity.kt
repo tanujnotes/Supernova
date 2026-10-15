@@ -37,18 +37,14 @@ import com.supernova.launcher.databinding.ActivitySettingsBinding
 import com.supernova.launcher.databinding.DialogCustomShapeBinding
 import com.supernova.launcher.databinding.DialogDesktopGridBinding
 import com.supernova.launcher.databinding.DialogFolderIconBinding
-import com.supernova.launcher.databinding.DialogSearchBarBinding
 import com.supernova.launcher.databinding.ItemIconPackChoiceBinding
 import com.supernova.launcher.gesture.Gesture
 import com.supernova.launcher.gesture.GestureAction
 import com.supernova.launcher.gesture.GestureBinding
 import com.supernova.launcher.gesture.GestureDefaults
 import com.supernova.launcher.notification.SupernovaNotificationListener
-import com.supernova.launcher.ui.DesktopSearchBarConfig
 import com.supernova.launcher.ui.DrawerSearchBarConfig
 import com.supernova.launcher.ui.SearchBarConfig
-import com.supernova.launcher.ui.SearchBarChip
-import com.supernova.launcher.ui.SearchBarPlacement
 import com.supernova.launcher.ui.FolderPreviewStyle
 import com.supernova.launcher.ui.LauncherViewModel
 import com.supernova.launcher.ui.dp
@@ -326,8 +322,13 @@ class SettingsActivity : AppCompatActivity() {
 
     private val backCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
+            val parent = currentSection?.title?.let(subPageParents::get)
             if (searchActive) {
                 setSearchActive(false)
+            } else if (parent != null) {
+                // Back onto the row that opened the page, not the top.
+                val child = currentSection?.title ?: 0
+                navigateTo(parent, child, flash = false)
             } else {
                 currentSection = null
                 render()
@@ -491,7 +492,6 @@ class SettingsActivity : AppCompatActivity() {
                     requestNightLocationPermission.launch(android.Manifest.permission.ACCESS_COARSE_LOCATION)
                 }
             },
-            editSearchBar = ::showSearchBarEditor,
             editDrawerSearchBar = ::showDrawerSearchBarEditor,
             editDrawerButtons = ::showDrawerButtonsDialog,
             editPopupRows = ::showPopupRowsDialog,
@@ -738,6 +738,12 @@ class SettingsActivity : AppCompatActivity() {
         R.string.cards_media_title, R.string.feed_calendar_title, R.string.feed_contacts_title
     )
 
+    // Pages opened from a row on another page rather than from the root,
+    // and the page that row is on: back returns there.
+    private val subPageParents = mapOf(
+        R.string.desktop_search_bar to R.string.settings_section_search
+    )
+
     private fun render() {
         val section = currentSection
         backCallback.isEnabled = section != null || searchActive
@@ -783,7 +789,9 @@ class SettingsActivity : AppCompatActivity() {
                         }
                     )
                 )
-                sections.filter { it.items.isNotEmpty() && it.title !in cardSections }.forEach { s ->
+                sections.filter {
+                    it.items.isNotEmpty() && it.title !in cardSections && it.title !in subPageParents
+                }.forEach { s ->
                     add(
                         SettingItem.SectionLink(
                             s.title,
@@ -871,7 +879,8 @@ class SettingsActivity : AppCompatActivity() {
             return false
         }
         binding.previewPane.visibility = View.VISIBLE
-        binding.previewPane.showsWallpaper = preview.kind == PreviewKind.HOME
+        binding.previewPane.showsWallpaper =
+            preview.kind == PreviewKind.HOME || preview.kind == PreviewKind.SEARCH_BAR
         // Same guard as the in-list holder: never rebuild mid slider drag.
         if (!previews.isTracking) {
             val view = paneView ?: com.supernova.launcher.ui.settings.preview.SettingsPreviewView(this).also {
@@ -966,17 +975,16 @@ class SettingsActivity : AppCompatActivity() {
     // the matched row.
     private fun handleDeepLink(intent: Intent) {
         if (intent.getBooleanExtra(EXTRA_OPEN_SEARCH_BAR, false)) {
-            navigateTo(R.string.settings_section_search, R.string.desktop_search_bar)
-            showSearchBarEditor()
+            navigateTo(R.string.desktop_search_bar, 0)
             return
         }
         val section = intent.getIntExtra(EXTRA_SECTION_TITLE_RES, 0)
         if (section != 0) navigateTo(section, intent.getIntExtra(EXTRA_HIGHLIGHT_TITLE_RES, 0))
     }
 
-    private fun navigateTo(sectionTitleRes: Int, itemTitleRes: Int) {
+    private fun navigateTo(sectionTitleRes: Int, itemTitleRes: Int, flash: Boolean = true) {
         setSearchActive(false)
-        adapter.setHighlight(itemTitleRes)
+        if (flash) adapter.setHighlight(itemTitleRes)
         if (sectionTitleRes == styleSection.title) {
             currentSection = null
             if (currentTab != Tab.STYLE) {
@@ -996,7 +1004,7 @@ class SettingsActivity : AppCompatActivity() {
         if (position >= 0) {
             (binding.settingsRecycler.layoutManager as? LinearLayoutManager)
                 ?.scrollToPositionWithOffset(position, dp(72))
-        } else {
+        } else if (flash) {
             // The row is currently hidden by its visibleIf; landing on the
             // section without a flash is the honest outcome.
             adapter.clearHighlight()
@@ -2161,128 +2169,6 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    // Desktop search bar editor: everything edits local state against a live
-    // SearchBarView preview; only OK writes the config (one pref write), so
-    // Cancel never half-applies. The drawer half of the config passes through
-    // untouched - its toggles live as ordinary rows in the Search section.
-    private fun showSearchBarEditor() {
-        val dialogBinding = DialogSearchBarBinding.inflate(layoutInflater)
-        val prefs = viewModel.state.value.prefs
-        val fullConfig = SearchBarConfig.decode(prefs.searchBarConfig)
-        // A radius from the taller bar shows as the pill it draws.
-        var desktop = fullConfig.desktop.let { it.copy(radius = it.radius.coerceIn(0, SEARCH_BAR_RADIUS_MAX)) }
-        val resolved = Styles.resolve(this, prefs).of(SurfaceId.SEARCH_BAR)
-        dialogBinding.searchBarPreview.interactive = false
-
-        fun refreshPreview() {
-            // Preview always renders the pill itself; placement only decides
-            // where the launcher puts it.
-            dialogBinding.searchBarPreview.apply(desktop, resolved)
-            dialogBinding.radiusValue.text = getString(R.string.padding_dp_value, desktop.radius)
-            dialogBinding.alphaValue.text =
-                getString(R.string.opacity_percent, (desktop.alpha * 100).toInt())
-        }
-
-        val placementButtons = listOf(
-            dialogBinding.placementNone to SearchBarPlacement.NONE,
-            dialogBinding.placementAbove to SearchBarPlacement.DOCK_ABOVE,
-            dialogBinding.placementBelow to SearchBarPlacement.DOCK_BELOW,
-            dialogBinding.placementPersistent to SearchBarPlacement.PERSISTENT
-        )
-        val currentPlacement = SearchBarPlacement.fromName(desktop.placement)
-        placementButtons.forEach { (button, placement) ->
-            button.isChecked = placement == currentPlacement
-            button.setOnClickListener { desktop = desktop.copy(placement = placement.name) }
-        }
-
-        dialogBinding.radiusDown.setOnClickListener {
-            desktop = desktop.copy(radius = (desktop.radius - SEARCH_BAR_RADIUS_STEP).coerceAtLeast(0))
-            refreshPreview()
-        }
-        dialogBinding.radiusUp.setOnClickListener {
-            desktop = desktop.copy(
-                radius = (desktop.radius + SEARCH_BAR_RADIUS_STEP).coerceAtMost(SEARCH_BAR_RADIUS_MAX)
-            )
-            refreshPreview()
-        }
-
-        dialogBinding.alphaSeek.progress = (desktop.alpha.coerceIn(0f, 1f) * 100).toInt()
-        dialogBinding.alphaSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                if (!fromUser) return
-                desktop = desktop.copy(alpha = progress / 100f)
-                refreshPreview()
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
-            override fun onStopTrackingTouch(seekBar: SeekBar) = Unit
-        })
-
-        dialogBinding.wireframeCheck.isChecked = desktop.wireframe
-        dialogBinding.wireframeCheck.setOnCheckedChangeListener { _, checked ->
-            desktop = desktop.copy(wireframe = checked)
-            refreshPreview()
-        }
-        dialogBinding.shadowCheck.isChecked = desktop.shadow
-        dialogBinding.shadowCheck.setOnCheckedChangeListener { _, checked ->
-            desktop = desktop.copy(shadow = checked)
-            refreshPreview()
-        }
-        dialogBinding.hintCheck.isChecked = desktop.hint
-        dialogBinding.hintCheck.setOnCheckedChangeListener { _, checked ->
-            desktop = desktop.copy(hint = checked)
-            refreshPreview()
-        }
-
-        val logoButtons = listOf(
-            dialogBinding.logoSearch to com.supernova.launcher.ui.SearchBarLogo.SEARCH,
-            dialogBinding.logoSupernova to com.supernova.launcher.ui.SearchBarLogo.SUPERNOVA,
-            dialogBinding.logoNone to com.supernova.launcher.ui.SearchBarLogo.NONE
-        )
-        val currentLogo = com.supernova.launcher.ui.SearchBarLogo.fromName(desktop.logo)
-        logoButtons.forEach { (button, logo) ->
-            button.isChecked = logo == currentLogo
-            button.setOnClickListener {
-                desktop = desktop.copy(logo = logo.name)
-                refreshPreview()
-            }
-        }
-        dialogBinding.logoMonochrome.isChecked = desktop.logoMonochrome
-        dialogBinding.logoMonochrome.setOnCheckedChangeListener { _, checked ->
-            desktop = desktop.copy(logoMonochrome = checked)
-            refreshPreview()
-        }
-
-        val chipBoxes = listOf(
-            dialogBinding.chipVoice to SearchBarChip.VOICE,
-            dialogBinding.chipAssistant to SearchBarChip.ASSISTANT,
-            dialogBinding.chipDate to SearchBarChip.DATE,
-            dialogBinding.chipPlayStoreBar to SearchBarChip.PLAY_STORE,
-            dialogBinding.chipDrawer to SearchBarChip.APP_DRAWER
-        )
-        chipBoxes.forEach { (box, chip) ->
-            box.isChecked = desktop.chips.any { SearchBarChip.fromName(it) == chip }
-            box.setOnCheckedChangeListener { _, checked ->
-                // Enable order is display order (C8): checking appends the
-                // chip to the end of the row; unchecking removes it.
-                val without = desktop.chips.filterNot { SearchBarChip.fromName(it) == chip }
-                desktop = desktop.copy(chips = if (checked) without + chip.name else without)
-                refreshPreview()
-            }
-        }
-
-        refreshPreview()
-
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.desktop_search_bar)
-            .setView(dialogBinding.root)
-            .setPositiveButton(R.string.ok) { _, _ ->
-                viewModel.setSearchBarConfig(fullConfig.copy(desktop = desktop).encode())
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
-    }
-
     // Popup menu row configuration: two checkbox groups (Home / Drawer), one
     // per optional row. OK commits both prefs; decode/encode round-trips the
     // "" = defaults convention via the NONE token.
@@ -2366,14 +2252,9 @@ class SettingsActivity : AppCompatActivity() {
         // A permission refusal quicker than this never showed a dialog.
         private const val NO_DIALOG_MS = 400L
 
-        // Desktop search bar radius stepper: 0..26dp in 2dp steps (26 on the
-        // 52dp bar is a full pill).
-        private const val SEARCH_BAR_RADIUS_STEP = 2
-        private const val SEARCH_BAR_RADIUS_MAX = DesktopSearchBarConfig.MAX_RADIUS
-
         // Deep link from the global search overlay's settings results.
-        // The home search bar's "Search bar settings" row opens the editor
-        // itself, not just the section it lives in.
+        // The home search bar's "Search bar settings" row opens the bar's
+        // own page, not just the Search page that leads to it.
         const val EXTRA_OPEN_SEARCH_BAR = "extra_open_search_bar"
         const val EXTRA_SECTION_TITLE_RES = "extra_section_title_res"
         const val EXTRA_HIGHLIGHT_TITLE_RES = "extra_highlight_title_res"

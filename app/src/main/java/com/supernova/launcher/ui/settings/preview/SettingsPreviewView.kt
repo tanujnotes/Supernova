@@ -20,6 +20,8 @@ import com.supernova.launcher.ui.FolderPreviewStyle
 import com.supernova.launcher.ui.LabelContext
 import com.supernova.launcher.ui.LabelStyler
 import com.supernova.launcher.ui.LauncherViewModel
+import com.supernova.launcher.ui.SearchBarConfig
+import com.supernova.launcher.ui.SearchBarView
 import com.supernova.launcher.ui.dp
 import com.supernova.launcher.ui.settings.PreviewKind
 import com.supernova.launcher.ui.theme.StyleConfig
@@ -53,6 +55,10 @@ class SettingsPreviewView @JvmOverloads constructor(
     // tick can show and hide them without rebuilding the window.
     private val searchRows = mutableMapOf<String, View>()
     private var searchAppsSecondRow: View? = null
+    // Desktop search bar preview: the bar itself, and the surface it wears,
+    // resolved once at bind so a slider frame only re-applies the config.
+    private var searchBar: SearchBarView? = null
+    private var searchBarSurface: com.supernova.launcher.ui.theme.ResolvedSurface? = null
 
     // Base RGB plus any explicit style-config alpha, captured at bind so a
     // tick can recombine the surface color without re-resolving.
@@ -71,6 +77,8 @@ class SettingsPreviewView @JvmOverloads constructor(
         folderTitleView = null
         searchRows.clear()
         searchAppsSecondRow = null
+        searchBar = null
+        searchBarSurface = null
         keepsLargestIconRoom = kind == PreviewKind.DRAWER || kind == PreviewKind.DOCK
 
         when (kind) {
@@ -80,6 +88,7 @@ class SettingsPreviewView @JvmOverloads constructor(
             PreviewKind.FOLDER -> buildFolder(prefs, viewModel)
             PreviewKind.DRAWER -> buildDrawer(prefs, viewModel)
             PreviewKind.SEARCH -> buildSearch(prefs, viewModel)
+            PreviewKind.SEARCH_BAR -> buildSearchBar(prefs)
         }
         tick(prefs)
     }
@@ -134,6 +143,9 @@ class SettingsPreviewView @JvmOverloads constructor(
                 searchRows["shortcut"]?.visibility = if (prefs.searchShortcuts) VISIBLE else GONE
                 searchRows["folder"]?.visibility = if (prefs.searchFolders) VISIBLE else GONE
                 styleLabels(prefs, visible = true)
+            }
+            PreviewKind.SEARCH_BAR -> searchBarSurface?.let { surface ->
+                searchBar?.apply(SearchBarConfig.decode(prefs.searchBarConfig).desktop, surface)
             }
             null -> Unit
         }
@@ -213,6 +225,26 @@ class SettingsPreviewView @JvmOverloads constructor(
     // truncation read the way they will on the home screen. The strip keeps
     // one height whatever the settings, so dragging a bar never moves the
     // list under the finger.
+    // The bar as the home screen shows it, over the wallpaper, at its real
+    // height and side inset; its buttons stay inert here.
+    private fun buildSearchBar(prefs: LauncherPrefs) {
+        searchBarSurface = Styles.resolve(context, prefs).of(SurfaceId.SEARCH_BAR)
+        val bar = SearchBarView(context).apply {
+            interactive = false
+            isClickable = false
+            isLongClickable = false
+        }
+        searchBar = bar
+        addView(
+            bar,
+            LayoutParams(LayoutParams.MATCH_PARENT, dp(SEARCH_BAR_HEIGHT_DP)).apply {
+                val inset = dp(SEARCH_BAR_INSET_DP)
+                val pad = dp(SEARCH_BAR_PAD_DP)
+                setMargins(inset, pad, inset, pad)
+            }
+        )
+    }
+
     private fun buildHome(prefs: LauncherPrefs, viewModel: LauncherViewModel) {
         val row = newRow()
         homeSampleApps(viewModel, prefs.gridCols.coerceIn(HOME_MIN_COLS, HOME_MAX_COLS)).forEach { (app, icon) ->
@@ -785,6 +817,10 @@ class SettingsPreviewView @JvmOverloads constructor(
     }
 
     private companion object {
+        // The home bar's height and side inset, with room above and below.
+        const val SEARCH_BAR_HEIGHT_DP = 44
+        const val SEARCH_BAR_INSET_DP = 16
+        const val SEARCH_BAR_PAD_DP = 28
         // The stand-in notification picture a Dynamic badge shows here, and
         // the count a Numeric one does.
         const val SAMPLE_FACE_PX = 96

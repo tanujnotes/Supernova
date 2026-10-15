@@ -5,8 +5,8 @@ import androidx.annotation.StringRes
 import com.supernova.launcher.data.LauncherPrefs
 
 // What a Preview row renders; each kind maps to one build/tick path in
-// SettingsPreviewView. HOME is the only one drawn over the wallpaper.
-enum class PreviewKind { ICON_ROW, HOME, DOCK, FOLDER, DRAWER, SEARCH }
+// SettingsPreviewView. HOME and SEARCH_BAR are drawn over the wallpaper.
+enum class PreviewKind { ICON_ROW, HOME, DOCK, FOLDER, DRAWER, SEARCH, SEARCH_BAR }
 
 // One user-facing setting row. The catalogue declares these; the adapter
 // renders them. Values are always read through the latest LauncherPrefs
