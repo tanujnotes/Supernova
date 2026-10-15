@@ -1085,7 +1085,7 @@ class DrawerController(
         }
 
     // The most-launched strip above the list: All tab only, hidden while a
-    // query filters, rebound only when its membership actually changes.
+    // query filters, rebound only when its membership or the icons change.
     private var frequentRowKey: String? = null
     // Last icon generation the list was bound at; a change means per-app
     // icons moved even though the app list is identical (DiffUtil would skip).
@@ -1111,7 +1111,7 @@ class DrawerController(
         setFrequentRowVisible(true)
         val textColor = Styles.resolve(context, prefs).of(SurfaceId.DRAWER).text
         val key = apps.joinToString { "${it.userSerial}/${it.packageName}/${it.className}" } +
-            "|$columns|$textColor"
+            "|$columns|$textColor|$lastIconGeneration"
         if (key == frequentRowKey) return
         frequentRowKey = key
         // Long-pressed, each is a drawer icon like any other: its menu, and a
