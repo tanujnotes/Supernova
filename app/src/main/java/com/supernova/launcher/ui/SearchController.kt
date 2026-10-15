@@ -592,7 +592,7 @@ class SearchController(
             ui.root.clipToOutline = false
         }
         ui.searchPill.background = com.supernova.launcher.ui.theme.SurfaceShapes.background(
-            bar.surface, null, null, binding.root.dp(26f)
+            bar.surface, null, null, binding.root.dp(24f)
         )
         ui.searchInput.setTextColor(bar.text)
         ui.searchInput.setHintTextColor((0x99 shl 24) or (bar.text and 0xFFFFFF))

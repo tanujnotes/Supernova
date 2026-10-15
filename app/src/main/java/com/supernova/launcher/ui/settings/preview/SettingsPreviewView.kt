@@ -638,7 +638,7 @@ class SettingsPreviewView @JvmOverloads constructor(
             val pad = dp(8)
             setPadding(pad, pad, pad, pad)
             background = GradientDrawable().apply {
-                cornerRadius = dp(22).toFloat()
+                cornerRadius = dp(24).toFloat()
                 setColor((0x24 shl 24) or (resolved.text and 0xFFFFFF))
             }
         }
@@ -909,7 +909,7 @@ class SettingsPreviewView @JvmOverloads constructor(
 
     private companion object {
         // The home bar's height and side inset, with room above and below.
-        const val SEARCH_BAR_HEIGHT_DP = 44
+        const val SEARCH_BAR_HEIGHT_DP = 48
         const val SEARCH_BAR_INSET_DP = 16
         const val SEARCH_BAR_PAD_DP = 28
         // The drawer field's start icon, hint and box, as the drawer has them.

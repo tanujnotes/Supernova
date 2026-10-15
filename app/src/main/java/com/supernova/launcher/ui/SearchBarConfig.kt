@@ -31,8 +31,8 @@ enum class SearchBarChip {
 data class DesktopSearchBarConfig(
     // SearchBarPlacement name; tolerated free-form, unknown decodes as NONE.
     val placement: String = "NONE",
-    // Pill corner radius in dp (0..22; 22 on the 44dp bar = full pill).
-    val radius: Int = 22,
+    // Pill corner radius in dp (0..24; 24 on the 48dp bar = full pill).
+    val radius: Int = 24,
     // Background opacity 0..1.
     val alpha: Float = 1f,
     // Outline-only rendering: transparent fill, text-colored stroke.
@@ -56,7 +56,7 @@ data class DesktopSearchBarConfig(
     companion object {
         // Half the bar's height: rounder than this is the same pill. A
         // radius saved when the bar was 52dp tall (up to 26) draws as it.
-        const val MAX_RADIUS = 22
+        const val MAX_RADIUS = 24
 
         // The bar as a fresh install shows it: under the dock, with a
         // shadow, the Assistant on the right and no text.
@@ -80,8 +80,8 @@ data class DrawerSearchBarConfig(
     // DrawerBarPlacement name; "" derives from enabled (TOP or HIDDEN).
     val placement: String = "",
     // Box corner radius in dp; null keeps the stock outlined-box radius.
-    // 22 on the 44dp field is a full pill, which is the default look.
-    val radius: Int? = 22,
+    // 24 on the 48dp field is a full pill, which is the default look.
+    val radius: Int? = 24,
     // Solid filled box instead of the stock outline.
     val filled: Boolean = true,
     // Formerly the start icon's choice and tint; the field always shows the
@@ -95,7 +95,7 @@ data class DrawerSearchBarConfig(
     companion object {
         // Half the field's height; a radius saved against the 52dp field
         // draws as the same pill.
-        const val MAX_RADIUS = 22
+        const val MAX_RADIUS = 24
     }
 }
 
