@@ -852,7 +852,6 @@
     <ID>MaxLineLength:PinRequestActivity.kt$PinRequestActivity$val (cellWidth, cellHeight) = estimatedCellSizePx(prefs.gridCols, prefs.gridRows, prefs.desktopPaddingH, prefs.desktopPaddingV)</ID>
     <ID>MaxLineLength:PinRequestActivity.kt$PinRequestActivity$val (spanX, spanY) = WidgetSizing.defaultSpans(this, info, cellWidth, cellHeight, prefs.gridCols, prefs.gridRows)</ID>
     <ID>MaxLineLength:PinRequestActivity.kt$PinRequestActivity$val options = WidgetSizing.initialBindOptions(spanX, spanY, cellWidth, cellHeight, resources.displayMetrics.density)</ID>
-    <ID>MaxLineLength:SearchBarView.kt$SearchBarView$addIconChip(R.drawable.ic_action_drawer, R.string.action_open_drawer, tint) { onOpenDrawer?.invoke() }</ID>
     <ID>MaxLineLength:SearchBarView.kt$SearchBarView$addIconChip(R.drawable.ic_assistant, R.string.search_bar_chip_assistant, tint) { startAssistant() }</ID>
     <ID>MaxLineLength:SearchController.kt$SearchController$private val folderIcon: (com.supernova.launcher.search.FolderSearchProvider.Hit) -&gt; android.graphics.drawable.Drawable? = { null }</ID>
     <ID>MaxLineLength:SearchResultsAdapter.kt$SearchResultsAdapter$TYPE_PROVIDER_ICONS -&gt; ProviderIconsHolder(fullWidth(FrequentAppsRowView(parent.context)) as FrequentAppsRowView)</ID>
