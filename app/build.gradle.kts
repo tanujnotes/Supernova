@@ -61,6 +61,13 @@ android {
         viewBinding = true
     }
 
+    // No Google-encrypted dependency report in the APK signing block: F-Droid's
+    // scanner rejects it, and it breaks reproducible-build verification.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     lint {
         // Everything lint found on 2026-09-24 is parked in the baseline; anything
         // new fails the build. Regenerate by deleting the file and running lintDebug.
