@@ -628,12 +628,20 @@ class DrawerController(
     // mode, so a pull can put it on screen instantly at any offset: the
     // activity's swipe tracker calls beginPull once the gesture reads as a
     // swipe-up, pullTo per move, endPull on the lift.
+    //
+    // ZOOM and FADE have no position for a finger to hold: the swipe opens
+    // the drawer outright, and pullTo/endPull stay no-ops while the
+    // activity's pull swallows the rest of the stream.
 
     var isPulling = false
         private set
 
     fun beginPull() {
         if (isPulling) return
+        if (transition != DrawerTransition.SLIDE_UP) {
+            open()
+            return
+        }
         val prefs = viewModel.state.value.prefs
         isPulling = true
         prepareContent(prefs)
