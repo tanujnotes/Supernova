@@ -24,8 +24,8 @@ android {
         applicationId = "com.supernova.launcher"
         minSdk = 28
         targetSdk = 36
-        versionCode = 2
-        versionName = "v0.1.2"
+        versionCode = 3
+        versionName = "v0.1.3"
     }
 
     signingConfigs {
@@ -66,6 +66,16 @@ android {
     dependenciesInfo {
         includeInApk = false
         includeInBundle = false
+    }
+
+    // Ship DataStore's prebuilt native library exactly as it comes in the AAR.
+    // AGP strips it only where an NDK is installed, so without this a build on
+    // a dev machine differs from F-Droid's NDK-less build and the reproducible
+    // build check fails.
+    packaging {
+        jniLibs {
+            keepDebugSymbols += "**/libdatastore_shared_counter.so"
+        }
     }
 
     lint {
