@@ -23,6 +23,8 @@ import com.supernova.launcher.ui.DrawerTabStyle
 import com.supernova.launcher.ui.FolderMode
 import com.supernova.launcher.ui.FolderScroll
 import com.supernova.launcher.ui.DesktopSearchBarConfig
+import com.supernova.launcher.ui.DrawerBarPlacement
+import com.supernova.launcher.ui.DrawerSearchBarConfig
 import com.supernova.launcher.ui.SearchBarChip
 import com.supernova.launcher.ui.SearchBarConfig
 import com.supernova.launcher.ui.SearchBarLogo
@@ -61,7 +63,6 @@ object SettingsCatalogue {
         val exportIcons: () -> Unit = {},
         val managePermission: (LabsPermission) -> Unit = {},
         val pickDesktopGrid: () -> Unit = {},
-        val editDrawerSearchBar: () -> Unit = {},
         val editThemeSchedule: () -> Unit = {},
         val showLicense: () -> Unit = {},
         val editDrawerButtons: () -> Unit = {},
@@ -199,28 +200,25 @@ object SettingsCatalogue {
             onClick = { actions.editGesture(gesture) }
         )
 
-        // The desktop bar's slice of the searchBarConfig JSON, read and
-        // written whole: every row on its page edits one field of it.
-        fun desktopBar(prefs: LauncherPrefs): DesktopSearchBarConfig =
-            SearchBarConfig.decode(prefs.searchBarConfig).desktop
-
-        fun withDesktopBar(
-            prefs: LauncherPrefs,
-            change: (DesktopSearchBarConfig) -> DesktopSearchBarConfig
-        ): LauncherPrefs {
-            val full = SearchBarConfig.decode(prefs.searchBarConfig)
-            return prefs.copy(searchBarConfig = full.copy(desktop = change(full.desktop)).encode())
+        // Every row on a search bar's page edits one field of its slice of
+        // the searchBarConfig JSON (SearchBarPrefs), written back whole.
+        fun editDesktopBar(change: (DesktopSearchBarConfig) -> DesktopSearchBarConfig) {
+            viewModel.setSearchBarConfig(
+                SearchBarPrefs.withDesktopBar(viewModel.state.value.prefs, change).searchBarConfig
+            )
         }
 
-        fun editDesktopBar(change: (DesktopSearchBarConfig) -> DesktopSearchBarConfig) {
-            viewModel.setSearchBarConfig(withDesktopBar(viewModel.state.value.prefs, change).searchBarConfig)
+        fun editDrawerBar(change: (DrawerSearchBarConfig) -> DrawerSearchBarConfig) {
+            viewModel.setSearchBarConfig(
+                SearchBarPrefs.withDrawerBar(viewModel.state.value.prefs, change).searchBarConfig
+            )
         }
 
         // A button on the bar. Turning one on adds it after the others, so
         // they show in the order they were turned on.
         fun barChip(chip: SearchBarChip, @StringRes title: Int) = SettingItem.Toggle(
             title,
-            get = { prefs -> desktopBar(prefs).chips.any { SearchBarChip.fromName(it) == chip } },
+            get = { prefs -> SearchBarPrefs.desktopBar(prefs).chips.any { SearchBarChip.fromName(it) == chip } },
             set = { on ->
                 editDesktopBar { bar ->
                     val without = bar.chips.filterNot { SearchBarChip.fromName(it) == chip }
@@ -910,7 +908,7 @@ object SettingsCatalogue {
                             }
                         )
                     },
-                    onClick = actions.editDrawerSearchBar
+                    onClick = { actions.openSection(R.string.drawer_search_bar) }
                 ),
                 // Supersedes the legacy homeSearch toggle; the pref remains
                 // underneath as the "" fallback.
@@ -946,47 +944,47 @@ object SettingsCatalogue {
                         SearchBarPlacement.NONE, SearchBarPlacement.DOCK_ABOVE,
                         SearchBarPlacement.DOCK_BELOW, SearchBarPlacement.PERSISTENT
                     ),
-                    { SearchBarPlacement.fromName(rows.desktopBar(it).placement) }, { EnumLabels.of(it) }
+                    { SearchBarPlacement.fromName(SearchBarPrefs.desktopBar(it).placement) }, { EnumLabels.of(it) }
                 ) { placement -> rows.editDesktopBar { it.copy(placement = placement.name) } },
                 SettingItem.Header(R.string.group_appearance),
                 SettingItem.Slider(
                     R.string.style_corner_radius, min = 0, max = DesktopSearchBarConfig.MAX_RADIUS, step = 2,
-                    get = { rows.desktopBar(it).radius.coerceIn(0, DesktopSearchBarConfig.MAX_RADIUS) },
+                    get = { SearchBarPrefs.desktopBar(it).radius.coerceIn(0, DesktopSearchBarConfig.MAX_RADIUS) },
                     set = { v -> rows.editDesktopBar { it.copy(radius = v) } },
                     display = { context.getString(R.string.padding_dp_value, it) },
-                    preview = { p, v -> rows.withDesktopBar(p) { it.copy(radius = v) } }
+                    preview = { p, v -> SearchBarPrefs.withDesktopBar(p) { it.copy(radius = v) } }
                 ),
                 SettingItem.Slider(
                     R.string.style_opacity, min = 0, max = 100, step = 5,
-                    get = { (rows.desktopBar(it).alpha.coerceIn(0f, 1f) * 100f).roundToInt() },
+                    get = { (SearchBarPrefs.desktopBar(it).alpha.coerceIn(0f, 1f) * 100f).roundToInt() },
                     set = { v -> rows.editDesktopBar { it.copy(alpha = v / 100f) } },
                     display = { context.getString(R.string.opacity_percent, it) },
-                    preview = { p, v -> rows.withDesktopBar(p) { it.copy(alpha = v / 100f) } }
+                    preview = { p, v -> SearchBarPrefs.withDesktopBar(p) { it.copy(alpha = v / 100f) } }
                 ),
                 SettingItem.Toggle(
                     R.string.search_bar_wireframe,
-                    get = { rows.desktopBar(it).wireframe },
+                    get = { SearchBarPrefs.desktopBar(it).wireframe },
                     set = { on -> rows.editDesktopBar { it.copy(wireframe = on) } }
                 ),
                 SettingItem.Toggle(
                     R.string.search_bar_shadow,
-                    get = { rows.desktopBar(it).shadow },
+                    get = { SearchBarPrefs.desktopBar(it).shadow },
                     set = { on -> rows.editDesktopBar { it.copy(shadow = on) } }
                 ),
                 SettingItem.Toggle(
                     R.string.search_bar_hint_text,
-                    get = { rows.desktopBar(it).hint },
+                    get = { SearchBarPrefs.desktopBar(it).hint },
                     set = { on -> rows.editDesktopBar { it.copy(hint = on) } }
                 ),
                 rows.choice(
                     R.string.search_bar_logo, SearchBarLogo.entries,
-                    { SearchBarLogo.fromName(rows.desktopBar(it).logo) }, { EnumLabels.of(it) }
+                    { SearchBarLogo.fromName(SearchBarPrefs.desktopBar(it).logo) }, { EnumLabels.of(it) }
                 ) { logo -> rows.editDesktopBar { it.copy(logo = logo.name) } },
                 SettingItem.Toggle(
                     R.string.search_bar_logo_monochrome,
-                    get = { rows.desktopBar(it).logoMonochrome },
+                    get = { SearchBarPrefs.desktopBar(it).logoMonochrome },
                     set = { on -> rows.editDesktopBar { it.copy(logoMonochrome = on) } },
-                    visibleIf = { SearchBarLogo.fromName(rows.desktopBar(it).logo) != SearchBarLogo.NONE }
+                    visibleIf = { SearchBarLogo.fromName(SearchBarPrefs.desktopBar(it).logo) != SearchBarLogo.NONE }
                 ),
                 SettingItem.Header(R.string.search_bar_chips),
                 rows.barChip(SearchBarChip.VOICE, R.string.search_bar_chip_voice),
@@ -994,6 +992,63 @@ object SettingsCatalogue {
                 rows.barChip(SearchBarChip.DATE, R.string.search_bar_chip_date),
                 rows.barChip(SearchBarChip.PLAY_STORE, R.string.chip_play_store),
                 rows.barChip(SearchBarChip.APP_DRAWER, R.string.action_open_drawer)
+            )
+        ),
+        // The drawer field's own page, opened from the same Search bars group.
+        SettingsSection(
+            R.string.drawer_search_bar,
+            listOf(
+                SettingItem.Preview(PreviewKind.DRAWER_SEARCH_BAR),
+                rows.choice(
+                    R.string.search_bar_placement, DrawerBarPlacement.entries,
+                    { DrawerBarPlacement.fromConfig(SearchBarPrefs.drawerBar(it)) },
+                    {
+                        when (it) {
+                            DrawerBarPlacement.TOP -> R.string.tab_bar_top
+                            DrawerBarPlacement.BOTTOM -> R.string.tab_bar_bottom
+                            DrawerBarPlacement.HIDDEN -> R.string.placement_hidden
+                        }
+                    }
+                ) { placement ->
+                    rows.editDrawerBar {
+                        it.copy(placement = placement.name, enabled = placement != DrawerBarPlacement.HIDDEN)
+                    }
+                },
+                SettingItem.Toggle(
+                    R.string.drawer_search_global,
+                    get = { SearchBarPrefs.drawerBar(it).globalOnTap },
+                    set = { on -> rows.editDrawerBar { it.copy(globalOnTap = on) } },
+                    visibleIf = {
+                        DrawerBarPlacement.fromConfig(SearchBarPrefs.drawerBar(it)) != DrawerBarPlacement.HIDDEN
+                    }
+                ),
+                SettingItem.Header(R.string.group_appearance),
+                SettingItem.Toggle(
+                    R.string.drawer_bar_filled,
+                    get = { SearchBarPrefs.drawerBar(it).filled },
+                    set = { on -> rows.editDrawerBar { it.copy(filled = on) } }
+                ),
+                // An unset radius draws as the full pill, so it reads as one.
+                SettingItem.Slider(
+                    R.string.style_corner_radius, min = 0, max = DrawerSearchBarConfig.MAX_RADIUS, step = 2,
+                    get = {
+                        (SearchBarPrefs.drawerBar(it).radius ?: DrawerSearchBarConfig.MAX_RADIUS)
+                            .coerceIn(0, DrawerSearchBarConfig.MAX_RADIUS)
+                    },
+                    set = { v -> rows.editDrawerBar { it.copy(radius = v) } },
+                    display = { context.getString(R.string.padding_dp_value, it) },
+                    preview = { p, v -> SearchBarPrefs.withDrawerBar(p) { it.copy(radius = v) } }
+                ),
+                rows.choice(
+                    R.string.search_bar_logo, SearchBarLogo.entries,
+                    { SearchBarLogo.fromName(SearchBarPrefs.drawerBar(it).logo) }, { EnumLabels.of(it) }
+                ) { logo -> rows.editDrawerBar { it.copy(logo = logo.name) } },
+                SettingItem.Toggle(
+                    R.string.search_bar_logo_monochrome,
+                    get = { SearchBarPrefs.drawerBar(it).logoMonochrome },
+                    set = { on -> rows.editDrawerBar { it.copy(logoMonochrome = on) } },
+                    visibleIf = { SearchBarLogo.fromName(SearchBarPrefs.drawerBar(it).logo) != SearchBarLogo.NONE }
+                )
             )
         ),
         // Feed page: the page toggle, then Layout (frequent apps and
@@ -1765,5 +1820,31 @@ object SettingsCatalogue {
             )
         )
         return parts.joinToString(" \u00b7 ")
+    }
+}
+
+// The two bars' slices of the searchBarConfig JSON, for their pages' rows
+// and previews: read one, or a prefs snapshot with one changed.
+internal object SearchBarPrefs {
+    fun desktopBar(prefs: LauncherPrefs): DesktopSearchBarConfig =
+        SearchBarConfig.decode(prefs.searchBarConfig).desktop
+
+    fun withDesktopBar(
+        prefs: LauncherPrefs,
+        change: (DesktopSearchBarConfig) -> DesktopSearchBarConfig
+    ): LauncherPrefs {
+        val full = SearchBarConfig.decode(prefs.searchBarConfig)
+        return prefs.copy(searchBarConfig = full.copy(desktop = change(full.desktop)).encode())
+    }
+
+    fun drawerBar(prefs: LauncherPrefs): DrawerSearchBarConfig =
+        SearchBarConfig.decode(prefs.searchBarConfig).drawer
+
+    fun withDrawerBar(
+        prefs: LauncherPrefs,
+        change: (DrawerSearchBarConfig) -> DrawerSearchBarConfig
+    ): LauncherPrefs {
+        val full = SearchBarConfig.decode(prefs.searchBarConfig)
+        return prefs.copy(searchBarConfig = full.copy(drawer = change(full.drawer)).encode())
     }
 }

@@ -59,6 +59,11 @@ class SettingsPreviewView @JvmOverloads constructor(
     // resolved once at bind so a slider frame only re-applies the config.
     private var searchBar: SearchBarView? = null
     private var searchBarSurface: com.supernova.launcher.ui.theme.ResolvedSurface? = null
+    // Drawer field preview: the field's pill and start icon, on the drawer's
+    // own surface (searchBarSurface holds the DRAWER colours for it).
+    private var drawerField: View? = null
+    private var drawerFieldPill: GradientDrawable? = null
+    private var drawerFieldIcon: ImageView? = null
 
     // Base RGB plus any explicit style-config alpha, captured at bind so a
     // tick can recombine the surface color without re-resolving.
@@ -79,6 +84,9 @@ class SettingsPreviewView @JvmOverloads constructor(
         searchAppsSecondRow = null
         searchBar = null
         searchBarSurface = null
+        drawerField = null
+        drawerFieldPill = null
+        drawerFieldIcon = null
         keepsLargestIconRoom = kind == PreviewKind.DRAWER || kind == PreviewKind.DOCK
 
         when (kind) {
@@ -89,6 +97,7 @@ class SettingsPreviewView @JvmOverloads constructor(
             PreviewKind.DRAWER -> buildDrawer(prefs, viewModel)
             PreviewKind.SEARCH -> buildSearch(prefs, viewModel)
             PreviewKind.SEARCH_BAR -> buildSearchBar(prefs)
+            PreviewKind.DRAWER_SEARCH_BAR -> buildDrawerField(prefs)
         }
         tick(prefs)
     }
@@ -147,6 +156,7 @@ class SettingsPreviewView @JvmOverloads constructor(
             PreviewKind.SEARCH_BAR -> searchBarSurface?.let { surface ->
                 searchBar?.apply(SearchBarConfig.decode(prefs.searchBarConfig).desktop, surface)
             }
+            PreviewKind.DRAWER_SEARCH_BAR -> styleDrawerField(prefs)
             null -> Unit
         }
     }
@@ -242,6 +252,74 @@ class SettingsPreviewView @JvmOverloads constructor(
                 val pad = dp(SEARCH_BAR_PAD_DP)
                 setMargins(inset, pad, inset, pad)
             }
+        )
+    }
+
+    // The drawer's search field as the drawer draws it (DrawerController's
+    // field styling), on a strip of the drawer's surface.
+    private fun buildDrawerField(prefs: LauncherPrefs) {
+        val surface = Styles.resolve(context, prefs).of(SurfaceId.DRAWER)
+        searchBarSurface = surface
+        setBackgroundColor(surface.surface)
+        val pill = GradientDrawable()
+        val field = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(SEARCH_BAR_INSET_DP), 0, dp(SEARCH_BAR_INSET_DP), 0)
+            background = pill
+        }
+        val icon = ImageView(context)
+        field.addView(icon, LinearLayout.LayoutParams(dp(DRAWER_ICON_DP), dp(DRAWER_ICON_DP)).apply {
+            marginEnd = dp(DRAWER_ICON_GAP_DP)
+        })
+        field.addView(TextView(context).apply {
+            setText(R.string.search_apps)
+            textSize = DRAWER_HINT_SP
+            setTextColor((DRAWER_HINT_ALPHA shl 24) or (surface.text and 0xFFFFFF))
+        })
+        drawerField = field
+        drawerFieldPill = pill
+        drawerFieldIcon = icon
+        addView(
+            field,
+            LayoutParams(LayoutParams.MATCH_PARENT, dp(SEARCH_BAR_HEIGHT_DP)).apply {
+                val inset = dp(SEARCH_BAR_INSET_DP)
+                val pad = dp(SEARCH_BAR_PAD_DP)
+                setMargins(inset, pad, inset, pad)
+            }
+        )
+    }
+
+    private fun styleDrawerField(prefs: LauncherPrefs) {
+        val surface = searchBarSurface ?: return
+        val config = SearchBarConfig.decode(prefs.searchBarConfig).drawer
+        // Hidden leaves the strip empty, as the drawer has no field then.
+        drawerField?.visibility =
+            if (com.supernova.launcher.ui.DrawerBarPlacement.fromConfig(config) ==
+                com.supernova.launcher.ui.DrawerBarPlacement.HIDDEN
+            ) INVISIBLE else VISIBLE
+        val density = resources.displayMetrics.density
+        val max = com.supernova.launcher.ui.DrawerSearchBarConfig.MAX_RADIUS
+        drawerFieldPill?.apply {
+            cornerRadius = (config.radius ?: max).coerceIn(0, max) * density
+            if (config.filled) {
+                setColor((DRAWER_FILL_ALPHA shl 24) or (surface.text and 0xFFFFFF))
+                setStroke(0, android.graphics.Color.TRANSPARENT)
+            } else {
+                setColor(android.graphics.Color.TRANSPARENT)
+                setStroke(dp(2), (DRAWER_STROKE_ALPHA shl 24) or (surface.text and 0xFFFFFF))
+            }
+        }
+        val icon = drawerFieldIcon ?: return
+        val res = when (com.supernova.launcher.ui.SearchBarLogo.fromName(config.logo)) {
+            com.supernova.launcher.ui.SearchBarLogo.SEARCH -> R.drawable.ic_search
+            com.supernova.launcher.ui.SearchBarLogo.SUPERNOVA -> R.drawable.ic_supernova_logo
+            com.supernova.launcher.ui.SearchBarLogo.NONE -> 0
+        }
+        icon.visibility = if (res == 0) GONE else VISIBLE
+        if (res != 0) icon.setImageResource(res)
+        icon.imageTintList = android.content.res.ColorStateList.valueOf(
+            if (config.logoMonochrome) surface.text else surface.accent
         )
     }
 
@@ -821,6 +899,13 @@ class SettingsPreviewView @JvmOverloads constructor(
         const val SEARCH_BAR_HEIGHT_DP = 44
         const val SEARCH_BAR_INSET_DP = 16
         const val SEARCH_BAR_PAD_DP = 28
+        // The drawer field's start icon, hint and box, as the drawer has them.
+        const val DRAWER_ICON_DP = 20
+        const val DRAWER_ICON_GAP_DP = 12
+        const val DRAWER_HINT_SP = 16f
+        const val DRAWER_HINT_ALPHA = 0x8A
+        const val DRAWER_FILL_ALPHA = 0x24
+        const val DRAWER_STROKE_ALPHA = 0x5A
         // The stand-in notification picture a Dynamic badge shows here, and
         // the count a Numeric one does.
         const val SAMPLE_FACE_PX = 96

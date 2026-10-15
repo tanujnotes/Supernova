@@ -43,7 +43,6 @@ import com.supernova.launcher.gesture.GestureAction
 import com.supernova.launcher.gesture.GestureBinding
 import com.supernova.launcher.gesture.GestureDefaults
 import com.supernova.launcher.notification.SupernovaNotificationListener
-import com.supernova.launcher.ui.DrawerSearchBarConfig
 import com.supernova.launcher.ui.SearchBarConfig
 import com.supernova.launcher.ui.FolderPreviewStyle
 import com.supernova.launcher.ui.LauncherViewModel
@@ -492,7 +491,6 @@ class SettingsActivity : AppCompatActivity() {
                     requestNightLocationPermission.launch(android.Manifest.permission.ACCESS_COARSE_LOCATION)
                 }
             },
-            editDrawerSearchBar = ::showDrawerSearchBarEditor,
             editDrawerButtons = ::showDrawerButtonsDialog,
             editPopupRows = ::showPopupRowsDialog,
             onFeedCalendarEnabled = {
@@ -741,7 +739,8 @@ class SettingsActivity : AppCompatActivity() {
     // Pages opened from a row on another page rather than from the root,
     // and the page that row is on: back returns there.
     private val subPageParents = mapOf(
-        R.string.desktop_search_bar to R.string.settings_section_search
+        R.string.desktop_search_bar to R.string.settings_section_search,
+        R.string.drawer_search_bar to R.string.settings_section_search
     )
 
     private fun render() {
@@ -1200,80 +1199,6 @@ class SettingsActivity : AppCompatActivity() {
                     .show()
             }
         }
-    }
-
-    // Drawer search bar editor (C7): placement, global-on-tap, filled box,
-    // radius and start icon, committed on OK as one searchBarConfig write.
-    private fun showDrawerSearchBarEditor() {
-        val dialogBinding = com.supernova.launcher.databinding.DialogDrawerSearchBarBinding
-            .inflate(layoutInflater)
-        val fullConfig = SearchBarConfig.decode(viewModel.state.value.prefs.searchBarConfig)
-        // A radius from the taller field shows as the pill it draws.
-        var drawer = fullConfig.drawer.let { it.copy(radius = it.radius?.coerceIn(0, DrawerSearchBarConfig.MAX_RADIUS)) }
-
-        val placementButtons = listOf(
-            dialogBinding.placementTop to com.supernova.launcher.ui.DrawerBarPlacement.TOP,
-            dialogBinding.placementBottom to com.supernova.launcher.ui.DrawerBarPlacement.BOTTOM,
-            dialogBinding.placementHidden to com.supernova.launcher.ui.DrawerBarPlacement.HIDDEN
-        )
-        val current = com.supernova.launcher.ui.DrawerBarPlacement.fromConfig(drawer)
-        placementButtons.forEach { (button, placement) ->
-            button.isChecked = placement == current
-            button.setOnClickListener {
-                drawer = drawer.copy(
-                    placement = placement.name,
-                    enabled = placement != com.supernova.launcher.ui.DrawerBarPlacement.HIDDEN
-                )
-            }
-        }
-
-        dialogBinding.globalTapCheck.isChecked = drawer.globalOnTap
-        dialogBinding.globalTapCheck.setOnCheckedChangeListener { _, checked ->
-            drawer = drawer.copy(globalOnTap = checked)
-        }
-        dialogBinding.filledCheck.isChecked = drawer.filled
-        dialogBinding.filledCheck.setOnCheckedChangeListener { _, checked ->
-            drawer = drawer.copy(filled = checked)
-        }
-
-        fun renderRadius() {
-            dialogBinding.radiusValue.text = drawer.radius?.let {
-                getString(R.string.padding_dp_value, it)
-            } ?: getString(R.string.option_default)
-        }
-        dialogBinding.radiusDown.setOnClickListener {
-            drawer = drawer.copy(radius = ((drawer.radius ?: 8) - 2).coerceAtLeast(0))
-            renderRadius()
-        }
-        dialogBinding.radiusUp.setOnClickListener {
-            drawer = drawer.copy(radius = ((drawer.radius ?: 6) + 2).coerceAtMost(DrawerSearchBarConfig.MAX_RADIUS))
-            renderRadius()
-        }
-        renderRadius()
-
-        val logoButtons = listOf(
-            dialogBinding.logoNone to com.supernova.launcher.ui.SearchBarLogo.NONE,
-            dialogBinding.logoSearch to com.supernova.launcher.ui.SearchBarLogo.SEARCH,
-            dialogBinding.logoSupernova to com.supernova.launcher.ui.SearchBarLogo.SUPERNOVA
-        )
-        val currentLogo = com.supernova.launcher.ui.SearchBarLogo.fromName(drawer.logo)
-        logoButtons.forEach { (button, logo) ->
-            button.isChecked = logo == currentLogo
-            button.setOnClickListener { drawer = drawer.copy(logo = logo.name) }
-        }
-        dialogBinding.logoMonochrome.isChecked = drawer.logoMonochrome
-        dialogBinding.logoMonochrome.setOnCheckedChangeListener { _, checked ->
-            drawer = drawer.copy(logoMonochrome = checked)
-        }
-
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.drawer_search_bar)
-            .setView(dialogBinding.root)
-            .setPositiveButton(R.string.ok) { _, _ ->
-                viewModel.setSearchBarConfig(fullConfig.copy(drawer = drawer).encode())
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
     }
 
     private fun showDrawerButtonsDialog() {
