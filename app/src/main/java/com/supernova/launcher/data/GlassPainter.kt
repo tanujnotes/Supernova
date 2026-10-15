@@ -17,8 +17,8 @@ import androidx.core.graphics.createBitmap
 import androidx.core.graphics.withClip
 import kotlin.math.roundToInt
 
-// Paints IconGlass panes for IconRenderer. Each canvas is one icon's
-// bitmap, so its width is the size the icon renders at.
+// Paints IconGlass panes: IconRenderer's icons, and the home search bar's
+// pill (GlassPillDrawable). A pane fills width x height from the origin.
 class GlassPainter {
 
     // The platform's own mask at the render size, for the System shape.
@@ -43,51 +43,51 @@ class GlassPainter {
         val backing = layerColor(icon.background, bounds, size)
         val foreground = icon.foreground?.let { foregroundOnGlass(it, bounds, size, backing) }
         canvas.withClip(mask) {
-            drawPane(this, glass, backing)
+            drawPane(this, glass, backing, size, size)
             foreground?.let { drawBitmap(it, 0f, 0f, null) }
         }
         foreground?.recycle()
-        drawEdge(canvas, mask, glass)
+        drawEdge(canvas, mask, glass, size, size)
     }
 
     // Fills the clip with the pane: the tint, the grain, then the light.
-    fun drawPane(canvas: Canvas, glass: IconGlass, color: Int) {
-        val extent = canvas.width.toFloat()
+    fun drawPane(canvas: Canvas, glass: IconGlass, color: Int, width: Int, height: Int) {
+        val right = width.toFloat()
+        val bottom = height.toFloat()
         val base = if (glass == IconGlass.SMOKED) IconGlass.SMOKE_COLOR else color
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         paint.color = ColorUtils.setAlphaComponent(
             ColorUtils.blendARGB(base, Color.WHITE, glass.haze),
             (glass.tintAlpha * OPAQUE).roundToInt()
         )
-        canvas.drawRect(0f, 0f, extent, extent, paint)
+        canvas.drawRect(0f, 0f, right, bottom, paint)
         // Shaders draw at the paint's alpha: keep it opaque from here.
         paint.color = Color.BLACK
         if (glass.grain) {
             paint.shader = BitmapShader(grainTile, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
-            canvas.drawRect(0f, 0f, extent, extent, paint)
+            canvas.drawRect(0f, 0f, right, bottom, paint)
         }
-        val sheenEnd = extent * SHEEN_DEPTH
+        val sheenEnd = bottom * SHEEN_DEPTH
         paint.shader = LinearGradient(
             0f, 0f, 0f, sheenEnd, white(glass.sheen), Color.TRANSPARENT, Shader.TileMode.CLAMP
         )
-        canvas.drawRect(0f, 0f, extent, sheenEnd, paint)
-        val glowStart = extent * (1f - GLOW_DEPTH)
+        canvas.drawRect(0f, 0f, right, sheenEnd, paint)
+        val glowStart = bottom * (1f - GLOW_DEPTH)
         paint.shader = LinearGradient(
-            0f, extent, 0f, glowStart, white(glass.glow), Color.TRANSPARENT, Shader.TileMode.CLAMP
+            0f, bottom, 0f, glowStart, white(glass.glow), Color.TRANSPARENT, Shader.TileMode.CLAMP
         )
-        canvas.drawRect(0f, glowStart, extent, extent, paint)
+        canvas.drawRect(0f, glowStart, right, bottom, paint)
     }
 
     // The rim: brightest top left, dim along the sides, catching light again
     // bottom right. Stroked twice its width inside the clip, so all of it
-    // falls on the icon.
-    fun drawEdge(canvas: Canvas, mask: Path, glass: IconGlass) {
-        val extent = canvas.width.toFloat()
+    // falls on the pane. Its width follows the shorter side.
+    fun drawEdge(canvas: Canvas, mask: Path, glass: IconGlass, width: Int, height: Int) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = extent * EDGE_WIDTH_FRACTION * 2f
+            strokeWidth = minOf(width, height) * EDGE_WIDTH_FRACTION * 2f
             shader = LinearGradient(
-                0f, 0f, extent * EDGE_SLANT, extent,
+                0f, 0f, width * EDGE_SLANT, height.toFloat(),
                 intArrayOf(white(glass.edge), white(glass.edge * EDGE_MID), white(glass.edge * EDGE_END)),
                 floatArrayOf(0f, EDGE_MID_STOP, 1f),
                 Shader.TileMode.CLAMP

@@ -20,10 +20,11 @@ import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.widget.ImageViewCompat
 import com.supernova.launcher.R
+import com.supernova.launcher.data.IconGlass
 import com.supernova.launcher.ui.theme.ResolvedSurface
 
 // The desktop/dock search bar pill: SEARCH_BAR surface colors plus per-config
-// radius, opacity, wireframe, shadow, and optional action chips. The bar tap
+// radius, opacity, wireframe, shadow or glass, and optional action chips. The bar tap
 // routes to the global overlay through onTap; chips blind-start their system
 // intents directly (a missing handler just no-ops, like the web-search paths).
 class SearchBarView @JvmOverloads constructor(
@@ -119,16 +120,26 @@ class SearchBarView @JvmOverloads constructor(
         if (key != applied) {
             applied = key
 
-            pill.cornerRadius = dp(config.radius.coerceIn(0, DesktopSearchBarConfig.MAX_RADIUS)).toFloat()
+            val radius = dp(config.radius.coerceIn(0, DesktopSearchBarConfig.MAX_RADIUS)).toFloat()
             val alpha = (config.alpha.coerceIn(0f, 1f) * 255).toInt()
-            if (config.wireframe) {
-                pill.setColor(Color.TRANSPARENT)
-                pill.setStroke(dp(2), (alpha shl 24) or (resolved.text and 0xFFFFFF))
+            val glass = IconGlass.fromName(config.glass)
+            if (glass != IconGlass.OFF) {
+                // A see-through bar would show its own shadow through it, and
+                // an outline-only one has no surface to be glass.
+                background = GlassPillDrawable(glass, resolved.surface, radius).also { it.alpha = alpha }
+                elevation = 0f
             } else {
-                pill.setColor((alpha shl 24) or (resolved.surface and 0xFFFFFF))
-                pill.setStroke(0, 0)
+                pill.cornerRadius = radius
+                if (config.wireframe) {
+                    pill.setColor(Color.TRANSPARENT)
+                    pill.setStroke(dp(2), (alpha shl 24) or (resolved.text and 0xFFFFFF))
+                } else {
+                    pill.setColor((alpha shl 24) or (resolved.surface and 0xFFFFFF))
+                    pill.setStroke(0, 0)
+                }
+                if (background !== pill) background = pill
+                elevation = if (config.shadow) dp(4).toFloat() else 0f
             }
-            elevation = if (config.shadow) dp(4).toFloat() else 0f
 
             val tint = ColorStateList.valueOf(resolved.text)
             when (SearchBarLogo.fromName(config.logo)) {

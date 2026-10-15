@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.core.net.toUri
 import com.supernova.launcher.R
 import com.supernova.launcher.SupernovaApp
+import com.supernova.launcher.data.IconGlass
 import com.supernova.launcher.data.IconShape
 import com.supernova.launcher.data.LauncherPrefs
 import kotlin.math.roundToInt
@@ -961,15 +962,24 @@ object SettingsCatalogue {
                     display = { context.getString(R.string.opacity_percent, it) },
                     preview = { p, v -> SearchBarPrefs.withDesktopBar(p) { it.copy(alpha = v / 100f) } }
                 ),
+                rows.choice(
+                    R.string.icon_glass, IconGlass.entries,
+                    { IconGlass.fromName(SearchBarPrefs.desktopBar(it).glass) },
+                    { EnumLabels.of(it) }
+                ) { glass -> rows.editDesktopBar { it.copy(glass = glass.name) } },
+                // Glass takes the place of wireframe and shadow; they keep
+                // their settings, out of sight, while it is on.
                 SettingItem.Toggle(
                     R.string.search_bar_wireframe,
                     get = { SearchBarPrefs.desktopBar(it).wireframe },
-                    set = { on -> rows.editDesktopBar { it.copy(wireframe = on) } }
+                    set = { on -> rows.editDesktopBar { it.copy(wireframe = on) } },
+                    visibleIf = { IconGlass.fromName(SearchBarPrefs.desktopBar(it).glass) == IconGlass.OFF }
                 ),
                 SettingItem.Toggle(
                     R.string.search_bar_shadow,
                     get = { SearchBarPrefs.desktopBar(it).shadow },
-                    set = { on -> rows.editDesktopBar { it.copy(shadow = on) } }
+                    set = { on -> rows.editDesktopBar { it.copy(shadow = on) } },
+                    visibleIf = { IconGlass.fromName(SearchBarPrefs.desktopBar(it).glass) == IconGlass.OFF }
                 ),
                 SettingItem.Toggle(
                     R.string.search_bar_hint_text,

@@ -163,7 +163,7 @@ class IconRenderer(context: Context) {
                 radius, radius, platePaint
             )
         } else {
-            canvas.withClip(platePath()) { glassPainter.drawPane(this, glass, PLATE_COLOR) }
+            canvas.withClip(platePath()) { glassPainter.drawPane(this, glass, PLATE_COLOR, iconSizePx, iconSizePx) }
         }
         val inset = (iconSizePx * (1f - PLATE_CONTENT) / 2f)
         canvas.drawBitmap(
@@ -171,7 +171,7 @@ class IconRenderer(context: Context) {
             RectF(inset, inset, iconSizePx - inset, iconSizePx - inset),
             Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
         )
-        if (glass != IconGlass.OFF) glassPainter.drawEdge(canvas, platePath(), glass)
+        if (glass != IconGlass.OFF) glassPainter.drawEdge(canvas, platePath(), glass, iconSizePx, iconSizePx)
         return output
     }
 

@@ -55,7 +55,10 @@ data class DesktopSearchBarConfig(
     // Tint the logo with the bar's text color; false uses the accent.
     val logoMonochrome: Boolean = true,
     // The "Search" text beside the logo. The fresh bar has none.
-    val hint: Boolean = true
+    val hint: Boolean = true,
+    // IconGlass name: the pill as glass in its own colour, like the icons'
+    // glass backgrounds. It takes the place of wireframe and shadow.
+    val glass: String = "OFF"
 ) {
     // These field defaults are what a config that leaves a field out has
     // always meant, so a bar set up before a field existed keeps its look. A
