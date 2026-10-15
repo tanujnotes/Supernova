@@ -2721,7 +2721,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 widgets.restoreBuiltInSearchBar()
             }
         }
-        menu.addRow(getString(R.string.search_bar_settings), R.drawable.ic_action_settings) {
+        menu.addRow(getString(R.string.search_bar_settings), R.drawable.ic_tab_settings) {
             startActivity(
                 Intent(this, SettingsActivity::class.java)
                     .putExtra(SettingsActivity.EXTRA_OPEN_SEARCH_BAR, true)
