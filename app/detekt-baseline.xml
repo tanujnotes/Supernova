@@ -18,7 +18,6 @@
     <ID>ComplexCondition:LauncherActivity.kt$LauncherActivity$last != null &amp;&amp; last.model === state.model &amp;&amp; last.prefs === state.prefs &amp;&amp; last.apps === state.apps &amp;&amp; last.iconGeneration == state.iconGeneration</ID>
     <ID>ComplexCondition:LauncherActivity.kt$LauncherActivity$prefs.iconSwipeIndicator &amp;&amp; (item.swipeAction != null || item.swipeActionDown != null || item.swipeToOpen)</ID>
     <ID>ComplexCondition:LauncherRepository.kt$LauncherRepository$item.packageName == packageName &amp;&amp; item.className == className &amp;&amp; item.userSerial == userSerial &amp;&amp; item.itemType == ItemType.APP</ID>
-    <ID>ComplexCondition:LauncherViewModel.kt$LauncherViewModel$!packChanged &amp;&amp; !shapeChanged &amp;&amp; !normalizeChanged &amp;&amp; !shadowChanged &amp;&amp; !themedChanged &amp;&amp; !resolutionChanged</ID>
     <ID>ComplexCondition:LiveDragController.kt$LiveDragController$direction &gt; 0 &amp;&amp; pendingDragPageFlip &lt; 0 &amp;&amp; activeDragPayload != null &amp;&amp; host.workspaceAdapter.realPageCount &lt; LauncherRepository.MAX_PAGES</ID>
     <ID>ComplexCondition:PinRequestActivity.kt$PinRequestActivity$result.resultCode == RESULT_OK &amp;&amp; request != null &amp;&amp; info != null &amp;&amp; widgetId != AppWidgetManager.INVALID_APPWIDGET_ID</ID>
     <ID>ComplexCondition:SearchController.kt$SearchController$query.isEmpty() || label == null || label.length &lt;= query.length || !label.startsWith(query, ignoreCase = true)</ID>
@@ -89,7 +88,6 @@
     <ID>CyclomaticComplexMethod:WidgetPickerAdapter.kt$WidgetPickerAdapter$private fun rebuild()</ID>
     <ID>CyclomaticComplexMethod:WorkspaceGeometry.kt$WorkspaceGeometry$private fun attemptPush( statics: List&lt;LauncherItem&gt;, blockers: List&lt;LauncherItem&gt;, rects: Map&lt;String, CellRect&gt;, target: CellRect, dir: Pair&lt;Int, Int&gt;, cols: Int, rows: Int ): List&lt;ReorderMove&gt;?</ID>
     <ID>CyclomaticComplexMethod:WorkspacePagerAdapter.kt$WorkspacePagerAdapter.PageViewHolder$fun bind(page: Int)</ID>
-    <ID>ForEachOnRange:DrawerController.kt$DrawerController$(0 until searchRow.childCount).reversed()</ID>
     <ID>ForEachOnRange:SearchResultsAdapter.kt$SearchResultsAdapter.RowHolder$root.childCount - 1 downTo 0</ID>
     <ID>ForEachOnRange:WorkspacePagerAdapter.kt$WorkspacePagerAdapter$0 until pageCount</ID>
     <ID>LargeClass:DrawerController.kt$DrawerController</ID>
@@ -366,7 +364,6 @@
     <ID>MagicNumber:DrawerController.kt$DrawerController$24</ID>
     <ID>MagicNumber:DrawerController.kt$DrawerController$250</ID>
     <ID>MagicNumber:DrawerController.kt$DrawerController$3</ID>
-    <ID>MagicNumber:DrawerController.kt$DrawerController$40</ID>
     <ID>MagicNumber:DrawerController.kt$DrawerController$4f</ID>
     <ID>MagicNumber:DrawerController.kt$DrawerController.&lt;no name provided&gt;$1.5f</ID>
     <ID>MagicNumber:DrawerController.kt$DrawerController.DrawerPagerAdapter$4</ID>
@@ -588,7 +585,6 @@
     <ID>MagicNumber:SearchBarView.kt$SearchBarView$20</ID>
     <ID>MagicNumber:SearchBarView.kt$SearchBarView$24</ID>
     <ID>MagicNumber:SearchBarView.kt$SearchBarView$255</ID>
-    <ID>MagicNumber:SearchBarView.kt$SearchBarView$36</ID>
     <ID>MagicNumber:SearchBarView.kt$SearchBarView$4</ID>
     <ID>MagicNumber:SearchBarView.kt$SearchBarView$6</ID>
     <ID>MagicNumber:SearchBarView.kt$SearchBarView$8</ID>

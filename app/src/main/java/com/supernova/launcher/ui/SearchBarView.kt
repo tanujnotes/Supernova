@@ -52,6 +52,19 @@ class SearchBarView @JvmOverloads constructor(
     // The search-bar menu hangs off a long press.
     var onLongPress: ((View) -> Unit)? = null
 
+    // A host's own button kept at the bar's right end, after the chips (the
+    // feed's overflow menu); null takes it out again. The host styles it.
+    var trailing: View? = null
+        set(value) {
+            if (field === value) return
+            field?.let { removeView(it) }
+            field = value
+            if (value != null) {
+                (value.parent as? android.view.ViewGroup)?.removeView(value)
+                addView(value, LayoutParams(dp(CHIP_DP), dp(CHIP_DP)).apply { marginStart = dp(2) })
+            }
+        }
+
     init {
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
@@ -82,7 +95,8 @@ class SearchBarView @JvmOverloads constructor(
         chip.contentDescription = context.getString(labelRes)
         chip.setOnClickListener { if (interactive) onClick() }
         ImageViewCompat.setImageTintList(chip, tint)
-        addView(chip, LayoutParams(dp(36), dp(36)).apply { marginStart = dp(2) })
+        chip.tag = CHIP_TAG
+        addView(chip, chipIndex, LayoutParams(dp(CHIP_DP), dp(CHIP_DP)).apply { marginStart = dp(2) })
     }
 
     private fun addDateChip(textColor: Int) {
@@ -95,11 +109,15 @@ class SearchBarView @JvmOverloads constructor(
         chip.contentDescription = context.getString(R.string.search_bar_chip_date)
         chip.setOnClickListener { if (interactive) openCalendar() }
         chip.setTextColor(textColor)
-        addView(chip, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
+        chip.tag = CHIP_TAG
+        addView(chip, chipIndex, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
             marginStart = dp(2)
         })
         dateChip = chip
     }
+
+    // Chips go before the host's trailing button, if there is one.
+    private val chipIndex: Int get() = trailing?.let(::indexOfChild)?.takeIf { it >= 0 } ?: childCount
 
     private fun borderlessRipple(): Drawable? {
         val value = TypedValue()
@@ -149,9 +167,11 @@ class SearchBarView @JvmOverloads constructor(
             // Hidden, not gone: it still holds the chips to the right edge.
             hint.visibility = if (config.hint) VISIBLE else INVISIBLE
 
-            // Chips rebuild in config order (C8); everything after the icon
-            // and hint is chip territory.
-            while (childCount > 2) removeViewAt(childCount - 1)
+            // Chips rebuild in config order (C8); the host's trailing button
+            // stays put at the end.
+            for (index in childCount - 1 downTo 0) {
+                if (getChildAt(index).tag == CHIP_TAG) removeViewAt(index)
+            }
             dateChip = null
             config.chips.mapNotNull(SearchBarChip::fromName).distinct().forEach { chip ->
                 when (chip) {
@@ -223,4 +243,8 @@ class SearchBarView @JvmOverloads constructor(
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
     }
 
+    private companion object {
+        const val CHIP_TAG = "search-bar-chip"
+        const val CHIP_DP = 36
+    }
 }

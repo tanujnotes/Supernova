@@ -1383,13 +1383,21 @@ class DrawerController(
             tabs.setSelectedTabIndicatorColor(resolvedForBar.accent)
         }
 
-        // Header action buttons (C10): rebuilt after the field on every style
-        // pass; previous ones are tagged for removal.
+        // Header action buttons (C10): inside the field, at its right end,
+        // rebuilt on every style pass; previous ones are tagged for removal.
+        val field = binding.drawerSearchField
         val actionTag = "drawer-action-button"
-        (0 until searchRow.childCount).reversed().forEach { index ->
-            if (searchRow.getChildAt(index).tag == actionTag) searchRow.removeViewAt(index)
+        for (index in field.childCount - 1 downTo 0) {
+            if (field.getChildAt(index).tag == actionTag) field.removeViewAt(index)
         }
-        DrawerActionButton.decode(prefs.drawerActionButtons).forEach { button ->
+        val actionButtons = DrawerActionButton.decode(prefs.drawerActionButtons)
+        // Buttons carry their own touch padding, so the field's end inset shrinks.
+        field.setPaddingRelative(
+            field.paddingStart, field.paddingTop,
+            ((if (actionButtons.isEmpty()) FIELD_END_DP else FIELD_END_WITH_BUTTONS_DP) * density).toInt(),
+            field.paddingBottom
+        )
+        actionButtons.forEach { button ->
             val view = android.widget.ImageButton(context).apply {
                 tag = actionTag
                 setImageResource(
@@ -1400,6 +1408,8 @@ class DrawerController(
                 )
                 imageTintList = android.content.res.ColorStateList.valueOf(resolvedForBar.text)
                 background = null
+                val pad = (ACTION_BUTTON_PAD_DP * density).toInt()
+                setPadding(pad, pad, pad, pad)
                 contentDescription = context.getString(
                     when (button) {
                         DrawerActionButton.PLAY_STORE -> R.string.chip_play_store
@@ -1418,11 +1428,8 @@ class DrawerController(
                     }
                 }
             }
-            val size = (40 * context.resources.displayMetrics.density).toInt()
-            searchRow.addView(
-                view,
-                android.widget.LinearLayout.LayoutParams(size, size)
-            )
+            val size = (ACTION_BUTTON_DP * density).toInt()
+            field.addView(view, android.widget.LinearLayout.LayoutParams(size, size))
         }
         // Focusability is the pre-IME interception point: a non-focusable
         // EditText delivers a plain click and never starts an input connection.
@@ -1706,6 +1713,12 @@ class DrawerController(
         const val TILE_MIN_HEIGHT_DP = 98
         // The icon box item_drawer_app_row declares.
         const val ROW_ICON_DP = 40
+        // The search field's end inset alone, and beside its action buttons
+        // (36dp, padded), which sit inside it.
+        const val FIELD_END_DP = 16
+        const val FIELD_END_WITH_BUTTONS_DP = 4
+        const val ACTION_BUTTON_DP = 36
+        const val ACTION_BUTTON_PAD_DP = 8
         // item_drawer_app's 4dp side padding, both sides.
         const val TILE_SIDE_PADDING_DP = 8
         const val MAX_COLUMNS = 12
