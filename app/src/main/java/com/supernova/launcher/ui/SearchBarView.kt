@@ -141,22 +141,10 @@ class SearchBarView @JvmOverloads constructor(
                 elevation = if (config.shadow) dp(4).toFloat() else 0f
             }
 
+            // The magnifier on the left is fixed (set in init), in the
+            // bar's text colour like its buttons.
             val tint = ColorStateList.valueOf(resolved.text)
-            when (SearchBarLogo.fromName(config.logo)) {
-                SearchBarLogo.SEARCH -> {
-                    searchIcon.setImageResource(R.drawable.ic_search)
-                    searchIcon.visibility = VISIBLE
-                }
-                SearchBarLogo.SUPERNOVA -> {
-                    searchIcon.setImageResource(R.drawable.ic_supernova_logo)
-                    searchIcon.visibility = VISIBLE
-                }
-                SearchBarLogo.NONE -> searchIcon.visibility = GONE
-            }
-            ImageViewCompat.setImageTintList(
-                searchIcon,
-                if (config.logoMonochrome) tint else ColorStateList.valueOf(resolved.accent)
-            )
+            ImageViewCompat.setImageTintList(searchIcon, tint)
             hint.setTextColor((0x99 shl 24) or (resolved.text and 0xFFFFFF))
             // Hidden, not gone: it still holds the chips to the right edge.
             hint.visibility = if (config.hint) VISIBLE else INVISIBLE

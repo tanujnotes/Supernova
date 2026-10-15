@@ -268,7 +268,7 @@ class SettingsPreviewView @JvmOverloads constructor(
             setPadding(dp(SEARCH_BAR_INSET_DP), 0, dp(SEARCH_BAR_INSET_DP), 0)
             background = pill
         }
-        val icon = ImageView(context)
+        val icon = ImageView(context).apply { setImageResource(R.drawable.ic_search) }
         field.addView(icon, LinearLayout.LayoutParams(dp(DRAWER_ICON_DP), dp(DRAWER_ICON_DP)).apply {
             marginEnd = dp(DRAWER_ICON_GAP_DP)
         })
@@ -310,17 +310,7 @@ class SettingsPreviewView @JvmOverloads constructor(
                 setStroke(dp(2), (DRAWER_STROKE_ALPHA shl 24) or (surface.text and 0xFFFFFF))
             }
         }
-        val icon = drawerFieldIcon ?: return
-        val res = when (com.supernova.launcher.ui.SearchBarLogo.fromName(config.logo)) {
-            com.supernova.launcher.ui.SearchBarLogo.SEARCH -> R.drawable.ic_search
-            com.supernova.launcher.ui.SearchBarLogo.SUPERNOVA -> R.drawable.ic_supernova_logo
-            com.supernova.launcher.ui.SearchBarLogo.NONE -> 0
-        }
-        icon.visibility = if (res == 0) GONE else VISIBLE
-        if (res != 0) icon.setImageResource(res)
-        icon.imageTintList = android.content.res.ColorStateList.valueOf(
-            if (config.logoMonochrome) surface.text else surface.accent
-        )
+        drawerFieldIcon?.imageTintList = android.content.res.ColorStateList.valueOf(surface.text)
     }
 
     private fun buildHome(prefs: LauncherPrefs, viewModel: LauncherViewModel) {

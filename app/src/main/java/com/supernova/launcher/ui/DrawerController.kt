@@ -1350,20 +1350,10 @@ class DrawerController(
                 (0x5A shl 24) or (resolvedForBar.text and 0xFFFFFF)
             )
         }
-        val startIcon = when (SearchBarLogo.fromName(searchConfig.logo)) {
-            SearchBarLogo.SEARCH -> R.drawable.ic_search
-            SearchBarLogo.SUPERNOVA -> R.drawable.ic_supernova_logo
-            SearchBarLogo.NONE -> 0
-        }
-        if (startIcon == 0) {
-            binding.drawerSearchIcon.visibility = View.GONE
-        } else {
-            binding.drawerSearchIcon.visibility = View.VISIBLE
-            binding.drawerSearchIcon.setImageResource(startIcon)
-            binding.drawerSearchIcon.imageTintList = android.content.res.ColorStateList.valueOf(
-                if (searchConfig.logoMonochrome) resolvedForBar.text else resolvedForBar.accent
-            )
-        }
+        // The magnifier on the left is fixed, in the drawer's text colour.
+        binding.drawerSearchIcon.visibility = View.VISIBLE
+        binding.drawerSearchIcon.setImageResource(R.drawable.ic_search)
+        binding.drawerSearchIcon.imageTintList = android.content.res.ColorStateList.valueOf(resolvedForBar.text)
         // The field sits on the drawer surface, not on a Material card, so its
         // own text has to follow the resolved drawer palette.
         binding.drawerSearch.setTextColor(resolvedForBar.text)

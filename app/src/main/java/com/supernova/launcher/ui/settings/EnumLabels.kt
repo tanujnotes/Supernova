@@ -29,7 +29,6 @@ import com.supernova.launcher.ui.StatusBarIcons
 import com.supernova.launcher.ui.WallpaperScrollMode
 import com.supernova.launcher.data.IconGlass
 import com.supernova.launcher.data.ReshapeLegacy
-import com.supernova.launcher.ui.SearchBarLogo
 import com.supernova.launcher.ui.SearchBarPlacement
 import com.supernova.launcher.ui.theme.AccentColor
 import com.supernova.launcher.ui.theme.PaletteSourceMode
@@ -362,13 +361,6 @@ object EnumLabels {
         ScrollEffect.WIPE -> R.string.effect_wipe
         ScrollEffect.ZOOM_FADE -> R.string.effect_zoom_fade
         ScrollEffect.THROW -> R.string.effect_throw
-    }
-
-    @StringRes
-    fun of(logo: SearchBarLogo): Int = when (logo) {
-        SearchBarLogo.SEARCH -> R.string.search_bar_logo_search
-        SearchBarLogo.SUPERNOVA -> R.string.search_bar_logo_supernova
-        SearchBarLogo.NONE -> R.string.search_bar_logo_none
     }
 
     @StringRes

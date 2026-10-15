@@ -26,17 +26,6 @@ enum class SearchBarChip {
     }
 }
 
-// The mark on the left edge of the bar: the magnifier (the pre-logo default),
-// the Supernova spark, or nothing.
-enum class SearchBarLogo {
-    SEARCH, SUPERNOVA, NONE;
-
-    companion object {
-        fun fromName(name: String): SearchBarLogo =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: SEARCH
-    }
-}
-
 @Serializable
 data class DesktopSearchBarConfig(
     // SearchBarPlacement name; tolerated free-form, unknown decodes as NONE.
@@ -50,11 +39,11 @@ data class DesktopSearchBarConfig(
     val shadow: Boolean = false,
     // SearchBarChip names; unknown entries are ignored.
     val chips: List<String> = emptyList(),
-    // SearchBarLogo name; unknown decodes as SEARCH (the old fixed mark).
+    // The left icon used to be a choice; it is always the magnifier now.
+    // This and logoMonochrome stay so older configs and backups decode.
     val logo: String = "SEARCH",
-    // Tint the logo with the bar's text color; false uses the accent.
     val logoMonochrome: Boolean = true,
-    // The "Search" text beside the logo. The fresh bar has none.
+    // The "Search" text beside the magnifier. The fresh bar has none.
     val hint: Boolean = true,
     // IconGlass name: the pill as the same glass the icons get - white
     // frost, or dark for Smoked. It takes the place of wireframe and shadow.
@@ -69,14 +58,11 @@ data class DesktopSearchBarConfig(
         const val MAX_RADIUS = 22
 
         // The bar as a fresh install shows it: under the dock, with a
-        // shadow, its own logo in colour, the Assistant on the right and no
-        // text.
+        // shadow, the Assistant on the right and no text.
         val FRESH = DesktopSearchBarConfig(
             placement = SearchBarPlacement.DOCK_BELOW.name,
             shadow = true,
             chips = listOf(SearchBarChip.ASSISTANT.name),
-            logo = SearchBarLogo.SUPERNOVA.name,
-            logoMonochrome = false,
             hint = false
         )
     }
@@ -97,9 +83,9 @@ data class DrawerSearchBarConfig(
     val radius: Int? = 22,
     // Solid filled box instead of the stock outline.
     val filled: Boolean = true,
-    // SearchBarLogo name for the field's start icon; NONE = no icon (stock).
+    // Formerly the start icon's choice and tint; the field always shows the
+    // magnifier now. Kept so older configs and backups decode.
     val logo: String = "SEARCH",
-    // Tint the start icon with the drawer text color; false uses the accent.
     val logoMonochrome: Boolean = true
 ) {
     companion object {

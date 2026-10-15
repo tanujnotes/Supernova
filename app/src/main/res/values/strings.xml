@@ -478,11 +478,6 @@
     <string name="reshape_legacy_on">Rescale and add background</string>
     <string name="drawer_pull_to_search">Pull to search</string>
     <string name="folder_prioritize_first">Prioritize first icon</string>
-    <string name="search_bar_logo">Logo</string>
-    <string name="search_bar_logo_search">Magnifier</string>
-    <string name="search_bar_logo_supernova">Supernova</string>
-    <string name="search_bar_logo_none">None</string>
-    <string name="search_bar_logo_monochrome">Monochrome logo</string>
     <string name="label_customize">Customize labels</string>
     <string name="folder_icon_scale">Folder icon scale</string>
 

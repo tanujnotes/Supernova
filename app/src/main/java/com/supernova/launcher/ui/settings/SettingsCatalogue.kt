@@ -28,7 +28,6 @@ import com.supernova.launcher.ui.DrawerBarPlacement
 import com.supernova.launcher.ui.DrawerSearchBarConfig
 import com.supernova.launcher.ui.SearchBarChip
 import com.supernova.launcher.ui.SearchBarConfig
-import com.supernova.launcher.ui.SearchBarLogo
 import com.supernova.launcher.ui.SearchBarPlacement
 import com.supernova.launcher.ui.DrawerStyle
 import com.supernova.launcher.ui.IndicatorStyle
@@ -986,16 +985,6 @@ object SettingsCatalogue {
                     get = { SearchBarPrefs.desktopBar(it).hint },
                     set = { on -> rows.editDesktopBar { it.copy(hint = on) } }
                 ),
-                rows.choice(
-                    R.string.search_bar_logo, SearchBarLogo.entries,
-                    { SearchBarLogo.fromName(SearchBarPrefs.desktopBar(it).logo) }, { EnumLabels.of(it) }
-                ) { logo -> rows.editDesktopBar { it.copy(logo = logo.name) } },
-                SettingItem.Toggle(
-                    R.string.search_bar_logo_monochrome,
-                    get = { SearchBarPrefs.desktopBar(it).logoMonochrome },
-                    set = { on -> rows.editDesktopBar { it.copy(logoMonochrome = on) } },
-                    visibleIf = { SearchBarLogo.fromName(SearchBarPrefs.desktopBar(it).logo) != SearchBarLogo.NONE }
-                ),
                 SettingItem.Header(R.string.search_bar_chips),
                 rows.barChip(SearchBarChip.VOICE, R.string.search_bar_chip_voice),
                 rows.barChip(SearchBarChip.ASSISTANT, R.string.search_bar_chip_assistant),
@@ -1049,16 +1038,6 @@ object SettingsCatalogue {
                     display = { context.getString(R.string.padding_dp_value, it) },
                     preview = { p, v -> SearchBarPrefs.withDrawerBar(p) { it.copy(radius = v) } }
                 ),
-                rows.choice(
-                    R.string.search_bar_logo, SearchBarLogo.entries,
-                    { SearchBarLogo.fromName(SearchBarPrefs.drawerBar(it).logo) }, { EnumLabels.of(it) }
-                ) { logo -> rows.editDrawerBar { it.copy(logo = logo.name) } },
-                SettingItem.Toggle(
-                    R.string.search_bar_logo_monochrome,
-                    get = { SearchBarPrefs.drawerBar(it).logoMonochrome },
-                    set = { on -> rows.editDrawerBar { it.copy(logoMonochrome = on) } },
-                    visibleIf = { SearchBarLogo.fromName(SearchBarPrefs.drawerBar(it).logo) != SearchBarLogo.NONE }
-                )
             )
         ),
         // Feed page: the page toggle, then Layout (frequent apps and
