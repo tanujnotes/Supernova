@@ -107,6 +107,7 @@ object StoreKeys {
     val iconNormalize: Preferences.Key<Boolean> = booleanPreferencesKey("icon_normalize")
     val reshapeLegacy: Preferences.Key<String> = stringPreferencesKey("reshape_legacy")
     val iconShadow: Preferences.Key<Boolean> = booleanPreferencesKey("icon_shadow")
+    val iconGlass: Preferences.Key<String> = stringPreferencesKey("icon_glass")
     val themedIcons: Preferences.Key<Boolean> = booleanPreferencesKey("themed_icons")
     val themedIconsAutogen: Preferences.Key<Boolean> = booleanPreferencesKey("themed_icons_autogen")
     val lockMethod: Preferences.Key<String> = stringPreferencesKey("lock_method")

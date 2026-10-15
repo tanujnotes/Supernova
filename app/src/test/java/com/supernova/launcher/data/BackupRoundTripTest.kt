@@ -36,6 +36,7 @@ class BackupRoundTripTest {
         badgeStyle = "DYNAMIC",
         badgeApps = setOf("0/com.a/com.a.Main"),
         iconShadow = true,
+        iconGlass = "SMOKED",
         iconSwipeIndicator = false,
         themedIcons = true,
         themedIconsAutogen = true,

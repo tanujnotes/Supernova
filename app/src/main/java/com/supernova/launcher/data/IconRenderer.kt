@@ -3,12 +3,18 @@ package com.supernova.launcher.data
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
+import android.graphics.RectF
 import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.withClip
+import androidx.core.graphics.withTranslation
 import kotlin.math.roundToInt
 
 // How raw legacy (non-adaptive, unthemed) icons are made to match the rest
@@ -56,11 +62,17 @@ class IconRenderer(context: Context) {
     // full size.
     var shadow: Boolean = false
 
+    // iconGlass pref (IconGlass): adaptive icons, and the legacy plate, get a
+    // glass pane in place of their background.
+    var glass: IconGlass = IconGlass.OFF
+    private val glassPainter = GlassPainter()
+
     fun render(
         source: Drawable,
         decoration: IconPackDecoration? = null,
         shape: IconShape = IconShape.SYSTEM,
-        customShape: CustomShapeSpec? = null
+        customShape: CustomShapeSpec? = null,
+        glass: IconGlass = this.glass
     ): Drawable {
         val bitmap = Bitmap.createBitmap(iconSizePx, iconSizePx, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
@@ -74,19 +86,52 @@ class IconRenderer(context: Context) {
         val isRawLegacy = shapePath == null &&
             decoration?.back == null && source !is AdaptiveIconDrawable
         val shouldNormalize = reshapeLegacy != ReshapeLegacy.OFF && isRawLegacy
+        // The pane's outline, when there is one: the shadow keeps clear of it.
+        var glassMask = drawSource(canvas, source, decoration, shapePath, glass)
 
+        var flat = if (shouldNormalize) normalized(bitmap) else bitmap
+        // ON: bake a plate behind the (normalized) legacy icon so it reads
+        // like an adaptive icon.
+        if (reshapeLegacy == ReshapeLegacy.ON && isRawLegacy) {
+            flat = withPlate(flat, glass)
+            if (glass != IconGlass.OFF) glassMask = platePath()
+        }
+        return if (shadow) withShadow(flat, glassMask) else BitmapDrawable(resources, flat)
+    }
+
+    // The icon onto the canvas: a pack's back, the source - as glass, shaped
+    // or plain - then the pack's mask and upon. The glass pane's outline
+    // when it drew one.
+    private fun drawSource(
+        canvas: Canvas,
+        source: Drawable,
+        decoration: IconPackDecoration?,
+        shapePath: Path?,
+        glass: IconGlass
+    ): Path? {
         decoration?.back?.let { back ->
             back.setBounds(0, 0, iconSizePx, iconSizePx)
             back.draw(canvas)
         }
 
         val scale = decoration?.scale?.takeIf { it > 0f } ?: 1f
-        if (shapePath != null) {
+        // A pack's back plate is the pack's look, so its icons keep it.
+        val glassMask = if (glass != IconGlass.OFF && decoration?.back == null && source is AdaptiveIconDrawable) {
+            val mask = shapePath ?: glassPainter.systemMask(source, iconSizePx)
+            // The platform draws its layers at its own bleed; a chosen shape
+            // overfills as drawShapedBase does.
+            val bleed = if (shapePath != null) ADAPTIVE_BLEED else PLATFORM_BLEED
+            glassPainter.drawIcon(canvas, source, mask, glass, bleed)
+            mask
+        } else {
+            null
+        }
+        if (glassMask == null && shapePath != null) {
             canvas.save()
             canvas.clipPath(shapePath)
             drawShapedBase(canvas, source, scale, hasBack = decoration?.back != null)
             canvas.restore()
-        } else {
+        } else if (glassMask == null) {
             drawBase(canvas, source, scale, hasBack = decoration?.back != null)
         }
 
@@ -102,32 +147,42 @@ class IconRenderer(context: Context) {
             upon.setBounds(0, 0, iconSizePx, iconSizePx)
             upon.draw(canvas)
         }
-
-        var flat = if (shouldNormalize) normalized(bitmap) else bitmap
-        // ON: bake a plate behind the (normalized) legacy icon so it reads
-        // like an adaptive icon.
-        if (reshapeLegacy == ReshapeLegacy.ON && isRawLegacy) flat = withPlate(flat)
-        return if (shadow) withShadow(flat) else BitmapDrawable(resources, flat)
+        return glassMask
     }
 
     // A neutral rounded plate with the icon content inset onto it, matching
-    // the footprint adaptive icons render at.
-    private fun withPlate(bitmap: Bitmap): Bitmap {
+    // the footprint adaptive icons render at; with glass on, a white pane.
+    private fun withPlate(bitmap: Bitmap, glass: IconGlass): Bitmap {
         val output = Bitmap.createBitmap(iconSizePx, iconSizePx, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(output)
-        val platePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = PLATE_COLOR }
-        val radius = iconSizePx * PLATE_RADIUS_FRACTION
-        canvas.drawRoundRect(
-            android.graphics.RectF(0f, 0f, iconSizePx.toFloat(), iconSizePx.toFloat()),
-            radius, radius, platePaint
-        )
+        if (glass == IconGlass.OFF) {
+            val platePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = PLATE_COLOR }
+            val radius = iconSizePx * PLATE_RADIUS_FRACTION
+            canvas.drawRoundRect(
+                RectF(0f, 0f, iconSizePx.toFloat(), iconSizePx.toFloat()),
+                radius, radius, platePaint
+            )
+        } else {
+            canvas.withClip(platePath()) { glassPainter.drawPane(this, glass, PLATE_COLOR) }
+        }
         val inset = (iconSizePx * (1f - PLATE_CONTENT) / 2f)
         canvas.drawBitmap(
             bitmap, null,
-            android.graphics.RectF(inset, inset, iconSizePx - inset, iconSizePx - inset),
+            RectF(inset, inset, iconSizePx - inset, iconSizePx - inset),
             Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
         )
+        if (glass != IconGlass.OFF) glassPainter.drawEdge(canvas, platePath(), glass)
         return output
+    }
+
+    private fun platePath(): Path {
+        val radius = iconSizePx * PLATE_RADIUS_FRACTION
+        return Path().apply {
+            addRoundRect(
+                RectF(0f, 0f, iconSizePx.toFloat(), iconSizePx.toFloat()),
+                radius, radius, Path.Direction.CW
+            )
+        }
     }
 
     // Stamps a blurred alpha silhouette under the icon: ~30% black, 2dp blur,
@@ -136,7 +191,10 @@ class IconRenderer(context: Context) {
     // drawable draws that margin past its bounds. It used to be carved out of
     // the icon, as Launcher3's icons give up a margin inside their box, which
     // drew every icon 6dp under the size it was set to.
-    private fun withShadow(bitmap: Bitmap): Drawable {
+    // A glass icon's shadow is cast by its outline, not its pixels - a pane
+    // is mostly see-through - and only what falls outside the pane is kept,
+    // since a shadow seen through glass just muddies it.
+    private fun withShadow(bitmap: Bitmap, glassMask: Path? = null): Drawable {
         val size = iconSizePx
         val density = resources.displayMetrics.density * resolutionScale
         val margin = ((SHADOW_BLUR_DP + SHADOW_OFFSET_Y_DP) * density).roundToInt()
@@ -146,7 +204,13 @@ class IconRenderer(context: Context) {
             )
         }
         val offsets = IntArray(2)
-        val silhouette = bitmap.extractAlpha(blurPaint, offsets)
+        val solid = glassMask?.let { mask ->
+            createBitmap(size, size).also {
+                Canvas(it).drawPath(mask, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.BLACK })
+            }
+        }
+        val silhouette = (solid ?: bitmap).extractAlpha(blurPaint, offsets)
+        solid?.recycle()
         val output = Bitmap.createBitmap(size + 2 * margin, size + 2 * margin, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(output)
         val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = SHADOW_COLOR }
@@ -157,6 +221,10 @@ class IconRenderer(context: Context) {
             shadowPaint
         )
         silhouette.recycle()
+        if (glassMask != null) {
+            val clear = Paint(Paint.ANTI_ALIAS_FLAG).apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR) }
+            canvas.withTranslation(margin.toFloat(), margin.toFloat()) { drawPath(glassMask, clear) }
+        }
         canvas.drawBitmap(bitmap, margin.toFloat(), margin.toFloat(), null)
         return ShadowedIconDrawable(output, margin)
     }
@@ -264,6 +332,8 @@ class IconRenderer(context: Context) {
         private const val LEGACY_INSET_FRACTION = 0.04f
         private const val LEGACY_SHAPE_FILL = 1.18f
         private const val ADAPTIVE_BLEED = 0.12f
+        // AdaptiveIconDrawable's own: its layers reach a quarter past the icon.
+        private const val PLATFORM_BLEED = 0.25f
         private const val NORMALIZED_CONTENT = 0.72f
         private const val ALPHA_THRESHOLD = 40
         // White like the platform's default adaptive plate; content sits at

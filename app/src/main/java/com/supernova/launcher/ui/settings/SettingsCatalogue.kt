@@ -1380,6 +1380,11 @@ object SettingsCatalogue {
                     subtitle = { context.getString(EnumLabels.of(IconShape.fromName(it.iconShape))) },
                     onClick = actions.pickIconShape
                 ),
+                rows.choice(
+                    R.string.icon_glass, com.supernova.launcher.data.IconGlass.entries,
+                    { com.supernova.launcher.data.IconGlass.fromName(it.iconGlass) }, { EnumLabels.of(it) },
+                    onPick = { viewModel.setIconGlass(it.name) }
+                ),
                 // Bulk undo for per-app and per-folder icon picks.
                 SettingItem.Row(
                     R.string.reset_custom_icons,

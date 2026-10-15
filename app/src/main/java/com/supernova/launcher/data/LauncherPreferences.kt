@@ -110,6 +110,7 @@ class LauncherPreferences(private val context: Context) {
             target[StoreKeys.iconNormalize] = prefs.iconNormalize
             target[StoreKeys.reshapeLegacy] = prefs.reshapeLegacy
             target[StoreKeys.iconShadow] = prefs.iconShadow
+            target[StoreKeys.iconGlass] = prefs.iconGlass
             target[StoreKeys.iconSwipeIndicator] = prefs.iconSwipeIndicator
             target[StoreKeys.themedIcons] = prefs.themedIcons
             target[StoreKeys.themedIconsAutogen] = prefs.themedIconsAutogen
@@ -315,6 +316,7 @@ class LauncherPreferences(private val context: Context) {
             iconNormalize = values[StoreKeys.iconNormalize] ?: false,
             reshapeLegacy = values[StoreKeys.reshapeLegacy] ?: "ON",
             iconShadow = values[StoreKeys.iconShadow] ?: true,
+            iconGlass = values[StoreKeys.iconGlass] ?: "OFF",
             iconSwipeIndicator = values[StoreKeys.iconSwipeIndicator] ?: true,
             themedIcons = values[StoreKeys.themedIcons] ?: false,
             themedIconsAutogen = values[StoreKeys.themedIconsAutogen] ?: false,
@@ -657,6 +659,8 @@ class LauncherPreferences(private val context: Context) {
     suspend fun setReshapeLegacy(value: String) = put(StoreKeys.reshapeLegacy, value)
 
     suspend fun setIconShadow(value: Boolean) = put(StoreKeys.iconShadow, value)
+
+    suspend fun setIconGlass(value: String) = put(StoreKeys.iconGlass, value)
 
     suspend fun setIconSwipeIndicator(value: Boolean) = put(StoreKeys.iconSwipeIndicator, value)
 

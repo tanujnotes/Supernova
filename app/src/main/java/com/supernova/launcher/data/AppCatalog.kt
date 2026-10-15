@@ -214,8 +214,10 @@ class AppCatalog(
                 decoration = if (themed == null && mono == null) iconPacks.decoration(packComponent) else null
             }
 
+            // ORIGINAL is the app's own icon, glass and all left off.
+            val glass = if (variant == "ORIGINAL") IconGlass.OFF else iconRenderer.glass
             val rendered = runCatching {
-                iconRenderer.render(source, decoration, effectiveShape, customShapeSpec)
+                iconRenderer.render(source, decoration, effectiveShape, customShapeSpec, glass)
             }.getOrNull() ?: return null
             dominantColorOf(IconRenderer.bitmapOf(rendered))?.let { dominantColors[cacheKey] = it }
             val icon = runCatching { pm.getUserBadgedIcon(rendered, user) }.getOrNull() ?: return null
@@ -310,6 +312,13 @@ class AppCatalog(
     fun applyReshapeLegacy(value: ReshapeLegacy) = synchronized(renderLock) {
         if (iconRenderer.reshapeLegacy == value) return
         iconRenderer.reshapeLegacy = value
+        iconCache.evictAll()
+        dominantColors.clear()
+    }
+
+    fun applyIconGlass(value: IconGlass) = synchronized(renderLock) {
+        if (iconRenderer.glass == value) return
+        iconRenderer.glass = value
         iconCache.evictAll()
         dominantColors.clear()
     }

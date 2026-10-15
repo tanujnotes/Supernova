@@ -27,6 +27,7 @@ import com.supernova.launcher.ui.PopupExtraRow
 import com.supernova.launcher.ui.ScrollEffect
 import com.supernova.launcher.ui.StatusBarIcons
 import com.supernova.launcher.ui.WallpaperScrollMode
+import com.supernova.launcher.data.IconGlass
 import com.supernova.launcher.data.ReshapeLegacy
 import com.supernova.launcher.ui.SearchBarLogo
 import com.supernova.launcher.ui.SearchBarPlacement
@@ -302,6 +303,14 @@ object EnumLabels {
         HideClock.HOME_PAGE -> R.string.hide_clock_home_page
         HideClock.DESKTOP -> R.string.hide_clock_desktop
         HideClock.EVERYWHERE -> R.string.hide_clock_everywhere
+    }
+
+    @StringRes
+    fun of(glass: IconGlass): Int = when (glass) {
+        IconGlass.OFF -> R.string.mode_off
+        IconGlass.FROSTED -> R.string.icon_glass_frosted
+        IconGlass.CLEAR -> R.string.icon_glass_clear
+        IconGlass.SMOKED -> R.string.icon_glass_smoked
     }
 
     @StringRes

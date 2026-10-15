@@ -174,6 +174,10 @@
     <string name="label_color">Label color</string>
     <string name="label_shadow">Label shadow</string>
     <string name="icon_shadow">Icon shadow</string>
+    <string name="icon_glass">Glass background</string>
+    <string name="icon_glass_frosted">Frosted</string>
+    <string name="icon_glass_clear">Clear</string>
+    <string name="icon_glass_smoked">Smoked</string>
     <string name="icon_swipe_indicator">Mark icons with swipe actions</string>
     <string name="badge_style">Badge style</string>
     <string name="badge_style_dots">Dots</string>

@@ -261,6 +261,8 @@ data class LauncherPrefs(
     // On by default. The shadow falls outside the icon, which keeps
     // its size (ShadowedIconDrawable).
     val iconShadow: Boolean = true,
+    // IconGlass name (OFF/FROSTED/CLEAR/SMOKED): icon backgrounds as glass.
+    val iconGlass: String = "OFF",
     // A short bar under any icon that has a swipe action bound. An icon swipe
     // is invisible without it, so it stays on by default; it only ever draws
     // on icons that actually carry one.
