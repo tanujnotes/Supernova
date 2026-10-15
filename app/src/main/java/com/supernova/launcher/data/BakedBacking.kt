@@ -30,7 +30,10 @@ internal object BakedBacking {
     // colour it started from; which pixels it took; and the box they span
     // (LEFT, TOP, RIGHT, BOTTOM), which tells a tile (it spans the icon)
     // from an object.
-    class Cleared(val color: Int, val backing: Int, val taken: BooleanArray, val box: IntArray)
+    class Cleared(val color: Int, val backing: Int, val taken: BooleanArray, val box: IntArray) {
+        // The picture's side: taken is width x width.
+        val width: Int get() = kotlin.math.sqrt(taken.size.toDouble()).toInt()
+    }
 
     // How far each channel may sit from the backing colour and still be it:
     // wide enough to take a tile's faint shading.
@@ -38,10 +41,13 @@ internal object BakedBacking {
     // How far a pixel may differ from the cleared neighbour it is reached
     // from: a gradient changes this slowly, a logo's edge does not.
     private const val STEP = 10
-    // A neighbour below this alpha is a gap the backing shows through to;
-    // a seed must be at least this solid.
-    private const val GAP_ALPHA = 32
+    // A seed is a pixel at least this solid beside one that isn't (or the
+    // picture's edge): a scaled picture's outline fades over a few pixels,
+    // so a seed can't wait for a fully clear neighbour.
     private const val SEED_ALPHA = 128
+    // Left in a background layer this close to its backing, a pixel is
+    // texture (a grid, faint shading) and goes too.
+    private const val TEXTURE_TOLERANCE = 70
     // Less backing than this share of the picture is no tile at all (busy
     // art all the way to the edge), and the picture is left whole.
     private const val MIN_SHARE = 0.15f
@@ -57,7 +63,7 @@ internal object BakedBacking {
     fun clear(pixels: IntArray, size: Int): Cleared? {
         val original = pixels.copyOf()
         val seeds = pixels.indices.filter {
-            alpha(original[it]) >= SEED_ALPHA && Pixels.reachable(original, size, it, GAP_ALPHA)
+            alpha(original[it]) >= SEED_ALPHA && Pixels.reachable(original, size, it, SEED_ALPHA)
         }
         val fill = seeds.takeIf { it.isNotEmpty() }?.let { found ->
             val backing = dominant(original, found)
@@ -84,11 +90,19 @@ internal object BakedBacking {
         fill.allowed = allowed
         pixels.indices
             .filter { allowed[it] && alpha(original[it]) > 0 && near(original[it], backing, TOLERANCE) }
-            .filter { Pixels.reachable(original, size, it, GAP_ALPHA) }
+            .filter { Pixels.reachable(original, size, it, SEED_ALPHA) }
             .forEach(fill::add)
         fill.run()
         if (fill.count > 0) fill.clearInto(pixels)
         return fill.count > 0
+    }
+
+    // Clears what a background layer has left near its backing colour:
+    // texture on the tile, not a detail on it.
+    fun clearTexture(pixels: IntArray, backing: Int) {
+        for (index in pixels.indices) {
+            if (alpha(pixels[index]) > 0 && near(pixels[index], backing, TEXTURE_TOLERANCE)) pixels[index] = 0
+        }
     }
 
     // The box round the picture's solid pixels, as LEFT, TOP, RIGHT,
@@ -115,6 +129,17 @@ internal object BakedBacking {
     fun spans(cleared: Cleared, content: IntArray, slack: Int): Boolean =
         cleared.box[LEFT] - content[LEFT] <= slack && cleared.box[TOP] - content[TOP] <= slack &&
             content[RIGHT] - cleared.box[RIGHT] <= slack && content[BOTTOM] - cleared.box[BOTTOM] <= slack
+
+    // Whether the cleared pixels fill at least share of a box's area.
+    fun covers(cleared: Cleared, box: IntArray, share: Float): Boolean {
+        var inside = 0
+        for (y in box[TOP]..box[BOTTOM]) {
+            val row = y * cleared.width
+            for (x in box[LEFT]..box[RIGHT]) if (cleared.taken[row + x]) inside++
+        }
+        val area = (box[RIGHT] - box[LEFT] + 1) * (box[BOTTOM] - box[TOP] + 1)
+        return inside >= area * share
+    }
 
     // A tile's backing may stop this share of the size short of a side and
     // still count as spanning it.

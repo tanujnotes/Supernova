@@ -60,17 +60,15 @@ class GlassPainter {
         val bounds = Rect(-bleed, -bleed, size + bleed, size + bleed)
         val back = icon.background?.let { layerPixels(it, bounds, mask, size) }
         var front = icon.foreground?.let { layerPixels(it, bounds, mask, size) }
-        val whole = intArrayOf(0, 0, size - 1, size - 1)
-        val slack = (size * BakedBacking.TILE_SLACK).roundToInt()
-        val frontTile = front?.copyOf()?.let { copy ->
-            BakedBacking.clear(copy, size)?.takeIf { BakedBacking.spans(it, whole, slack) }?.let { copy to it }
-        }
+        val frontTile = front?.let { frontTile(it, size, bleed) }
         val tint: Int
         if (frontTile != null) {
             front = frontTile.first
             tint = frontTile.second.color
         } else {
-            val cleared = back?.let { BakedBacking.clear(it, size) }
+            val cleared = back?.let { layer ->
+                BakedBacking.clear(layer, size)?.also { BakedBacking.clearTexture(layer, it.backing) }
+            }
             tint = cleared?.color ?: Color.WHITE
             front?.let { if (cleared != null) BakedBacking.clearMatching(it, size, cleared.backing, cleared.taken) }
         }
@@ -79,6 +77,23 @@ class GlassPainter {
             if (frontTile == null) back?.let { drawPixels(this, it, size) }
             front?.let { drawPixels(this, it, size) }
         }
+    }
+
+    // The foreground less its own tile, and what was cleared, when it has
+    // one; null for a foreground that is a logo. What Android shows of the
+    // layers is their middle two thirds (72 of 108dp). A chosen shape draws
+    // them larger than that, so the box sits inside the icon; with System it
+    // is the whole icon. A foreground tile is drawn to fill it, where a logo
+    // keeps to the safe zone inside it, so a backing that reaches its sides
+    // and fills half of it is the icon's background.
+    private fun frontTile(front: IntArray, size: Int, bleed: Int): Pair<IntArray, BakedBacking.Cleared>? {
+        val inset = ((size - (size + 2 * bleed) * VIEWPORT) / 2).roundToInt().coerceAtLeast(0)
+        val shown = intArrayOf(inset, inset, size - 1 - inset, size - 1 - inset)
+        val slack = (size * BakedBacking.TILE_SLACK).roundToInt()
+        val copy = front.copyOf()
+        return BakedBacking.clear(copy, size)
+            ?.takeIf { BakedBacking.spans(it, shown, slack) && BakedBacking.covers(it, shown, MIN_TILE_COVER) }
+            ?.let { copy to it }
     }
 
     // One layer as it shows inside the mask, read back.
@@ -155,6 +170,10 @@ class GlassPainter {
     }
 
     private companion object {
+        // The share of an adaptive layer Android shows, and how much of that
+        // a foreground tile must fill.
+        const val VIEWPORT = 2f / 3f
+        const val MIN_TILE_COVER = 0.5f
         const val OPAQUE = 255
         // The sheen covers the top 55%, the glow the bottom 35%.
         const val SHEEN_DEPTH = 0.55f

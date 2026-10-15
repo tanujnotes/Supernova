@@ -202,4 +202,67 @@ class BakedBackingTest {
             assertEquals("pixel $x,$y", expected, front[index])
         }
     }
+
+    @Test
+    fun aForegroundTileFillsTheShownAreaButALogoDoesNot() {
+        // Fender: an orange tile on a transparent layer, inset from the
+        // picture's edges, with a white mark on it.
+        val orange = 0xFFF0602A.toInt()
+        val size = 10
+        val tile = IntArray(size * size) { index ->
+            val x = index % size
+            val y = index / size
+            when {
+                x !in 1..8 || y !in 1..8 -> clear
+                x in 4..5 && y in 4..5 -> white
+                else -> orange
+            }
+        }
+        val shown = intArrayOf(1, 1, 8, 8)
+        val cleared = BakedBacking.clear(tile, size)!!
+        assertTrue(BakedBacking.spans(cleared, shown, slack = 0))
+        assertTrue(BakedBacking.covers(cleared, shown, 0.5f))
+        // A logo ring well inside the shown area reaches none of its sides.
+        val logo = IntArray(size * size) { index ->
+            val x = index % size
+            val y = index / size
+            val inRing = x in 3..6 && y in 3..6
+            val inHole = x in 4..5 && y in 4..5
+            if (inRing && !inHole) red else clear
+        }
+        val ring = BakedBacking.clear(logo, size)!!
+        assertFalse(BakedBacking.spans(ring, shown, slack = 0))
+        assertFalse(BakedBacking.covers(ring, shown, 0.5f))
+    }
+
+    @Test
+    fun aTileWithASoftEdgeStillFindsItsBacking() {
+        // A scaled picture: the tile's outline fades through half-clear
+        // pixels, so no solid pixel touches a fully clear one.
+        val orange = 0xFFF0602A.toInt()
+        val soft = 0x60F0602A
+        val size = 8
+        val pixels = IntArray(size * size) { index ->
+            val x = index % size
+            val y = index / size
+            when {
+                minOf(x, y) == 0 || maxOf(x, y) == size - 1 -> clear
+                minOf(x, y) == 1 || maxOf(x, y) == size - 2 -> soft
+                x in 3..4 && y in 3..4 -> white
+                else -> orange
+            }
+        }
+        assertNotNull(BakedBacking.clear(pixels, size))
+        assertEquals(white, pixels[3 * size + 3])
+        assertEquals(0, pixels[2 * size + 2])
+    }
+
+    @Test
+    fun textureLeftOnABackgroundGoesButADetailStays() {
+        val green = 0xFF3DDC84.toInt()
+        val gridLine = 0xFF6CE4A2.toInt()
+        val pixels = intArrayOf(gridLine, red, green, 0)
+        BakedBacking.clearTexture(pixels, green)
+        assertArrayEquals(intArrayOf(0, red, 0, 0), pixels)
+    }
 }
