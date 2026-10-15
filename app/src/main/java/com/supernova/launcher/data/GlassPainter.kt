@@ -40,10 +40,13 @@ class GlassPainter {
         val size = canvas.width
         val bleed = (size * bleedFraction).roundToInt()
         val bounds = Rect(-bleed, -bleed, size + bleed, size + bleed)
+        val backing = layerColor(icon.background, bounds, size)
+        val foreground = icon.foreground?.let { foregroundOnGlass(it, bounds, size, backing) }
         canvas.withClip(mask) {
-            drawPane(this, glass, layerColor(icon.background, bounds, size))
-            icon.foreground?.let { it.bounds = bounds; it.draw(this) }
+            drawPane(this, glass, backing)
+            foreground?.let { drawBitmap(it, 0f, 0f, null) }
         }
+        foreground?.recycle()
         drawEdge(canvas, mask, glass)
     }
 
@@ -91,6 +94,18 @@ class GlassPainter {
             )
         }
         canvas.withClip(mask) { drawPath(mask, paint) }
+    }
+
+    // The foreground at the icon's size, less any copy of the background it
+    // carries (BakedBacking), which would otherwise hide the pane.
+    private fun foregroundOnGlass(layer: Drawable, bounds: Rect, size: Int, backing: Int): Bitmap {
+        val bitmap = createBitmap(size, size)
+        layer.bounds = bounds
+        layer.draw(Canvas(bitmap))
+        val pixels = IntArray(size * size)
+        bitmap.getPixels(pixels, 0, size, 0, 0, size, size)
+        if (BakedBacking.clear(pixels, size, backing)) bitmap.setPixels(pixels, 0, size, 0, 0, size, size)
+        return bitmap
     }
 
     // A background layer's colour: a flat one's own, else the average of
