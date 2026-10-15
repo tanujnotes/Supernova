@@ -1119,7 +1119,7 @@ class DrawerController(
         // column, so the row's icons match the list's at any size.
         val baseDp = if (currentStyle == DrawerStyle.VERTICAL_LIST) ROW_ICON_DP else TILE_ICON_DP
         val iconSizePx = (context.dp(baseDp) * iconScale(prefs)).toInt()
-            .coerceAtMost((gridWidthPx() / columns - context.dp(8)).coerceAtLeast(1))
+            .coerceAtMost((gridWidthPx() / columns - context.dp(TILE_SIDE_PADDING_DP)).coerceAtLeast(1))
         val key = apps.joinToString { "${it.userSerial}/${it.packageName}/${it.className}" } +
             "|$columns|$textColor|$lastIconGeneration|$iconSizePx|${styleKey(prefs)}"
         if (key == frequentRowKey) return
@@ -1128,17 +1128,18 @@ class DrawerController(
         // drag to the home screen.
         val entries = apps.map { app ->
             FrequentAppsRowView.Entry(
-                app.label, decorateIcon(viewModel.appCatalog().iconFor(app), app), onLongPress = { view -> onAppLongPress(view, app) }
+                app.label,
+                decorateIcon(viewModel.appCatalog().iconFor(app), app),
+                onLongPress = { view -> onAppLongPress(view, app) }
             ) { view ->
                 onAppClick(view, app)
             }
         }
-        binding.drawerFrequentRow.bindLabeled(
-            entries, textColor, columns, sidePaddingDp = 0, iconSizePx = iconSizePx
-        ) { label ->
+        val look = FrequentAppsRowView.CellLook(iconSizePx) { label ->
             LabelStyler.apply(label, prefs, onWallpaper = false, context = LabelContext.DRAWER)
             label.visibility = if (prefs.drawerLabels) View.VISIBLE else View.GONE
         }
+        binding.drawerFrequentRow.bindLabeled(entries, textColor, columns, sidePaddingDp = 0, look = look)
     }
 
     // The label prefs LabelStyler reads for the drawer and the badge prefs
@@ -1715,6 +1716,8 @@ class DrawerController(
         const val TILE_MIN_HEIGHT_DP = 98
         // The icon box item_drawer_app_row declares.
         const val ROW_ICON_DP = 40
+        // item_drawer_app's 4dp side padding, both sides.
+        const val TILE_SIDE_PADDING_DP = 8
         const val MAX_COLUMNS = 12
         const val TAB_FLING_MIN_VELOCITY = 900f
         // The Bubble tab type's pill: fully round, 6dp inside the bar's
