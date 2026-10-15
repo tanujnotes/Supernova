@@ -21,7 +21,7 @@ enum class IconGlass(
 ) {
     OFF(tintAlpha = 0f, haze = 0f, sheen = 0f, glow = 0f, edge = 0f, grain = false),
     FROSTED(tintAlpha = 0.55f, haze = 0.18f, sheen = 0.30f, glow = 0.10f, edge = 0.70f, grain = true),
-    CLEAR(tintAlpha = 0.16f, haze = 0f, sheen = 0.40f, glow = 0.18f, edge = 0.95f, grain = false),
+    CLEAR(tintAlpha = 0.09f, haze = 0f, sheen = 0.30f, glow = 0.12f, edge = 0.95f, grain = false),
     // Dark glass whatever the app's colour.
     SMOKED(tintAlpha = 0.50f, haze = 0f, sheen = 0.14f, glow = 0.06f, edge = 0.38f, grain = false);
 
