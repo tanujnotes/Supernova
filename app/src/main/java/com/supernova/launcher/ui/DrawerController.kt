@@ -1019,6 +1019,10 @@ class DrawerController(
     fun notifyContentChanged() {
         adapter.notifyDataSetChanged()
         syncPages()
+        // The recents row's icons carry badges too, and its key can't see a
+        // count move.
+        frequentRowKey = null
+        updateFrequentRow()
     }
 
     // A badge count moved. Drawer rows carry badges (the activity's
@@ -1110,21 +1114,43 @@ class DrawerController(
         }
         setFrequentRowVisible(true)
         val textColor = Styles.resolve(context, prefs).of(SurfaceId.DRAWER).text
+        // The icon box the list under it draws (AppDrawerAdapter.sizeIcon):
+        // the style's base icon at the drawer's icon scale, kept inside one
+        // column, so the row's icons match the list's at any size.
+        val baseDp = if (currentStyle == DrawerStyle.VERTICAL_LIST) ROW_ICON_DP else TILE_ICON_DP
+        val iconSizePx = (context.dp(baseDp) * iconScale(prefs)).toInt()
+            .coerceAtMost((gridWidthPx() / columns - context.dp(8)).coerceAtLeast(1))
         val key = apps.joinToString { "${it.userSerial}/${it.packageName}/${it.className}" } +
-            "|$columns|$textColor|$lastIconGeneration"
+            "|$columns|$textColor|$lastIconGeneration|$iconSizePx|${styleKey(prefs)}"
         if (key == frequentRowKey) return
         frequentRowKey = key
         // Long-pressed, each is a drawer icon like any other: its menu, and a
         // drag to the home screen.
         val entries = apps.map { app ->
             FrequentAppsRowView.Entry(
-                app.label, viewModel.appCatalog().iconFor(app), onLongPress = { view -> onAppLongPress(view, app) }
+                app.label, decorateIcon(viewModel.appCatalog().iconFor(app), app), onLongPress = { view -> onAppLongPress(view, app) }
             ) { view ->
                 onAppClick(view, app)
             }
         }
-        binding.drawerFrequentRow.bindLabeled(entries, textColor, columns, sidePaddingDp = 0)
+        binding.drawerFrequentRow.bindLabeled(
+            entries, textColor, columns, sidePaddingDp = 0, iconSizePx = iconSizePx
+        ) { label ->
+            LabelStyler.apply(label, prefs, onWallpaper = false, context = LabelContext.DRAWER)
+            label.visibility = if (prefs.drawerLabels) View.VISIBLE else View.GONE
+        }
     }
+
+    // The label prefs LabelStyler reads for the drawer and the badge prefs
+    // decorateIcon reads, so a change to any of them rebinds the recents row.
+    private fun styleKey(prefs: LauncherPrefs): String =
+        listOf(
+            prefs.labelSize, prefs.labelColor, prefs.labelShadow, prefs.labelFont,
+            prefs.labelSingleLine, prefs.labelConfig, prefs.drawerLabels,
+            prefs.badges, prefs.badgeStyle, prefs.badgeCounts, prefs.badgeApps,
+            prefs.badgeColor, prefs.badgePosition, prefs.badgeScale, prefs.badgeTextColor,
+            prefs.badgeCornerRadius, prefs.badgeOutline
+        ).joinToString("/")
 
     // Whether the host has been told the drawer is showing cards.
     private var cardsShown = false
@@ -1687,6 +1713,8 @@ class DrawerController(
         // The icon box and the minimum height item_drawer_app declares.
         const val TILE_ICON_DP = 48
         const val TILE_MIN_HEIGHT_DP = 98
+        // The icon box item_drawer_app_row declares.
+        const val ROW_ICON_DP = 40
         const val MAX_COLUMNS = 12
         const val TAB_FLING_MIN_VELOCITY = 900f
         // The Bubble tab type's pill: fully round, 6dp inside the bar's

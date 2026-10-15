@@ -71,15 +71,24 @@ class FrequentAppsRowView @JvmOverloads constructor(
     // left, up to five, instead of the overlay's icon-only strip.
     // columns > 0 lines the cells up with a grid of that many columns under
     // the row (the drawer, the search window): one cell per column, the
-    // grid's icon size, the grid's side padding.
-    fun bindLabeled(entries: List<Entry>, textColor: Int, columns: Int = 0, sidePaddingDp: Int = 12) {
+    // grid's icon size, the grid's side padding. iconSizePx > 0 and
+    // styleLabel let a grid with its own icon scale and label style (the
+    // drawer) size and style the row's cells exactly like its tiles.
+    fun bindLabeled(
+        entries: List<Entry>,
+        textColor: Int,
+        columns: Int = 0,
+        sidePaddingDp: Int = 12,
+        iconSizePx: Int = 0,
+        styleLabel: ((android.widget.TextView) -> Unit)? = null
+    ) {
         removeAllViews()
         val gridAligned = columns > 0
         // Room above and below, clear of the field or pills over the row and
         // the hairline or pills under it.
         val vertical = dp(LABELED_ROW_VERTICAL_DP)
         setPadding(dp(sidePaddingDp), vertical, dp(sidePaddingDp), vertical)
-        val iconSize = dp(if (gridAligned) APP_ICON_DP else LABELED_ICON_DP)
+        val iconSize = if (iconSizePx > 0) iconSizePx else dp(if (gridAligned) APP_ICON_DP else LABELED_ICON_DP)
         val shown = entries.take(if (gridAligned) columns else MAX_LABELED)
         shown.forEach { entry ->
             val cell = LinearLayout(context).apply {
@@ -113,6 +122,7 @@ class FrequentAppsRowView @JvmOverloads constructor(
                     ellipsize = android.text.TextUtils.TruncateAt.END
                     gravity = android.view.Gravity.CENTER_HORIZONTAL
                     setPadding(0, dp(6), 0, 0)
+                    styleLabel?.invoke(this)
                 },
                 LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
             )
