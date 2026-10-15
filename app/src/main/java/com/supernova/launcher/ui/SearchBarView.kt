@@ -46,8 +46,6 @@ class SearchBarView @JvmOverloads constructor(
     private var dateChip: TextView? = null
     private var applied: List<Any>? = null
 
-    // APP_DRAWER chip: opening the drawer is the host's job.
-    var onOpenDrawer: (() -> Unit)? = null
 
     // The search-bar menu hangs off a long press.
     var onLongPress: ((View) -> Unit)? = null
@@ -184,8 +182,6 @@ class SearchBarView @JvmOverloads constructor(
                         addIconChip(R.drawable.ic_assistant, R.string.search_bar_chip_assistant, tint) { startAssistant() }
                     SearchBarChip.PLAY_STORE ->
                         addIconChip(R.drawable.ic_play_store, R.string.chip_play_store, tint) { openPlayStore() }
-                    SearchBarChip.APP_DRAWER ->
-                        addIconChip(R.drawable.ic_action_drawer, R.string.action_open_drawer, tint) { onOpenDrawer?.invoke() }
                     SearchBarChip.DATE -> addDateChip(resolved.text)
                 }
             }

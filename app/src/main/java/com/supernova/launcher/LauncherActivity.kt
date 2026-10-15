@@ -1321,7 +1321,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // global overlay.
         binding.desktopSearchBar.onTap = { openDrawer() }
         binding.desktopSearchBar.onLongPress = { anchor -> showSearchBarMenu(anchor) }
-        binding.desktopSearchBar.onOpenDrawer = { openDrawer() }
     }
 
     // In-card grant buttons on the feed's calendar/contacts cards; a grant
