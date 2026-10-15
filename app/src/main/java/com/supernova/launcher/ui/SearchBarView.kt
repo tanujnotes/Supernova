@@ -61,6 +61,9 @@ class SearchBarView @JvmOverloads constructor(
             field = value
             if (value != null) {
                 (value.parent as? android.view.ViewGroup)?.removeView(value)
+                // Sized like a chip: its icon in the magnifier's 20dp box.
+                (value as? ImageView)?.scaleType = ImageView.ScaleType.FIT_CENTER
+                value.setPadding(dp(CHIP_PAD_DP), dp(CHIP_PAD_DP), dp(CHIP_PAD_DP), dp(CHIP_PAD_DP))
                 addView(value, LayoutParams(dp(CHIP_DP), dp(CHIP_DP)).apply { marginStart = dp(2) })
             }
         }
@@ -90,7 +93,7 @@ class SearchBarView @JvmOverloads constructor(
     private fun addIconChip(iconRes: Int, labelRes: Int, tint: ColorStateList, onClick: () -> Unit) {
         val chip = ImageView(context)
         chip.setImageResource(iconRes)
-        chip.setPadding(dp(8), dp(8), dp(8), dp(8))
+        chip.setPadding(dp(CHIP_PAD_DP), dp(CHIP_PAD_DP), dp(CHIP_PAD_DP), dp(CHIP_PAD_DP))
         chip.background = borderlessRipple()
         chip.contentDescription = context.getString(labelRes)
         chip.setOnClickListener { if (interactive) onClick() }
@@ -246,5 +249,7 @@ class SearchBarView @JvmOverloads constructor(
     private companion object {
         const val CHIP_TAG = "search-bar-chip"
         const val CHIP_DP = 36
+        // Leaves the 20dp box the magnifier on the left has.
+        const val CHIP_PAD_DP = 8
     }
 }

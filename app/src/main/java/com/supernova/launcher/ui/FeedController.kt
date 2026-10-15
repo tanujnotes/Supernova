@@ -687,6 +687,9 @@ class FeedController(
                 pane.feedSearchBar.trailing = pane.feedMenu
             } else {
                 pane.feedSearchBar.trailing = null
+                // On its own it centres its 24dp icon, as its layout had it.
+                val pad = ((MENU_DP - MENU_ICON_DP) / 2 * density).toInt()
+                pane.feedMenu.setPadding(pad, pad, pad, pad)
                 val size = (MENU_DP * density).toInt()
                 pane.feedHeaderRow.addView(pane.feedMenu, android.widget.LinearLayout.LayoutParams(size, size))
             }
@@ -781,6 +784,7 @@ class FeedController(
         // The overflow menu's size, and the header row's end margin with the
         // menu inside the bar or on its own.
         const val MENU_DP = 44
+        const val MENU_ICON_DP = 24
         const val BAR_END_DP = 16
         const val MENU_END_DP = 8
         // Horizontal must beat vertical by this much before a drag is ours.

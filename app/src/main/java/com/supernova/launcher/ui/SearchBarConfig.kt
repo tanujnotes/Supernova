@@ -86,7 +86,10 @@ data class DrawerSearchBarConfig(
     // Formerly the start icon's choice and tint; the field always shows the
     // magnifier now. Kept so older configs and backups decode.
     val logo: String = "SEARCH",
-    val logoMonochrome: Boolean = true
+    val logoMonochrome: Boolean = true,
+    // IconGlass name: the field as the icons' glass, as the home bar's
+    // glass. It takes the place of the filled box and the outline.
+    val glass: String = "OFF"
 ) {
     companion object {
         // Half the field's height; a radius saved against the 52dp field

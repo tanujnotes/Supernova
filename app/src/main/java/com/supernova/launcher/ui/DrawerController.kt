@@ -1340,6 +1340,12 @@ class DrawerController(
         val density = context.resources.displayMetrics.density
         searchPill.cornerRadius =
             (searchConfig.radius ?: DrawerSearchBarConfig.MAX_RADIUS).coerceIn(0, DrawerSearchBarConfig.MAX_RADIUS) * density
+        val glass = com.supernova.launcher.data.IconGlass.fromName(searchConfig.glass)
+        binding.drawerSearchField.background = if (glass == com.supernova.launcher.data.IconGlass.OFF) {
+            searchPill
+        } else {
+            GlassPillDrawable(glass, searchPill.cornerRadius)
+        }
         if (searchConfig.filled) {
             searchPill.setColor((0x24 shl 24) or (resolvedForBar.text and 0xFFFFFF))
             searchPill.setStroke(0, android.graphics.Color.TRANSPARENT)
@@ -1408,6 +1414,9 @@ class DrawerController(
                 )
                 imageTintList = android.content.res.ColorStateList.valueOf(resolvedForBar.text)
                 background = null
+                // An ImageButton centres its icon at its own 24dp; fit it to
+                // the magnifier's 20dp box instead, so both ends match.
+                scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
                 val pad = (ACTION_BUTTON_PAD_DP * density).toInt()
                 setPadding(pad, pad, pad, pad)
                 contentDescription = context.getString(

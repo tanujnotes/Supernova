@@ -317,6 +317,12 @@ class SettingsPreviewView @JvmOverloads constructor(
             ) INVISIBLE else VISIBLE
         val density = resources.displayMetrics.density
         val max = com.supernova.launcher.ui.DrawerSearchBarConfig.MAX_RADIUS
+        val glass = com.supernova.launcher.data.IconGlass.fromName(config.glass)
+        drawerField?.background = if (glass == com.supernova.launcher.data.IconGlass.OFF) {
+            drawerFieldPill
+        } else {
+            com.supernova.launcher.ui.GlassPillDrawable(glass, (config.radius ?: max).coerceIn(0, max) * density)
+        }
         drawerFieldPill?.apply {
             cornerRadius = (config.radius ?: max).coerceIn(0, max) * density
             if (config.filled) {

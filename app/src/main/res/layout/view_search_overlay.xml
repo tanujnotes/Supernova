@@ -78,6 +78,8 @@
             android:layout_height="44dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/clear_search"
+            android:padding="11dp"
+            android:scaleType="fitCenter"
             android:src="@drawable/ic_menu_remove"
             android:visibility="gone" />
     </LinearLayout>

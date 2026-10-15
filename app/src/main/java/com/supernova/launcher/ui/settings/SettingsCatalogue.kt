@@ -1022,10 +1022,17 @@ object SettingsCatalogue {
                     }
                 ),
                 SettingItem.Header(R.string.group_appearance),
+                rows.choice(
+                    R.string.icon_glass, IconGlass.entries,
+                    { IconGlass.fromName(SearchBarPrefs.drawerBar(it).glass) },
+                    { EnumLabels.of(it) }
+                ) { glass -> rows.editDrawerBar { it.copy(glass = glass.name) } },
+                // Glass takes the place of the filled box and the outline.
                 SettingItem.Toggle(
                     R.string.drawer_bar_filled,
                     get = { SearchBarPrefs.drawerBar(it).filled },
-                    set = { on -> rows.editDrawerBar { it.copy(filled = on) } }
+                    set = { on -> rows.editDrawerBar { it.copy(filled = on) } },
+                    visibleIf = { IconGlass.fromName(SearchBarPrefs.drawerBar(it).glass) == IconGlass.OFF }
                 ),
                 // An unset radius draws as the full pill, so it reads as one.
                 SettingItem.Slider(
