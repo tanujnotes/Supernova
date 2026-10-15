@@ -2,6 +2,7 @@ package com.supernova.launcher.ui
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.ColorFilter
 import android.graphics.Outline
 import android.graphics.Paint
@@ -15,12 +16,11 @@ import androidx.core.graphics.withClip
 import com.supernova.launcher.data.GlassPainter
 import com.supernova.launcher.data.IconGlass
 
-// The home search bar as a glass pill (DesktopSearchBarConfig.glass): the
-// bar's own colour as a pane, lit like the glass icons. Painted once per
-// size into a bitmap, so a frame only draws that.
+// The home search bar as a glass pill (DesktopSearchBarConfig.glass), the
+// same pane an icon with a white background gets, so bar and icons match.
+// Painted once per size into a bitmap, so a frame only draws that.
 class GlassPillDrawable(
     private val glass: IconGlass,
-    private val color: Int,
     private val radius: Float
 ) : Drawable() {
 
@@ -45,7 +45,7 @@ class GlassPillDrawable(
             val corner = radius.coerceAtMost(minOf(width, height) / 2f)
             addRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), corner, corner, Path.Direction.CW)
         }
-        canvas.withClip(path) { painter.drawPane(this, glass, color, width, height) }
+        canvas.withClip(path) { painter.drawPane(this, glass, Color.WHITE, width, height) }
         painter.drawEdge(canvas, path, glass, width, height)
         return bitmap
     }

@@ -126,7 +126,7 @@ class SearchBarView @JvmOverloads constructor(
             if (glass != IconGlass.OFF) {
                 // A see-through bar would show its own shadow through it, and
                 // an outline-only one has no surface to be glass.
-                background = GlassPillDrawable(glass, resolved.surface, radius).also { it.alpha = alpha }
+                background = GlassPillDrawable(glass, radius).also { it.alpha = alpha }
                 elevation = 0f
             } else {
                 pill.cornerRadius = radius

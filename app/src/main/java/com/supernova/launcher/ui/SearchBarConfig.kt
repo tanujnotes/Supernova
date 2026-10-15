@@ -56,8 +56,8 @@ data class DesktopSearchBarConfig(
     val logoMonochrome: Boolean = true,
     // The "Search" text beside the logo. The fresh bar has none.
     val hint: Boolean = true,
-    // IconGlass name: the pill as glass in its own colour, like the icons'
-    // glass backgrounds. It takes the place of wireframe and shadow.
+    // IconGlass name: the pill as the same glass the icons get - white
+    // frost, or dark for Smoked. It takes the place of wireframe and shadow.
     val glass: String = "OFF"
 ) {
     // These field defaults are what a config that leaves a field out has
