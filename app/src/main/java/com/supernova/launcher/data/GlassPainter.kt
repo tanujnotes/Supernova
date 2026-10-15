@@ -10,7 +10,6 @@ import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.Shader
 import android.graphics.drawable.AdaptiveIconDrawable
-import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.createBitmap
@@ -21,16 +20,35 @@ import kotlin.math.roundToInt
 // pill (GlassPillDrawable). A pane fills width x height from the origin.
 class GlassPainter {
 
+    private val legacy = LegacyGlass(this)
+
     // The platform's own mask at the render size, for the System shape.
     fun systemMask(icon: AdaptiveIconDrawable, size: Int): Path {
         icon.setBounds(0, 0, size, size)
         return Path(icon.iconMask)
     }
 
-    // The background layer gives way to a glass pane in its colour; the
-    // foreground draws over it as the app made it. Its layers reach
-    // bleedFraction of the size past each side, as the plain render's do.
-    fun drawIcon(
+    // The icon on glass, over a pane in its backing's colour, then the rim.
+    // An adaptive icon's layers reach bleedFraction of the size past each
+    // side, as the plain render's do.
+    fun drawIcon(canvas: Canvas, source: Drawable, mask: Path, glass: IconGlass, bleedFraction: Float) {
+        val size = canvas.width
+        if (source is AdaptiveIconDrawable) {
+            drawLayers(canvas, source, mask, glass, bleedFraction)
+        } else {
+            legacy.draw(canvas, source, mask, glass)
+        }
+        drawEdge(canvas, mask, glass, size, size)
+    }
+
+    // Each layer read on its own, so the foreground's outline never takes
+    // the background's colour into it. The background loses its backing
+    // and keeps any detail on it (Camera's body); the foreground is drawn as
+    // the app made it, less any copy of that backing over cleared background
+    // (Maps' white tile). A foreground that carries a tile of its own across
+    // the icon (Fender, Play Store) supplies the backing instead, and the
+    // background layer under it, which never shows, is left out.
+    private fun drawLayers(
         canvas: Canvas,
         icon: AdaptiveIconDrawable,
         mask: Path,
@@ -40,14 +58,40 @@ class GlassPainter {
         val size = canvas.width
         val bleed = (size * bleedFraction).roundToInt()
         val bounds = Rect(-bleed, -bleed, size + bleed, size + bleed)
-        val backing = layerColor(icon.background, bounds, size)
-        val foreground = icon.foreground?.let { foregroundOnGlass(it, bounds, size, backing) }
-        canvas.withClip(mask) {
-            drawPane(this, glass, backing, size, size)
-            foreground?.let { drawBitmap(it, 0f, 0f, null) }
+        val back = icon.background?.let { layerPixels(it, bounds, mask, size) }
+        var front = icon.foreground?.let { layerPixels(it, bounds, mask, size) }
+        val whole = intArrayOf(0, 0, size - 1, size - 1)
+        val slack = (size * BakedBacking.TILE_SLACK).roundToInt()
+        val frontTile = front?.copyOf()?.let { copy ->
+            BakedBacking.clear(copy, size)?.takeIf { BakedBacking.spans(it, whole, slack) }?.let { copy to it }
         }
-        foreground?.recycle()
-        drawEdge(canvas, mask, glass, size, size)
+        val tint: Int
+        if (frontTile != null) {
+            front = frontTile.first
+            tint = frontTile.second.color
+        } else {
+            val cleared = back?.let { BakedBacking.clear(it, size) }
+            tint = cleared?.color ?: Color.WHITE
+            front?.let { if (cleared != null) BakedBacking.clearMatching(it, size, cleared.backing, cleared.taken) }
+        }
+        canvas.withClip(mask) {
+            drawPane(this, glass, tint, size, size)
+            if (frontTile == null) back?.let { drawPixels(this, it, size) }
+            front?.let { drawPixels(this, it, size) }
+        }
+    }
+
+    // One layer as it shows inside the mask, read back.
+    private fun layerPixels(layer: Drawable, bounds: Rect, mask: Path, size: Int): IntArray {
+        val bitmap = createBitmap(size, size)
+        Canvas(bitmap).withClip(mask) {
+            layer.bounds = bounds
+            layer.draw(this)
+        }
+        val pixels = IntArray(size * size)
+        bitmap.getPixels(pixels, 0, size, 0, 0, size, size)
+        bitmap.recycle()
+        return pixels
     }
 
     // Fills the clip with the pane: the tint, the grain, then the light.
@@ -96,55 +140,6 @@ class GlassPainter {
         canvas.withClip(mask) { drawPath(mask, paint) }
     }
 
-    // The foreground at the icon's size, less any copy of the background it
-    // carries (BakedBacking), which would otherwise hide the pane.
-    private fun foregroundOnGlass(layer: Drawable, bounds: Rect, size: Int, backing: Int): Bitmap {
-        val bitmap = createBitmap(size, size)
-        layer.bounds = bounds
-        layer.draw(Canvas(bitmap))
-        val pixels = IntArray(size * size)
-        bitmap.getPixels(pixels, 0, size, 0, 0, size, size)
-        if (BakedBacking.clear(pixels, size, backing)) bitmap.setPixels(pixels, 0, size, 0, 0, size, size)
-        return bitmap
-    }
-
-    // A background layer's colour: a flat one's own, else the average of
-    // what shows of it inside the icon (a gradient or a picture). No layer,
-    // or nothing visible, reads as white.
-    private fun layerColor(layer: Drawable?, bounds: Rect, size: Int): Int = when (layer) {
-        null -> Color.WHITE
-        is ColorDrawable -> ColorUtils.setAlphaComponent(layer.color, OPAQUE)
-        else -> averageColor(layer, bounds, size) ?: Color.WHITE
-    }
-
-    // Alpha-weighted mean of the layer drawn small; null when it is all clear.
-    private fun averageColor(layer: Drawable, bounds: Rect, size: Int): Int? {
-        val sample = createBitmap(COLOR_SAMPLE_PX, COLOR_SAMPLE_PX)
-        val canvas = Canvas(sample)
-        canvas.scale(COLOR_SAMPLE_PX / size.toFloat(), COLOR_SAMPLE_PX / size.toFloat())
-        layer.bounds = bounds
-        layer.draw(canvas)
-        val pixels = IntArray(COLOR_SAMPLE_PX * COLOR_SAMPLE_PX)
-        sample.getPixels(pixels, 0, COLOR_SAMPLE_PX, 0, 0, COLOR_SAMPLE_PX, COLOR_SAMPLE_PX)
-        sample.recycle()
-        var red = 0L
-        var green = 0L
-        var blue = 0L
-        var weight = 0L
-        for (pixel in pixels) {
-            val alpha = Color.alpha(pixel)
-            red += Color.red(pixel) * alpha
-            green += Color.green(pixel) * alpha
-            blue += Color.blue(pixel) * alpha
-            weight += alpha
-        }
-        return if (weight == 0L) {
-            null
-        } else {
-            Color.rgb((red / weight).toInt(), (green / weight).toInt(), (blue / weight).toInt())
-        }
-    }
-
     private fun white(alpha: Float): Int =
         ColorUtils.setAlphaComponent(Color.WHITE, (alpha.coerceIn(0f, 1f) * OPAQUE).roundToInt())
 
@@ -161,7 +156,6 @@ class GlassPainter {
 
     private companion object {
         const val OPAQUE = 255
-        const val COLOR_SAMPLE_PX = 16
         // The sheen covers the top 55%, the glow the bottom 35%.
         const val SHEEN_DEPTH = 0.55f
         const val GLOW_DEPTH = 0.35f
@@ -177,4 +171,11 @@ class GlassPainter {
         const val GRAIN_MAX_ALPHA = 14
         const val GRAIN_SEED = 0x5EEDL
     }
+}
+
+// Draws pixels (size square, ARGB) at the canvas origin.
+internal fun drawPixels(canvas: Canvas, pixels: IntArray, size: Int) {
+    val bitmap = Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888)
+    canvas.drawBitmap(bitmap, 0f, 0f, null)
+    bitmap.recycle()
 }

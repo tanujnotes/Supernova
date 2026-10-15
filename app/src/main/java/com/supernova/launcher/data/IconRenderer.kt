@@ -87,15 +87,13 @@ class IconRenderer(context: Context) {
             decoration?.back == null && source !is AdaptiveIconDrawable
         val shouldNormalize = reshapeLegacy != ReshapeLegacy.OFF && isRawLegacy
         // The pane's outline, when there is one: the shadow keeps clear of it.
-        var glassMask = drawSource(canvas, source, decoration, shapePath, glass)
+        val glassMask = drawSource(canvas, source, decoration, shapePath, glass)
 
-        var flat = if (shouldNormalize) normalized(bitmap) else bitmap
+        // Glass sizes and places a legacy icon itself.
+        var flat = if (shouldNormalize && glassMask == null) normalized(bitmap) else bitmap
         // ON: bake a plate behind the (normalized) legacy icon so it reads
         // like an adaptive icon.
-        if (reshapeLegacy == ReshapeLegacy.ON && isRawLegacy) {
-            flat = withPlate(flat, glass)
-            if (glass != IconGlass.OFF) glassMask = platePath()
-        }
+        if (reshapeLegacy == ReshapeLegacy.ON && isRawLegacy && glassMask == null) flat = withPlate(flat)
         return if (shadow) withShadow(flat, glassMask) else BitmapDrawable(resources, flat)
     }
 
@@ -116,8 +114,8 @@ class IconRenderer(context: Context) {
 
         val scale = decoration?.scale?.takeIf { it > 0f } ?: 1f
         // A pack's back plate is the pack's look, so its icons keep it.
-        val glassMask = if (glass != IconGlass.OFF && decoration?.back == null && source is AdaptiveIconDrawable) {
-            val mask = shapePath ?: glassPainter.systemMask(source, iconSizePx)
+        val glassMask = if (glass != IconGlass.OFF && decoration?.back == null) {
+            val mask = glassShape(source, shapePath)
             // The platform draws its layers at its own bleed; a chosen shape
             // overfills as drawShapedBase does.
             val bleed = if (shapePath != null) ADAPTIVE_BLEED else PLATFORM_BLEED
@@ -151,29 +149,30 @@ class IconRenderer(context: Context) {
     }
 
     // A neutral rounded plate with the icon content inset onto it, matching
-    // the footprint adaptive icons render at; with glass on, a white pane.
-    private fun withPlate(bitmap: Bitmap, glass: IconGlass): Bitmap {
+    // the footprint adaptive icons render at.
+    private fun withPlate(bitmap: Bitmap): Bitmap {
         val output = Bitmap.createBitmap(iconSizePx, iconSizePx, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(output)
-        if (glass == IconGlass.OFF) {
-            val platePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = PLATE_COLOR }
-            val radius = iconSizePx * PLATE_RADIUS_FRACTION
-            canvas.drawRoundRect(
-                RectF(0f, 0f, iconSizePx.toFloat(), iconSizePx.toFloat()),
-                radius, radius, platePaint
-            )
-        } else {
-            canvas.withClip(platePath()) { glassPainter.drawPane(this, glass, PLATE_COLOR, iconSizePx, iconSizePx) }
-        }
+        val platePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = PLATE_COLOR }
+        val radius = iconSizePx * PLATE_RADIUS_FRACTION
+        canvas.drawRoundRect(
+            RectF(0f, 0f, iconSizePx.toFloat(), iconSizePx.toFloat()),
+            radius, radius, platePaint
+        )
         val inset = (iconSizePx * (1f - PLATE_CONTENT) / 2f)
         canvas.drawBitmap(
             bitmap, null,
             RectF(inset, inset, iconSizePx - inset, iconSizePx - inset),
             Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
         )
-        if (glass != IconGlass.OFF) glassPainter.drawEdge(canvas, platePath(), glass, iconSizePx, iconSizePx)
         return output
     }
+
+    // The glass icon's outline: the chosen shape; with System, the
+    // platform's mask, or for a legacy icon the rounded plate Reshape legacy
+    // icons would give it.
+    private fun glassShape(source: Drawable, shapePath: Path?): Path =
+        shapePath ?: (source as? AdaptiveIconDrawable)?.let { glassPainter.systemMask(it, iconSizePx) } ?: platePath()
 
     private fun platePath(): Path {
         val radius = iconSizePx * PLATE_RADIUS_FRACTION
