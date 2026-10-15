@@ -1273,7 +1273,6 @@ class SettingsActivity : AppCompatActivity() {
         val labels = all.map { button ->
             getString(
                 when (button) {
-                    com.supernova.launcher.ui.DrawerActionButton.SEARCH -> R.string.action_open_search
                     com.supernova.launcher.ui.DrawerActionButton.PLAY_STORE -> R.string.chip_play_store
                     com.supernova.launcher.ui.DrawerActionButton.SETTINGS -> R.string.settings
                 }

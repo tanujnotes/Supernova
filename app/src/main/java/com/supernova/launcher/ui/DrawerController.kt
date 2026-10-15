@@ -1377,7 +1377,6 @@ class DrawerController(
                 tag = actionTag
                 setImageResource(
                     when (button) {
-                        DrawerActionButton.SEARCH -> R.drawable.ic_search
                         DrawerActionButton.PLAY_STORE -> R.drawable.ic_play_store
                         DrawerActionButton.SETTINGS -> R.drawable.ic_tab_settings
                     }
@@ -1386,14 +1385,12 @@ class DrawerController(
                 background = null
                 contentDescription = context.getString(
                     when (button) {
-                        DrawerActionButton.SEARCH -> R.string.action_open_search
                         DrawerActionButton.PLAY_STORE -> R.string.chip_play_store
                         DrawerActionButton.SETTINGS -> R.string.settings
                     }
                 )
                 setOnClickListener {
                     when (button) {
-                        DrawerActionButton.SEARCH -> onGlobalSearch()
                         DrawerActionButton.PLAY_STORE -> runCatching {
                             context.packageManager.getLaunchIntentForPackage("com.android.vending")
                                 ?.let(context::startActivity)

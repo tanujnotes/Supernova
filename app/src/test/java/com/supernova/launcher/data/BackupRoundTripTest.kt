@@ -117,7 +117,7 @@ class BackupRoundTripTest {
         drawerSwipeIndicator = true,
         drawerSwipeHaptic = false,
         drawerScrubberColor = "#FF00FF00",
-        drawerActionButtons = "SEARCH,SETTINGS",
+        drawerActionButtons = "PLAY_STORE,SETTINGS",
         drawerIsolateTabs = true,
         folderPrioritizeFirst = true,
         folderIconScale = 1.3f,

@@ -707,7 +707,6 @@ object SettingsCatalogue {
                         else buttons.joinToString(", ") { b ->
                             context.getString(
                                 when (b) {
-                                    com.supernova.launcher.ui.DrawerActionButton.SEARCH -> R.string.action_open_search
                                     com.supernova.launcher.ui.DrawerActionButton.PLAY_STORE -> R.string.chip_play_store
                                     com.supernova.launcher.ui.DrawerActionButton.SETTINGS -> R.string.settings
                                 }
