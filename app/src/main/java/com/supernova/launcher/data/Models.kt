@@ -390,8 +390,8 @@ data class LauncherPrefs(
     // compat: homeButtonAction supersedes it ("" derives from this flag).
     val homeSearch: Boolean = false,
     // Home re-press action as a GestureAction name; "" = derive from homeSearch.
-    // Search by default.
-    val homeButtonAction: String = "OPEN_SEARCH",
+    // The app drawer by default.
+    val homeButtonAction: String = "OPEN_DRAWER",
     // On: the first home press returns to the main page and only a second one
     // runs the action (the behavior before this pref existed). Off runs the
     // action straight away, wherever the workspace was.

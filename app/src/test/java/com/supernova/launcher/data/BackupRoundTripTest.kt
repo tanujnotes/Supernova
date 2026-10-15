@@ -89,7 +89,7 @@ class BackupRoundTripTest {
         searchHistory = false,
         searchPrivateKeyboard = true,
         homeSearch = true,
-        homeButtonAction = "OPEN_DRAWER",
+        homeButtonAction = "EXPAND_NOTIFICATIONS",
         searchBarConfig = """{"desktop":{"placement":"DOCK_ABOVE","chips":["VOICE","DATE"]}}""",
         popupNotifications = false,
         popupCardBg = true,

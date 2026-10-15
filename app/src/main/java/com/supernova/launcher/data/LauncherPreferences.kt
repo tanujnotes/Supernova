@@ -376,7 +376,7 @@ class LauncherPreferences(private val context: Context) {
             searchHistory = values[StoreKeys.searchHistory] ?: true,
             searchPrivateKeyboard = values[StoreKeys.searchPrivateKeyboard] ?: true,
             homeSearch = values[StoreKeys.homeSearch] ?: false,
-            homeButtonAction = values[StoreKeys.homeButtonAction] ?: "OPEN_SEARCH",
+            homeButtonAction = values[StoreKeys.homeButtonAction] ?: "OPEN_DRAWER",
             searchBarConfig = values[StoreKeys.searchBarConfig].orEmpty(),
             popupNotifications = values[StoreKeys.popupNotifications] ?: true,
             popupCardBg = values[StoreKeys.popupCardBg] ?: true,
