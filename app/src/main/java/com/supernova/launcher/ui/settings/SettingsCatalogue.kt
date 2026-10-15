@@ -24,6 +24,7 @@ import com.supernova.launcher.ui.DrawerTabStyle
 import com.supernova.launcher.ui.FolderMode
 import com.supernova.launcher.ui.FolderScroll
 import com.supernova.launcher.ui.DesktopSearchBarConfig
+import com.supernova.launcher.ui.DrawerActionButton
 import com.supernova.launcher.ui.DrawerBarPlacement
 import com.supernova.launcher.ui.DrawerSearchBarConfig
 import com.supernova.launcher.ui.SearchBarChip
@@ -65,7 +66,6 @@ object SettingsCatalogue {
         val pickDesktopGrid: () -> Unit = {},
         val editThemeSchedule: () -> Unit = {},
         val showLicense: () -> Unit = {},
-        val editDrawerButtons: () -> Unit = {},
         val editGesture: (Gesture) -> Unit = {},
         val pickLockMethod: () -> Unit = {},
         val editHiddenApps: () -> Unit = {},
@@ -730,22 +730,6 @@ object SettingsCatalogue {
                     get = { it.drawerPullToSearch },
                     set = { viewModel.setDrawerPullToSearch(it) }
                 ),
-                SettingItem.Row(
-                    R.string.drawer_action_buttons,
-                    subtitle = {
-                        val buttons = com.supernova.launcher.ui.DrawerActionButton.decode(it.drawerActionButtons)
-                        if (buttons.isEmpty()) context.getString(R.string.action_none)
-                        else buttons.joinToString(", ") { b ->
-                            context.getString(
-                                when (b) {
-                                    com.supernova.launcher.ui.DrawerActionButton.PLAY_STORE -> R.string.chip_play_store
-                                    com.supernova.launcher.ui.DrawerActionButton.SETTINGS -> R.string.settings
-                                }
-                            )
-                        }
-                    },
-                    onClick = actions.editDrawerButtons
-                ),
                 rows.color(
                     R.string.drawer_scrubber_color, { it.drawerScrubberColor },
                     subtitle = {
@@ -1045,6 +1029,10 @@ object SettingsCatalogue {
                     display = { context.getString(R.string.padding_dp_value, it) },
                     preview = { p, v -> SearchBarPrefs.withDrawerBar(p) { it.copy(radius = v) } }
                 ),
+                // The buttons inside the field, at its right end; gone with it.
+                SettingItem.Header(R.string.search_bar_chips, visibleIf = { SearchBarPrefs.drawerFieldShown(it) }),
+                drawerButton(viewModel, DrawerActionButton.PLAY_STORE, R.string.chip_play_store),
+                drawerButton(viewModel, DrawerActionButton.SETTINGS, R.string.settings),
             )
         ),
         // Feed page: the page toggle, then Layout (frequent apps and
@@ -1824,6 +1812,23 @@ object SettingsCatalogue {
     }
 }
 
+// One of the drawer field's buttons (drawerActionButtons), on and off; they
+// keep their own order whichever is turned on first.
+private fun drawerButton(
+    viewModel: LauncherViewModel,
+    button: DrawerActionButton,
+    @StringRes title: Int
+) = SettingItem.Toggle(
+    title,
+    get = { button in DrawerActionButton.decode(it.drawerActionButtons) },
+    set = { on ->
+        val now = DrawerActionButton.decode(viewModel.state.value.prefs.drawerActionButtons).toSet()
+        val next = if (on) now + button else now - button
+        viewModel.setDrawerActionButtons(DrawerActionButton.encode(DrawerActionButton.entries.filter { it in next }))
+    },
+    visibleIf = { SearchBarPrefs.drawerFieldShown(it) }
+)
+
 // The two bars' slices of the searchBarConfig JSON, for their pages' rows
 // and previews: read one, or a prefs snapshot with one changed.
 internal object SearchBarPrefs {
@@ -1840,6 +1845,10 @@ internal object SearchBarPrefs {
 
     fun drawerBar(prefs: LauncherPrefs): DrawerSearchBarConfig =
         SearchBarConfig.decode(prefs.searchBarConfig).drawer
+
+    // Whether the drawer has a field at all (its placement isn't Hidden).
+    fun drawerFieldShown(prefs: LauncherPrefs): Boolean =
+        DrawerBarPlacement.fromConfig(drawerBar(prefs)) != DrawerBarPlacement.HIDDEN
 
     fun withDrawerBar(
         prefs: LauncherPrefs,

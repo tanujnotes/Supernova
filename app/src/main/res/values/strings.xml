@@ -339,7 +339,6 @@
     <string name="drawer_bar_filled">Filled background</string>
     <string name="drawer_search_bar">Drawer search bar</string>
     <string name="drawer_scrubber_color">Fast scroller color</string>
-    <string name="drawer_action_buttons">Header buttons</string>
     <string name="drawer_isolate_tabs">Isolate tabs</string>
     <string name="drawer_isolate_tabs_summary">Prevent changing tabs when swiping sideways</string>
     <string name="drawer_tab_style">Tab type</string>

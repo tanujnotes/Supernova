@@ -491,7 +491,6 @@ class SettingsActivity : AppCompatActivity() {
                     requestNightLocationPermission.launch(android.Manifest.permission.ACCESS_COARSE_LOCATION)
                 }
             },
-            editDrawerButtons = ::showDrawerButtonsDialog,
             editPopupRows = ::showPopupRowsDialog,
             onFeedCalendarEnabled = {
                 if (checkSelfPermission(android.Manifest.permission.READ_CALENDAR) !=
@@ -1199,34 +1198,6 @@ class SettingsActivity : AppCompatActivity() {
                     .show()
             }
         }
-    }
-
-    private fun showDrawerButtonsDialog() {
-        val all = com.supernova.launcher.ui.DrawerActionButton.entries
-        val labels = all.map { button ->
-            getString(
-                when (button) {
-                    com.supernova.launcher.ui.DrawerActionButton.PLAY_STORE -> R.string.chip_play_store
-                    com.supernova.launcher.ui.DrawerActionButton.SETTINGS -> R.string.settings
-                }
-            )
-        }.toTypedArray()
-        val selected = com.supernova.launcher.ui.DrawerActionButton
-            .decode(viewModel.state.value.prefs.drawerActionButtons)
-        val checked = BooleanArray(all.size) { all[it] in selected }
-
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.drawer_action_buttons)
-            .setMultiChoiceItems(labels, checked) { _, which, isChecked -> checked[which] = isChecked }
-            .setPositiveButton(R.string.ok) { _, _ ->
-                viewModel.setDrawerActionButtons(
-                    com.supernova.launcher.ui.DrawerActionButton.encode(
-                        all.filterIndexed { index, _ -> checked[index] }
-                    )
-                )
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
     }
 
     // Two chained time pickers: dark-from, then dark-until (D1).
