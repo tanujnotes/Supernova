@@ -1378,8 +1378,8 @@ class DrawerController(
                 setImageResource(
                     when (button) {
                         DrawerActionButton.SEARCH -> R.drawable.ic_search
-                        DrawerActionButton.PLAY_STORE -> R.drawable.ic_menu_play
-                        DrawerActionButton.SETTINGS -> R.drawable.ic_action_settings
+                        DrawerActionButton.PLAY_STORE -> R.drawable.ic_play_store
+                        DrawerActionButton.SETTINGS -> R.drawable.ic_tab_settings
                     }
                 )
                 imageTintList = android.content.res.ColorStateList.valueOf(resolvedForBar.text)

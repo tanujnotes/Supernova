@@ -2826,7 +2826,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // added by the drawer menu itself so it keeps its historical position.
     private fun addExtraRows(menu: SupernovaPopupMenu, extras: Set<PopupExtraRow>, app: LaunchableApp) {
         if (PopupExtraRow.PLAY_STORE in extras) {
-            menu.addRow(getString(R.string.chip_play_store), R.drawable.ic_menu_play) {
+            menu.addRow(getString(R.string.chip_play_store), R.drawable.ic_play_store) {
                 openPlayStore(app.packageName)
             }
         }

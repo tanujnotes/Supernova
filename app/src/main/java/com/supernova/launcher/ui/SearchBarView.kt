@@ -161,7 +161,7 @@ class SearchBarView @JvmOverloads constructor(
                     SearchBarChip.ASSISTANT ->
                         addIconChip(R.drawable.ic_assistant, R.string.search_bar_chip_assistant, tint) { startAssistant() }
                     SearchBarChip.PLAY_STORE ->
-                        addIconChip(R.drawable.ic_menu_play, R.string.chip_play_store, tint) { openPlayStore() }
+                        addIconChip(R.drawable.ic_play_store, R.string.chip_play_store, tint) { openPlayStore() }
                     SearchBarChip.APP_DRAWER ->
                         addIconChip(R.drawable.ic_action_drawer, R.string.action_open_drawer, tint) { onOpenDrawer?.invoke() }
                     SearchBarChip.DATE -> addDateChip(resolved.text)
