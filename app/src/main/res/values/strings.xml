@@ -143,6 +143,7 @@
     <string name="pick_icon">Choose icon</string>
     <string name="no_icons_in_pack">No icons found in this pack</string>
     <string name="option_default">Default</string>
+    <string name="folder_shape_match_icons">Same as icons</string>
     <string name="option_none">None</string>
     <string name="drawer_all">All</string>
     <string name="drawer_work">Work</string>

@@ -97,6 +97,11 @@ class FrequentAppsRowView @JvmOverloads constructor(
                 orientation = VERTICAL
                 gravity = android.view.Gravity.CENTER_HORIZONTAL
                 setPadding(dp(4), dp(6), dp(4), dp(6))
+                // The icon's shadow falls outside its image view, into this
+                // padding (data/ShadowedIconDrawable); clipped, it was cut
+                // square at the icon's edges.
+                clipChildren = false
+                clipToPadding = false
                 contentDescription = entry.label
                 foreground = context.getDrawable(R.drawable.ripple_icon)
                 setOnClickListener { entry.onTap(it) }

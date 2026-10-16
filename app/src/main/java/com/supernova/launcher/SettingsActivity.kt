@@ -1320,7 +1320,7 @@ class SettingsActivity : AppCompatActivity() {
 
         fun refresh() {
             dialogBinding.shapeValue.text = if (shapeName.isEmpty()) {
-                getString(R.string.option_default)
+                getString(R.string.folder_shape_match_icons)
             } else {
                 getString(EnumLabels.of(IconShape.fromName(shapeName)))
             }
@@ -1334,12 +1334,14 @@ class SettingsActivity : AppCompatActivity() {
                     } else {
                         com.supernova.launcher.ui.FolderIconDrawable.DEFAULT_PLATE_COLOR
                     },
-                    shape = IconShape.fromName(shapeName).takeIf { shapeName.isNotEmpty() },
+                    shape = com.supernova.launcher.ui.FolderIconDrawable.plateShape(shapeName, prefs),
                     customSpec = CustomShapeSpec.decode(prefs.iconShapeCustom),
                     outlineColor = if (dialogBinding.outlineCheck.isChecked) resolved.accent else 0,
                     outlineWidthPx = 2f * resources.displayMetrics.density,
                     clipMembers = dialogBinding.clipCheck.isChecked,
-                    prioritizeFirst = prefs.folderPrioritizeFirst
+                    prioritizeFirst = prefs.folderPrioritizeFirst,
+                    glass = com.supernova.launcher.ui.FolderIconDrawable.glassFor(prefs),
+                    shadow = prefs.iconShadow
                 )
             )
         }
@@ -1347,7 +1349,7 @@ class SettingsActivity : AppCompatActivity() {
         dialogBinding.shapeRow.setOnClickListener {
             val shapes = IconShape.entries.filter { it != IconShape.SYSTEM }
             val names = listOf("") + shapes.map { it.name }
-            val labels = (listOf(getString(R.string.option_default)) +
+            val labels = (listOf(getString(R.string.folder_shape_match_icons)) +
                 shapes.map { getString(EnumLabels.of(it)) }).toTypedArray()
             val current = names.indexOf(shapeName).coerceAtLeast(0)
             showChoice(R.string.folder_icon_shape, labels, current) { which ->

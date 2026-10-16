@@ -3968,8 +3968,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         val prefs = viewModel.state.value.prefs
         val resolvedFolder = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
             .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER)
-        val shape = com.supernova.launcher.data.IconShape.fromName(prefs.folderIconShape)
-            .takeIf { prefs.folderIconShape.isNotEmpty() }
         return FolderIconDrawable(
             // The preview draws members at mini-cell bounds. The cache hands
             // out shared instances, and a Drawable has exactly one bounds -
@@ -3982,12 +3980,14 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             } else {
                 FolderIconDrawable.DEFAULT_PLATE_COLOR
             },
-            shape = shape,
+            shape = FolderIconDrawable.plateShape(prefs.folderIconShape, prefs),
             customSpec = com.supernova.launcher.data.CustomShapeSpec.decode(prefs.iconShapeCustom),
             outlineColor = if (prefs.folderIconOutline) resolvedFolder.accent else 0,
             outlineWidthPx = 2f * resources.displayMetrics.density,
             clipMembers = prefs.folderClipToBg,
-            prioritizeFirst = prefs.folderPrioritizeFirst
+            prioritizeFirst = prefs.folderPrioritizeFirst,
+            glass = FolderIconDrawable.glassFor(prefs),
+            shadow = prefs.iconShadow
         )
     }
 
