@@ -729,6 +729,8 @@ class LauncherViewModel(
 
     fun setInfiniteScroll(value: Boolean) = persist { preferences.setInfiniteScroll(value) }
 
+    fun setRemoveEmptyPages(value: Boolean) = persist { preferences.setRemoveEmptyPages(value) }
+
     fun setDesktopPadding(horizontal: Int, vertical: Int) = persist { preferences.setDesktopPadding(horizontal, vertical) }
 
     fun setDesktopLocked(value: Boolean) = persist { preferences.setDesktopLocked(value) }
@@ -1435,7 +1437,17 @@ class LauncherViewModel(
 
     fun addPage() = persist { repository.addPage() }
 
-    fun removePage(page: Int) = persist { repository.removePage(page) }
+    fun removePage(page: Int, onRemoved: (() -> Unit)? = null) {
+        viewModelScope.launch { if (repository.removePage(page)) onRemoved?.invoke() }
+    }
+
+    // onRemoved hears the pages that went (old numbers), when any did.
+    fun removeEmptyPages(keep: Set<Int>, onRemoved: (List<Int>) -> Unit) {
+        viewModelScope.launch {
+            val removed = repository.removeEmptyPages(keep)
+            if (removed.isNotEmpty()) onRemoved(removed)
+        }
+    }
 
     fun movePage(from: Int, to: Int) = persist { repository.movePage(from, to) }
 

@@ -47,6 +47,10 @@ class HomeEditController(
         // for the page it stands for, and runs `then` once edit mode has
         // closed on that page.
         fun setAddPageSlot(show: Boolean)
+        // Remove page, beside the marker: offered on an empty page while
+        // there is another to fall back on.
+        fun canRemoveCurrentPage(): Boolean
+        fun removeCurrentPage()
         fun onAddPage(): Boolean
         fun addPageFromSlot(then: (() -> Unit)?)
     }
@@ -117,9 +121,10 @@ class HomeEditController(
     }
 
     private fun applyOverlayInsets(ov: ViewEditModeBinding) {
-        (ov.editHomeMarker.layoutParams as FrameLayout.LayoutParams).topMargin =
-            barInsets.top + activity.dp(8)
-        ov.editHomeMarker.requestLayout()
+        for (view in listOf(ov.editHomeMarker, ov.editRemovePage)) {
+            (view.layoutParams as FrameLayout.LayoutParams).topMargin = barInsets.top + activity.dp(8)
+            view.requestLayout()
+        }
     }
 
     fun enter() {
@@ -135,6 +140,9 @@ class HomeEditController(
                 // the old one here: the marker lights for the page just set,
                 // where before it stayed dim until a swipe away and back.
                 showMarker(isDefault = true)
+            }
+            inflated.editRemovePage.setOnClickListener {
+                if (!host.onAddPage() && host.canRemoveCurrentPage()) host.removeCurrentPage()
             }
             inflated.editChipWallpapers.setOnClickListener {
                 exit()
@@ -244,6 +252,8 @@ class HomeEditController(
 
     private fun refreshMarker() {
         showMarker(!host.onAddPage() && host.currentPage() == host.defaultPage())
+        overlay?.editRemovePage?.visibility =
+            if (!host.onAddPage() && host.canRemoveCurrentPage()) View.VISIBLE else View.GONE
     }
 
     private fun showMarker(isDefault: Boolean) {

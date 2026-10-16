@@ -48,6 +48,7 @@ class LauncherPreferences(private val context: Context) {
             target[StoreKeys.pageIndicatorAutoHide] = prefs.pageIndicatorAutoHide
             target[StoreKeys.pageIndicatorColor] = prefs.pageIndicatorColor
             target[StoreKeys.infiniteScroll] = prefs.infiniteScroll
+            target[StoreKeys.removeEmptyPages] = prefs.removeEmptyPages
             target[StoreKeys.desktopPaddingH] = prefs.desktopPaddingH.coerceIn(0, 48)
             target[StoreKeys.desktopPaddingV] = prefs.desktopPaddingV.coerceIn(0, 48)
             target[StoreKeys.desktopLocked] = prefs.desktopLocked
@@ -254,6 +255,7 @@ class LauncherPreferences(private val context: Context) {
             pageIndicatorAutoHide = values[StoreKeys.pageIndicatorAutoHide] ?: true,
             pageIndicatorColor = values[StoreKeys.pageIndicatorColor].orEmpty(),
             infiniteScroll = values[StoreKeys.infiniteScroll] ?: false,
+            removeEmptyPages = values[StoreKeys.removeEmptyPages] ?: true,
             desktopPaddingH = (values[StoreKeys.desktopPaddingH] ?: 0).coerceIn(0, 48),
             desktopPaddingV = (values[StoreKeys.desktopPaddingV] ?: 12).coerceIn(0, 48),
             desktopLocked = values[StoreKeys.desktopLocked] ?: false,
@@ -501,6 +503,8 @@ class LauncherPreferences(private val context: Context) {
     suspend fun setPageIndicatorColor(value: String) = put(StoreKeys.pageIndicatorColor, value)
 
     suspend fun setInfiniteScroll(value: Boolean) = put(StoreKeys.infiniteScroll, value)
+
+    suspend fun setRemoveEmptyPages(value: Boolean) = put(StoreKeys.removeEmptyPages, value)
 
     suspend fun setDesktopPadding(horizontal: Int, vertical: Int) {
         context.supernovaStore.edit {

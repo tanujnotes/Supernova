@@ -143,6 +143,9 @@ data class LauncherPrefs(
     // arrow is.
     val pageIndicatorColor: String = "",
     val infiniteScroll: Boolean = false,
+    // A page left with nothing on it goes once a drag ends or the pager
+    // leaves it; the home page and the page in view always stay.
+    val removeEmptyPages: Boolean = true,
     // Workspace page padding in dp per axis. None across: the
     // columns span the whole width, 216px apiece on a 1080px phone.
     val desktopPaddingH: Int = 0,

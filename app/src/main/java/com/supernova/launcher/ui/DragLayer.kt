@@ -32,6 +32,8 @@ class DragLayer @JvmOverloads constructor(
     private var grabY = 0f
     private var liveScale = 1f
     private var settling = false
+    // What the settle in flight runs once its picture has landed.
+    private var onSettled: (() -> Unit)? = null
     private val origin = IntArray(2)
 
     // True from pickup until release; false while the picture settles.
@@ -120,6 +122,7 @@ class DragLayer @JvmOverloads constructor(
     fun settle(target: RectF, durationMs: Long, onEnd: () -> Unit) {
         val view = dragView ?: return onEnd()
         settling = true
+        onSettled = onEnd
         view.animate().cancel()
         // Re-pivot at the corner so the target is a plain position + scale.
         val current = visualRect() ?: RectF()
@@ -130,14 +133,14 @@ class DragLayer @JvmOverloads constructor(
         val scaleNow = if (bitmapWidth > 0) current.width() / bitmapWidth else 1f
         view.scaleX = scaleNow
         view.scaleY = scaleNow
-        if (durationMs <= 0) return finish(onEnd)
+        if (durationMs <= 0) return finish()
         view.animate()
             .x(target.left - origin[0]).y(target.top - origin[1])
             .scaleX(if (bitmapWidth > 0) target.width() / bitmapWidth else 1f)
             .scaleY(if (bitmapHeight > 0) target.height() / bitmapHeight else 1f)
             .setDuration(durationMs).setInterpolator(DecelerateInterpolator(1.5f))
             .setListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: Animator) = finish(onEnd)
+                override fun onAnimationEnd(animation: Animator) = finish()
             })
             .start()
     }
@@ -146,8 +149,9 @@ class DragLayer @JvmOverloads constructor(
     fun consume(centerX: Float, centerY: Float, durationMs: Long, onEnd: () -> Unit) {
         val view = dragView ?: return onEnd()
         settling = true
+        onSettled = onEnd
         view.animate().cancel()
-        if (durationMs <= 0) return finish(onEnd)
+        if (durationMs <= 0) return finish()
         view.pivotX = grabX
         view.pivotY = grabY
         view.animate()
@@ -155,25 +159,31 @@ class DragLayer @JvmOverloads constructor(
             .scaleX(CONSUME_SCALE).scaleY(CONSUME_SCALE).alpha(0f)
             .setDuration(durationMs).setInterpolator(DecelerateInterpolator())
             .setListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: Animator) = finish(onEnd)
+                override fun onAnimationEnd(animation: Animator) = finish()
             })
             .start()
     }
 
-    // Drops the picture at once.
+    // Drops the picture at once. A settle in flight ends here as if it had
+    // landed, its onEnd run once and before this returns: a pickup that
+    // comes while the last drop is still settling has that drop finished
+    // before it starts, rather than the drop's end landing on the new drag.
     fun cancel() {
-        val view = dragView ?: return
-        view.animate().cancel()
-        removeView(view)
-        dragView = null
-        settling = false
+        if (dragView == null) return
+        finish()
     }
 
-    private fun finish(onEnd: () -> Unit) {
-        dragView?.let { it.animate().setListener(null); removeView(it) }
+    private fun finish() {
+        val onEnd = onSettled
+        onSettled = null
+        dragView?.let {
+            it.animate().setListener(null)
+            it.animate().cancel()
+            removeView(it)
+        }
         dragView = null
         settling = false
-        onEnd()
+        onEnd?.invoke()
     }
 
     private companion object {

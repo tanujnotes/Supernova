@@ -41,6 +41,7 @@ object StoreKeys {
     val pageIndicatorAutoHide: Preferences.Key<Boolean> = booleanPreferencesKey("page_indicator_auto_hide")
     val pageIndicatorColor: Preferences.Key<String> = stringPreferencesKey("page_indicator_color")
     val infiniteScroll: Preferences.Key<Boolean> = booleanPreferencesKey("infinite_scroll")
+    val removeEmptyPages: Preferences.Key<Boolean> = booleanPreferencesKey("remove_empty_pages")
     val desktopPaddingH: Preferences.Key<Int> = intPreferencesKey("desktop_padding_h")
     val desktopPaddingV: Preferences.Key<Int> = intPreferencesKey("desktop_padding_v")
     val desktopLocked: Preferences.Key<Boolean> = booleanPreferencesKey("desktop_locked")

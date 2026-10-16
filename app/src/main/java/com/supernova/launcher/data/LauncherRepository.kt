@@ -597,14 +597,26 @@ class LauncherRepository(private val context: Context) {
         }
     }
 
+    // One past every page shown, items on pages past pageCount included:
+    // counted from pageCount alone, such a layout added a page nobody saw,
+    // and edit mode's "+" then waited for it for the rest of the session.
     suspend fun addPage() {
-        mutate { current -> current.copy(pageCount = (current.pageCount + 1).coerceAtMost(MAX_PAGES)) }
+        mutate { current ->
+            val shown = maxOf(
+                current.pageCount,
+                (current.items.filter { it.container == ContainerType.WORKSPACE }.maxOfOrNull { it.page } ?: -1) + 1
+            )
+            current.copy(pageCount = (shown + 1).coerceAtMost(MAX_PAGES))
+        }
     }
 
-    suspend fun removePage(page: Int) {
+    // False when the page wasn't removed: it holds something, or is the last.
+    suspend fun removePage(page: Int): Boolean {
+        var removed = false
         mutate { current ->
             val occupied = current.items.any { it.container == ContainerType.WORKSPACE && it.page == page }
             if (current.pageCount <= 1 || occupied || page !in 0 until current.pageCount) return@mutate current
+            removed = true
             current.copy(
                 pageCount = current.pageCount - 1,
                 defaultPage = (if (current.defaultPage > page) current.defaultPage - 1 else current.defaultPage)
@@ -614,6 +626,19 @@ class LauncherRepository(private val context: Context) {
                 }
             )
         }
+        return removed
+    }
+
+    // Every page with nothing on it goes, but the home page, the pages in
+    // keep and always one page. The pages after each one move down. Returns
+    // the pages removed, by their old numbers, in order.
+    suspend fun removeEmptyPages(keep: Set<Int>): List<Int> {
+        var removed = emptyList<Int>()
+        mutate { current ->
+            removed = emptyPagesToRemove(current, keep)
+            withoutPages(current, removed)
+        }
+        return removed
     }
 
     suspend fun movePage(from: Int, to: Int) {
@@ -1046,6 +1071,30 @@ class LauncherRepository(private val context: Context) {
         // screen's view model has its own repository, and each read-modify-
         // write has to see the others' writes or one of them is lost.
         private val lock = Mutex()
+
+        internal fun emptyPagesToRemove(model: LauncherModel, keep: Set<Int>): List<Int> {
+            val occupied = model.items.filter { it.container == ContainerType.WORKSPACE }.map { it.page }.toSet()
+            // The pager shows a page for every item, whatever pageCount says.
+            val count = maxOf(model.pageCount, (occupied.maxOrNull() ?: -1) + 1)
+            val empty = (0 until count).filter { it !in occupied && it !in keep && it != model.defaultPage }
+            return if (empty.size >= count) empty.drop(1) else empty
+        }
+
+        internal fun withoutPages(model: LauncherModel, pages: List<Int>): LauncherModel {
+            if (pages.isEmpty()) return model
+            val count = maxOf(
+                model.pageCount,
+                (model.items.filter { it.container == ContainerType.WORKSPACE }.maxOfOrNull { it.page } ?: -1) + 1
+            )
+            fun shifted(page: Int) = page - pages.count { it < page }
+            return model.copy(
+                pageCount = (count - pages.size).coerceAtLeast(1),
+                defaultPage = shifted(model.defaultPage).coerceIn(0, (count - pages.size - 1).coerceAtLeast(0)),
+                items = model.items.map {
+                    if (it.container == ContainerType.WORKSPACE) it.copy(page = shifted(it.page)) else it
+                }
+            )
+        }
 
         // Applies reorder displacements before the dragged item is placed. Every
         // displaced item's new spot is re-validated against the (possibly stale)

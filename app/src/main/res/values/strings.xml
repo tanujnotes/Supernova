@@ -453,6 +453,8 @@
     <string name="page_indicator_auto_hide_summary">Show it only while changing pages</string>
     <string name="page_indicator_color">Indicator color</string>
     <string name="infinite_scroll">Infinite scroll</string>
+    <string name="remove_empty_pages">Remove empty pages</string>
+    <string name="remove_empty_pages_summary">A page left with nothing on it goes when you leave it</string>
     <string name="indicator_none">None</string>
     <string name="indicator_dots">Dots</string>
     <string name="indicator_line">Line</string>

@@ -406,6 +406,12 @@ object SettingsCatalogue {
                     get = { it.infiniteScroll },
                     set = { viewModel.setInfiniteScroll(it) }
                 ),
+                SettingItem.Toggle(
+                    R.string.remove_empty_pages,
+                    get = { it.removeEmptyPages },
+                    set = { viewModel.setRemoveEmptyPages(it) },
+                    subtitle = R.string.remove_empty_pages_summary
+                ),
                 SettingItem.Slider(
                     R.string.desktop_padding_h,
                     min = 0, max = 48,
