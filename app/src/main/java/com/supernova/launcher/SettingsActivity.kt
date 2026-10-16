@@ -622,19 +622,11 @@ class SettingsActivity : AppCompatActivity() {
             binding.rootSearchInput.requestFocus()
             getSystemService(InputMethodManager::class.java)?.showSoftInput(binding.rootSearchInput, 0)
         }
-        binding.settingsTabs.setOnItemSelectedListener { item ->
-            val tab = if (item.itemId == R.id.tabStyle) Tab.STYLE else Tab.SETTINGS
-            if (tab != currentTab) {
-                // A section's search lives in its toolbar, which the other
-                // tab doesn't show, so it ends here. A query in the pill
-                // stays: both tabs wear the pill.
-                if (currentSection != null) setSearchActive(false)
-                currentTab = tab
-                currentSection = null
-                render()
-            }
-            true
-        }
+        binding.tabSettings.setOnClickListener { selectTab(Tab.SETTINGS) }
+        binding.tabStyle.setOnClickListener { selectTab(Tab.STYLE) }
+        // Each pill clips its press ripple to its own rounded shape.
+        binding.tabSettings.clipToOutline = true
+        binding.tabStyle.clipToOutline = true
 
         applySettingsSurface(viewModel.state.value.prefs)
         render()
@@ -763,6 +755,8 @@ class SettingsActivity : AppCompatActivity() {
     )
 
     private fun render() {
+        binding.tabSettings.isSelected = currentTab == Tab.SETTINGS
+        binding.tabStyle.isSelected = currentTab == Tab.STYLE
         val section = currentSection
         backCallback.isEnabled = section != null || searchActive
         // The Cards page adds from a FAB.
@@ -1031,21 +1025,25 @@ class SettingsActivity : AppCompatActivity() {
         if (section != 0) navigateTo(section, intent.getIntExtra(EXTRA_HIGHLIGHT_TITLE_RES, 0))
     }
 
+    private fun selectTab(tab: Tab) {
+        if (tab == currentTab) return
+        // A section's search lives in its toolbar, which the other tab
+        // doesn't show, so it ends here. A query in the pill stays: both
+        // tabs wear the pill.
+        if (currentSection != null) setSearchActive(false)
+        currentTab = tab
+        currentSection = null
+        render()
+    }
+
     private fun navigateTo(sectionTitleRes: Int, itemTitleRes: Int, flash: Boolean = true) {
         setSearchActive(false)
         if (flash) adapter.setHighlight(itemTitleRes)
         if (sectionTitleRes == styleSection.title) {
             currentSection = null
-            if (currentTab != Tab.STYLE) {
-                // The tab listener switches currentTab and renders.
-                binding.settingsTabs.selectedItemId = R.id.tabStyle
-            } else {
-                render()
-            }
+            if (currentTab != Tab.STYLE) selectTab(Tab.STYLE) else render()
         } else {
-            if (currentTab != Tab.SETTINGS) {
-                binding.settingsTabs.selectedItemId = R.id.tabSettings
-            }
+            if (currentTab != Tab.SETTINGS) selectTab(Tab.SETTINGS)
             currentSection = sections.firstOrNull { it.title == sectionTitleRes }
             render()
         }

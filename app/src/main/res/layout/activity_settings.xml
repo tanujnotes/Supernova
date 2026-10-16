@@ -222,11 +222,44 @@
         </FrameLayout>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
+    <!-- The tab bar: the two tabs with equal space before, between and
+         after them, each with its icon and label side by side, the current
+         tab on an accent pill. -->
+    <LinearLayout
         android:id="@+id/settingsTabs"
-        style="@style/Widget.Supernova.BottomNavigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:labelVisibilityMode="labeled"
-        app:menu="@menu/settings_tabs" />
+        android:background="@drawable/bg_settings_nav"
+        android:baselineAligned="false"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingVertical="12dp">
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/tabSettings"
+            style="@style/Widget.Supernova.SettingsTab"
+            android:text="@string/settings"
+            app:drawableStartCompat="@drawable/ic_tab_settings" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/tabStyle"
+            style="@style/Widget.Supernova.SettingsTab"
+            android:text="@string/style_tab"
+            app:drawableStartCompat="@drawable/ic_tab_style" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+    </LinearLayout>
 </LinearLayout>

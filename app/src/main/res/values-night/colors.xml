@@ -17,6 +17,7 @@
     <color name="accentTealText">#66B8B0</color>
     <color name="accentCyanText">#66CDDA</color>
     <color name="rippleHighlight">#1AFFFFFF</color>
+    <color name="settingsNav">#131923</color>
     <color name="settingsPillBg">#1AFFFFFF</color>
     <!-- Hairlines on the settings cards: row dividers, tile outlines. -->
     <color name="settingsDivider">#14FFFFFF</color>

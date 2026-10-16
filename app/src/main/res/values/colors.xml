@@ -39,6 +39,9 @@
     <color name="accentCyanText">@color/accentCyan</color>
     <!-- The press ripple: black at 10% here, white at 10% at night. -->
     <color name="rippleHighlight">#1A000000</color>
+    <!-- The settings tab bar: a shade of its own, apart from both the page
+         and the cards that scroll under it. -->
+    <color name="settingsNav">#EBEDF1</color>
     <color name="settingsPillBg">#14000000</color>
     <!-- Hairlines on the settings cards: row dividers, tile outlines. -->
     <color name="settingsDivider">#14000000</color>
