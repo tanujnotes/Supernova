@@ -79,7 +79,6 @@
     <ID>CyclomaticComplexMethod:SearchResultsAdapter.kt$SearchResultsAdapter$override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int)</ID>
     <ID>CyclomaticComplexMethod:SearchResultsAdapter.kt$SearchResultsAdapter$private fun rowKey(row: Row): String</ID>
     <ID>CyclomaticComplexMethod:SettingsActivity.kt$SettingsActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
-    <ID>CyclomaticComplexMethod:SettingsActivity.kt$SettingsActivity$private fun render()</ID>
     <ID>CyclomaticComplexMethod:SettingsAdapter.kt$SettingsAdapter$private fun rebuild()</ID>
     <ID>CyclomaticComplexMethod:SettingsCatalogue.kt$SettingsCatalogue$fun sections( context: Context, viewModel: LauncherViewModel, actions: Actions ): List&lt;SettingsSection&gt;</ID>
     <ID>CyclomaticComplexMethod:SettingsPreviewView.kt$SettingsPreviewView$fun tick(prefs: LauncherPrefs)</ID>
@@ -104,7 +103,7 @@
     <ID>LongMethod:BottomChrome.kt$BottomChrome$fun layout(s: Spec): Result</ID>
     <ID>LongMethod:CardPreviews.kt$CardPreviews$fun builtIn(kind: BuiltInCard, parent: ViewGroup, prefs: LauncherPrefs): View</ID>
     <ID>LongMethod:CardViewBinder.kt$CardViewBinder$private fun bindFeatured( binding: ItemFeedCustomBinding, card: FeedCard, featuredLabel: String? ): Boolean</ID>
-    <ID>LongMethod:ChoiceMenu.kt$ChoiceMenu$fun show( anchor: View, // Where the finger went down, in window coordinates. A settings row // spans the screen and its value sits at the far end of it, so a menu // pinned to the row's leading edge opens nowhere near the thing that // was pressed. The menu follows the touch instead, and is pushed back // inside the window when the touch is close to an edge. touchX: Float, surface: ResolvedSurface, labels: List&lt;CharSequence&gt;, // Index of the option currently in force, or -1 when the menu is a // plain list of things to do rather than a choice with a value. selected: Int, animate: Boolean = true, onPick: (Int) -&gt; Unit )</ID>
+    <ID>LongMethod:ChoiceMenu.kt$ChoiceMenu$fun show( anchor: View, // Where the finger went down, in window coordinates. A settings row // spans the screen and its value sits at the far end of it, so a menu // pinned to the row's leading edge opens nowhere near the thing that // was pressed. The menu follows the touch instead, and is pushed back // inside the window when the touch is close to an edge. touchX: Float, surface: ResolvedSurface, labels: List&lt;CharSequence&gt;, // Index of the option currently in force, or -1 when the menu is a // plain list of things to do rather than a choice with a value. selected: Int, animate: Boolean = true, // A settings row opens its menu against its card's end instead of at // the touch, so the tick lands in the column of the chevron that // opened it: the row spans its card, so its end is the card's. alignToAnchorEnd: Boolean = false, onPick: (Int) -&gt; Unit )</ID>
     <ID>LongMethod:CustomCardEditorSheet.kt$CustomCardEditorSheet$fun editDayTime()</ID>
     <ID>LongMethod:CustomCardEditorSheet.kt$CustomCardEditorSheet$fun show( activity: AppCompatActivity, viewModel: LauncherViewModel, existing: FeedCard?, // Opens the widget picker for a Widget-featured card; the card is saved // first so the bound widget attaches to a persisted id. onPickWidget: ((cardId: String) -&gt; Unit)? = null )</ID>
     <ID>LongMethod:DesktopPreviewsOverlay.kt$DesktopPreviewsOverlay$private fun buildThumbColumn( page: Int, pages: Int, current: Int, default: Int, accent: Int ): View</ID>
@@ -131,7 +130,6 @@
     <ID>LongMethod:OnboardingActivity.kt$OnboardingActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
     <ID>LongMethod:OnboardingActivity.kt$OnboardingActivity$private fun bindSearch(view: View)</ID>
     <ID>LongMethod:SettingsActivity.kt$SettingsActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
-    <ID>LongMethod:SettingsActivity.kt$SettingsActivity$private fun render()</ID>
     <ID>LongMethod:SettingsCatalogue.kt$SettingsCatalogue$fun sections( context: Context, viewModel: LauncherViewModel, actions: Actions ): List&lt;SettingsSection&gt;</ID>
     <ID>LongMethod:SettingsPreviewView.kt$SettingsPreviewView$private fun folderWindowView( prefs: LauncherPrefs, viewModel: LauncherViewModel, resolved: com.supernova.launcher.ui.theme.ResolvedSurface ): View</ID>
     <ID>LongMethod:StylePickerSheet.kt$StylePickerSheet$fun show(context: Context, viewModel: LauncherViewModel, surfaceId: SurfaceId)</ID>
@@ -142,7 +140,7 @@
     <ID>LongParameterList:BottomChrome.kt$BottomChrome.Spec$( val density: Float, val landscape: Boolean, // The navigation bar's height: the chrome sits above it while the // wallpaper keeps running underneath. val navInset: Int, val dockEnabled: Boolean, // An overlay dock draws over the workspace and reserves nothing. val dockOverlay: Boolean, // The dock's background runs to the window's bottom edge, the // navigation bar folded into its own padding. val dockBehindNav: Boolean, // The dock's background rests on the navigation bar. val dockFullBleed: Boolean, // As laid out, padding included. val dockHeight: Int, // From the dock's top edge down to its icons' top. val dockIconInset: Int, // No background: the dock's padding is empty space. val dockBare: Boolean, val slot: BarSlot?, val arrowWanted: Boolean, val arrowHeight: Int, val indicatorOn: Boolean, // The page padding under the grid's bottom row. val pagePadding: Int )</ID>
     <ID>LongParameterList:BottomChromeTest.kt$BottomChromeTest$( landscape: Boolean = false, dockEnabled: Boolean = true, dockOverlay: Boolean = false, dockBehindNav: Boolean = false, dockHeight: Int = 80, dockIconInset: Int = 6, dockBare: Boolean = true, slot: BarSlot? = BarSlot.BELOW_DOCK, arrowWanted: Boolean = false, indicatorOn: Boolean = false, pagePadding: Int = 12 )</ID>
     <ID>LongParameterList:CardViewBinder.kt$CardViewBinder.Companion$( context: Context, icon: Drawable?, label: CharSequence, textColor: Int, // Search's shortcut pills: menu and drag. Cards leave it off. onLongPress: ((View) -&gt; Unit)? = null, onTap: (View) -&gt; Unit )</ID>
-    <ID>LongParameterList:ChoiceMenu.kt$ChoiceMenu$( anchor: View, // Where the finger went down, in window coordinates. A settings row // spans the screen and its value sits at the far end of it, so a menu // pinned to the row's leading edge opens nowhere near the thing that // was pressed. The menu follows the touch instead, and is pushed back // inside the window when the touch is close to an edge. touchX: Float, surface: ResolvedSurface, labels: List&lt;CharSequence&gt;, // Index of the option currently in force, or -1 when the menu is a // plain list of things to do rather than a choice with a value. selected: Int, animate: Boolean = true, onPick: (Int) -&gt; Unit )</ID>
+    <ID>LongParameterList:ChoiceMenu.kt$ChoiceMenu$( anchor: View, // Where the finger went down, in window coordinates. A settings row // spans the screen and its value sits at the far end of it, so a menu // pinned to the row's leading edge opens nowhere near the thing that // was pressed. The menu follows the touch instead, and is pushed back // inside the window when the touch is close to an edge. touchX: Float, surface: ResolvedSurface, labels: List&lt;CharSequence&gt;, // Index of the option currently in force, or -1 when the menu is a // plain list of things to do rather than a choice with a value. selected: Int, animate: Boolean = true, // A settings row opens its menu against its card's end instead of at // the touch, so the tick lands in the column of the chevron that // opened it: the row spans its card, so its end is the card's. alignToAnchorEnd: Boolean = false, onPick: (Int) -&gt; Unit )</ID>
     <ID>LongParameterList:ChoiceMenu.kt$ChoiceMenu$( context: Context, surface: ResolvedSurface, label: CharSequence, checked: Boolean, density: Float, onClick: () -&gt; Unit )</ID>
     <ID>LongParameterList:DockSwapTest.kt$DockSwapTest$(id: String, container: ContainerType, page: Int = 0, x: Int = 0, y: Int = 0, rank: Int = 0, folder: String? = null)</ID>
     <ID>LongParameterList:DragGridView.kt$DragGridView$( cols: Int, rows: Int, gridRect: RectF, fingerX: Float, fingerY: Float, target: WorkspaceGeometry.CellRect?, slideMs: Long, fadeMs: Long )</ID>
@@ -296,12 +294,10 @@
     <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$24</ID>
     <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$6</ID>
     <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$8</ID>
-    <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$12</ID>
     <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$14</ID>
     <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$15f</ID>
     <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$16</ID>
     <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$20</ID>
-    <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$220</ID>
     <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$4</ID>
     <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$8</ID>
     <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$96</ID>
@@ -645,8 +641,6 @@
     <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$72</ID>
     <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$8</ID>
     <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$8f</ID>
-    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity$96</ID>
-    <ID>MagicNumber:SettingsActivity.kt$SettingsActivity.IconPackChoiceAdapter$36</ID>
     <ID>MagicNumber:SettingsActivity.kt$SettingsActivity.IconPackChoiceAdapter$8</ID>
     <ID>MagicNumber:SettingsAdapter.kt$SettingsAdapter$0x44</ID>
     <ID>MagicNumber:SettingsAdapter.kt$SettingsAdapter$0xFFFFFF</ID>
@@ -655,7 +649,6 @@
     <ID>MagicNumber:SettingsAdapter.kt$SettingsAdapter$750</ID>
     <ID>MagicNumber:SettingsAdapter.kt$SettingsAdapter.AccordionHolder$180f</ID>
     <ID>MagicNumber:SettingsAdapter.kt$SettingsAdapter.LabelGroupHolder$180f</ID>
-    <ID>MagicNumber:SettingsAdapter.kt$SettingsAdapter.RowHolder$24</ID>
     <ID>MagicNumber:SettingsAdapter.kt$SettingsAdapter.StyleTargetHolder$12f</ID>
     <ID>MagicNumber:SettingsAdapter.kt$SettingsAdapter.StyleTargetHolder$4</ID>
     <ID>MagicNumber:SettingsCatalogue.kt$SettingsCatalogue$100f</ID>

@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- A root-list entry, in a grouped card (SettingsGroupDecoration). The
      tile sits under the search bar's magnifier, 16dp into the card; the text
-     starts 16dp past the tile, where the card's dividers start. -->
+     starts 16dp past the tile, where the card's dividers start; the chevron
+     sits in the control column every settings row shares. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -10,8 +11,9 @@
     android:gravity="center_vertical"
     android:minHeight="64dp"
     android:orientation="horizontal"
-    android:paddingHorizontal="16dp"
-    android:paddingVertical="12dp">
+    android:paddingVertical="12dp"
+    android:paddingStart="16dp"
+    android:paddingEnd="4dp">
 
     <FrameLayout
         android:layout_width="40dp"
@@ -52,11 +54,13 @@
             android:visibility="gone" />
     </LinearLayout>
 
+    <!-- Centred in the 48dp control slot, 4dp in from the card. -->
     <ImageView
-        android:layout_width="20dp"
+        android:layout_width="48dp"
         android:layout_height="20dp"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="8dp"
         android:importantForAccessibility="no"
+        android:paddingHorizontal="14dp"
         android:src="@drawable/ic_settings_chevron"
         app:tint="@color/textSecondary" />
 </LinearLayout>

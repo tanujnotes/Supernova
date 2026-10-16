@@ -5,7 +5,7 @@
     <color name="accent">#2E89FF</color>
     <color name="drawerBackground">#FFFFFF</color>
     <color name="textPrimary">#11161D</color>
-    <color name="textSecondary">#8A11161D</color>
+    <color name="textSecondary">#B011161D</color>
 
     <!-- Drawn over the wallpaper, never over an app surface: stays light in
          both themes so labels survive a dark wallpaper in light mode. -->
@@ -22,9 +22,39 @@
     <color name="accentGreen">#43A047</color>
     <color name="accentTeal">#00897B</color>
     <color name="accentCyan">#00ACC1</color>
+    <!-- Raised surfaces over a page: dialogs, sheets and menus. One with the
+         cards in the light; lighter than them in the dark. -->
+    <color name="raised">#FFFFFF</color>
+    <!-- Each accent as text on a raised surface (a dialog's buttons): the
+         accent itself here; lifted toward white at night, to read 4.5:1. -->
+    <color name="accentBlueText">@color/accentBlue</color>
+    <color name="accentIndigoText">@color/accentIndigo</color>
+    <color name="accentPurpleText">@color/accentPurple</color>
+    <color name="accentPinkText">@color/accentPink</color>
+    <color name="accentRedText">@color/accentRed</color>
+    <color name="accentOrangeText">@color/accentOrange</color>
+    <color name="accentAmberText">@color/accentAmber</color>
+    <color name="accentGreenText">@color/accentGreen</color>
+    <color name="accentTealText">@color/accentTeal</color>
+    <color name="accentCyanText">@color/accentCyan</color>
+    <!-- The press ripple: black at 10% here, white at 10% at night. -->
+    <color name="rippleHighlight">#1A000000</color>
     <color name="settingsPillBg">#14000000</color>
-    <!-- Hairlines on the grouped settings pages: row dividers, tile outlines. -->
+    <!-- Hairlines on the settings cards: row dividers, tile outlines. -->
     <color name="settingsDivider">#14000000</color>
+    <!-- The light circle behind a stepper's minus and plus. -->
+    <!-- An unchecked checkbox's outline. -->
+    <color name="settingsBox">#8A9099</color>
+    <color name="settingsStepBg">#0F11161D</color>
+    <!-- The faint band an opened group's own options sit on, in its card. -->
+    <!-- A tile in a picker sheet (the icon shapes). -->
+    <color name="settingsPickerTile">#F4F5F7</color>
+    <color name="settingsBand">#F7F8FA</color>
+    <!-- Status text on a settings row: a warning (and its icon tile), and a
+         granted permission. Both read 4.5:1 on the card. -->
+    <color name="settingsWarn">#A64B00</color>
+    <color name="settingsWarnTile">#24E8743B</color>
+    <color name="settingsOk">#1A7F5A</color>
 
     <!-- Text and icons on an accent-filled control (a pill button, a
          checked box). Every curated accent is dark enough for white. -->

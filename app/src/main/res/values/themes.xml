@@ -1,6 +1,9 @@
 <resources>
     <style name="Theme.Supernova" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/accent</item>
+        <item name="colorControlHighlight">@color/rippleHighlight</item>
+        <item name="android:colorControlHighlight">@color/rippleHighlight</item>
+        <item name="colorAccentOnRaised">@color/accentBlueText</item>
         <item name="colorPrimaryVariant">@color/accent</item>
         <item name="colorSecondary">@color/accent</item>
         <item name="android:windowBackground">@android:color/transparent</item>
@@ -27,6 +30,9 @@
 
     <style name="Theme.Supernova.Transparent" parent="Theme.MaterialComponents.DayNight.Dialog.Alert">
         <item name="colorPrimary">@color/accent</item>
+        <item name="colorControlHighlight">@color/rippleHighlight</item>
+        <item name="android:colorControlHighlight">@color/rippleHighlight</item>
+        <item name="colorAccentOnRaised">@color/accentBlueText</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:backgroundDimEnabled">true</item>
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.Supernova.Dialog</item>
@@ -69,60 +75,70 @@
         <item name="colorPrimary">@color/accentBlue</item>
         <item name="colorSecondary">@color/accentBlue</item>
         <item name="colorAccent">@color/accentBlue</item>
+        <item name="colorAccentOnRaised">@color/accentBlueText</item>
     </style>
 
     <style name="ThemeOverlay.Supernova.Indigo" parent="">
         <item name="colorPrimary">@color/accentIndigo</item>
         <item name="colorSecondary">@color/accentIndigo</item>
         <item name="colorAccent">@color/accentIndigo</item>
+        <item name="colorAccentOnRaised">@color/accentIndigoText</item>
     </style>
 
     <style name="ThemeOverlay.Supernova.Purple" parent="">
         <item name="colorPrimary">@color/accentPurple</item>
         <item name="colorSecondary">@color/accentPurple</item>
         <item name="colorAccent">@color/accentPurple</item>
+        <item name="colorAccentOnRaised">@color/accentPurpleText</item>
     </style>
 
     <style name="ThemeOverlay.Supernova.Pink" parent="">
         <item name="colorPrimary">@color/accentPink</item>
         <item name="colorSecondary">@color/accentPink</item>
         <item name="colorAccent">@color/accentPink</item>
+        <item name="colorAccentOnRaised">@color/accentPinkText</item>
     </style>
 
     <style name="ThemeOverlay.Supernova.Red" parent="">
         <item name="colorPrimary">@color/accentRed</item>
         <item name="colorSecondary">@color/accentRed</item>
         <item name="colorAccent">@color/accentRed</item>
+        <item name="colorAccentOnRaised">@color/accentRedText</item>
     </style>
 
     <style name="ThemeOverlay.Supernova.Orange" parent="">
         <item name="colorPrimary">@color/accentOrange</item>
         <item name="colorSecondary">@color/accentOrange</item>
         <item name="colorAccent">@color/accentOrange</item>
+        <item name="colorAccentOnRaised">@color/accentOrangeText</item>
     </style>
 
     <style name="ThemeOverlay.Supernova.Amber" parent="">
         <item name="colorPrimary">@color/accentAmber</item>
         <item name="colorSecondary">@color/accentAmber</item>
         <item name="colorAccent">@color/accentAmber</item>
+        <item name="colorAccentOnRaised">@color/accentAmberText</item>
     </style>
 
     <style name="ThemeOverlay.Supernova.Green" parent="">
         <item name="colorPrimary">@color/accentGreen</item>
         <item name="colorSecondary">@color/accentGreen</item>
         <item name="colorAccent">@color/accentGreen</item>
+        <item name="colorAccentOnRaised">@color/accentGreenText</item>
     </style>
 
     <style name="ThemeOverlay.Supernova.Teal" parent="">
         <item name="colorPrimary">@color/accentTeal</item>
         <item name="colorSecondary">@color/accentTeal</item>
         <item name="colorAccent">@color/accentTeal</item>
+        <item name="colorAccentOnRaised">@color/accentTealText</item>
     </style>
 
     <style name="ThemeOverlay.Supernova.Cyan" parent="">
         <item name="colorPrimary">@color/accentCyan</item>
         <item name="colorSecondary">@color/accentCyan</item>
         <item name="colorAccent">@color/accentCyan</item>
+        <item name="colorAccentOnRaised">@color/accentCyanText</item>
     </style>
 
     <!-- ============================================================ -->
@@ -138,7 +154,7 @@
     <!-- ============================================================ -->
 
     <style name="ThemeOverlay.Supernova.Dialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
-        <item name="colorSurface">@color/surface</item>
+        <item name="colorSurface">@color/raised</item>
         <item name="colorOnSurface">@color/textPrimary</item>
         <item name="colorPrimary">?attr/colorAccent</item>
         <item name="colorSecondary">?attr/colorAccent</item>
@@ -203,7 +219,7 @@
          a black strip. -->
     <style name="ThemeOverlay.Supernova.BottomSheet" parent="ThemeOverlay.MaterialComponents.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/Widget.Supernova.BottomSheet</item>
-        <item name="colorSurface">@color/surface</item>
+        <item name="colorSurface">@color/raised</item>
         <item name="colorOnSurface">@color/textPrimary</item>
         <item name="colorPrimary">?attr/colorAccent</item>
         <item name="colorSecondary">?attr/colorAccent</item>
@@ -211,7 +227,7 @@
         <item name="android:textColorPrimary">@color/textPrimary</item>
         <item name="android:textColorSecondary">@color/textSecondary</item>
         <item name="elevationOverlayEnabled">false</item>
-        <item name="android:navigationBarColor">@color/surface</item>
+        <item name="android:navigationBarColor">@color/raised</item>
         <item name="android:windowLightNavigationBar">@bool/lightSystemBars</item>
         <item name="android:backgroundDimAmount">0.5</item>
         <item name="materialButtonStyle">@style/Widget.Supernova.Button</item>
@@ -223,7 +239,7 @@
     </style>
 
     <style name="Widget.Supernova.BottomSheet" parent="Widget.MaterialComponents.BottomSheet.Modal">
-        <item name="backgroundTint">@color/surface</item>
+        <item name="backgroundTint">@color/raised</item>
         <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.Supernova.BottomSheet</item>
         <item name="android:elevation">0dp</item>
         <!-- Sheets open fully; a sheet that peeks at half height and needs a
@@ -300,6 +316,7 @@
 
     <style name="Widget.Supernova.Button.Dialog" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
         <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">?attr/colorAccentOnRaised</item>
         <item name="android:textSize">15sp</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:letterSpacing">0</item>
@@ -309,8 +326,14 @@
 
     <!-- Selection controls tinted to the accent with a quiet unchecked
          state, so the checked one is the one that stands out. -->
+    <!-- A rounded box (checkbox_box) that carries its own colours, so
+         nothing tints over it. -->
     <style name="Widget.Supernova.CheckBox" parent="Widget.MaterialComponents.CompoundButton.CheckBox">
-        <item name="buttonTint">@color/selection_control_tint</item>
+        <item name="android:button">@drawable/checkbox_box</item>
+        <item name="buttonCompat">@drawable/checkbox_box</item>
+        <item name="buttonIcon">@null</item>
+        <item name="buttonTint">@null</item>
+        <item name="useMaterialThemeColors">false</item>
         <item name="android:textColor">@color/textPrimary</item>
     </style>
 

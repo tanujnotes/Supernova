@@ -5,7 +5,26 @@
     <color name="drawerBackground">#1E2735</color>
     <color name="textPrimary">#FFFFFF</color>
     <color name="textSecondary">#B3FFFFFF</color>
+    <color name="raised">#263142</color>
+    <color name="accentBlueText">#82B8FF</color>
+    <color name="accentIndigoText">#9DA6D9</color>
+    <color name="accentPurpleText">#BB7CCC</color>
+    <color name="accentPinkText">#F48CAF</color>
+    <color name="accentRedText">#EF8886</color>
+    <color name="accentOrangeText">#FDBA66</color>
+    <color name="accentAmberText">#FFD166</color>
+    <color name="accentGreenText">#8EC691</color>
+    <color name="accentTealText">#66B8B0</color>
+    <color name="accentCyanText">#66CDDA</color>
+    <color name="rippleHighlight">#1AFFFFFF</color>
     <color name="settingsPillBg">#1AFFFFFF</color>
-    <!-- Hairlines on the grouped settings pages: row dividers, tile outlines. -->
+    <!-- Hairlines on the settings cards: row dividers, tile outlines. -->
     <color name="settingsDivider">#14FFFFFF</color>
+    <color name="settingsBox">#8CFFFFFF</color>
+    <color name="settingsStepBg">#1AFFFFFF</color>
+    <color name="settingsPickerTile">#0FFFFFFF</color>
+    <color name="settingsBand">#161D29</color>
+    <color name="settingsWarn">#FFB077</color>
+    <color name="settingsWarnTile">#29FFB077</color>
+    <color name="settingsOk">#5FD3A6</color>
 </resources>

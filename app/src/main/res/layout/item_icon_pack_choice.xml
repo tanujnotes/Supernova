@@ -1,50 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One row of the icon pack picker: the pack's name over a strip of its own
+<!-- One row of the icon pack sheet: the pack's name over a strip of its own
      icons, so the choice is made by looking at the icons rather than by
-     recognising a pack's name. -->
+     recognising a pack's name; the current pack's tick sits in the 48dp
+     control column, 20dp in from the sheet's edge. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?attr/selectableItemBackground"
-    android:orientation="vertical"
-    android:paddingHorizontal="24dp"
-    android:paddingVertical="12dp">
+    android:foreground="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:minHeight="64dp"
+    android:orientation="horizontal"
+    android:paddingVertical="10dp"
+    android:paddingStart="24dp"
+    android:paddingEnd="20dp">
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <com.google.android.material.radiobutton.MaterialRadioButton
-            android:id="@+id/packSelected"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:clickable="false"
-            android:duplicateParentState="true"
-            android:focusable="false"
-            android:importantForAccessibility="no" />
+        android:layout_weight="1"
+        android:orientation="vertical">
 
         <TextView
             android:id="@+id/packLabel"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
             android:ellipsize="end"
+            android:fontFamily="sans-serif-medium"
             android:maxLines="1"
             android:textColor="@color/textPrimary"
             android:textSize="16sp" />
+
+        <!-- GONE until the previews load, and for the system-default row,
+             which has no pack to sample. -->
+        <LinearLayout
+            android:id="@+id/packPreview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:visibility="gone" />
     </LinearLayout>
 
-    <!-- GONE until the previews load, and for the system-default row, which
-         has no pack to sample. -->
-    <LinearLayout
-        android:id="@+id/packPreview"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="40dp"
-        android:layout_marginTop="6dp"
-        android:orientation="horizontal"
-        android:visibility="gone" />
+    <ImageView
+        android:id="@+id/packSelected"
+        android:layout_width="48dp"
+        android:layout_height="22dp"
+        android:layout_marginStart="8dp"
+        android:importantForAccessibility="no"
+        android:paddingHorizontal="13dp"
+        android:src="@drawable/ic_check"
+        app:tint="?attr/colorAccent" />
 </LinearLayout>

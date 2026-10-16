@@ -1155,7 +1155,9 @@ object SettingsCatalogue {
                 // access gates getActiveSessions, same as badges.
                 SettingItem.Row(
                     R.string.feed_media_needs_access,
+                    subtitle = { context.getString(R.string.feed_media_needs_access_summary) },
                     onClick = actions.openNotificationAccess,
+                    look = SettingItem.RowLook(icon = R.drawable.ic_settings_warn, warn = true),
                     visibleIf = {
                         it.feedShowMedia &&
                             !com.supernova.launcher.notification.SupernovaNotificationListener
@@ -1644,15 +1646,18 @@ object SettingsCatalogue {
                     set = { viewModel.setLabsExportPng(it) },
                     subtitle = R.string.labs_export_png_summary
                 ),
+                // Both run on the tap, so neither leads anywhere.
                 SettingItem.Row(
                     R.string.labs_export_icons,
                     subtitle = { context.getString(R.string.labs_export_icons_summary) },
-                    onClick = actions.exportIcons
+                    onClick = actions.exportIcons,
+                    look = SettingItem.RowLook(chevron = false)
                 ),
                 SettingItem.Row(
                     R.string.labs_clear_icon_cache,
                     subtitle = { context.getString(R.string.labs_clear_icon_cache_summary) },
-                    onClick = actions.clearIconCache
+                    onClick = actions.clearIconCache,
+                    look = SettingItem.RowLook(chevron = false)
                 ),
                 // Labs Permissions: Supernova's own.
                 SettingItem.Header(R.string.labs_permissions)
@@ -1660,7 +1665,8 @@ object SettingsCatalogue {
                 SettingItem.Row(
                     permission.title,
                     subtitle = { permission.status(context) },
-                    onClick = { actions.managePermission(permission) }
+                    onClick = { actions.managePermission(permission) },
+                    look = SettingItem.RowLook(positive = { permission.granted(context) })
                 )
             }
         )
@@ -1719,9 +1725,9 @@ object SettingsCatalogue {
                 { AccentColor.fromName(it.accentColor) }, { EnumLabels.of(it) },
                 onPick = { viewModel.setAccentColor(it.name) }
             ).withLook(
-                SettingItem.RowLook(R.drawable.ic_style_accent) {
+                SettingItem.RowLook(R.drawable.ic_style_accent, swatch = {
                     context.getColor(AccentColor.fromName(it.accentColor).colorRes)
-                }
+                })
             ),
             SettingItem.Header(R.string.style_group_surfaces),
             SettingItem.StyleTarget(R.string.settings_section_drawer, SurfaceId.DRAWER, { actions.openStylePicker(SurfaceId.DRAWER) }),

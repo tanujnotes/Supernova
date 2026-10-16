@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A Row on a grouped page (root and Style), in its card: an optional icon
-     tile, the title, the current value on the right in place of the value
-     pill, and a chevron. A row with no icon starts its text where the
-     tiled rows' text starts (72dp), as an option of the row above. -->
+<!-- A Row in its card: an optional icon tile, the title, the current value
+     on the right, and a chevron centred in the 48dp control slot that ends
+     4dp in from the card. On a tiled page (root and Style) a row with no
+     icon starts its text where the tiled rows' text starts (72dp), as an
+     option of the row above; on a section page every row starts 16dp in. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -11,8 +12,9 @@
     android:gravity="center_vertical"
     android:minHeight="56dp"
     android:orientation="horizontal"
-    android:paddingHorizontal="16dp"
-    android:paddingVertical="8dp">
+    android:paddingVertical="8dp"
+    android:paddingStart="16dp"
+    android:paddingEnd="4dp">
 
     <FrameLayout
         android:id="@+id/groupRowTile"
@@ -75,11 +77,15 @@
         android:textSize="14sp"
         android:visibility="gone" />
 
+    <!-- An action that runs on the tap (Clear icon cache) has none; the
+         slot stays, so its text wraps where its neighbours' does. -->
     <ImageView
-        android:layout_width="20dp"
+        android:id="@+id/groupRowChevron"
+        android:layout_width="48dp"
         android:layout_height="20dp"
         android:layout_marginStart="8dp"
         android:importantForAccessibility="no"
+        android:paddingHorizontal="14dp"
         android:src="@drawable/ic_settings_chevron"
         app:tint="@color/textSecondary" />
 </LinearLayout>

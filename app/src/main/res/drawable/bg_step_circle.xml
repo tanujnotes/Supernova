@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A stepper's minus or plus: a 32dp light circle in its 40dp button, the
+     press ripple kept inside the circle. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?attr/colorControlHighlight">
+    <item>
+        <inset android:inset="4dp">
+            <shape android:shape="oval">
+                <solid android:color="@color/settingsStepBg" />
+            </shape>
+        </inset>
+    </item>
+</ripple>

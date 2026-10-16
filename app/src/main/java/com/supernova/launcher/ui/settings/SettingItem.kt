@@ -62,11 +62,17 @@ sealed class SettingItem {
         fun withLook(look: RowLook): Row = Row(title, subtitle, onClick, visibleIf, titleText, look)
     }
 
-    // How a Row dresses on a grouped page (the Style list): the icon in its
-    // leading tile, 0 for none, and a colour shown as a dot before its value.
+    // How a Row dresses in its card: the icon in its leading tile, 0 for
+    // none; a colour shown as a dot before its value; no chevron for an
+    // action that runs on the tap; a warning (a card that needs access),
+    // which tints the tile; and a status that reads as good news (a granted
+    // permission), which colours the value under the title when it holds.
     class RowLook(
         @DrawableRes val icon: Int = 0,
-        val swatch: ((LauncherPrefs) -> Int?)? = null
+        val swatch: ((LauncherPrefs) -> Int?)? = null,
+        val chevron: Boolean = true,
+        val warn: Boolean = false,
+        val positive: (() -> Boolean)? = null
     )
 
     // An entry on the root list: a leading icon, a larger title,
@@ -79,22 +85,24 @@ sealed class SettingItem {
         override val visibleIf: (LauncherPrefs) -> Boolean = { true }
     ) : SettingItem()
 
-    // An accent-colored group label. Ends any accordion scope.
+    // A group's label, over the card of rows after it. Ends any accordion
+    // scope.
     class Header(
         @StringRes override val title: Int,
         override val visibleIf: (LauncherPrefs) -> Boolean = { true }
     ) : SettingItem()
 
-    // A collapsible group toggle: the items after it (until the next Header,
-    // Accordion, or Preview) hide while it is collapsed.
+    // A collapsible group toggle, heading a card of its own: the items after
+    // it (until the next Header, Accordion, or Preview) hide while it is
+    // collapsed.
     class Accordion(
         @StringRes override val title: Int,
         override val visibleIf: (LauncherPrefs) -> Boolean = { true }
     ) : SettingItem()
 
-    // The Label group: a switch in its header shows or hides the labels,
-    // and the chevron opens a card holding their size, font, shadow and
-    // single-line options side by side. It opens and closes like an
+    // The Label group: a checkbox in its row shows or hides the labels,
+    // and the rest of the row opens a band under it holding their size,
+    // font, shadow and single-line options. It opens and closes like an
     // Accordion (same remembered state) but holds its controls itself, so
     // it hides no rows after it.
     class LabelGroup(

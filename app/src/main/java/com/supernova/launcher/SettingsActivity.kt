@@ -15,6 +15,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -35,6 +36,9 @@ import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.databinding.ActivitySettingsBinding
 import com.supernova.launcher.databinding.DialogCustomShapeBinding
+import com.supernova.launcher.databinding.ItemIconShapeBinding
+import com.supernova.launcher.databinding.SheetIconPackBinding
+import com.supernova.launcher.databinding.SheetIconShapeBinding
 import com.supernova.launcher.databinding.DialogDesktopGridBinding
 import com.supernova.launcher.databinding.DialogFolderIconBinding
 import com.supernova.launcher.databinding.ItemIconPackChoiceBinding
@@ -392,7 +396,7 @@ class SettingsActivity : AppCompatActivity() {
         // captured first, because insets are re-applied on every change and
         // setPadding is absolute, not additive.
         val sideInsetViews = listOf(
-            binding.settingsToolbar, binding.previewPane, binding.rootTitle, binding.rootSearch,
+            binding.settingsToolbar, binding.previewFrame, binding.rootTitle, binding.rootSearch,
             binding.settingsRecycler, binding.settingsTabs
         )
         val basePadding = sideInsetViews.map { Triple(it.paddingLeft, it.paddingRight, it.paddingBottom) }
@@ -676,7 +680,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     // The SETTINGS surface falls back to the theme background when unstyled.
-    // The grouped pages' cards stand out from it: the theme's surface colour
+    // The pages' cards stand out from it: the theme's surface colour
     // over the theme background, else the styled surface lifted toward white
     // (a lot on a light one, a touch on a dark one).
     private fun applySettingsSurface(prefs: LauncherPrefs) {
@@ -785,7 +789,7 @@ class SettingsActivity : AppCompatActivity() {
         if (currentTab == Tab.STYLE) {
             // A section's pinned preview stays behind with it.
             bindPreviewPane(null)
-            adapter.submit(styleSection.items, viewModel.state.value.prefs, page = styleSection.title, grouped = true)
+            adapter.submit(styleSection.items, viewModel.state.value.prefs, page = styleSection.title, tiled = true)
             return
         }
 
@@ -802,7 +806,7 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
         if (section == null) bindPreviewPane(null)
-        adapter.submit(items, viewModel.state.value.prefs, page = section?.title ?: 0, grouped = section == null)
+        adapter.submit(items, viewModel.state.value.prefs, page = section?.title ?: 0, tiled = section == null)
     }
 
     // The root list, grouped: Set as default launcher on a card of its own,
@@ -915,11 +919,13 @@ class SettingsActivity : AppCompatActivity() {
             ?.firstOrNull { it is SettingItem.Preview && it.visibleIf(prefs) }
             as? SettingItem.Preview
         if (preview == null || searchActive || currentTab != Tab.SETTINGS) {
-            binding.previewPane.visibility = View.GONE
+            binding.previewFrame.visibility = View.GONE
             binding.previewPane.showsWallpaper = false
             return false
         }
-        binding.previewPane.visibility = View.VISIBLE
+        binding.previewFrame.visibility = View.VISIBLE
+        // Clipped to its rounded card, the wallpaper's hole included.
+        binding.previewPane.clipToOutline = true
         binding.previewPane.showsWallpaper =
             preview.kind == PreviewKind.HOME || preview.kind == PreviewKind.SEARCH_BAR
         // Same guard as the in-list holder: never rebuild mid slider drag.
@@ -928,9 +934,11 @@ class SettingsActivity : AppCompatActivity() {
                 paneView = it
                 binding.previewPane.addView(
                     it,
+                    // Centred in its card, however short the preview is.
                     android.widget.FrameLayout.LayoutParams(
                         android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-                        android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+                        android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+                        android.view.Gravity.CENTER_VERTICAL
                     )
                 )
             }
@@ -1136,21 +1144,56 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    // Icon shape: a sheet of every shape drawn as itself, so the choice is
+    // made by looking at the shapes rather than by reading their names.
     private fun showIconShapePicker() {
-        val shapes = IconShape.entries
-        val labels = shapes.map { getString(EnumLabels.of(it)) }.toTypedArray()
-        val current = shapes.indexOf(IconShape.fromName(viewModel.state.value.prefs.iconShape))
-
-        showChoice(R.string.icon_shape, labels, current) { which ->
-            val shape = shapes[which]
-            // CUSTOM routes through the per-corner editor; only its OK
-            // commits, so cancelling never half-applies the shape.
-            if (shape == IconShape.CUSTOM) {
-                showCustomShapeEditor()
-            } else {
-                viewModel.setIconShape(shape)
+        val prefs = viewModel.state.value.prefs
+        val current = IconShape.fromName(prefs.iconShape)
+        val custom = CustomShapeSpec.decode(prefs.iconShapeCustom)
+        val sheetBinding = SheetIconShapeBinding.inflate(layoutInflater)
+        val sheet = com.supernova.launcher.ui.Sheets.open(this)
+        val accent = com.google.android.material.color.MaterialColors.getColor(
+            sheetBinding.root, androidx.appcompat.R.attr.colorAccent
+        )
+        val dark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val corner = dp(SHAPE_TILE_CORNER_DP).toFloat()
+        IconShape.entries.forEach { shape ->
+            val tile = ItemIconShapeBinding.inflate(layoutInflater, sheetBinding.shapeGrid, false)
+            val selected = shape == current
+            tile.shapeLabel.setText(EnumLabels.of(shape))
+            tile.shapeLabel.setTextColor(getColor(if (selected) R.color.textPrimary else R.color.textSecondary))
+            if (selected) tile.shapeLabel.typeface = android.graphics.Typeface.DEFAULT_BOLD
+            tile.shapeSwatch.set(shape, custom, if (selected) accent else getColor(R.color.textPrimary))
+            tile.shapeTile.background = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = corner
+                if (selected) {
+                    setColor(androidx.core.graphics.ColorUtils.setAlphaComponent(
+                        accent, if (dark) SHAPE_TINT_DARK else SHAPE_TINT_LIGHT
+                    ))
+                    setStroke(dp(2), accent)
+                } else {
+                    setColor(getColor(R.color.settingsPickerTile))
+                }
             }
+            tile.root.contentDescription = getString(EnumLabels.of(shape))
+            tile.root.isSelected = selected
+            tile.root.setOnClickListener {
+                sheet.dismiss()
+                // CUSTOM routes through the per-corner editor; only its OK
+                // commits, so cancelling never half-applies the shape.
+                if (shape == IconShape.CUSTOM) showCustomShapeEditor() else viewModel.setIconShape(shape)
+            }
+            sheetBinding.shapeGrid.addView(
+                tile.root,
+                android.widget.GridLayout.LayoutParams(
+                    android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED),
+                    android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f)
+                ).apply { width = 0 }
+            )
         }
+        sheet.setContentView(sheetBinding.root)
+        sheet.show()
     }
 
     // Per-corner editor for the CUSTOM icon shape: a 0-100% stepper plus a
@@ -1285,6 +1328,7 @@ class SettingsActivity : AppCompatActivity() {
         dialogBinding.colsUp.setOnClickListener { cols = (cols + 1).coerceAtMost(mostCols); refresh() }
         dialogBinding.colsDown.setOnClickListener { cols = (cols - 1).coerceAtLeast(2); refresh() }
         dialogBinding.subgridCheck.isChecked = prefs.subgrid
+        dialogBinding.subgridToggle.setOnClickListener { dialogBinding.subgridCheck.toggle() }
         refresh()
 
         MaterialAlertDialogBuilder(this)
@@ -1309,7 +1353,7 @@ class SettingsActivity : AppCompatActivity() {
         var rows = prefs.drawerRows
         var cols = prefs.drawerColumns
         dialogBinding.gridPreview.cellColor = (0x30 shl 24) or (getColor(R.color.textPrimary) and 0xFFFFFF)
-        dialogBinding.subgridCheck.visibility = View.GONE
+        dialogBinding.subgridRow.visibility = View.GONE
         val auto = getString(R.string.drawer_columns_auto)
 
         fun refresh() {
@@ -1370,7 +1414,7 @@ class SettingsActivity : AppCompatActivity() {
             dialogBinding.folderIconPreview.setImageDrawable(
                 com.supernova.launcher.ui.FolderIconDrawable(
                     sampleIcons,
-                    dp(96),
+                    dp(FOLDER_PREVIEW_DP),
                     style = FolderPreviewStyle.fromName(prefs.folderPreviewStyle),
                     plateColor = if (dialogBinding.matchColorCheck.isChecked) {
                         resolved.surface
@@ -1400,8 +1444,14 @@ class SettingsActivity : AppCompatActivity() {
                 refresh()
             }
         }
-        listOf(dialogBinding.outlineCheck, dialogBinding.clipCheck, dialogBinding.matchColorCheck)
-            .forEach { box -> box.setOnCheckedChangeListener { _, _ -> refresh() } }
+        listOf(
+            dialogBinding.outlineRow to dialogBinding.outlineCheck,
+            dialogBinding.clipRow to dialogBinding.clipCheck,
+            dialogBinding.matchColorRow to dialogBinding.matchColorCheck
+        ).forEach { (row, box) ->
+            row.setOnClickListener { box.toggle() }
+            box.setOnCheckedChangeListener { _, _ -> refresh() }
+        }
         refresh()
 
         MaterialAlertDialogBuilder(this)
@@ -1964,13 +2014,24 @@ class SettingsActivity : AppCompatActivity() {
                 .show()
             return
         }
+        // An unstyled popup is the theme's surface, the cards' own colour;
+        // over the cards it takes the raised one, as dialogs and sheets do.
+        val popup = Styles.resolve(this, viewModel.state.value.prefs).of(SurfaceId.POPUP)
+        val surface = if (popup.surface == getColor(R.color.surface)) {
+            com.supernova.launcher.ui.theme.ResolvedSurface(
+                getColor(R.color.raised), popup.text, popup.accent, popup.cornerRadiiDp, popup.cornerCuts
+            )
+        } else {
+            popup
+        }
         ChoiceMenu.show(
             anchor = anchor,
             touchX = menuTouchX,
-            surface = Styles.resolve(this, viewModel.state.value.prefs).of(SurfaceId.POPUP),
+            surface = surface,
             labels = labels,
             selected = selected,
             animate = Animations.enabled(viewModel.state.value.prefs),
+            alignToAnchorEnd = true,
             onPick = onPick
         )
     }
@@ -2011,20 +2072,37 @@ class SettingsActivity : AppCompatActivity() {
             val labels = listOf(getString(R.string.icon_pack_system)) + packs.map { it.label }
             val current = packages.indexOf(viewModel.state.value.prefs.iconPack).coerceAtLeast(0)
 
-            val list = androidx.recyclerview.widget.RecyclerView(this@SettingsActivity).apply {
-                layoutManager = LinearLayoutManager(this@SettingsActivity)
-                clipToPadding = false
-            }
-            val dialog = MaterialAlertDialogBuilder(this@SettingsActivity)
-                .setTitle(R.string.icon_pack)
-                .setView(list)
-                .setNegativeButton(R.string.cancel, null)
-                .show()
+            val sheetBinding = SheetIconPackBinding.inflate(layoutInflater)
+            val sheet = com.supernova.launcher.ui.Sheets.open(this@SettingsActivity)
+            val list = sheetBinding.packList
+            list.layoutManager = LinearLayoutManager(this@SettingsActivity)
+            list.addItemDecoration(PackDividers(getColor(R.color.settingsDivider)))
             list.adapter = IconPackChoiceAdapter(packages, labels, current) { chosen ->
                 viewModel.setIconPack(chosen)
-                dialog.dismiss()
+                sheet.dismiss()
             }
+            sheet.setContentView(sheetBinding.root)
+            sheet.show()
             list.scrollToPosition(current)
+        }
+    }
+
+    // Hairlines between the pack rows, from the text's 24dp inset to the edge.
+    private inner class PackDividers(color: Int) : androidx.recyclerview.widget.RecyclerView.ItemDecoration() {
+        private val paint = android.graphics.Paint().apply { this.color = color }
+        private val start = dp(PACK_TEXT_START_DP).toFloat()
+
+        override fun onDraw(
+            canvas: android.graphics.Canvas,
+            parent: androidx.recyclerview.widget.RecyclerView,
+            state: androidx.recyclerview.widget.RecyclerView.State
+        ) {
+            for (i in 0 until parent.childCount) {
+                val child = parent.getChildAt(i)
+                if (parent.getChildAdapterPosition(child) == 0) continue
+                val top = child.top + child.translationY
+                canvas.drawRect(start, top, child.right.toFloat(), top + 1f, paint)
+            }
         }
     }
 
@@ -2051,7 +2129,18 @@ class SettingsActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: Holder, position: Int) {
             val packPackage = packages[position]
             holder.binding.packLabel.text = labels[position]
-            holder.binding.packSelected.isChecked = position == selected
+            val chosen = position == selected
+            holder.binding.packSelected.visibility = if (chosen) View.VISIBLE else View.INVISIBLE
+            holder.binding.root.isSelected = chosen
+            // The current pack wears the accent's faint wash.
+            holder.binding.root.background = if (chosen) {
+                val accent = com.google.android.material.color.MaterialColors.getColor(
+                    holder.binding.root, androidx.appcompat.R.attr.colorAccent
+                )
+                androidx.core.graphics.ColorUtils.setAlphaComponent(accent, PACK_TINT).toDrawable()
+            } else {
+                null
+            }
             holder.binding.root.setOnClickListener { onPick(packPackage) }
 
             val strip = holder.binding.packPreview
@@ -2096,7 +2185,7 @@ class SettingsActivity : AppCompatActivity() {
                 return
             }
             strip.visibility = View.VISIBLE
-            val size = (36 * resources.displayMetrics.density).toInt()
+            val size = dp(PACK_PREVIEW_ICON_DP)
             val gap = (8 * resources.displayMetrics.density).toInt()
             drawables.forEach { drawable ->
                 strip.addView(
@@ -2180,6 +2269,20 @@ class SettingsActivity : AppCompatActivity() {
         private const val HALF = 0.5
         private const val CARD_LIFT_LIGHT = 0.7f
         private const val CARD_LIFT_DARK = 0.06f
+        // The icon pack sheet: its rows' text inset, the preview icons, and
+        // the current pack's accent wash.
+        private const val PACK_TEXT_START_DP = 24
+        private const val PACK_PREVIEW_ICON_DP = 28
+        private const val PACK_TINT = 0x1A
+
+        // The icon shape sheet's tiles: their corners, and the current one's
+        // accent wash, light or dark.
+        private const val SHAPE_TILE_CORNER_DP = 18
+        private const val SHAPE_TINT_LIGHT = 0x1F
+        private const val SHAPE_TINT_DARK = 0x33
+
+        // The folder icon dialog's live preview, on its 128dp card.
+        private const val FOLDER_PREVIEW_DP = 80
 
         // Member names shown under a drawer group before "…".
         private const val GROUP_SUMMARY_NAMES = 3

@@ -63,8 +63,8 @@
     <string name="backup_import_failed">Import failed: %1$s</string>
     <string name="shortcut_failed">Unable to launch shortcut</string>
     <string name="unable_to_launch">Unable to launch %1$s</string>
-    <string name="grid_rows">Grid rows</string>
-    <string name="grid_cols">Grid columns</string>
+    <string name="grid_rows">Rows</string>
+    <string name="grid_cols">Columns</string>
     <string name="dock_count">Dock slots</string>
     <string name="icon_scale_value">%1$.2fx</string>
     <string name="show_labels">Show icon labels</string>
@@ -518,6 +518,8 @@
     <string name="label_group">Label</string>
     <string name="label_card_size">Size</string>
     <string name="label_card_font">Font</string>
+    <!-- Under the Label row: its size, then its font. -->
+    <string name="label_group_summary">%1$s · %2$s</string>
     <string name="label_card_shadow">Shadow</string>
     <string name="label_card_single_line">Single line</string>
     <string name="font_default">Default</string>
@@ -751,7 +753,8 @@
     <string name="card_sample_event_2">Dentist</string>
     <string name="feed_show_calendar">Show upcoming events</string>
     <string name="feed_show_contacts">Show starred contacts</string>
-    <string name="feed_media_needs_access">Media card needs notification access — tap to grant</string>
+    <string name="feed_media_needs_access">Needs notification access</string>
+    <string name="feed_media_needs_access_summary">Tap to grant it, so the card can show what’s playing</string>
     <string name="feed_disabled_hint">Enable the feed page in Settings first</string>
     <string name="feed_add_card">Add card</string>
     <string name="feed_calendar_title">Calendar</string>
