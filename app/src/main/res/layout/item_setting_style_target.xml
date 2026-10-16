@@ -1,44 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- A Style-tab target, in the Surfaces card: a 40dp tile previewing the
+     surface's resolved style (its background and shape, its text colour
+     on the sample, its accent on the dot), the name, a chevron. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:foreground="?attr/selectableItemBackground"
     android:gravity="center_vertical"
-    android:minHeight="60dp"
+    android:minHeight="56dp"
     android:orientation="horizontal"
-    android:paddingHorizontal="20dp"
-    android:paddingVertical="10dp">
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="8dp">
 
-    <TextView
-        android:id="@+id/settingTitle"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:textColor="@color/textPrimary"
-        android:textSize="15sp" />
-
-    <!-- Mini strip mirroring the style picker's live preview: the resolved
-         surface behind sample text and the accent as a dot. -->
     <FrameLayout
         android:id="@+id/styleStrip"
-        android:layout_width="104dp"
+        android:layout_width="40dp"
         android:layout_height="40dp"
-        android:layout_marginStart="12dp">
+        android:foreground="@drawable/bg_settings_tile_outline">
 
         <TextView
             android:id="@+id/styleStripText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:layout_marginStart="12dp"
+            android:layout_gravity="center"
+            android:fontFamily="sans-serif-medium"
+            android:importantForAccessibility="no"
             android:text="@string/style_strip_sample"
             android:textSize="14sp" />
 
         <View
             android:id="@+id/styleStripAccent"
-            android:layout_width="14dp"
-            android:layout_height="14dp"
-            android:layout_gravity="center_vertical|end"
-            android:layout_marginEnd="12dp" />
+            android:layout_width="7dp"
+            android:layout_height="7dp"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="5dp" />
     </FrameLayout>
+
+    <TextView
+        android:id="@+id/settingTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_weight="1"
+        android:fontFamily="sans-serif-medium"
+        android:textColor="@color/textPrimary"
+        android:textSize="16sp" />
+
+    <ImageView
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="16dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_settings_chevron"
+        app:tint="@color/textSecondary" />
 </LinearLayout>

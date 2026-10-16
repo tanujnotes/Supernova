@@ -92,6 +92,8 @@ class SettingsActivity : AppCompatActivity() {
     private var menuTouchX = 0f
     private lateinit var sections: List<SettingsSection>
     private lateinit var styleSection: SettingsSection
+    // The cards under the root list's and the Style tab's rows.
+    private lateinit var groupCards: com.supernova.launcher.ui.settings.SettingsGroupDecoration
 
     private var currentTab = Tab.SETTINGS
 
@@ -560,6 +562,8 @@ class SettingsActivity : AppCompatActivity() {
 
         binding.settingsRecycler.layoutManager = LinearLayoutManager(this)
         binding.settingsRecycler.adapter = adapter
+        groupCards = com.supernova.launcher.ui.settings.SettingsGroupDecoration(this, adapter)
+        binding.settingsRecycler.addItemDecoration(groupCards)
         binding.cardsFab.setOnClickListener {
             com.supernova.launcher.ui.CustomCardEditorSheet.show(this, viewModel, null)
         }
@@ -672,8 +676,20 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     // The SETTINGS surface falls back to the theme background when unstyled.
+    // The grouped pages' cards stand out from it: the theme's surface colour
+    // over the theme background, else the styled surface lifted toward white
+    // (a lot on a light one, a touch on a dark one).
     private fun applySettingsSurface(prefs: LauncherPrefs) {
-        binding.root.setBackgroundColor(Styles.resolve(this, prefs).of(SurfaceId.SETTINGS).surface)
+        val surface = Styles.resolve(this, prefs).of(SurfaceId.SETTINGS).surface
+        binding.root.setBackgroundColor(surface)
+        groupCards.cardColor = when {
+            surface == getColor(R.color.background) -> getColor(R.color.surface)
+            androidx.core.graphics.ColorUtils.calculateLuminance(surface or OPAQUE) > HALF ->
+                androidx.core.graphics.ColorUtils.blendARGB(surface, android.graphics.Color.WHITE, CARD_LIFT_LIGHT)
+            else -> androidx.core.graphics.ColorUtils.blendARGB(surface, android.graphics.Color.WHITE, CARD_LIFT_DARK)
+        }
+        groupCards.dividerColor = getColor(R.color.settingsDivider)
+        binding.settingsRecycler.invalidateItemDecorations()
     }
 
     // The Labs switch: hold volume down on the settings root. A short
@@ -769,45 +785,14 @@ class SettingsActivity : AppCompatActivity() {
         if (currentTab == Tab.STYLE) {
             // A section's pinned preview stays behind with it.
             bindPreviewPane(null)
-            adapter.submit(styleSection.items, viewModel.state.value.prefs, page = styleSection.title)
+            adapter.submit(styleSection.items, viewModel.state.value.prefs, page = styleSection.title, grouped = true)
             return
         }
 
         if (section != null) binding.settingsTitle.text = getString(section.title)
 
         val items = if (section == null) {
-            buildList {
-                add(
-                    SettingItem.SectionLink(
-                        R.string.set_default_launcher,
-                        icon = R.drawable.ic_settings_default,
-                        subtitle = { defaultLauncherLabel() },
-                        onClick = {
-                            if (isHomeRoleNeeded()) requestHomeRole() else openHomeSettings()
-                        }
-                    )
-                )
-                sections.filter {
-                    it.items.isNotEmpty() && it.title !in cardSections && it.title !in subPageParents
-                }.forEach { s ->
-                    add(
-                        SettingItem.SectionLink(
-                            s.title,
-                            icon = sectionIcon(s.title),
-                            subtitle = { sectionSubtitle(s.title) },
-                            onClick = {
-                                currentSection = s
-                                render()
-                            },
-                            visibleIf = if (s.title == R.string.labs) {
-                                { prefs -> prefs.labsEnabled }
-                            } else {
-                                { true }
-                            }
-                        )
-                    )
-                }
-            }
+            rootItems()
         } else {
             // The pinned pane owns the preview (F2); the list keeps the rest.
             if (bindPreviewPane(section)) {
@@ -817,8 +802,65 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
         if (section == null) bindPreviewPane(null)
-        adapter.submit(items, viewModel.state.value.prefs, page = section?.title ?: 0)
+        adapter.submit(items, viewModel.state.value.prefs, page = section?.title ?: 0, grouped = section == null)
     }
+
+    // The root list, grouped: Set as default launcher on a card of its own,
+    // then the sections in three labelled cards. A section no group names
+    // (a new one) joins the last card, so it is never lost from the list.
+    private fun rootItems(): List<SettingItem> {
+        val shown = sections.filter {
+            it.items.isNotEmpty() && it.title !in cardSections && it.title !in subPageParents
+        }
+        val groups = listOf(
+            R.string.settings_group_screens to listOf(
+                R.string.settings_section_home, R.string.settings_section_dock, R.string.settings_section_drawer,
+                R.string.settings_section_folders, R.string.settings_section_feed
+            ),
+            R.string.settings_group_customize to listOf(
+                R.string.settings_section_icons, R.string.gestures, R.string.settings_section_search,
+                R.string.settings_section_cards
+            ),
+            R.string.settings_group_app to listOf(R.string.settings_section_backup, R.string.about, R.string.labs)
+        )
+        val grouped = groups.flatMap { it.second }.toSet()
+        val unplaced = shown.filter { it.title !in grouped }
+        return buildList {
+            add(
+                SettingItem.SectionLink(
+                    R.string.set_default_launcher,
+                    icon = R.drawable.ic_settings_default,
+                    subtitle = { defaultLauncherLabel() },
+                    onClick = {
+                        if (isHomeRoleNeeded()) requestHomeRole() else openHomeSettings()
+                    }
+                )
+            )
+            groups.forEachIndexed { index, (label, titles) ->
+                val members = titles.mapNotNull { title -> shown.firstOrNull { it.title == title } } +
+                    if (index == groups.lastIndex) unplaced else emptyList()
+                if (members.isEmpty()) return@forEachIndexed
+                add(SettingItem.Header(label))
+                members.forEach { add(sectionLink(it)) }
+            }
+        }
+    }
+
+    private fun sectionLink(s: SettingsSection): SettingItem.SectionLink =
+        SettingItem.SectionLink(
+            s.title,
+            icon = sectionIcon(s.title),
+            subtitle = { sectionSubtitle(s.title) },
+            onClick = {
+                currentSection = s
+                render()
+            },
+            visibleIf = if (s.title == R.string.labs) {
+                { prefs -> prefs.labsEnabled }
+            } else {
+                { true }
+            }
+        )
 
     // The root list and the Style tab wear the large header: a title that
     // scrolls away over the pinned search pill. A section screen wears the
@@ -830,6 +872,7 @@ class SettingsActivity : AppCompatActivity() {
     private fun applyHeader(section: SettingsSection?) {
         val root = section == null
         binding.rootTitle.isVisible = root
+        binding.rootTitle.setText(if (currentTab == Tab.STYLE) R.string.style_tab else R.string.settings)
         binding.rootSearch.isVisible = root
         binding.settingsToolbar.isVisible = !root
         if (!root && binding.rootSearchInput.hasFocus()) {
@@ -2130,6 +2173,13 @@ class SettingsActivity : AppCompatActivity() {
 
     companion object {
         private const val STATE_TAB = "settings_tab"
+
+        // Grouped pages' cards on a styled Settings surface: how far toward
+        // white they are lifted from it, light or dark.
+        private const val OPAQUE = 0xFF000000.toInt()
+        private const val HALF = 0.5
+        private const val CARD_LIFT_LIGHT = 0.7f
+        private const val CARD_LIFT_DARK = 0.06f
 
         // Member names shown under a drawer group before "…".
         private const val GROUP_SUMMARY_NAMES = 3

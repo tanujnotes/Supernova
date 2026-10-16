@@ -6,4 +6,6 @@
     <color name="textPrimary">#FFFFFF</color>
     <color name="textSecondary">#B3FFFFFF</color>
     <color name="settingsPillBg">#1AFFFFFF</color>
+    <!-- Hairlines on the grouped settings pages: row dividers, tile outlines. -->
+    <color name="settingsDivider">#14FFFFFF</color>
 </resources>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A tint of the current accent: the icon tiles on the grouped settings
+     pages (root and Style). Stronger at night, where 12% barely shows. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="?attr/colorAccent" android:alpha="0.12" />
+</selector>

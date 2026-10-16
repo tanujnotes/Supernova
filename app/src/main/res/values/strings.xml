@@ -380,7 +380,7 @@
     <string name="contact_message">Message</string>
     <string name="search_contact_cards">Contact card view</string>
     <string name="about">About</string>
-    <string name="section_about_subtitle">Version and license information</string>
+    <string name="section_about_subtitle">Version and licenses</string>
     <string name="about_version">Version</string>
     <string name="about_license">Open-source license</string>
     <string name="about_license_name">AGPL-3.0</string>
@@ -403,15 +403,15 @@
     <string name="crash_log_subject">Supernova crash log</string>
     <string name="crash_log_share_failed">Couldn\'t share the crash log: %1$s</string>
     <string name="about_license_text">Supernova is free software, released under the GNU Affero General Public License v3.0. You may redistribute and modify it under the terms of that license; it comes with no warranty. The full text ships in the LICENSE file of the source repository.</string>
-    <string name="section_home_subtitle">Icon size, labels, grid, wallpaper, transitions, and pages</string>
-    <string name="section_dock_subtitle">Icon layout, background, and dock pages</string>
-    <string name="section_drawer_subtitle">Layout, style, tabs, and drawer behavior</string>
-    <string name="section_search_subtitle">Search providers, the search window, and search bars</string>
-    <string name="section_feed_subtitle">The feed page at the edge of your home screen and its cards</string>
-    <string name="section_folders_subtitle">Window style, background, and folder icon appearance</string>
-    <string name="section_icons_subtitle">Icon shape and packs, labels, badges, and the popup menu</string>
-    <string name="section_gestures_subtitle">Swipe, tap, and pinch gestures with the home button action</string>
-    <string name="section_backup_subtitle">Back up, restore, or reset your setup</string>
+    <string name="section_home_subtitle">Grid, icons, labels and pages</string>
+    <string name="section_dock_subtitle">Icons, background and pages</string>
+    <string name="section_drawer_subtitle">Layout, style and tabs</string>
+    <string name="section_search_subtitle">Providers, window and search bars</string>
+    <string name="section_feed_subtitle">The page beside home and its cards</string>
+    <string name="section_folders_subtitle">Window, background and icon</string>
+    <string name="section_icons_subtitle">Shape, packs, labels and badges</string>
+    <string name="section_gestures_subtitle">Swipes, taps, pinch and home button</string>
+    <string name="section_backup_subtitle">Back up, restore or reset</string>
     <string name="advanced">Advanced</string>
     <string name="group_layout">Layout</string>
     <string name="group_animations">Animations</string>
@@ -529,6 +529,12 @@
     <string name="dock_overlay">Display as overlay</string>
     <string name="dock_auto_close">Automatically close</string>
     <string name="dock_remember_position">Remember dock page</string>
+    <!-- Group labels on the grouped settings pages (the root list and Style). -->
+    <string name="settings_group_screens">Screens</string>
+    <string name="settings_group_customize">Customize</string>
+    <string name="settings_group_app">Supernova</string>
+    <string name="style_group_theme">Theme</string>
+    <string name="style_group_surfaces">Surfaces</string>
     <string name="style_tab">Style</string>
     <string name="color_palette">Color palette</string>
     <string name="palette_system">System</string>
@@ -549,7 +555,7 @@
     <string name="style_opacity">Opacity</string>
     <string name="group_name_taken">A group with that name already exists</string>
     <string name="labs">Labs</string>
-    <string name="section_labs_subtitle">Experimental options and tools for icon theme makers</string>
+    <string name="section_labs_subtitle">Experiments and icon theme tools</string>
     <string name="labs_enabled">Labs menu enabled</string>
     <string name="labs_disabled">Labs menu disabled</string>
     <string name="labs_show_component">Show component in edit dialog</string>
@@ -821,7 +827,7 @@
         <item quantity="other">%1$d rows</item>
     </plurals>
     <string name="settings_section_cards">Cards</string>
-    <string name="section_cards_subtitle">Create cards for the feed and search, or give them conditions to appear above the app drawer</string>
+    <string name="section_cards_subtitle">Make cards and when they show</string>
     <string name="cards_yours">Your cards</string>
     <string name="cards_add">Add card</string>
     <string name="cards_none">No cards yet</string>

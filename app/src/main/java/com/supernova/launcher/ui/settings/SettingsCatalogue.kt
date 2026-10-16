@@ -1679,17 +1679,20 @@ object SettingsCatalogue {
         return SettingsSection(
         R.string.style_tab,
         listOf(
+            // A grouped page: Theme and Surfaces cards, each under its label.
+            SettingItem.Header(R.string.style_group_theme),
             SettingItem.Row(
                 R.string.color_palette,
                 subtitle = {
                     context.getString(EnumLabels.of(PaletteSourceMode.fromName(it.paletteSource)))
                 },
-                onClick = actions.openPaletteDialog
+                onClick = actions.openPaletteDialog,
+                look = SettingItem.RowLook(R.drawable.ic_tab_style)
             ),
             rows.choice(
                 R.string.theme_mode, ThemeMode.entries,
                 { ThemeMode.fromName(it.themeMode) }, { EnumLabels.of(it) }
-            ) { viewModel.setThemeMode(it.name) },
+            ) { viewModel.setThemeMode(it.name) }.withLook(SettingItem.RowLook(R.drawable.ic_style_theme)),
             SettingItem.Row(
                 R.string.theme_schedule_times,
                 subtitle = {
@@ -1699,7 +1702,8 @@ object SettingsCatalogue {
                     )
                 },
                 onClick = actions.editThemeSchedule,
-                visibleIf = { ThemeMode.fromName(it.themeMode) == ThemeMode.SCHEDULE }
+                visibleIf = { ThemeMode.fromName(it.themeMode) == ThemeMode.SCHEDULE },
+                look = SettingItem.RowLook(R.drawable.ic_style_schedule)
             ),
             // Auto takes its sunsets from a time-zone estimate unless
             // this lets it use the phone's location.
@@ -1714,7 +1718,12 @@ object SettingsCatalogue {
                 R.string.accent_color, AccentColor.entries,
                 { AccentColor.fromName(it.accentColor) }, { EnumLabels.of(it) },
                 onPick = { viewModel.setAccentColor(it.name) }
+            ).withLook(
+                SettingItem.RowLook(R.drawable.ic_style_accent) {
+                    context.getColor(AccentColor.fromName(it.accentColor).colorRes)
+                }
             ),
+            SettingItem.Header(R.string.style_group_surfaces),
             SettingItem.StyleTarget(R.string.settings_section_drawer, SurfaceId.DRAWER, { actions.openStylePicker(SurfaceId.DRAWER) }),
             SettingItem.StyleTarget(R.string.settings_section_dock, SurfaceId.DOCK, { actions.openStylePicker(SurfaceId.DOCK) }),
             SettingItem.StyleTarget(R.string.settings_section_folders, SurfaceId.FOLDER, { actions.openStylePicker(SurfaceId.FOLDER) }),

@@ -34,15 +34,21 @@
             app:elevation="0dp">
 
             <!-- Padding, not margins: a hidden child's margins still count
-                 toward the bar's scroll range. -->
+                 toward the bar's scroll range. The root list and the Style
+                 tab share one grid (item_setting_section): a 16dp gutter
+                 holds the title, the search bar and the cards; the title
+                 sits 32dp under the status bar and 16dp over the bar (8dp here,
+                 8dp in the bar's own padding, which it keeps once pinned). Its
+                 text is the tab's name (applyHeader). -->
             <TextView
                 android:id="@+id/rootTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="20dp"
-                android:paddingTop="80dp"
-                android:paddingBottom="20dp"
-                android:text="@string/app_name"
+                android:lineHeight="38sp"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="32dp"
+                android:paddingBottom="8dp"
+                android:text="@string/settings"
                 android:textColor="@color/textPrimary"
                 android:textSize="32sp"
                 android:textStyle="bold"
@@ -115,12 +121,14 @@
                 android:visibility="gone" />
 
             <!-- The search pill is the search field itself: type
-                 into it and the list below turns into results. -->
+                 into it and the list below turns into results. 48dp tall
+                 like every bar in the app; its magnifier sits over the
+                 cards' icon tiles, 16dp in. -->
             <FrameLayout
                 android:id="@+id/rootSearch"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="20dp"
+                android:paddingHorizontal="16dp"
                 android:paddingTop="8dp"
                 android:paddingBottom="8dp"
                 android:visibility="gone">
@@ -128,12 +136,12 @@
                 <LinearLayout
                     android:id="@+id/rootSearchPill"
                     android:layout_width="match_parent"
-                    android:layout_height="52dp"
+                    android:layout_height="48dp"
                     android:background="@drawable/bg_settings_pill"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingStart="18dp"
-                    android:paddingEnd="6dp">
+                    android:paddingStart="16dp"
+                    android:paddingEnd="4dp">
 
                     <ImageView
                         android:layout_width="24dp"
@@ -156,7 +164,7 @@
                         android:maxLines="1"
                         android:textColor="@color/textPrimary"
                         android:textColorHint="@color/textSecondary"
-                        android:textSize="15sp" />
+                        android:textSize="16sp" />
 
                     <ImageButton
                         android:id="@+id/rootSearchClear"

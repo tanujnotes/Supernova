@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A group's label on a grouped page (root and Style): over its card, in
+     line with the card's content (the decoration's 16dp gutter plus this
+     16dp), 8dp clear of it. -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/settingHeader"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fontFamily="sans-serif-medium"
+    android:letterSpacing="0.015"
+    android:paddingHorizontal="16dp"
+    android:paddingBottom="8dp"
+    android:textColor="@color/textSecondary"
+    android:textSize="13sp" />

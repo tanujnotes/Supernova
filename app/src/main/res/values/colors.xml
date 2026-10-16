@@ -23,6 +23,8 @@
     <color name="accentTeal">#00897B</color>
     <color name="accentCyan">#00ACC1</color>
     <color name="settingsPillBg">#14000000</color>
+    <!-- Hairlines on the grouped settings pages: row dividers, tile outlines. -->
+    <color name="settingsDivider">#14000000</color>
 
     <!-- Text and icons on an accent-filled control (a pill button, a
          checked box). Every curated accent is dark enough for white. -->

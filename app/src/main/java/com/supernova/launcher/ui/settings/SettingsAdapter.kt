@@ -1,8 +1,11 @@
 package com.supernova.launcher.ui.settings
 
+import android.content.res.ColorStateList
+import android.graphics.Outline
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.widget.CompoundButton
 import android.widget.SeekBar
 import androidx.annotation.StringRes
@@ -10,6 +13,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.databinding.ItemSettingAccordionBinding
 import com.supernova.launcher.databinding.ItemSettingCardBinding
+import com.supernova.launcher.databinding.ItemSettingGroupLabelBinding
+import com.supernova.launcher.databinding.ItemSettingGroupRowBinding
 import com.supernova.launcher.databinding.ItemSettingHeaderBinding
 import com.supernova.launcher.databinding.ItemSettingLabelGroupBinding
 import com.supernova.launcher.databinding.ItemSettingPreviewBinding
@@ -48,6 +53,19 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
     // The page the items belong to (a section's title), set with them.
     private var page = 0
 
+    // A grouped page (the root list and Style): its rows sit in rounded
+    // cards, one per run between Headers, and each Header labels the card
+    // under it. SettingsGroupDecoration draws the cards from these.
+    var grouped = false
+        private set
+
+    fun isGroupCard(position: Int): Boolean =
+        grouped && position in visible.indices && visible[position] !is SettingItem.Header
+
+    fun startsCard(position: Int): Boolean = isGroupCard(position) && !isGroupCard(position - 1)
+
+    fun endsCard(position: Int): Boolean = isGroupCard(position) && !isGroupCard(position + 1)
+
     private val openHere: MutableSet<Int>
         get() = expandedAccordions.getOrPut(page) { mutableSetOf() }
 
@@ -80,10 +98,11 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
 
     // page names the list: a section's title, or 0 for one without
     // accordions. It picks which accordions are open.
-    fun submit(items: List<SettingItem>, prefs: LauncherPrefs, @StringRes page: Int = 0) {
+    fun submit(items: List<SettingItem>, prefs: LauncherPrefs, @StringRes page: Int = 0, grouped: Boolean = false) {
         this.items = items
         this.prefs = prefs
         this.page = page
+        this.grouped = grouped
         previews.latestPrefs = prefs
         rebuild()
     }
@@ -132,10 +151,10 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
     override fun getItemViewType(position: Int): Int = when (visible[position]) {
         is SettingItem.Toggle -> TYPE_TOGGLE
         is SettingItem.Slider -> TYPE_SLIDER
-        is SettingItem.Row -> TYPE_ROW
+        is SettingItem.Row -> if (grouped) TYPE_GROUP_ROW else TYPE_ROW
         is SettingItem.SectionLink -> TYPE_SECTION
         is SettingItem.Preview -> TYPE_PREVIEW
-        is SettingItem.Header -> TYPE_HEADER
+        is SettingItem.Header -> if (grouped) TYPE_GROUP_LABEL else TYPE_HEADER
         is SettingItem.Accordion -> TYPE_ACCORDION
         is SettingItem.StyleTarget -> TYPE_STYLE_TARGET
         is SettingItem.Card -> TYPE_CARD
@@ -160,6 +179,10 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             TYPE_SECTION -> SectionHolder(
                 ItemSettingSectionBinding.inflate(inflater, parent, false)
             ) { onRowTapped?.invoke(it) }
+            TYPE_GROUP_ROW -> GroupRowHolder(
+                ItemSettingGroupRowBinding.inflate(inflater, parent, false)
+            ) { onRowTapped?.invoke(it) }
+            TYPE_GROUP_LABEL -> GroupLabelHolder(ItemSettingGroupLabelBinding.inflate(inflater, parent, false))
             else -> RowHolder(
                 ItemSettingRowBinding.inflate(inflater, parent, false)
             ) { onRowTapped?.invoke(it) }
@@ -168,12 +191,14 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = visible[position]) {
-            is SettingItem.Toggle -> (holder as ToggleHolder).bind(item, prefs)
+            is SettingItem.Toggle -> (holder as ToggleHolder).bind(item, prefs, grouped)
             is SettingItem.Slider -> (holder as SliderHolder).bind(item, prefs)
-            is SettingItem.Row -> (holder as RowHolder).bind(item, prefs)
+            is SettingItem.Row ->
+                if (holder is GroupRowHolder) holder.bind(item, prefs) else (holder as RowHolder).bind(item, prefs)
             is SettingItem.SectionLink -> (holder as SectionHolder).bind(item, prefs)
             is SettingItem.Preview -> (holder as PreviewHolder).bind(item)
-            is SettingItem.Header -> (holder as HeaderHolder).bind(item)
+            is SettingItem.Header ->
+                if (holder is GroupLabelHolder) holder.bind(item) else (holder as HeaderHolder).bind(item)
             is SettingItem.Accordion ->
                 (holder as AccordionHolder).bind(item, item.title in openHere)
             is SettingItem.StyleTarget -> (holder as StyleTargetHolder).bind(item, prefs)
@@ -181,13 +206,39 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             is SettingItem.LabelGroup ->
                 (holder as LabelGroupHolder).bind(item, prefs, item.title in openHere)
         }
-        val item = visible[position]
-        if (highlightTitle != 0 && item.title == highlightTitle) {
-            highlightTitle = 0
-            // The Label card's own plate is its root's background, which the
-            // flash would clear; its header row has none.
-            flashHighlight((holder as? LabelGroupHolder)?.header ?: holder.itemView)
+        clipToCard(holder.itemView, position)
+        flashIfLanding(holder, visible[position])
+    }
+
+    private fun flashIfLanding(holder: RecyclerView.ViewHolder, item: SettingItem) {
+        if (highlightTitle == 0 || item.title != highlightTitle) return
+        highlightTitle = 0
+        // The Label card's own plate is its root's background, which the
+        // flash would clear; its header row has none.
+        flashHighlight((holder as? LabelGroupHolder)?.header ?: holder.itemView)
+    }
+
+    // A card's first and last rows are clipped to its rounded corners, so a
+    // press ripple or the search-landing wash doesn't square them off. The
+    // row's corners are the card's less the card's 4dp inset.
+    private fun clipToCard(view: View, position: Int) {
+        val top = startsCard(position)
+        val bottom = endsCard(position)
+        if (!top && !bottom) {
+            view.clipToOutline = false
+            view.outlineProvider = ViewOutlineProvider.BACKGROUND
+            return
         }
+        val radius = view.resources.displayMetrics.density * ROW_CORNER_DP
+        val overhang = radius.toInt() + 1
+        view.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(v: View, outline: Outline) {
+                outline.setRoundRect(
+                    0, if (top) 0 else -overhang, v.width, if (bottom) v.height else v.height + overhang, radius
+                )
+            }
+        }
+        view.clipToOutline = true
     }
 
     // Search-landing cue: a translucent accent wash that fades out. Rows keep
@@ -212,7 +263,14 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
     }
 
     private class ToggleHolder(private val binding: ItemSettingToggleBinding) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(item: SettingItem.Toggle, prefs: LauncherPrefs) {
+        fun bind(item: SettingItem.Toggle, prefs: LauncherPrefs, grouped: Boolean) {
+            // In a card it is an option of the tiled row above (Theme's Use
+            // location): its text starts where that row's text does.
+            val density = binding.root.resources.displayMetrics.density
+            binding.root.setPaddingRelative(
+                ((if (grouped) GROUP_TEXT_START_DP else ROW_SIDE_DP) * density).toInt(), binding.root.paddingTop,
+                ((if (grouped) GROUP_SIDE_DP else ROW_SIDE_DP) * density).toInt(), binding.root.paddingBottom
+            )
             binding.settingTitle.setText(item.title)
             if (item.subtitle != 0) {
                 binding.settingSubtitle.setText(item.subtitle)
@@ -306,6 +364,60 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
                 onTap(it)
                 item.onClick()
             }
+        }
+    }
+
+    // A Row in a card: its icon tile, the title, and its value on the right
+    // (with the swatch dot before it) - or, too long for there, under the
+    // title. With no icon, the text lines up with the tiled rows' text.
+    private class GroupRowHolder(
+        private val binding: ItemSettingGroupRowBinding,
+        private val onTap: (View) -> Unit
+    ) : RecyclerView.ViewHolder(binding.root) {
+        fun bind(item: SettingItem.Row, prefs: LauncherPrefs) {
+            if (item.titleText != null) {
+                binding.settingTitle.text = item.titleText
+            } else {
+                binding.settingTitle.setText(item.title)
+            }
+            val density = binding.root.resources.displayMetrics.density
+            val icon = item.look.icon
+            binding.groupRowTile.visibility = if (icon != 0) View.VISIBLE else View.GONE
+            if (icon != 0) binding.groupRowIcon.setImageResource(icon)
+            val twoLines = bindValue(item, prefs)
+            // Two lines get the taller row's padding: 64dp, as on the root list.
+            val vertical = ((if (twoLines) TWO_LINE_PADDING_DP else ONE_LINE_PADDING_DP) * density).toInt()
+            binding.root.setPaddingRelative(
+                ((if (icon != 0) GROUP_SIDE_DP else GROUP_TEXT_START_DP) * density).toInt(), vertical,
+                (GROUP_SIDE_DP * density).toInt(), vertical
+            )
+            binding.root.setOnClickListener {
+                onTap(it)
+                item.onClick()
+            }
+        }
+
+        // The value on the right, with its swatch, or under the title when
+        // it is too long for there. True when it went under the title.
+        private fun bindValue(item: SettingItem.Row, prefs: LauncherPrefs): Boolean {
+            val value = item.subtitle(prefs)
+            val trailing = value != null && value.length <= TRAILING_VALUE_MAX && '\n' !in value
+            binding.groupRowValue.text = if (trailing) value else null
+            binding.groupRowValue.visibility = if (trailing) View.VISIBLE else View.GONE
+            val below = value != null && !trailing
+            binding.settingSubtitle.text = if (below) value else null
+            binding.settingSubtitle.visibility = if (below) View.VISIBLE else View.GONE
+            val swatch = item.look.swatch?.invoke(prefs)
+            binding.groupRowSwatch.visibility = if (swatch != null && trailing) View.VISIBLE else View.GONE
+            if (swatch != null) binding.groupRowSwatch.backgroundTintList = ColorStateList.valueOf(swatch)
+            return below
+        }
+    }
+
+    private class GroupLabelHolder(private val binding: ItemSettingGroupLabelBinding) :
+        RecyclerView.ViewHolder(binding.root) {
+        fun bind(item: SettingItem.Header) {
+            binding.settingHeader.setText(item.title)
         }
     }
 
@@ -485,5 +597,19 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
         const val TYPE_CARD = 7
         const val TYPE_SECTION = 8
         const val TYPE_LABEL_GROUP = 9
+        const val TYPE_GROUP_ROW = 10
+        const val TYPE_GROUP_LABEL = 11
+
+        // A section page's rows run 20dp from the sides; a card's, 16dp in
+        // from its edges, their text 72dp in, past the 40dp tile.
+        const val ROW_SIDE_DP = 20
+        const val GROUP_SIDE_DP = 16
+        const val GROUP_TEXT_START_DP = 72
+        const val ROW_CORNER_DP = 16f
+        // Values longer than this go under the title, not on the right.
+        const val TRAILING_VALUE_MAX = 24
+        // A card row's vertical padding: 56dp on one line, 64dp on two.
+        const val ONE_LINE_PADDING_DP = 8
+        const val TWO_LINE_PADDING_DP = 12
     }
 }

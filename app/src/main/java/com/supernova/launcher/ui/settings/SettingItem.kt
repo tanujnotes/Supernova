@@ -56,8 +56,18 @@ sealed class SettingItem {
         val subtitle: (LauncherPrefs) -> CharSequence? = { null },
         val onClick: () -> Unit,
         override val visibleIf: (LauncherPrefs) -> Boolean = { true },
-        val titleText: CharSequence? = null
-    ) : SettingItem()
+        val titleText: CharSequence? = null,
+        val look: RowLook = RowLook()
+    ) : SettingItem() {
+        fun withLook(look: RowLook): Row = Row(title, subtitle, onClick, visibleIf, titleText, look)
+    }
+
+    // How a Row dresses on a grouped page (the Style list): the icon in its
+    // leading tile, 0 for none, and a colour shown as a dot before its value.
+    class RowLook(
+        @DrawableRes val icon: Int = 0,
+        val swatch: ((LauncherPrefs) -> Int?)? = null
+    )
 
     // An entry on the root list: a leading icon, a larger title,
     // and its description always under the title (never a value pill).
