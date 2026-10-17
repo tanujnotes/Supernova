@@ -1,0 +1,5 @@
+Fewer permissions: Supernova no longer asks for location, network state or secure settings access.
+
+- Removed the Hide status bar clock option
+- Removed the Wi-Fi network condition for cards
+- Night mode Auto now always works out sunset from your time zone
