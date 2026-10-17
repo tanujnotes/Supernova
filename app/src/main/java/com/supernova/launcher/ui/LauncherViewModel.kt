@@ -915,8 +915,6 @@ class LauncherViewModel(
 
     fun setThemeSchedule(startMinute: Int, endMinute: Int) = persist { preferences.setThemeSchedule(startMinute, endMinute) }
 
-    fun setThemeAutoLocation(value: Boolean) = persist { preferences.setThemeAutoLocation(value) }
-
     fun setAccentColor(value: String) = persist { preferences.setAccentColor(value) }
 
     fun setDrawerBgColor(value: String) = persist { preferences.setDrawerBgColor(value) }

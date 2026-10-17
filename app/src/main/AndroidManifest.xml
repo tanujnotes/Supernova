@@ -18,18 +18,9 @@
     <!-- Feed page (Phase 7). All runtime-gated and requested contextually
          (feed settings rows, in-card grant buttons, the card editor) - never
          at startup. READ_CALENDAR backs the upcoming-events card;
-         ACCESS_FINE_LOCATION is only for reading the Wi-Fi SSID behind
-         card visibility conditions; BLUETOOTH_CONNECT (31+) / legacy
-         BLUETOOTH (<= 30) back the Bluetooth device-name condition. -->
+         BLUETOOTH_CONNECT (31+) / legacy BLUETOOTH (<= 30) back the
+         Bluetooth device-name condition. -->
     <uses-permission android:name="android.permission.READ_CALENDAR" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <!-- Night mode's Auto, with Location enhancement on: the last known
-         fix's city, for sunset and sunrise times. Asked for from that
-         settings row only. -->
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <!-- registerNetworkCallback needs this; without it the Wi-Fi card
-         condition's callback registration threw and was swallowed. -->
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission
         android:name="android.permission.BLUETOOTH"

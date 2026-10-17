@@ -293,20 +293,6 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
-    // Night mode's Location enhancement follows the same contract. A grant
-    // drops the sunsets worked out from the time zone and applies the theme
-    // again from the phone's location.
-    private val requestNightLocationPermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) {
-                com.supernova.launcher.ui.theme.NightWindow.invalidate()
-                ThemeEngine.applyMode(this, viewModel.state.value.prefs)
-            } else {
-                viewModel.setThemeAutoLocation(false)
-                Toast.makeText(this, R.string.theme_auto_location_needed, Toast.LENGTH_LONG).show()
-            }
-        }
-
     // The feed's calendar/contacts card toggles follow the same contract:
     // denial flips the pref back off so the toggle reflects reality.
     private val requestFeedCalendarPermission =
@@ -488,12 +474,6 @@ class SettingsActivity : AppCompatActivity() {
                     android.content.pm.PackageManager.PERMISSION_GRANTED
                 ) {
                     requestContactsPermission.launch(android.Manifest.permission.READ_CONTACTS)
-                }
-            },
-            setNightLocation = { enabled ->
-                viewModel.setThemeAutoLocation(enabled)
-                if (enabled && !com.supernova.launcher.ui.theme.NightWindow.hasLocationPermission(this)) {
-                    requestNightLocationPermission.launch(android.Manifest.permission.ACCESS_COARSE_LOCATION)
                 }
             },
             editPopupRows = ::showPopupRowsDialog,

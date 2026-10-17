@@ -323,9 +323,6 @@ data class LauncherPrefs(
     // past midnight (defaults: 19:00-07:00).
     val themeScheduleStart: Int = 1140,
     val themeScheduleEnd: Int = 420,
-    // Auto's Location enhancement: sunsets from the phone's last known fix
-    // rather than a time-zone estimate (NightWindow).
-    val themeAutoLocation: Boolean = false,
     val accentColor: String = "BLUE",
     // "" = follow the theme; else #AARRGGBB.
     val drawerBgColor: String = "",

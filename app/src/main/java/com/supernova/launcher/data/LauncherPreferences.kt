@@ -140,7 +140,6 @@ class LauncherPreferences(private val context: Context) {
             target[StoreKeys.themeMode] = prefs.themeMode
             target[StoreKeys.themeScheduleStart] = prefs.themeScheduleStart.coerceIn(0, 1439)
             target[StoreKeys.themeScheduleEnd] = prefs.themeScheduleEnd.coerceIn(0, 1439)
-            target[StoreKeys.themeAutoLocation] = prefs.themeAutoLocation
             target[StoreKeys.accentColor] = prefs.accentColor
             target[StoreKeys.drawerBgColor] = prefs.drawerBgColor
             target[StoreKeys.folderBgColor] = prefs.folderBgColor
@@ -347,7 +346,6 @@ class LauncherPreferences(private val context: Context) {
             themeMode = values[StoreKeys.themeMode] ?: "SYSTEM",
             themeScheduleStart = (values[StoreKeys.themeScheduleStart] ?: 1140).coerceIn(0, 1439),
             themeScheduleEnd = (values[StoreKeys.themeScheduleEnd] ?: 420).coerceIn(0, 1439),
-            themeAutoLocation = values[StoreKeys.themeAutoLocation] ?: false,
             accentColor = values[StoreKeys.accentColor] ?: "BLUE",
             drawerBgColor = values[StoreKeys.drawerBgColor].orEmpty(),
             folderBgColor = values[StoreKeys.folderBgColor].orEmpty(),
@@ -729,8 +727,6 @@ class LauncherPreferences(private val context: Context) {
             it[StoreKeys.themeScheduleEnd] = endMinute.coerceIn(0, 1439)
         }
     }
-
-    suspend fun setThemeAutoLocation(value: Boolean) = put(StoreKeys.themeAutoLocation, value)
 
     suspend fun setAccentColor(value: String) = put(StoreKeys.accentColor, value)
 

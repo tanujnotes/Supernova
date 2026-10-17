@@ -13,9 +13,8 @@ class CardVisibilityTest {
     private fun env(
         day: Int = 1,
         minute: Int = 12 * 60,
-        ssid: String? = null,
         bt: List<String> = emptyList()
-    ) = CardVisibility.Environment(day, minute, ssid, bt)
+    ) = CardVisibility.Environment(day, minute, bt)
 
     private fun card(vararg conditions: CardCondition, enabled: Boolean = true) =
         FeedCard(id = "t", conditions = conditions.toList(), enabled = enabled)
@@ -94,13 +93,12 @@ class CardVisibilityTest {
     }
 
     @Test
-    fun wifiConditionUnmetWhenSignalUnavailable() {
-        val homeOnly = card(CardCondition(kind = "WIFI", ssid = "HomeNet"))
-        // Null SSID = no permission / location off: documented unmet.
-        assertFalse(CardVisibility.isVisible(homeOnly, env(ssid = null)))
-        assertFalse(CardVisibility.isVisible(homeOnly, env(ssid = "OfficeNet")))
-        assertTrue(CardVisibility.isVisible(homeOnly, env(ssid = "HomeNet")))
-        assertTrue(CardVisibility.isVisible(homeOnly, env(ssid = "homenet")))
+    fun retiredWifiConditionAloneNeverActivates() {
+        // A card saved while Wi-Fi conditions existed: the condition is
+        // ignored, so the card stays in the feed but never activates.
+        val homeOnly = card(CardCondition(kind = "WIFI"))
+        assertFalse(CardVisibility.isActivated(homeOnly, env()))
+        assertTrue(CardVisibility.isVisible(homeOnly, env()))
     }
 
     @Test
@@ -114,16 +112,16 @@ class CardVisibilityTest {
     fun allConditionsMustHoldTogether() {
         val combined = card(
             dayTime(days = listOf(1), start = 8 * 60, end = 18 * 60),
-            CardCondition(kind = "WIFI", ssid = "HomeNet")
+            CardCondition(kind = "BLUETOOTH", btName = "Car")
         )
         assertTrue(
-            CardVisibility.isVisible(combined, env(day = 1, minute = 9 * 60, ssid = "HomeNet"))
+            CardVisibility.isVisible(combined, env(day = 1, minute = 9 * 60, bt = listOf("Car")))
         )
         assertFalse(
-            CardVisibility.isVisible(combined, env(day = 1, minute = 9 * 60, ssid = null))
+            CardVisibility.isVisible(combined, env(day = 1, minute = 9 * 60, bt = emptyList()))
         )
         assertFalse(
-            CardVisibility.isVisible(combined, env(day = 2, minute = 9 * 60, ssid = "HomeNet"))
+            CardVisibility.isVisible(combined, env(day = 2, minute = 9 * 60, bt = listOf("Car")))
         )
     }
 
@@ -146,7 +144,7 @@ class CardVisibilityTest {
     @Test
     fun noTimeConditionsMeansNoBoundary() {
         val cards = listOf(
-            card(CardCondition(kind = "WIFI", ssid = "Net")),
+            card(CardCondition(kind = "BLUETOOTH", btName = "Car")),
             card(dayTime(days = listOf(1)))
         )
         assertNull(CardVisibility.minutesToNextBoundary(cards, env()))
@@ -168,11 +166,11 @@ class CardVisibilityTest {
 
     @Test
     fun cardActivatesOnlyWhenEveryConditionHolds() {
-        val both = card(dayTime(days = listOf(1)), CardCondition(kind = "WIFI", ssid = "Home"))
-        assertTrue(CardVisibility.isActivated(both, env(day = 1, ssid = "Home")))
-        assertFalse(CardVisibility.isActivated(both, env(day = 2, ssid = "Home")))
-        assertFalse(CardVisibility.isActivated(both, env(day = 1, ssid = null)))
-        assertFalse(CardVisibility.isActivated(both.copy(enabled = false), env(day = 1, ssid = "Home")))
+        val both = card(dayTime(days = listOf(1)), CardCondition(kind = "BLUETOOTH", btName = "Car"))
+        assertTrue(CardVisibility.isActivated(both, env(day = 1, bt = listOf("Car"))))
+        assertFalse(CardVisibility.isActivated(both, env(day = 2, bt = listOf("Car"))))
+        assertFalse(CardVisibility.isActivated(both, env(day = 1, bt = emptyList())))
+        assertFalse(CardVisibility.isActivated(both.copy(enabled = false), env(day = 1, bt = listOf("Car"))))
     }
 
     @Test

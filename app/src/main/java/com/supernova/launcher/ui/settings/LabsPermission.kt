@@ -23,11 +23,6 @@ enum class LabsPermission(
 ) {
     CONTACTS(R.string.permission_contacts, R.string.permission_contacts_use, arrayOf(Manifest.permission.READ_CONTACTS)),
     CALENDAR(R.string.permission_calendar, R.string.permission_calendar_use, arrayOf(Manifest.permission.READ_CALENDAR)),
-    // Asked for together, so the system dialog offers precise or approximate.
-    LOCATION(
-        R.string.permission_location, R.string.permission_location_use,
-        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-    ),
     NEARBY_DEVICES(
         R.string.permission_nearby, R.string.permission_nearby_use,
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) arrayOf(Manifest.permission.BLUETOOTH_CONNECT) else emptyArray()
@@ -53,18 +48,12 @@ enum class LabsPermission(
         NOTIFICATIONS -> SupernovaNotificationListener.isEnabled(context)
         ACCESSIBILITY -> SupernovaAccessibilityService.isEnabled(context)
         DEVICE_ADMIN -> SupernovaDeviceAdmin.isActive(context)
-        // Either location grant counts; status() tells them apart.
-        LOCATION -> runtime.any { has(context, it) }
         else -> runtime.all { has(context, it) }
     }
 
     // "Allowed · contacts in search and the feed", under the row's title.
     fun status(context: Context): String {
         val state = when {
-            this == LOCATION && has(context, Manifest.permission.ACCESS_FINE_LOCATION) ->
-                R.string.permission_allowed_precise
-            this == LOCATION && has(context, Manifest.permission.ACCESS_COARSE_LOCATION) ->
-                R.string.permission_allowed_approximate
             runtime.isEmpty() -> if (granted(context)) R.string.permission_on else R.string.permission_off
             granted(context) -> R.string.permission_allowed
             else -> R.string.permission_not_allowed

@@ -40,7 +40,6 @@ class FeedCardsTest {
                 startMinute = 6 * 60,
                 endMinute = 11 * 60
             ),
-            CardCondition(kind = "WIFI", ssid = "HomeNet"),
             CardCondition(kind = "BLUETOOTH", btName = "Car Audio")
         ),
         enabled = false,

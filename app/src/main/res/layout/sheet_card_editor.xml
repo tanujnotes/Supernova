@@ -292,10 +292,6 @@
                 layout="@layout/row_card_condition" />
 
             <include
-                android:id="@+id/cardCondWifi"
-                layout="@layout/row_card_condition" />
-
-            <include
                 android:id="@+id/cardCondBt"
                 layout="@layout/row_card_condition" />
         </LinearLayout>
