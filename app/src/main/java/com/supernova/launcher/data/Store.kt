@@ -137,7 +137,6 @@ object StoreKeys {
     val themeMode: Preferences.Key<String> = stringPreferencesKey("theme_mode")
     val themeScheduleStart: Preferences.Key<Int> = intPreferencesKey("theme_schedule_start")
     val themeScheduleEnd: Preferences.Key<Int> = intPreferencesKey("theme_schedule_end")
-    val themeAutoLocation: Preferences.Key<Boolean> = booleanPreferencesKey("theme_auto_location")
     val accentColor: Preferences.Key<String> = stringPreferencesKey("accent_color")
     val drawerBgColor: Preferences.Key<String> = stringPreferencesKey("drawer_bg_color")
     val folderBgColor: Preferences.Key<String> = stringPreferencesKey("folder_bg_color")

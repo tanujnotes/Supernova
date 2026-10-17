@@ -109,7 +109,6 @@ class BackupRoundTripTest {
         homeOrientation = "LANDSCAPE",
         themeScheduleStart = 1200,
         themeScheduleEnd = 360,
-        themeAutoLocation = true,
         overlapWhenPlacing = true,
         reshapeLegacy = "ON",
         drawerPullToSearch = true,

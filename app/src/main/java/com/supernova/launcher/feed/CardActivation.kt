@@ -8,7 +8,7 @@ import java.util.Calendar
 // One activation evaluator shared by every surface that shows cards (feed
 // pane, drawer). It owns the ConditionMonitor and keeps the dormancy rule:
 // the monitor runs only while at least one surface holds it AND some enabled
-// card actually carries a Wi-Fi/Bluetooth condition. Surfaces acquire on
+// card actually carries a Bluetooth condition. Surfaces acquire on
 // show, release on hide, and listen for signal changes to re-evaluate.
 class CardActivation(context: Context, private val cards: () -> List<FeedCard>) {
 
@@ -24,7 +24,7 @@ class CardActivation(context: Context, private val cards: () -> List<FeedCard>) 
     private var wasActivated: Set<String> = emptySet()
 
     init {
-        // Network/Bluetooth callbacks arrive off the main thread.
+        // Bluetooth callbacks arrive off the main thread.
         monitor.onChanged = {
             mainHandler.post {
                 if (holders.isNotEmpty()) listeners.toList().forEach { it() }
@@ -66,15 +66,11 @@ class CardActivation(context: Context, private val cards: () -> List<FeedCard>) 
         ensureMonitor()
     }
 
-    val locationUsable: Boolean get() = monitor.locationUsable()
-
     private fun ensureMonitor() {
-        val kinds = cards().filter { it.enabled }
+        val needsBt = cards().filter { it.enabled }
             .flatMap { it.conditions }
-            .mapNotNull { ConditionKind.fromName(it.kind) }
-        val needsWifi = ConditionKind.WIFI in kinds
-        val needsBt = ConditionKind.BLUETOOTH in kinds
-        if (needsWifi || needsBt) monitor.start(needsWifi, needsBt)
+            .any { ConditionKind.fromName(it.kind) == ConditionKind.BLUETOOTH }
+        if (needsBt) monitor.start(needsBt)
     }
 
     fun environment(): CardVisibility.Environment {
@@ -91,7 +87,6 @@ class CardActivation(context: Context, private val cards: () -> List<FeedCard>) 
         return CardVisibility.Environment(
             dayOfWeek = isoDay,
             minuteOfDay = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE),
-            wifiSsid = monitor.currentSsid,
             btDeviceNames = monitor.btDeviceNames()
         )
     }

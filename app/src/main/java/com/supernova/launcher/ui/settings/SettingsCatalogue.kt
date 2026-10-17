@@ -91,9 +91,6 @@ object SettingsCatalogue {
         // Fired on a genuine user enable, so the activity can run the
         // READ_CONTACTS runtime request when it isn't granted yet.
         val onSearchContactsEnabled: () -> Unit = {},
-        // Location enhancement for Night mode's Auto: the activity stores it
-        // and, on an enable, runs the coarse-location request.
-        val setNightLocation: (Boolean) -> Unit = {},
         val editSearchBar: () -> Unit = {},
         val editPopupRows: () -> Unit = {},
         // Feed page: contextual permission requests on genuine enables (the
@@ -1548,15 +1545,6 @@ object SettingsCatalogue {
                 },
                 onClick = actions.editThemeSchedule,
                 visibleIf = { ThemeMode.fromName(it.themeMode) == ThemeMode.SCHEDULE }
-            ),
-            // Auto takes its sunsets from a time-zone estimate unless
-            // this lets it use the phone's location.
-            SettingItem.Toggle(
-                R.string.theme_auto_location,
-                get = { it.themeAutoLocation },
-                set = actions.setNightLocation,
-                visibleIf = { ThemeMode.fromName(it.themeMode) == ThemeMode.AUTO },
-                subtitle = R.string.theme_auto_location_summary
             ),
             rows.choice(
                 R.string.accent_color, AccentColor.entries,

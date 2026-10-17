@@ -37,7 +37,9 @@ data class FeedCard(
     // Activation: a card with conditions is "activated" while they all
     // hold; that is what promotes it into the app drawer. A card without
     // conditions is never activated - it lives in the feed and in search.
-    val hasConditions: Boolean get() = conditions.isNotEmpty()
+    // Only known kinds count, so a card left with just an unknown one (the
+    // retired WIFI kind) isn't activated all the time.
+    val hasConditions: Boolean get() = conditions.any { ConditionKind.fromName(it.kind) != null }
 
     companion object {
         // Action chips are a compact row; more than six stops being one.
@@ -71,7 +73,6 @@ data class CardAction(
 //   DAY_TIME  -> days (1 = Monday .. 7 = Sunday, null/empty = every day) plus
 //                an optional startMinute/endMinute minute-of-day range that
 //                may wrap past midnight (e.g. 1320..360 = 22:00-06:00).
-//   WIFI      -> ssid matches the current Wi-Fi network name.
 //   BLUETOOTH -> btName matches a connected headset/A2DP device name.
 @Serializable
 data class CardCondition(
@@ -79,13 +80,11 @@ data class CardCondition(
     val days: List<Int>? = null,
     val startMinute: Int? = null,
     val endMinute: Int? = null,
-    val ssid: String? = null,
     val btName: String? = null
 )
 
 enum class ConditionKind {
     DAY_TIME,
-    WIFI,
     BLUETOOTH;
 
     companion object {

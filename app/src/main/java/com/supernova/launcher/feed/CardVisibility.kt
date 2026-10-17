@@ -16,18 +16,14 @@ object CardVisibility {
         val dayOfWeek: Int,
         // Minutes since local midnight, 0..1439.
         val minuteOfDay: Int,
-        // Current Wi-Fi SSID without surrounding quotes; null when unknown
-        // (no Wi-Fi, no location permission, location off).
-        val wifiSsid: String? = null,
         // Names of connected headset/A2DP devices; empty when unknown.
         val btDeviceNames: List<String> = emptyList()
     )
 
     // Enabled and EVERY condition holds (vacuously true without conditions).
-    // A condition whose signal is unavailable (null SSID, empty BT list) is
-    // unmet - the documented degrade for missing location permission etc. A
-    // condition with an unknown kind is ignored so newer backups degrade
-    // gracefully.
+    // A condition whose signal is unavailable (empty BT list) is unmet - the
+    // documented degrade for a missing Bluetooth permission. A condition with
+    // an unknown kind (a newer backup's, or the retired WIFI) is ignored.
     fun isVisible(card: FeedCard, env: Environment): Boolean {
         if (!card.enabled) return false
         return card.conditions.all { holds(it, env) }
@@ -56,10 +52,6 @@ object CardVisibility {
     private fun holds(condition: CardCondition, env: Environment): Boolean =
         when (ConditionKind.fromName(condition.kind)) {
             ConditionKind.DAY_TIME -> dayTimeHolds(condition, env)
-            ConditionKind.WIFI -> {
-                val wanted = condition.ssid?.trim().orEmpty()
-                wanted.isEmpty() || env.wifiSsid?.equals(wanted, ignoreCase = true) == true
-            }
             ConditionKind.BLUETOOTH -> {
                 val wanted = condition.btName?.trim().orEmpty()
                 wanted.isEmpty() || env.btDeviceNames.any { it.equals(wanted, ignoreCase = true) }

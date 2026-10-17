@@ -359,9 +359,6 @@
     <string name="search_folders">Search folders</string>
     <string name="theme_schedule">Schedule</string>
     <string name="theme_auto">Auto (sunset to sunrise)</string>
-    <string name="theme_auto_location">Location enhancement</string>
-    <string name="theme_auto_location_summary">Use your location for precise sunset and sunrise times</string>
-    <string name="theme_auto_location_needed">Location permission is needed for precise sunset times</string>
     <string name="theme_schedule_times">Dark mode schedule</string>
     <string name="theme_schedule_range">%1$s \u2013 %2$s</string>
     <string name="theme_schedule_from">Dark from</string>
@@ -568,8 +565,6 @@
     <string name="permission_contacts_use">contacts in search and the feed</string>
     <string name="permission_calendar">Calendar</string>
     <string name="permission_calendar_use">the feed\'s calendar card</string>
-    <string name="permission_location">Location</string>
-    <string name="permission_location_use">sunset times for Night mode, and card conditions on Wi-Fi</string>
     <string name="permission_nearby">Nearby devices</string>
     <string name="permission_nearby_use">card conditions on Bluetooth devices</string>
     <string name="permission_notifications">Notification access</string>
@@ -582,8 +577,6 @@
     <string name="permission_device_admin_use">locking the screen with the device admin method</string>
     <string name="permission_status_line">%1$s · %2$s</string>
     <string name="permission_allowed">Allowed</string>
-    <string name="permission_allowed_precise">Allowed, precise</string>
-    <string name="permission_allowed_approximate">Allowed, approximate</string>
     <string name="permission_not_allowed">Not allowed</string>
     <string name="permission_on">On</string>
     <string name="permission_off">Off</string>
@@ -764,9 +757,6 @@
     <string name="card_activate">Activate in the feed</string>
     <string name="card_activate_desc">Configure a set of conditions that, when all met, will cause this card to show in the app drawer.</string>
     <string name="card_cond_daytime">Day/time</string>
-    <string name="card_cond_wifi">Wi-Fi network</string>
-    <string name="card_cond_wifi_hint">Requires Location permission</string>
-    <string name="card_cond_wifi_field">Network name (SSID)</string>
     <string name="card_cond_bt">Bluetooth connection</string>
     <string name="card_cond_bt_hint">Requires Bluetooth permission</string>
     <string name="card_cond_bt_field">Device name</string>
@@ -787,7 +777,6 @@
     <string name="card_actions_full">A card holds at most six actions</string>
     <string name="card_time_start">Start time</string>
     <string name="card_time_end">End time</string>
-    <string name="card_wifi_needs_location">Reading the Wi-Fi name needs the Location permission and location turned on; without them this condition never matches.</string>
     <string name="card_delete">Delete card</string>
     <string name="card_day_mon">M</string>
     <string name="card_day_tue">T</string>

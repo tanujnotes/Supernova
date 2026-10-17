@@ -27,10 +27,10 @@
 <p>Swipe, double tap, pinch and two-finger gestures can open apps, shortcuts, the drawer, notifications, search or lock the screen.</p>
 
 <p><b>Feed and cards</b></p>
-<p>An optional page beside the home screen with your calendar, media controls, frequently used apps and your own cards. Cards hold apps, shortcuts or a widget, and can show up automatically when conditions such as time, Wi-Fi or a Bluetooth device are met.</p>
+<p>An optional page beside the home screen with your calendar, media controls, frequently used apps and your own cards. Cards hold apps, shortcuts or a widget, and can show up automatically when conditions such as time or a Bluetooth device are met.</p>
 
 <p><b>Backup</b></p>
 <p>Export and restore your whole setup, including layout and settings, to a file.</p>
 
 <p><b>Permissions</b></p>
-<p>Every permission is optional and only used for the feature that asks for it: contacts for search and the feed, calendar for the calendar card, location for sunset-based night mode and Wi-Fi card conditions, nearby devices for Bluetooth card conditions, notification access for badges and the media card, and the accessibility service or device admin for gestures that lock the screen or open recents and quick settings.</p>
+<p>Every permission is optional and only used for the feature that asks for it: contacts for search and the feed, calendar for the calendar card, nearby devices for Bluetooth card conditions, notification access for badges and the media card, and the accessibility service or device admin for gestures that lock the screen or open recents and quick settings.</p>

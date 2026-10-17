@@ -3,7 +3,6 @@ package com.supernova.launcher.ui
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
-import android.location.LocationManager
 import android.os.Build
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -70,9 +69,6 @@ object CustomCardEditorSheet {
         var dayTime: CardCondition? = existing?.conditions?.firstOrNull {
             ConditionKind.fromName(it.kind) == ConditionKind.DAY_TIME
         }
-        var wifi: CardCondition? = existing?.conditions?.firstOrNull {
-            ConditionKind.fromName(it.kind) == ConditionKind.WIFI
-        }
         var bluetooth: CardCondition? = existing?.conditions?.firstOrNull {
             ConditionKind.fromName(it.kind) == ConditionKind.BLUETOOTH
         }
@@ -113,7 +109,7 @@ object CustomCardEditorSheet {
                 appWidgetId = existing?.appWidgetId?.takeIf { widget },
                 widgetProvider = existing?.widgetProvider?.takeIf { widget },
                 actions = actions.take(FeedCard.MAX_ACTIONS),
-                conditions = listOfNotNull(dayTime, wifi, bluetooth),
+                conditions = listOfNotNull(dayTime, bluetooth),
                 enabled = enabled,
                 pinned = pinned,
                 widgetHeightDp = widgetHeightDp,
@@ -466,14 +462,6 @@ object CustomCardEditorSheet {
                 .show()
         }
 
-        fun editWifi() = editText(
-            R.string.card_cond_wifi, R.string.card_cond_wifi_field, wifi?.ssid,
-            if (locationUsable(activity)) null else activity.getString(R.string.card_wifi_needs_location)
-        ) { ssid ->
-            wifi = ssid.takeIf { it.isNotEmpty() }?.let { CardCondition(kind = ConditionKind.WIFI.name, ssid = it) }
-            refreshConditions()
-        }
-
         fun editBluetooth() = editText(
             R.string.card_cond_bt, R.string.card_cond_bt_field, bluetooth?.btName, null
         ) { name ->
@@ -507,19 +495,6 @@ object CustomCardEditorSheet {
                 dayTime != null, ::editDayTime
             ) {
                 dayTime = null
-                refreshConditions()
-            }
-            val ssid = wifi?.ssid
-            bindCondition(
-                binding.cardCondWifi, R.string.card_cond_wifi,
-                when {
-                    ssid == null -> activity.getString(R.string.card_cond_wifi_hint)
-                    locationUsable(activity) -> ssid
-                    else -> "$ssid \u00b7 ${activity.getString(R.string.card_cond_wifi_hint)}"
-                },
-                wifi != null, ::editWifi
-            ) {
-                wifi = null
                 refreshConditions()
             }
             bindCondition(
@@ -699,10 +674,6 @@ object CustomCardEditorSheet {
         conditions: List<CardCondition>
     ) {
         val wanted = mutableListOf<String>()
-        val hasWifi = conditions.any { ConditionKind.fromName(it.kind) == ConditionKind.WIFI }
-        if (hasWifi && !granted(activity, Manifest.permission.ACCESS_FINE_LOCATION)) {
-            wanted.add(Manifest.permission.ACCESS_FINE_LOCATION)
-        }
         val hasBt = conditions.any { ConditionKind.fromName(it.kind) == ConditionKind.BLUETOOTH }
         if (hasBt && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             !granted(activity, Manifest.permission.BLUETOOTH_CONNECT)
@@ -716,12 +687,6 @@ object CustomCardEditorSheet {
 
     private fun granted(context: Context, permission: String): Boolean =
         context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
-
-    private fun locationUsable(context: Context): Boolean {
-        if (!granted(context, Manifest.permission.ACCESS_FINE_LOCATION)) return false
-        val lm = context.getSystemService(LocationManager::class.java) ?: return false
-        return runCatching { lm.isLocationEnabled }.getOrDefault(false)
-    }
 
     private fun formatMinute(minute: Int): String =
         String.format(java.util.Locale.getDefault(), "%02d:%02d", minute / 60, minute % 60)

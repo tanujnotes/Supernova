@@ -57,7 +57,7 @@ object ThemeEngine {
     fun applyMode(context: Context, prefs: com.supernova.launcher.data.LauncherPrefs) {
         scheduleHandler.removeCallbacksAndMessages(null)
         val app = context.applicationContext
-        val night = modeFor(app, prefs) { delay ->
+        val night = modeFor(prefs) { delay ->
             scheduleHandler.postDelayed({ applyMode(app, prefs) }, delay)
         }
         if (night == appliedNight) return
@@ -70,7 +70,7 @@ object ThemeEngine {
     // what isn't themed by the night resources, like themed icons' tint.
     fun isNight(context: Context, prefs: com.supernova.launcher.data.LauncherPrefs): Boolean {
         val app = context.applicationContext
-        return when (modeFor(app, prefs, recheckIn = null)) {
+        return when (modeFor(prefs, recheckIn = null)) {
             AppCompatDelegate.MODE_NIGHT_YES -> true
             AppCompatDelegate.MODE_NIGHT_NO -> false
             // The application's configuration is the system's; AppCompat
@@ -82,7 +82,6 @@ object ThemeEngine {
 
     // recheckIn, when given, is told how long until the answer can change.
     private fun modeFor(
-        app: Context,
         prefs: com.supernova.launcher.data.LauncherPrefs,
         recheckIn: ((Long) -> Unit)?
     ): Int = when (ThemeMode.fromName(prefs.themeMode)) {
@@ -90,7 +89,7 @@ object ThemeEngine {
         ThemeMode.LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
         ThemeMode.DARK -> AppCompatDelegate.MODE_NIGHT_YES
         ThemeMode.SCHEDULE -> darkWithin(prefs.themeScheduleStart, prefs.themeScheduleEnd, recheckIn)
-        ThemeMode.AUTO -> when (val tonight = NightWindow.today(app, prefs.themeAutoLocation)) {
+        ThemeMode.AUTO -> when (val tonight = NightWindow.today()) {
             is NightWindow.Tonight.Window -> darkWithin(tonight.sunset, tonight.sunrise, recheckIn)
             is NightWindow.Tonight.AllDay -> {
                 // Polar day or night: look again tomorrow.
