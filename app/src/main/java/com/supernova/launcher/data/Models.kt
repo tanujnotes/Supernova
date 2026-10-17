@@ -435,10 +435,6 @@ data class LauncherPrefs(
     // (ui/StatusBarIcons name; AUTO follows the theme), nav bar transparency.
     val hideStatusBar: Boolean = false,
     val darkStatusIcons: String = "AUTO",
-    // Hide the status bar clock via the SystemUI icon_blacklist secure
-    // setting (HideClock name). Needs WRITE_SECURE_SETTINGS, which only an
-    // adb grant can give; without it the pref is stored but inert.
-    val hideClock: String = "NEVER",
     val transparentNav: Boolean = true,
     // Workspace icons rock back and forth while a drag is live, on out
     // of the box. Off keeps the grid still.

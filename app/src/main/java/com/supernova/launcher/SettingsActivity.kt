@@ -439,7 +439,6 @@ class SettingsActivity : AppCompatActivity() {
                 Toast.makeText(this, R.string.labs_icon_cache_cleared, Toast.LENGTH_SHORT).show()
             },
             pickDesktopGrid = ::showDesktopGridDialog,
-            pickHideClock = ::showHideClockPicker,
             editSearchChips = ::showSearchChipsEditor,
             pickDrawerGrid = ::showDrawerGridDialog,
             editFolderIcon = ::showFolderIconEditor,
@@ -1252,36 +1251,6 @@ class SettingsActivity : AppCompatActivity() {
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
-    }
-
-    private fun showHideClockPicker() {
-        val modes = com.supernova.launcher.ui.HideClock.entries
-        val labels = modes.map { getString(EnumLabels.of(it)) }.toTypedArray()
-        val current = modes.indexOf(
-            com.supernova.launcher.ui.HideClock.fromName(viewModel.state.value.prefs.hideClock)
-        )
-
-        showChoice(R.string.hide_clock, labels, current) { which ->
-            viewModel.setHideClock(modes[which].name)
-            // The permission only ever arrives over adb; picking an
-            // active mode without it deserves the exact command.
-            if (modes[which] != com.supernova.launcher.ui.HideClock.NEVER &&
-                checkSelfPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS) !=
-                android.content.pm.PackageManager.PERMISSION_GRANTED
-            ) {
-                MaterialAlertDialogBuilder(this)
-                    .setTitle(R.string.hide_clock)
-                    .setMessage(
-                        getString(
-                            R.string.hide_clock_permission_message,
-                            "adb shell pm grant $packageName " +
-                                "android.permission.WRITE_SECURE_SETTINGS"
-                        )
-                    )
-                    .setPositiveButton(R.string.ok, null)
-                    .show()
-            }
-        }
     }
 
     // Two chained time pickers: dark-from, then dark-until (D1).

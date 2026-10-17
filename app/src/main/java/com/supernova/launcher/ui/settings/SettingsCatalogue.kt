@@ -98,7 +98,6 @@ object SettingsCatalogue {
         // Location enhancement for Night mode's Auto: the activity stores it
         // and, on an enable, runs the coarse-location request.
         val setNightLocation: (Boolean) -> Unit = {},
-        val pickHideClock: () -> Unit = {},
         val editPopupRows: () -> Unit = {},
         // Feed page: contextual permission requests on genuine enables (the
         // contacts-search pattern), the custom-cards manager, and the
@@ -362,14 +361,6 @@ object SettingsCatalogue {
                     { StatusBarIcons.fromName(it.darkStatusIcons) }, { EnumLabels.of(it) },
                     visibleIf = { !it.hideStatusBar }
                 ) { viewModel.setDarkStatusIcons(it.name) },
-                SettingItem.Row(
-                    R.string.hide_clock,
-                    subtitle = {
-                        context.getString(EnumLabels.of(com.supernova.launcher.ui.HideClock.fromName(it.hideClock)))
-                    },
-                    onClick = actions.pickHideClock,
-                    visibleIf = { !it.hideStatusBar }
-                ),
                 SettingItem.Toggle(
                     R.string.transparent_status,
                     get = { it.transparentStatus },

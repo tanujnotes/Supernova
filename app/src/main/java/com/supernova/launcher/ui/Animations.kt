@@ -122,17 +122,3 @@ enum class WallpaperScrollMode {
                 ?: if (prefs.wallpaperScroll) ON else OFF
     }
 }
-
-// Where the status-bar clock is hidden (hideClock pref), via the SystemUI
-// icon_blacklist secure setting. Inert without WRITE_SECURE_SETTINGS.
-enum class HideClock {
-    NEVER,
-    HOME_PAGE,
-    DESKTOP,
-    EVERYWHERE;
-
-    companion object {
-        fun fromName(name: String): HideClock =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: NEVER
-    }
-}

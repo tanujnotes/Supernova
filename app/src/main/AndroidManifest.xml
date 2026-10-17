@@ -1,15 +1,6 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
-    <!-- Hide clock: writes the SystemUI icon_blacklist secure setting. The
-         system never grants this to a third-party app at install; the user
-         grants it once over adb:
-         adb shell pm grant com.supernova.launcher android.permission.WRITE_SECURE_SETTINGS
-         Without the grant the Hide clock preference is inert. -->
-    <uses-permission
-        android:name="android.permission.WRITE_SECURE_SETTINGS"
-        tools:ignore="ProtectedPermissions" />
     <!-- Runtime-gated; requested from the Search settings section and only
          used by the contacts search provider (and the feed's starred
          contacts card). -->

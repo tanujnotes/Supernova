@@ -187,7 +187,6 @@ class LauncherPreferences(private val context: Context) {
             target[StoreKeys.launchAnimation] = prefs.launchAnimation
             target[StoreKeys.hideStatusBar] = prefs.hideStatusBar
             target[StoreKeys.darkStatusIcons] = prefs.darkStatusIcons
-            target[StoreKeys.hideClock] = prefs.hideClock
             target[StoreKeys.transparentNav] = prefs.transparentNav
             target[StoreKeys.homeRotation] = prefs.homeRotation
             target[StoreKeys.homeOrientation] = prefs.homeOrientation
@@ -395,7 +394,6 @@ class LauncherPreferences(private val context: Context) {
             launchAnimation = values[StoreKeys.launchAnimation] ?: "ADAPTIVE_ICON",
             hideStatusBar = values[StoreKeys.hideStatusBar] ?: false,
             darkStatusIcons = values[StoreKeys.darkStatusIcons] ?: "AUTO",
-            hideClock = values[StoreKeys.hideClock] ?: "NEVER",
             transparentNav = values[StoreKeys.transparentNav] ?: true,
             homeRotation = values[StoreKeys.homeRotation] ?: false,
             homeOrientation = values[StoreKeys.homeOrientation].orEmpty(),
@@ -825,8 +823,6 @@ class LauncherPreferences(private val context: Context) {
     suspend fun setHomeRotation(value: Boolean) = put(StoreKeys.homeRotation, value)
 
     suspend fun setHomeOrientation(value: String) = put(StoreKeys.homeOrientation, value)
-
-    suspend fun setHideClock(value: String) = put(StoreKeys.hideClock, value)
 
     suspend fun setFeedEnabled(value: Boolean) = put(StoreKeys.feedEnabled, value)
 

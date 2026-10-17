@@ -469,12 +469,6 @@
     <string name="mode_on">On</string>
     <string name="mode_off">Off</string>
     <string name="wallpaper_scroll_reverse">Reverse</string>
-    <string name="hide_clock">Hide status bar clock</string>
-    <string name="hide_clock_never">Never</string>
-    <string name="hide_clock_home_page">Main home page only</string>
-    <string name="hide_clock_desktop">Any home page</string>
-    <string name="hide_clock_everywhere">Home screen and drawer</string>
-    <string name="hide_clock_permission_message">Hiding the clock needs a one-time permission that only a computer can grant. Connect the phone over USB debugging and run:\n\n%1$s</string>
     <string name="reshape_legacy">Reshape legacy icons</string>
     <string name="reshape_legacy_auto">Rescale only</string>
     <string name="reshape_legacy_on">Rescale and add background</string>
