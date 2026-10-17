@@ -181,7 +181,6 @@ object StoreKeys {
     val launchAnimation: Preferences.Key<String> = stringPreferencesKey("launch_animation")
     val hideStatusBar: Preferences.Key<Boolean> = booleanPreferencesKey("hide_status_bar")
     val darkStatusIcons: Preferences.Key<String> = stringPreferencesKey("dark_status_icons")
-    val hideClock: Preferences.Key<String> = stringPreferencesKey("hide_clock")
     val transparentNav: Preferences.Key<Boolean> = booleanPreferencesKey("transparent_nav")
     val homeRotation: Preferences.Key<Boolean> = booleanPreferencesKey("home_rotation")
     val homeOrientation: Preferences.Key<String> = stringPreferencesKey("home_orientation")

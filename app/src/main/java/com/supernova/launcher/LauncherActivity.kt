@@ -84,7 +84,6 @@ import com.supernova.launcher.ui.DesktopPreviewsOverlay
 import com.supernova.launcher.ui.LaunchAnimation
 import com.supernova.launcher.ui.PopupExtraRow
 import com.supernova.launcher.ui.PopupRows
-import com.supernova.launcher.ui.HideClock
 import com.supernova.launcher.ui.HomeOrientation
 import com.supernova.launcher.ui.StatusBarIcons
 import com.supernova.launcher.ui.WallpaperScrollMode
@@ -827,15 +826,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // open is one they came back to, not one parked behind an app.
         drawerKeptBehindLaunch = false
         reopenDockIfAutoClosed()
-        applyClockRule()
     }
 
     override fun onPause() {
         // Home pressed while a circle was still filling, say: that launch is
         // off. One already asked for carries on.
         launchPrelude.cancelPending()
-        // The clock always shows outside the launcher, whatever the rule.
-        setClockHidden(false)
         super.onPause()
     }
 
@@ -1115,8 +1111,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     val framePage = viewModel.state.value.model.items.firstOrNull { it.id == frame.itemId }?.page
                     if (addPage || framePage != page) widgets.dismissResizeFrame()
                 }
-                // HOME_PAGE clock rule keys off the current page.
-                applyClockRule(currentPage = if (addPage) -1 else page)
                 binding.workspacePager.announceForAccessibility(
                     if (addPage) getString(R.string.add_page) else getString(R.string.page_desc, page + 1, pages)
                 )
@@ -1229,7 +1223,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // is also triggered directly from openDrawer for immediacy.
         drawer.onOpenStateChanged = { open ->
             animateWallpaperZoom(if (open) 1f else 0f)
-            applyClockRule()
         }
     }
 
@@ -1846,11 +1839,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         val key = listOf(
             prefs.hideStatusBar, prefs.darkStatusIcons, prefs.transparentNav,
             prefs.transparentStatus, prefs.homeRotation,
-            prefs.homeOrientation, prefs.hideClock
+            prefs.homeOrientation
         )
         if (appliedSystemChrome == key) return
         appliedSystemChrome = key
-        applyClockRule()
 
         applyStatusBarVisibility(prefs.hideStatusBar)
 
@@ -1896,49 +1888,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             HomeOrientation.PORTRAIT -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
             HomeOrientation.LANDSCAPE -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         }
-    }
-
-    // ---- Hide clock (A5): the SystemUI icon_blacklist secure setting hides
-    // the status-bar clock. Third-party apps only get WRITE_SECURE_SETTINGS
-    // through an adb grant, so without it the rule is stored but inert. Other
-    // blacklist tokens the user may have set (SystemUI Tuner etc.) are kept.
-
-    private var clockHidden = false
-
-    // currentPage: the page-change callback passes the fresh page directly
-    // because the state flow only picks it up asynchronously.
-    private fun applyClockRule(currentPage: Int? = null) {
-        val state = viewModel.state.value
-        val mode = HideClock.fromName(state.prefs.hideClock)
-        val resumed = lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)
-        val drawerOpen = ::drawer.isInitialized && drawer.isExpanded
-        val page = currentPage ?: state.currentPage
-        val desired = resumed && when (mode) {
-            HideClock.NEVER -> false
-            HideClock.EVERYWHERE -> true
-            HideClock.DESKTOP -> !drawerOpen
-            HideClock.HOME_PAGE -> !drawerOpen && page == state.model.defaultPage
-        }
-        setClockHidden(desired)
-    }
-
-    private fun setClockHidden(hidden: Boolean) {
-        if (clockHidden == hidden) return
-        if (checkSelfPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS) !=
-            android.content.pm.PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
-        val wrote = runCatching {
-            val current = android.provider.Settings.Secure.getString(contentResolver, "icon_blacklist")
-                .orEmpty()
-            val tokens = current.split(',').map { it.trim() }.filter { it.isNotEmpty() }
-            val updated = if (hidden) (tokens + "clock").distinct() else tokens.filterNot { it == "clock" }
-            android.provider.Settings.Secure.putString(
-                contentResolver, "icon_blacklist", updated.joinToString(",")
-            )
-        }.isSuccess
-        if (wrote) clockHidden = hidden
     }
 
     private fun applyStatusBarVisibility(hide: Boolean) {

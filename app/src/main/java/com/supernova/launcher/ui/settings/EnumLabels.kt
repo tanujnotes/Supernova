@@ -17,7 +17,6 @@ import com.supernova.launcher.ui.FolderMode
 import com.supernova.launcher.ui.FolderPreviewStyle
 import com.supernova.launcher.ui.FolderScroll
 import com.supernova.launcher.ui.DrawerStyle
-import com.supernova.launcher.ui.HideClock
 import com.supernova.launcher.ui.HomeOrientation
 import com.supernova.launcher.ui.IndicatorStyle
 import com.supernova.launcher.ui.LabelFont
@@ -293,14 +292,6 @@ object EnumLabels {
         WallpaperScrollMode.ON -> R.string.mode_on
         WallpaperScrollMode.OFF -> R.string.mode_off
         WallpaperScrollMode.REVERSE -> R.string.wallpaper_scroll_reverse
-    }
-
-    @StringRes
-    fun of(mode: HideClock): Int = when (mode) {
-        HideClock.NEVER -> R.string.hide_clock_never
-        HideClock.HOME_PAGE -> R.string.hide_clock_home_page
-        HideClock.DESKTOP -> R.string.hide_clock_desktop
-        HideClock.EVERYWHERE -> R.string.hide_clock_everywhere
     }
 
     @StringRes

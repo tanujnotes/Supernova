@@ -107,7 +107,6 @@ class BackupRoundTripTest {
         transparentNav = false,
         homeRotation = true,
         homeOrientation = "LANDSCAPE",
-        hideClock = "DESKTOP",
         themeScheduleStart = 1200,
         themeScheduleEnd = 360,
         themeAutoLocation = true,

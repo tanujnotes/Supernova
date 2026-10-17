@@ -995,8 +995,6 @@ class LauncherViewModel(
 
     fun setHomeOrientation(value: String) = persist { preferences.setHomeOrientation(value) }
 
-    fun setHideClock(value: String) = persist { preferences.setHideClock(value) }
-
     fun setFeedEnabled(value: Boolean) = persist { preferences.setFeedEnabled(value) }
 
     fun setFeedEdgeSwipe(value: Boolean) = persist { preferences.setFeedEdgeSwipe(value) }
