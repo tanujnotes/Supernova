@@ -31,7 +31,7 @@
         <com.supernova.launcher.ui.SearchBarView
             android:id="@+id/feedSearchBar"
             android:layout_width="0dp"
-            android:layout_height="44dp"
+            android:layout_height="48dp"
             android:layout_weight="1"
             android:visibility="gone" />
 

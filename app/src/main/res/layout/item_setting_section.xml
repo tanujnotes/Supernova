@@ -1,31 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A root-list entry. The icon sits under the search pill's
-     magnifier and the text under its hint: the pill's 20dp gutter plus its
-     18dp padding, then the same 12dp gap. -->
+<!-- A root-list entry, in a grouped card (SettingsGroupDecoration). The
+     tile sits under the search bar's magnifier, 16dp into the card; the text
+     starts 16dp past the tile, where the card's dividers start; the chevron
+     sits in the control column every settings row shares. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:foreground="?attr/selectableItemBackground"
     android:gravity="center_vertical"
-    android:minHeight="68dp"
+    android:minHeight="64dp"
     android:orientation="horizontal"
-    android:paddingStart="38dp"
-    android:paddingTop="14dp"
-    android:paddingEnd="20dp"
-    android:paddingBottom="14dp">
+    android:paddingVertical="12dp"
+    android:paddingStart="16dp"
+    android:paddingEnd="4dp">
 
-    <ImageView
-        android:id="@+id/sectionIcon"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:importantForAccessibility="no"
-        app:tint="?attr/colorAccent" />
+    <FrameLayout
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/bg_settings_tile">
+
+        <ImageView
+            android:id="@+id/sectionIcon"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="center"
+            android:importantForAccessibility="no"
+            app:tint="?attr/colorAccent" />
+    </FrameLayout>
 
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="16dp"
         android:layout_weight="1"
         android:orientation="vertical">
 
@@ -33,8 +40,9 @@
             android:id="@+id/sectionTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
             android:textColor="@color/textPrimary"
-            android:textSize="18sp" />
+            android:textSize="16sp" />
 
         <TextView
             android:id="@+id/sectionSubtitle"
@@ -42,7 +50,17 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:textColor="@color/textSecondary"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:visibility="gone" />
     </LinearLayout>
+
+    <!-- Centred in the 48dp control slot, 4dp in from the card. -->
+    <ImageView
+        android:layout_width="48dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="8dp"
+        android:importantForAccessibility="no"
+        android:paddingHorizontal="14dp"
+        android:src="@drawable/ic_settings_chevron"
+        app:tint="@color/textSecondary" />
 </LinearLayout>

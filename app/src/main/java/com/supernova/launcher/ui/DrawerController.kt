@@ -628,12 +628,20 @@ class DrawerController(
     // mode, so a pull can put it on screen instantly at any offset: the
     // activity's swipe tracker calls beginPull once the gesture reads as a
     // swipe-up, pullTo per move, endPull on the lift.
+    //
+    // ZOOM and FADE have no position for a finger to hold: the swipe opens
+    // the drawer outright, and pullTo/endPull stay no-ops while the
+    // activity's pull swallows the rest of the stream.
 
     var isPulling = false
         private set
 
     fun beginPull() {
         if (isPulling) return
+        if (transition != DrawerTransition.SLIDE_UP) {
+            open()
+            return
+        }
         val prefs = viewModel.state.value.prefs
         isPulling = true
         prepareContent(prefs)
@@ -1011,6 +1019,10 @@ class DrawerController(
     fun notifyContentChanged() {
         adapter.notifyDataSetChanged()
         syncPages()
+        // The recents row's icons carry badges too, and its key can't see a
+        // count move.
+        frequentRowKey = null
+        updateFrequentRow()
     }
 
     // A badge count moved. Drawer rows carry badges (the activity's
@@ -1077,7 +1089,7 @@ class DrawerController(
         }
 
     // The most-launched strip above the list: All tab only, hidden while a
-    // query filters, rebound only when its membership actually changes.
+    // query filters, rebound only when its membership or the icons change.
     private var frequentRowKey: String? = null
     // Last icon generation the list was bound at; a change means per-app
     // icons moved even though the app list is identical (DiffUtil would skip).
@@ -1102,21 +1114,44 @@ class DrawerController(
         }
         setFrequentRowVisible(true)
         val textColor = Styles.resolve(context, prefs).of(SurfaceId.DRAWER).text
+        // The icon box the list under it draws (AppDrawerAdapter.sizeIcon):
+        // the style's base icon at the drawer's icon scale, kept inside one
+        // column, so the row's icons match the list's at any size.
+        val baseDp = if (currentStyle == DrawerStyle.VERTICAL_LIST) ROW_ICON_DP else TILE_ICON_DP
+        val iconSizePx = (context.dp(baseDp) * iconScale(prefs)).toInt()
+            .coerceAtMost((gridWidthPx() / columns - context.dp(TILE_SIDE_PADDING_DP)).coerceAtLeast(1))
         val key = apps.joinToString { "${it.userSerial}/${it.packageName}/${it.className}" } +
-            "|$columns|$textColor"
+            "|$columns|$textColor|$lastIconGeneration|$iconSizePx|${styleKey(prefs)}"
         if (key == frequentRowKey) return
         frequentRowKey = key
         // Long-pressed, each is a drawer icon like any other: its menu, and a
         // drag to the home screen.
         val entries = apps.map { app ->
             FrequentAppsRowView.Entry(
-                app.label, viewModel.appCatalog().iconFor(app), onLongPress = { view -> onAppLongPress(view, app) }
+                app.label,
+                decorateIcon(viewModel.appCatalog().iconFor(app), app),
+                onLongPress = { view -> onAppLongPress(view, app) }
             ) { view ->
                 onAppClick(view, app)
             }
         }
-        binding.drawerFrequentRow.bindLabeled(entries, textColor, columns, sidePaddingDp = 0)
+        val look = FrequentAppsRowView.CellLook(iconSizePx) { label ->
+            LabelStyler.apply(label, prefs, onWallpaper = false, context = LabelContext.DRAWER)
+            label.visibility = if (prefs.drawerLabels) View.VISIBLE else View.GONE
+        }
+        binding.drawerFrequentRow.bindLabeled(entries, textColor, columns, sidePaddingDp = 0, look = look)
     }
+
+    // The label prefs LabelStyler reads for the drawer and the badge prefs
+    // decorateIcon reads, so a change to any of them rebinds the recents row.
+    private fun styleKey(prefs: LauncherPrefs): String =
+        listOf(
+            prefs.labelSize, prefs.labelColor, prefs.labelShadow, prefs.labelFont,
+            prefs.labelSingleLine, prefs.labelConfig, prefs.drawerLabels,
+            prefs.badges, prefs.badgeStyle, prefs.badgeCounts, prefs.badgeApps,
+            prefs.badgeColor, prefs.badgePosition, prefs.badgeScale, prefs.badgeTextColor,
+            prefs.badgeCornerRadius, prefs.badgeOutline
+        ).joinToString("/")
 
     // Whether the host has been told the drawer is showing cards.
     private var cardsShown = false
@@ -1305,6 +1340,12 @@ class DrawerController(
         val density = context.resources.displayMetrics.density
         searchPill.cornerRadius =
             (searchConfig.radius ?: DrawerSearchBarConfig.MAX_RADIUS).coerceIn(0, DrawerSearchBarConfig.MAX_RADIUS) * density
+        val glass = com.supernova.launcher.data.IconGlass.fromName(searchConfig.glass)
+        binding.drawerSearchField.background = if (glass == com.supernova.launcher.data.IconGlass.OFF) {
+            searchPill
+        } else {
+            GlassPillDrawable(glass, searchPill.cornerRadius)
+        }
         if (searchConfig.filled) {
             searchPill.setColor((0x24 shl 24) or (resolvedForBar.text and 0xFFFFFF))
             searchPill.setStroke(0, android.graphics.Color.TRANSPARENT)
@@ -1315,20 +1356,10 @@ class DrawerController(
                 (0x5A shl 24) or (resolvedForBar.text and 0xFFFFFF)
             )
         }
-        val startIcon = when (SearchBarLogo.fromName(searchConfig.logo)) {
-            SearchBarLogo.SEARCH -> R.drawable.ic_search
-            SearchBarLogo.SUPERNOVA -> R.drawable.ic_supernova_logo
-            SearchBarLogo.NONE -> 0
-        }
-        if (startIcon == 0) {
-            binding.drawerSearchIcon.visibility = View.GONE
-        } else {
-            binding.drawerSearchIcon.visibility = View.VISIBLE
-            binding.drawerSearchIcon.setImageResource(startIcon)
-            binding.drawerSearchIcon.imageTintList = android.content.res.ColorStateList.valueOf(
-                if (searchConfig.logoMonochrome) resolvedForBar.text else resolvedForBar.accent
-            )
-        }
+        // The magnifier on the left is fixed, in the drawer's text colour.
+        binding.drawerSearchIcon.visibility = View.VISIBLE
+        binding.drawerSearchIcon.setImageResource(R.drawable.ic_search)
+        binding.drawerSearchIcon.imageTintList = android.content.res.ColorStateList.valueOf(resolvedForBar.text)
         // The field sits on the drawer surface, not on a Material card, so its
         // own text has to follow the resolved drawer palette.
         binding.drawerSearch.setTextColor(resolvedForBar.text)
@@ -1358,34 +1389,44 @@ class DrawerController(
             tabs.setSelectedTabIndicatorColor(resolvedForBar.accent)
         }
 
-        // Header action buttons (C10): rebuilt after the field on every style
-        // pass; previous ones are tagged for removal.
+        // Header action buttons (C10): inside the field, at its right end,
+        // rebuilt on every style pass; previous ones are tagged for removal.
+        val field = binding.drawerSearchField
         val actionTag = "drawer-action-button"
-        (0 until searchRow.childCount).reversed().forEach { index ->
-            if (searchRow.getChildAt(index).tag == actionTag) searchRow.removeViewAt(index)
+        for (index in field.childCount - 1 downTo 0) {
+            if (field.getChildAt(index).tag == actionTag) field.removeViewAt(index)
         }
-        DrawerActionButton.decode(prefs.drawerActionButtons).forEach { button ->
+        val actionButtons = DrawerActionButton.decode(prefs.drawerActionButtons)
+        // Buttons carry their own touch padding, so the field's end inset shrinks.
+        field.setPaddingRelative(
+            field.paddingStart, field.paddingTop,
+            ((if (actionButtons.isEmpty()) FIELD_END_DP else FIELD_END_WITH_BUTTONS_DP) * density).toInt(),
+            field.paddingBottom
+        )
+        actionButtons.forEach { button ->
             val view = android.widget.ImageButton(context).apply {
                 tag = actionTag
                 setImageResource(
                     when (button) {
-                        DrawerActionButton.SEARCH -> R.drawable.ic_search
-                        DrawerActionButton.PLAY_STORE -> R.drawable.ic_menu_play
-                        DrawerActionButton.SETTINGS -> R.drawable.ic_action_settings
+                        DrawerActionButton.PLAY_STORE -> R.drawable.ic_play_store
+                        DrawerActionButton.SETTINGS -> R.drawable.ic_tab_settings
                     }
                 )
                 imageTintList = android.content.res.ColorStateList.valueOf(resolvedForBar.text)
                 background = null
+                // An ImageButton centres its icon at its own 24dp; fit it to
+                // the magnifier's 20dp box instead, so both ends match.
+                scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+                val pad = (ACTION_BUTTON_PAD_DP * density).toInt()
+                setPadding(pad, pad, pad, pad)
                 contentDescription = context.getString(
                     when (button) {
-                        DrawerActionButton.SEARCH -> R.string.action_open_search
                         DrawerActionButton.PLAY_STORE -> R.string.chip_play_store
                         DrawerActionButton.SETTINGS -> R.string.settings
                     }
                 )
                 setOnClickListener {
                     when (button) {
-                        DrawerActionButton.SEARCH -> onGlobalSearch()
                         DrawerActionButton.PLAY_STORE -> runCatching {
                             context.packageManager.getLaunchIntentForPackage("com.android.vending")
                                 ?.let(context::startActivity)
@@ -1396,11 +1437,8 @@ class DrawerController(
                     }
                 }
             }
-            val size = (40 * context.resources.displayMetrics.density).toInt()
-            searchRow.addView(
-                view,
-                android.widget.LinearLayout.LayoutParams(size, size)
-            )
+            val size = (ACTION_BUTTON_DP * density).toInt()
+            field.addView(view, android.widget.LinearLayout.LayoutParams(size, size))
         }
         // Focusability is the pre-IME interception point: a non-focusable
         // EditText delivers a plain click and never starts an input connection.
@@ -1682,6 +1720,16 @@ class DrawerController(
         // The icon box and the minimum height item_drawer_app declares.
         const val TILE_ICON_DP = 48
         const val TILE_MIN_HEIGHT_DP = 98
+        // The icon box item_drawer_app_row declares.
+        const val ROW_ICON_DP = 40
+        // The search field's end inset alone, and beside its action buttons
+        // (36dp, padded), which sit inside it.
+        const val FIELD_END_DP = 16
+        const val FIELD_END_WITH_BUTTONS_DP = 4
+        const val ACTION_BUTTON_DP = 36
+        const val ACTION_BUTTON_PAD_DP = 8
+        // item_drawer_app's 4dp side padding, both sides.
+        const val TILE_SIDE_PADDING_DP = 8
         const val MAX_COLUMNS = 12
         const val TAB_FLING_MIN_VELOCITY = 900f
         // The Bubble tab type's pill: fully round, 6dp inside the bar's

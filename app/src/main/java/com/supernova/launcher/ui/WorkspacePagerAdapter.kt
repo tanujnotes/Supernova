@@ -231,12 +231,15 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
         }
     }
 
-    // A real page renders at up to three positions while looping.
+    // A real page renders at up to three positions while looping, a copy
+    // apart - the add-page slot included, which is one more than the page
+    // count: counted without it, edit mode rebound the page beside the one
+    // that changed, and an icon removed there stayed on screen.
     private fun notifyRealPageChanged(page: Int) {
         notifyItemChanged(page)
         if (looping) {
-            notifyItemChanged(page + pageCount)
-            notifyItemChanged(page + pageCount * 2)
+            notifyItemChanged(page + span)
+            notifyItemChanged(page + span * 2)
         }
     }
 

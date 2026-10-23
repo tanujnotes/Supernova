@@ -217,6 +217,13 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         var landed = false
     }
     private var pendingEditAddPage: PendingEditAddPage? = null
+    // Pages just removed from under the pager: once the adapter has the new
+    // count, the pager goes to `page`, where what was in view now is.
+    private class PageAfterRemoval(val pageCount: Int, val page: Int)
+    private var pendingPageAfterRemoval: PageAfterRemoval? = null
+    // A removal's Undo is waiting: empty pages stay until it goes, so the
+    // item it would put back still has its page to go back to.
+    private var undoSnackbar: Snackbar? = null
     // Transient dock hide from the TOGGLE_DOCK action; mirrors dockAutoClosed
     // (visibility only, reserved margins stay), never persisted.
     private var dockToggledOff = false
@@ -1131,7 +1138,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 // every icon and widget on every frame. Dropped again at rest
                 // so widgets and badges keep repainting normally.
                 setPageHardwareLayers(!idle && appliedScrollEffect != ScrollEffect.NONE)
-                if (idle) workspaceAdapter.onPagerIdle(binding.workspacePager)
+                if (idle) {
+                    workspaceAdapter.onPagerIdle(binding.workspacePager)
+                    removeEmptyPages()
+                }
             }
         })
     }
@@ -1314,7 +1324,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // global overlay.
         binding.desktopSearchBar.onTap = { openDrawer() }
         binding.desktopSearchBar.onLongPress = { anchor -> showSearchBarMenu(anchor) }
-        binding.desktopSearchBar.onOpenDrawer = { openDrawer() }
     }
 
     // In-card grant buttons on the feed's calendar/contacts cards; a grant
@@ -1783,6 +1792,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     workspaceAdapter.refresh()
                     workspaceAdapter.recenterIfNeeded(binding.workspacePager)
                     drag.carryOverToNewPage()
+                    pendingPageAfterRemoval?.let { pending ->
+                        pendingPageAfterRemoval = null
+                        if (workspaceAdapter.realPageCount == pending.pageCount) showPageAfterRemoval(pending.page)
+                    }
+                    // Edit mode's Remove page follows the page emptying or filling.
+                    if (::editMode.isInitialized) editMode.onPageChanged()
                     // Snapshot once the real layout has arrived, so a bad edit
                     // later in the session is recoverable.
                     if (state.model.items.isNotEmpty()) viewModel.writeAutoBackupOnce()
@@ -2671,7 +2686,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 widgets.restoreBuiltInSearchBar()
             }
         }
-        menu.addRow(getString(R.string.search_bar_settings), R.drawable.ic_action_settings) {
+        menu.addRow(getString(R.string.search_bar_settings), R.drawable.ic_tab_settings) {
             startActivity(
                 Intent(this, SettingsActivity::class.java)
                     .putExtra(SettingsActivity.EXTRA_OPEN_SEARCH_BAR, true)
@@ -2775,7 +2790,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // added by the drawer menu itself so it keeps its historical position.
     private fun addExtraRows(menu: SupernovaPopupMenu, extras: Set<PopupExtraRow>, app: LaunchableApp) {
         if (PopupExtraRow.PLAY_STORE in extras) {
-            menu.addRow(getString(R.string.chip_play_store), R.drawable.ic_menu_play) {
+            menu.addRow(getString(R.string.chip_play_store), R.drawable.ic_play_store) {
                 openPlayStore(app.packageName)
             }
         }
@@ -3244,7 +3259,64 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         if (binding.dockBar.visibility == View.VISIBLE) {
             snackbar.anchorView = binding.dockBar
         }
+        snackbar.addCallback(object : Snackbar.Callback() {
+            override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+                if (undoSnackbar !== transientBottomBar) return
+                undoSnackbar = null
+                if (event != DISMISS_EVENT_ACTION) removeEmptyPages()
+            }
+        })
+        undoSnackbar = snackbar
         snackbar.show()
+    }
+
+    // Posted: a drag can end inside the pickup of the next one (its settle cut
+    // short), and that drag is under way by the time this runs.
+    override fun onDragFinished() {
+        binding.root.post { removeEmptyPages() }
+    }
+
+    // Remove empty pages: every page left with nothing on it goes, but the
+    // home page and the one in view - so a page being filled (edit mode's
+    // "+", a widget's setup screen) is never taken from under it. Runs when
+    // a drag ends, when the pager comes to rest and when an Undo times out;
+    // not while anything is still moving items or pages about.
+    private fun removeEmptyPages() {
+        if (!emptyPagesRemovable()) return
+        val inView = workspaceAdapter.realPage(binding.workspacePager.currentItem)
+        val count = workspaceAdapter.realPageCount
+        viewModel.removeEmptyPages(setOf(inView)) { removed ->
+            followRemovedPages(count - removed.size, inView - removed.count { it < inView })
+        }
+    }
+
+    private fun emptyPagesRemovable(): Boolean =
+        viewModel.state.value.prefs.removeEmptyPages &&
+            !drag.isArmed && !drag.isActive && drag.settlingItemId == null &&
+            !(::editMode.isInitialized && editMode.isOpen) &&
+            !desktopPreviews.isShowing && pendingEditAddPage == null && undoSnackbar == null &&
+            binding.workspacePager.scrollState == androidx.viewpager2.widget.ViewPager2.SCROLL_STATE_IDLE &&
+            workspaceAdapter.realPageCount > 1 && !workspaceAdapter.isAddPage(binding.workspacePager.currentItem)
+
+    // Pages before the one in view went, so it is further left now. The
+    // adapter may have the new count already (then the pager moves at once)
+    // or not yet (then the emission bringing it does; see observeState).
+    private fun followRemovedPages(pageCount: Int, page: Int) {
+        if (workspaceAdapter.realPageCount == pageCount) {
+            showPageAfterRemoval(page)
+        } else {
+            pendingPageAfterRemoval = PageAfterRemoval(pageCount, page)
+        }
+    }
+
+    // No scroll event tells the indicator and the wallpaper when the pager
+    // jumps to a page showing what it already showed.
+    private fun showPageAfterRemoval(page: Int) {
+        binding.workspacePager.setCurrentItem(workspaceAdapter.centerPosition(page), false)
+        viewModel.setCurrentPage(page)
+        binding.pageIndicator.onPageScrolled(page, 0f)
+        updateWallpaperOffset(page.toFloat())
+        if (::editMode.isInitialized) editMode.onPageChanged()
     }
 
     private fun openPlayStore(packageName: String) {
@@ -3845,8 +3917,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         val prefs = viewModel.state.value.prefs
         val resolvedFolder = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
             .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER)
-        val shape = com.supernova.launcher.data.IconShape.fromName(prefs.folderIconShape)
-            .takeIf { prefs.folderIconShape.isNotEmpty() }
         return FolderIconDrawable(
             // The preview draws members at mini-cell bounds. The cache hands
             // out shared instances, and a Drawable has exactly one bounds -
@@ -3859,12 +3929,14 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             } else {
                 FolderIconDrawable.DEFAULT_PLATE_COLOR
             },
-            shape = shape,
+            shape = FolderIconDrawable.plateShape(prefs.folderIconShape, prefs),
             customSpec = com.supernova.launcher.data.CustomShapeSpec.decode(prefs.iconShapeCustom),
             outlineColor = if (prefs.folderIconOutline) resolvedFolder.accent else 0,
             outlineWidthPx = 2f * resources.displayMetrics.density,
             clipMembers = prefs.folderClipToBg,
-            prioritizeFirst = prefs.folderPrioritizeFirst
+            prioritizeFirst = prefs.folderPrioritizeFirst,
+            glass = FolderIconDrawable.glassFor(prefs),
+            shadow = prefs.iconShadow
         )
     }
 
@@ -4241,6 +4313,15 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 override fun onAddPage(): Boolean =
                     workspaceAdapter.isAddPage(binding.workspacePager.currentItem)
                 override fun addPageFromSlot(then: (() -> Unit)?) = requestEditAddPage(then)
+                override fun canRemoveCurrentPage(): Boolean =
+                    workspaceAdapter.realPageCount > 1 && viewModel.workspaceItems(currentPage()).isEmpty()
+                // The page before it takes its place in view, the first page
+                // the page after.
+                override fun removeCurrentPage() {
+                    val page = currentPage()
+                    val count = workspaceAdapter.realPageCount
+                    viewModel.removePage(page) { followRemovedPages(count - 1, (page - 1).coerceAtLeast(0)) }
+                }
             }
         )
     }

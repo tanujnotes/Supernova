@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.core.net.toUri
 import com.supernova.launcher.R
 import com.supernova.launcher.SupernovaApp
+import com.supernova.launcher.data.IconGlass
 import com.supernova.launcher.data.IconShape
 import com.supernova.launcher.data.LauncherPrefs
 import kotlin.math.roundToInt
@@ -22,6 +23,11 @@ import com.supernova.launcher.ui.DrawerTabBar
 import com.supernova.launcher.ui.DrawerTabStyle
 import com.supernova.launcher.ui.FolderMode
 import com.supernova.launcher.ui.FolderScroll
+import com.supernova.launcher.ui.DesktopSearchBarConfig
+import com.supernova.launcher.ui.DrawerActionButton
+import com.supernova.launcher.ui.DrawerBarPlacement
+import com.supernova.launcher.ui.DrawerSearchBarConfig
+import com.supernova.launcher.ui.SearchBarChip
 import com.supernova.launcher.ui.SearchBarConfig
 import com.supernova.launcher.ui.SearchBarPlacement
 import com.supernova.launcher.ui.DrawerStyle
@@ -58,10 +64,8 @@ object SettingsCatalogue {
         val exportIcons: () -> Unit = {},
         val managePermission: (LabsPermission) -> Unit = {},
         val pickDesktopGrid: () -> Unit = {},
-        val editDrawerSearchBar: () -> Unit = {},
         val editThemeSchedule: () -> Unit = {},
         val showLicense: () -> Unit = {},
-        val editDrawerButtons: () -> Unit = {},
         val editGesture: (Gesture) -> Unit = {},
         val pickLockMethod: () -> Unit = {},
         val editHiddenApps: () -> Unit = {},
@@ -91,7 +95,6 @@ object SettingsCatalogue {
         // Fired on a genuine user enable, so the activity can run the
         // READ_CONTACTS runtime request when it isn't granted yet.
         val onSearchContactsEnabled: () -> Unit = {},
-        val editSearchBar: () -> Unit = {},
         val editPopupRows: () -> Unit = {},
         // Feed page: contextual permission requests on genuine enables (the
         // contacts-search pattern), the custom-cards manager, and the
@@ -108,7 +111,8 @@ object SettingsCatalogue {
             { _, parent -> android.view.View(parent.context) },
         val builtInPreview: (BuiltInCard, android.view.ViewGroup) -> android.view.View =
             { _, parent -> android.view.View(parent.context) },
-        // Opens a section by title (a built-in card's own settings page).
+        // Opens a section by title (a built-in card's own settings page,
+        // the Desktop search bar page).
         val openSection: (Int) -> Unit = {}
     )
 
@@ -190,6 +194,33 @@ object SettingsCatalogue {
                 binding.label ?: context.getString(EnumLabels.of(binding.action))
             },
             onClick = { actions.editGesture(gesture) }
+        )
+
+        // Every row on a search bar's page edits one field of its slice of
+        // the searchBarConfig JSON (SearchBarPrefs), written back whole.
+        fun editDesktopBar(change: (DesktopSearchBarConfig) -> DesktopSearchBarConfig) {
+            viewModel.setSearchBarConfig(
+                SearchBarPrefs.withDesktopBar(viewModel.state.value.prefs, change).searchBarConfig
+            )
+        }
+
+        fun editDrawerBar(change: (DrawerSearchBarConfig) -> DrawerSearchBarConfig) {
+            viewModel.setSearchBarConfig(
+                SearchBarPrefs.withDrawerBar(viewModel.state.value.prefs, change).searchBarConfig
+            )
+        }
+
+        // A button on the bar. Turning one on adds it after the others, so
+        // they show in the order they were turned on.
+        fun barChip(chip: SearchBarChip, @StringRes title: Int) = SettingItem.Toggle(
+            title,
+            get = { prefs -> SearchBarPrefs.desktopBar(prefs).chips.any { SearchBarChip.fromName(it) == chip } },
+            set = { on ->
+                editDesktopBar { bar ->
+                    val without = bar.chips.filterNot { SearchBarChip.fromName(it) == chip }
+                    bar.copy(chips = if (on) without + chip.name else without)
+                }
+            }
         )
 
         fun fontPick(current: LabelFont, onPick: (LabelFont) -> Unit) = pick(
@@ -362,6 +393,12 @@ object SettingsCatalogue {
                     R.string.infinite_scroll,
                     get = { it.infiniteScroll },
                     set = { viewModel.setInfiniteScroll(it) }
+                ),
+                SettingItem.Toggle(
+                    R.string.remove_empty_pages,
+                    get = { it.removeEmptyPages },
+                    set = { viewModel.setRemoveEmptyPages(it) },
+                    subtitle = R.string.remove_empty_pages_summary
                 ),
                 SettingItem.Slider(
                     R.string.desktop_padding_h,
@@ -687,23 +724,6 @@ object SettingsCatalogue {
                     get = { it.drawerPullToSearch },
                     set = { viewModel.setDrawerPullToSearch(it) }
                 ),
-                SettingItem.Row(
-                    R.string.drawer_action_buttons,
-                    subtitle = {
-                        val buttons = com.supernova.launcher.ui.DrawerActionButton.decode(it.drawerActionButtons)
-                        if (buttons.isEmpty()) context.getString(R.string.action_none)
-                        else buttons.joinToString(", ") { b ->
-                            context.getString(
-                                when (b) {
-                                    com.supernova.launcher.ui.DrawerActionButton.SEARCH -> R.string.action_open_search
-                                    com.supernova.launcher.ui.DrawerActionButton.PLAY_STORE -> R.string.chip_play_store
-                                    com.supernova.launcher.ui.DrawerActionButton.SETTINGS -> R.string.settings
-                                }
-                            )
-                        }
-                    },
-                    onClick = actions.editDrawerButtons
-                ),
                 rows.color(
                     R.string.drawer_scrubber_color, { it.drawerScrubberColor },
                     subtitle = {
@@ -852,7 +872,7 @@ object SettingsCatalogue {
                             )
                         )
                     },
-                    onClick = actions.editSearchBar
+                    onClick = { actions.openSection(R.string.desktop_search_bar) }
                 ),
                 SettingItem.Row(
                     R.string.drawer_search_bar,
@@ -866,7 +886,7 @@ object SettingsCatalogue {
                             }
                         )
                     },
-                    onClick = actions.editDrawerSearchBar
+                    onClick = { actions.openSection(R.string.drawer_search_bar) }
                 ),
                 // Supersedes the legacy homeSearch toggle; the pref remains
                 // underneath as the "" fallback.
@@ -888,6 +908,124 @@ object SettingsCatalogue {
                             com.supernova.launcher.gesture.GestureAction.NONE
                     }
                 )
+            )
+        ),
+        // The Desktop search bar's own page, opened from the Search page's
+        // Search bars group (and the bar's long-press menu); back returns there.
+        SettingsSection(
+            R.string.desktop_search_bar,
+            listOf(
+                SettingItem.Preview(PreviewKind.SEARCH_BAR),
+                rows.choice(
+                    R.string.search_bar_placement,
+                    listOf(
+                        SearchBarPlacement.NONE, SearchBarPlacement.DOCK_ABOVE,
+                        SearchBarPlacement.DOCK_BELOW, SearchBarPlacement.PERSISTENT
+                    ),
+                    { SearchBarPlacement.fromName(SearchBarPrefs.desktopBar(it).placement) }, { EnumLabels.of(it) }
+                ) { placement -> rows.editDesktopBar { it.copy(placement = placement.name) } },
+                SettingItem.Header(R.string.group_appearance),
+                SettingItem.Slider(
+                    R.string.style_corner_radius, min = 0, max = DesktopSearchBarConfig.MAX_RADIUS, step = 2,
+                    get = { SearchBarPrefs.desktopBar(it).radius.coerceIn(0, DesktopSearchBarConfig.MAX_RADIUS) },
+                    set = { v -> rows.editDesktopBar { it.copy(radius = v) } },
+                    display = { context.getString(R.string.padding_dp_value, it) },
+                    preview = { p, v -> SearchBarPrefs.withDesktopBar(p) { it.copy(radius = v) } }
+                ),
+                SettingItem.Slider(
+                    R.string.style_opacity, min = 0, max = 100, step = 5,
+                    get = { (SearchBarPrefs.desktopBar(it).alpha.coerceIn(0f, 1f) * 100f).roundToInt() },
+                    set = { v -> rows.editDesktopBar { it.copy(alpha = v / 100f) } },
+                    display = { context.getString(R.string.opacity_percent, it) },
+                    preview = { p, v -> SearchBarPrefs.withDesktopBar(p) { it.copy(alpha = v / 100f) } }
+                ),
+                rows.choice(
+                    R.string.icon_glass, IconGlass.entries,
+                    { IconGlass.fromName(SearchBarPrefs.desktopBar(it).glass) },
+                    { EnumLabels.of(it) }
+                ) { glass -> rows.editDesktopBar { it.copy(glass = glass.name) } },
+                // Glass takes the place of wireframe and shadow; they keep
+                // their settings, out of sight, while it is on.
+                SettingItem.Toggle(
+                    R.string.search_bar_wireframe,
+                    get = { SearchBarPrefs.desktopBar(it).wireframe },
+                    set = { on -> rows.editDesktopBar { it.copy(wireframe = on) } },
+                    visibleIf = { IconGlass.fromName(SearchBarPrefs.desktopBar(it).glass) == IconGlass.OFF }
+                ),
+                SettingItem.Toggle(
+                    R.string.search_bar_shadow,
+                    get = { SearchBarPrefs.desktopBar(it).shadow },
+                    set = { on -> rows.editDesktopBar { it.copy(shadow = on) } },
+                    visibleIf = { IconGlass.fromName(SearchBarPrefs.desktopBar(it).glass) == IconGlass.OFF }
+                ),
+                SettingItem.Toggle(
+                    R.string.search_bar_hint_text,
+                    get = { SearchBarPrefs.desktopBar(it).hint },
+                    set = { on -> rows.editDesktopBar { it.copy(hint = on) } }
+                ),
+                SettingItem.Header(R.string.search_bar_chips),
+                rows.barChip(SearchBarChip.DATE, R.string.search_bar_chip_date),
+                rows.barChip(SearchBarChip.ASSISTANT, R.string.search_bar_chip_assistant),
+                rows.barChip(SearchBarChip.PLAY_STORE, R.string.chip_play_store),
+                rows.barChip(SearchBarChip.VOICE, R.string.search_bar_chip_voice)
+            )
+        ),
+        // The drawer field's own page, opened from the same Search bars group.
+        SettingsSection(
+            R.string.drawer_search_bar,
+            listOf(
+                SettingItem.Preview(PreviewKind.DRAWER_SEARCH_BAR),
+                rows.choice(
+                    R.string.search_bar_placement, DrawerBarPlacement.entries,
+                    { DrawerBarPlacement.fromConfig(SearchBarPrefs.drawerBar(it)) },
+                    {
+                        when (it) {
+                            DrawerBarPlacement.TOP -> R.string.tab_bar_top
+                            DrawerBarPlacement.BOTTOM -> R.string.tab_bar_bottom
+                            DrawerBarPlacement.HIDDEN -> R.string.placement_hidden
+                        }
+                    }
+                ) { placement ->
+                    rows.editDrawerBar {
+                        it.copy(placement = placement.name, enabled = placement != DrawerBarPlacement.HIDDEN)
+                    }
+                },
+                SettingItem.Toggle(
+                    R.string.drawer_search_global,
+                    get = { SearchBarPrefs.drawerBar(it).globalOnTap },
+                    set = { on -> rows.editDrawerBar { it.copy(globalOnTap = on) } },
+                    visibleIf = {
+                        DrawerBarPlacement.fromConfig(SearchBarPrefs.drawerBar(it)) != DrawerBarPlacement.HIDDEN
+                    }
+                ),
+                SettingItem.Header(R.string.group_appearance),
+                rows.choice(
+                    R.string.icon_glass, IconGlass.entries,
+                    { IconGlass.fromName(SearchBarPrefs.drawerBar(it).glass) },
+                    { EnumLabels.of(it) }
+                ) { glass -> rows.editDrawerBar { it.copy(glass = glass.name) } },
+                // Glass takes the place of the filled box and the outline.
+                SettingItem.Toggle(
+                    R.string.drawer_bar_filled,
+                    get = { SearchBarPrefs.drawerBar(it).filled },
+                    set = { on -> rows.editDrawerBar { it.copy(filled = on) } },
+                    visibleIf = { IconGlass.fromName(SearchBarPrefs.drawerBar(it).glass) == IconGlass.OFF }
+                ),
+                // An unset radius draws as the full pill, so it reads as one.
+                SettingItem.Slider(
+                    R.string.style_corner_radius, min = 0, max = DrawerSearchBarConfig.MAX_RADIUS, step = 2,
+                    get = {
+                        (SearchBarPrefs.drawerBar(it).radius ?: DrawerSearchBarConfig.MAX_RADIUS)
+                            .coerceIn(0, DrawerSearchBarConfig.MAX_RADIUS)
+                    },
+                    set = { v -> rows.editDrawerBar { it.copy(radius = v) } },
+                    display = { context.getString(R.string.padding_dp_value, it) },
+                    preview = { p, v -> SearchBarPrefs.withDrawerBar(p) { it.copy(radius = v) } }
+                ),
+                // The buttons inside the field, at its right end; gone with it.
+                SettingItem.Header(R.string.search_bar_chips, visibleIf = { SearchBarPrefs.drawerFieldShown(it) }),
+                drawerButton(viewModel, DrawerActionButton.PLAY_STORE, R.string.chip_play_store),
+                drawerButton(viewModel, DrawerActionButton.SETTINGS, R.string.settings),
             )
         ),
         // Feed page: the page toggle, then Layout (frequent apps and
@@ -1005,7 +1143,9 @@ object SettingsCatalogue {
                 // access gates getActiveSessions, same as badges.
                 SettingItem.Row(
                     R.string.feed_media_needs_access,
+                    subtitle = { context.getString(R.string.feed_media_needs_access_summary) },
                     onClick = actions.openNotificationAccess,
+                    look = SettingItem.RowLook(icon = R.drawable.ic_settings_warn, warn = true),
                     visibleIf = {
                         it.feedShowMedia &&
                             !com.supernova.launcher.notification.SupernovaNotificationListener
@@ -1218,6 +1358,11 @@ object SettingsCatalogue {
                     R.string.icon_shape,
                     subtitle = { context.getString(EnumLabels.of(IconShape.fromName(it.iconShape))) },
                     onClick = actions.pickIconShape
+                ),
+                rows.choice(
+                    R.string.icon_glass, com.supernova.launcher.data.IconGlass.entries,
+                    { com.supernova.launcher.data.IconGlass.fromName(it.iconGlass) }, { EnumLabels.of(it) },
+                    onPick = { viewModel.setIconGlass(it.name) }
                 ),
                 // Bulk undo for per-app and per-folder icon picks.
                 SettingItem.Row(
@@ -1489,15 +1634,18 @@ object SettingsCatalogue {
                     set = { viewModel.setLabsExportPng(it) },
                     subtitle = R.string.labs_export_png_summary
                 ),
+                // Both run on the tap, so neither leads anywhere.
                 SettingItem.Row(
                     R.string.labs_export_icons,
                     subtitle = { context.getString(R.string.labs_export_icons_summary) },
-                    onClick = actions.exportIcons
+                    onClick = actions.exportIcons,
+                    look = SettingItem.RowLook(chevron = false)
                 ),
                 SettingItem.Row(
                     R.string.labs_clear_icon_cache,
                     subtitle = { context.getString(R.string.labs_clear_icon_cache_summary) },
-                    onClick = actions.clearIconCache
+                    onClick = actions.clearIconCache,
+                    look = SettingItem.RowLook(chevron = false)
                 ),
                 // Labs Permissions: Supernova's own.
                 SettingItem.Header(R.string.labs_permissions)
@@ -1505,7 +1653,8 @@ object SettingsCatalogue {
                 SettingItem.Row(
                     permission.title,
                     subtitle = { permission.status(context) },
-                    onClick = { actions.managePermission(permission) }
+                    onClick = { actions.managePermission(permission) },
+                    look = SettingItem.RowLook(positive = { permission.granted(context) })
                 )
             }
         )
@@ -1524,17 +1673,20 @@ object SettingsCatalogue {
         return SettingsSection(
         R.string.style_tab,
         listOf(
+            // A grouped page: Theme and Surfaces cards, each under its label.
+            SettingItem.Header(R.string.style_group_theme),
             SettingItem.Row(
                 R.string.color_palette,
                 subtitle = {
                     context.getString(EnumLabels.of(PaletteSourceMode.fromName(it.paletteSource)))
                 },
-                onClick = actions.openPaletteDialog
+                onClick = actions.openPaletteDialog,
+                look = SettingItem.RowLook(R.drawable.ic_tab_style)
             ),
             rows.choice(
                 R.string.theme_mode, ThemeMode.entries,
                 { ThemeMode.fromName(it.themeMode) }, { EnumLabels.of(it) }
-            ) { viewModel.setThemeMode(it.name) },
+            ) { viewModel.setThemeMode(it.name) }.withLook(SettingItem.RowLook(R.drawable.ic_style_theme)),
             SettingItem.Row(
                 R.string.theme_schedule_times,
                 subtitle = {
@@ -1544,13 +1696,19 @@ object SettingsCatalogue {
                     )
                 },
                 onClick = actions.editThemeSchedule,
-                visibleIf = { ThemeMode.fromName(it.themeMode) == ThemeMode.SCHEDULE }
+                visibleIf = { ThemeMode.fromName(it.themeMode) == ThemeMode.SCHEDULE },
+                look = SettingItem.RowLook(R.drawable.ic_style_schedule)
             ),
             rows.choice(
                 R.string.accent_color, AccentColor.entries,
                 { AccentColor.fromName(it.accentColor) }, { EnumLabels.of(it) },
                 onPick = { viewModel.setAccentColor(it.name) }
+            ).withLook(
+                SettingItem.RowLook(R.drawable.ic_style_accent, swatch = {
+                    context.getColor(AccentColor.fromName(it.accentColor).colorRes)
+                })
             ),
+            SettingItem.Header(R.string.style_group_surfaces),
             SettingItem.StyleTarget(R.string.settings_section_drawer, SurfaceId.DRAWER, { actions.openStylePicker(SurfaceId.DRAWER) }),
             SettingItem.StyleTarget(R.string.settings_section_dock, SurfaceId.DOCK, { actions.openStylePicker(SurfaceId.DOCK) }),
             SettingItem.StyleTarget(R.string.settings_section_folders, SurfaceId.FOLDER, { actions.openStylePicker(SurfaceId.FOLDER) }),
@@ -1650,5 +1808,52 @@ object SettingsCatalogue {
             )
         )
         return parts.joinToString(" \u00b7 ")
+    }
+}
+
+// One of the drawer field's buttons (drawerActionButtons), on and off; they
+// keep their own order whichever is turned on first.
+private fun drawerButton(
+    viewModel: LauncherViewModel,
+    button: DrawerActionButton,
+    @StringRes title: Int
+) = SettingItem.Toggle(
+    title,
+    get = { button in DrawerActionButton.decode(it.drawerActionButtons) },
+    set = { on ->
+        val now = DrawerActionButton.decode(viewModel.state.value.prefs.drawerActionButtons).toSet()
+        val next = if (on) now + button else now - button
+        viewModel.setDrawerActionButtons(DrawerActionButton.encode(DrawerActionButton.entries.filter { it in next }))
+    },
+    visibleIf = { SearchBarPrefs.drawerFieldShown(it) }
+)
+
+// The two bars' slices of the searchBarConfig JSON, for their pages' rows
+// and previews: read one, or a prefs snapshot with one changed.
+internal object SearchBarPrefs {
+    fun desktopBar(prefs: LauncherPrefs): DesktopSearchBarConfig =
+        SearchBarConfig.decode(prefs.searchBarConfig).desktop
+
+    fun withDesktopBar(
+        prefs: LauncherPrefs,
+        change: (DesktopSearchBarConfig) -> DesktopSearchBarConfig
+    ): LauncherPrefs {
+        val full = SearchBarConfig.decode(prefs.searchBarConfig)
+        return prefs.copy(searchBarConfig = full.copy(desktop = change(full.desktop)).encode())
+    }
+
+    fun drawerBar(prefs: LauncherPrefs): DrawerSearchBarConfig =
+        SearchBarConfig.decode(prefs.searchBarConfig).drawer
+
+    // Whether the drawer has a field at all (its placement isn't Hidden).
+    fun drawerFieldShown(prefs: LauncherPrefs): Boolean =
+        DrawerBarPlacement.fromConfig(drawerBar(prefs)) != DrawerBarPlacement.HIDDEN
+
+    fun withDrawerBar(
+        prefs: LauncherPrefs,
+        change: (DrawerSearchBarConfig) -> DrawerSearchBarConfig
+    ): LauncherPrefs {
+        val full = SearchBarConfig.decode(prefs.searchBarConfig)
+        return prefs.copy(searchBarConfig = full.copy(drawer = change(full.drawer)).encode())
     }
 }

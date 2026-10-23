@@ -119,6 +119,7 @@ class LauncherViewModel(
     private var appliedIconShapeCustom: String? = null
     private var appliedReshape: com.supernova.launcher.data.ReshapeLegacy? = null
     private var appliedShadow: Boolean? = null
+    private var appliedGlass: String? = null
     // Themed-icon colors depend on the whole palette, so track a signature.
     private var appliedThemedSig: String? = null
     private var autoBackupWritten = false
@@ -163,19 +164,23 @@ class LauncherViewModel(
                 val reshape = com.supernova.launcher.data.ReshapeLegacy.fromPrefs(prefs)
                 val normalizeChanged = reshape != appliedReshape
                 val shadowChanged = prefs.iconShadow != appliedShadow
+                val glassChanged = prefs.iconGlass != appliedGlass
                 val themedSig = themedIconSignature(prefs)
                 val themedChanged = themedSig != appliedThemedSig
                 val resolution = iconResolution(prefs)
                 val resolutionChanged = resolution != appliedResolution
-                if (!packChanged && !shapeChanged && !normalizeChanged && !shadowChanged &&
-                    !themedChanged && !resolutionChanged
-                ) return@collect
+                val changes = listOf(
+                    packChanged, shapeChanged, normalizeChanged, shadowChanged,
+                    glassChanged, themedChanged, resolutionChanged
+                )
+                if (changes.none { it }) return@collect
                 appliedResolution = resolution
                 appliedIconPack = prefs.iconPack
                 appliedIconShape = prefs.iconShape
                 appliedIconShapeCustom = prefs.iconShapeCustom
                 appliedReshape = reshape
                 appliedShadow = prefs.iconShadow
+                appliedGlass = prefs.iconGlass
                 appliedThemedSig = themedSig
                 withContext(Dispatchers.Default) {
                     if (packChanged) catalog.applyIconPack(prefs.iconPack)
@@ -187,6 +192,9 @@ class LauncherViewModel(
                     }
                     if (normalizeChanged) catalog.applyReshapeLegacy(reshape)
                     if (shadowChanged) catalog.applyIconShadow(prefs.iconShadow)
+                    if (glassChanged) {
+                        catalog.applyIconGlass(com.supernova.launcher.data.IconGlass.fromName(prefs.iconGlass))
+                    }
                     if (resolutionChanged) catalog.applyIconResolution(resolution)
                     if (themedChanged) {
                         val (bg, fg) = themedIconColors(prefs)
@@ -721,6 +729,8 @@ class LauncherViewModel(
 
     fun setInfiniteScroll(value: Boolean) = persist { preferences.setInfiniteScroll(value) }
 
+    fun setRemoveEmptyPages(value: Boolean) = persist { preferences.setRemoveEmptyPages(value) }
+
     fun setDesktopPadding(horizontal: Int, vertical: Int) = persist { preferences.setDesktopPadding(horizontal, vertical) }
 
     fun setDesktopLocked(value: Boolean) = persist { preferences.setDesktopLocked(value) }
@@ -842,6 +852,8 @@ class LauncherViewModel(
     fun setReshapeLegacy(value: String) = persist { preferences.setReshapeLegacy(value) }
 
     fun setIconShadow(value: Boolean) = persist { preferences.setIconShadow(value) }
+
+    fun setIconGlass(value: String) = persist { preferences.setIconGlass(value) }
 
     fun setIconSwipeIndicator(value: Boolean) = persist { preferences.setIconSwipeIndicator(value) }
 
@@ -1421,7 +1433,17 @@ class LauncherViewModel(
 
     fun addPage() = persist { repository.addPage() }
 
-    fun removePage(page: Int) = persist { repository.removePage(page) }
+    fun removePage(page: Int, onRemoved: (() -> Unit)? = null) {
+        viewModelScope.launch { if (repository.removePage(page)) onRemoved?.invoke() }
+    }
+
+    // onRemoved hears the pages that went (old numbers), when any did.
+    fun removeEmptyPages(keep: Set<Int>, onRemoved: (List<Int>) -> Unit) {
+        viewModelScope.launch {
+            val removed = repository.removeEmptyPages(keep)
+            if (removed.isNotEmpty()) onRemoved(removed)
+        }
+    }
 
     fun movePage(from: Int, to: Int) = persist { repository.movePage(from, to) }
 

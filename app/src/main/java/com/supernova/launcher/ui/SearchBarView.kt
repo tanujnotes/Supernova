@@ -20,10 +20,11 @@ import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.widget.ImageViewCompat
 import com.supernova.launcher.R
+import com.supernova.launcher.data.IconGlass
 import com.supernova.launcher.ui.theme.ResolvedSurface
 
 // The desktop/dock search bar pill: SEARCH_BAR surface colors plus per-config
-// radius, opacity, wireframe, shadow, and optional action chips. The bar tap
+// radius, opacity, wireframe, shadow or glass, and optional action chips. The bar tap
 // routes to the global overlay through onTap; chips blind-start their system
 // intents directly (a missing handler just no-ops, like the web-search paths).
 class SearchBarView @JvmOverloads constructor(
@@ -45,11 +46,25 @@ class SearchBarView @JvmOverloads constructor(
     private var dateChip: TextView? = null
     private var applied: List<Any>? = null
 
-    // APP_DRAWER chip: opening the drawer is the host's job.
-    var onOpenDrawer: (() -> Unit)? = null
 
     // The search-bar menu hangs off a long press.
     var onLongPress: ((View) -> Unit)? = null
+
+    // A host's own button kept at the bar's right end, after the chips (the
+    // feed's overflow menu); null takes it out again. The host styles it.
+    var trailing: View? = null
+        set(value) {
+            if (field === value) return
+            field?.let { removeView(it) }
+            field = value
+            if (value != null) {
+                (value.parent as? android.view.ViewGroup)?.removeView(value)
+                // Sized like a chip: its icon in the magnifier's 20dp box.
+                (value as? ImageView)?.scaleType = ImageView.ScaleType.FIT_CENTER
+                value.setPadding(dp(CHIP_PAD_DP), dp(CHIP_PAD_DP), dp(CHIP_PAD_DP), dp(CHIP_PAD_DP))
+                addView(value, LayoutParams(dp(CHIP_DP), dp(CHIP_DP)).apply { marginStart = dp(2) })
+            }
+        }
 
     init {
         orientation = HORIZONTAL
@@ -76,12 +91,13 @@ class SearchBarView @JvmOverloads constructor(
     private fun addIconChip(iconRes: Int, labelRes: Int, tint: ColorStateList, onClick: () -> Unit) {
         val chip = ImageView(context)
         chip.setImageResource(iconRes)
-        chip.setPadding(dp(8), dp(8), dp(8), dp(8))
+        chip.setPadding(dp(CHIP_PAD_DP), dp(CHIP_PAD_DP), dp(CHIP_PAD_DP), dp(CHIP_PAD_DP))
         chip.background = borderlessRipple()
         chip.contentDescription = context.getString(labelRes)
         chip.setOnClickListener { if (interactive) onClick() }
         ImageViewCompat.setImageTintList(chip, tint)
-        addView(chip, LayoutParams(dp(36), dp(36)).apply { marginStart = dp(2) })
+        chip.tag = CHIP_TAG
+        addView(chip, chipIndex, LayoutParams(dp(CHIP_DP), dp(CHIP_DP)).apply { marginStart = dp(2) })
     }
 
     private fun addDateChip(textColor: Int) {
@@ -94,11 +110,15 @@ class SearchBarView @JvmOverloads constructor(
         chip.contentDescription = context.getString(R.string.search_bar_chip_date)
         chip.setOnClickListener { if (interactive) openCalendar() }
         chip.setTextColor(textColor)
-        addView(chip, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
+        chip.tag = CHIP_TAG
+        addView(chip, chipIndex, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
             marginStart = dp(2)
         })
         dateChip = chip
     }
+
+    // Chips go before the host's trailing button, if there is one.
+    private val chipIndex: Int get() = trailing?.let(::indexOfChild)?.takeIf { it >= 0 } ?: childCount
 
     private fun borderlessRipple(): Drawable? {
         val value = TypedValue()
@@ -119,40 +139,40 @@ class SearchBarView @JvmOverloads constructor(
         if (key != applied) {
             applied = key
 
-            pill.cornerRadius = dp(config.radius.coerceIn(0, DesktopSearchBarConfig.MAX_RADIUS)).toFloat()
+            val radius = dp(config.radius.coerceIn(0, DesktopSearchBarConfig.MAX_RADIUS)).toFloat()
             val alpha = (config.alpha.coerceIn(0f, 1f) * 255).toInt()
-            if (config.wireframe) {
-                pill.setColor(Color.TRANSPARENT)
-                pill.setStroke(dp(2), (alpha shl 24) or (resolved.text and 0xFFFFFF))
+            val glass = IconGlass.fromName(config.glass)
+            if (glass != IconGlass.OFF) {
+                // A see-through bar would show its own shadow through it, and
+                // an outline-only one has no surface to be glass.
+                background = GlassPillDrawable(glass, radius).also { it.alpha = alpha }
+                elevation = 0f
             } else {
-                pill.setColor((alpha shl 24) or (resolved.surface and 0xFFFFFF))
-                pill.setStroke(0, 0)
+                pill.cornerRadius = radius
+                if (config.wireframe) {
+                    pill.setColor(Color.TRANSPARENT)
+                    pill.setStroke(dp(2), (alpha shl 24) or (resolved.text and 0xFFFFFF))
+                } else {
+                    pill.setColor((alpha shl 24) or (resolved.surface and 0xFFFFFF))
+                    pill.setStroke(0, 0)
+                }
+                if (background !== pill) background = pill
+                elevation = if (config.shadow) dp(4).toFloat() else 0f
             }
-            elevation = if (config.shadow) dp(4).toFloat() else 0f
 
+            // The magnifier on the left is fixed (set in init), in the
+            // bar's text colour like its buttons.
             val tint = ColorStateList.valueOf(resolved.text)
-            when (SearchBarLogo.fromName(config.logo)) {
-                SearchBarLogo.SEARCH -> {
-                    searchIcon.setImageResource(R.drawable.ic_search)
-                    searchIcon.visibility = VISIBLE
-                }
-                SearchBarLogo.SUPERNOVA -> {
-                    searchIcon.setImageResource(R.drawable.ic_supernova_logo)
-                    searchIcon.visibility = VISIBLE
-                }
-                SearchBarLogo.NONE -> searchIcon.visibility = GONE
-            }
-            ImageViewCompat.setImageTintList(
-                searchIcon,
-                if (config.logoMonochrome) tint else ColorStateList.valueOf(resolved.accent)
-            )
+            ImageViewCompat.setImageTintList(searchIcon, tint)
             hint.setTextColor((0x99 shl 24) or (resolved.text and 0xFFFFFF))
             // Hidden, not gone: it still holds the chips to the right edge.
             hint.visibility = if (config.hint) VISIBLE else INVISIBLE
 
-            // Chips rebuild in config order (C8); everything after the icon
-            // and hint is chip territory.
-            while (childCount > 2) removeViewAt(childCount - 1)
+            // Chips rebuild in config order (C8); the host's trailing button
+            // stays put at the end.
+            for (index in childCount - 1 downTo 0) {
+                if (getChildAt(index).tag == CHIP_TAG) removeViewAt(index)
+            }
             dateChip = null
             config.chips.mapNotNull(SearchBarChip::fromName).distinct().forEach { chip ->
                 when (chip) {
@@ -161,9 +181,7 @@ class SearchBarView @JvmOverloads constructor(
                     SearchBarChip.ASSISTANT ->
                         addIconChip(R.drawable.ic_assistant, R.string.search_bar_chip_assistant, tint) { startAssistant() }
                     SearchBarChip.PLAY_STORE ->
-                        addIconChip(R.drawable.ic_menu_play, R.string.chip_play_store, tint) { openPlayStore() }
-                    SearchBarChip.APP_DRAWER ->
-                        addIconChip(R.drawable.ic_action_drawer, R.string.action_open_drawer, tint) { onOpenDrawer?.invoke() }
+                        addIconChip(R.drawable.ic_play_store, R.string.chip_play_store, tint) { openPlayStore() }
                     SearchBarChip.DATE -> addDateChip(resolved.text)
                 }
             }
@@ -224,4 +242,10 @@ class SearchBarView @JvmOverloads constructor(
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
     }
 
+    private companion object {
+        const val CHIP_TAG = "search-bar-chip"
+        const val CHIP_DP = 36
+        // Leaves the 20dp box the magnifier on the left has.
+        const val CHIP_PAD_DP = 8
+    }
 }

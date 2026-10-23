@@ -48,6 +48,7 @@ class LauncherPreferences(private val context: Context) {
             target[StoreKeys.pageIndicatorAutoHide] = prefs.pageIndicatorAutoHide
             target[StoreKeys.pageIndicatorColor] = prefs.pageIndicatorColor
             target[StoreKeys.infiniteScroll] = prefs.infiniteScroll
+            target[StoreKeys.removeEmptyPages] = prefs.removeEmptyPages
             target[StoreKeys.desktopPaddingH] = prefs.desktopPaddingH.coerceIn(0, 48)
             target[StoreKeys.desktopPaddingV] = prefs.desktopPaddingV.coerceIn(0, 48)
             target[StoreKeys.desktopLocked] = prefs.desktopLocked
@@ -110,6 +111,7 @@ class LauncherPreferences(private val context: Context) {
             target[StoreKeys.iconNormalize] = prefs.iconNormalize
             target[StoreKeys.reshapeLegacy] = prefs.reshapeLegacy
             target[StoreKeys.iconShadow] = prefs.iconShadow
+            target[StoreKeys.iconGlass] = prefs.iconGlass
             target[StoreKeys.iconSwipeIndicator] = prefs.iconSwipeIndicator
             target[StoreKeys.themedIcons] = prefs.themedIcons
             target[StoreKeys.themedIconsAutogen] = prefs.themedIconsAutogen
@@ -251,6 +253,7 @@ class LauncherPreferences(private val context: Context) {
             pageIndicatorAutoHide = values[StoreKeys.pageIndicatorAutoHide] ?: true,
             pageIndicatorColor = values[StoreKeys.pageIndicatorColor].orEmpty(),
             infiniteScroll = values[StoreKeys.infiniteScroll] ?: false,
+            removeEmptyPages = values[StoreKeys.removeEmptyPages] ?: true,
             desktopPaddingH = (values[StoreKeys.desktopPaddingH] ?: 0).coerceIn(0, 48),
             desktopPaddingV = (values[StoreKeys.desktopPaddingV] ?: 12).coerceIn(0, 48),
             desktopLocked = values[StoreKeys.desktopLocked] ?: false,
@@ -313,6 +316,7 @@ class LauncherPreferences(private val context: Context) {
             iconNormalize = values[StoreKeys.iconNormalize] ?: false,
             reshapeLegacy = values[StoreKeys.reshapeLegacy] ?: "ON",
             iconShadow = values[StoreKeys.iconShadow] ?: true,
+            iconGlass = values[StoreKeys.iconGlass] ?: "OFF",
             iconSwipeIndicator = values[StoreKeys.iconSwipeIndicator] ?: true,
             themedIcons = values[StoreKeys.themedIcons] ?: false,
             themedIconsAutogen = values[StoreKeys.themedIconsAutogen] ?: false,
@@ -373,7 +377,7 @@ class LauncherPreferences(private val context: Context) {
             searchHistory = values[StoreKeys.searchHistory] ?: true,
             searchPrivateKeyboard = values[StoreKeys.searchPrivateKeyboard] ?: true,
             homeSearch = values[StoreKeys.homeSearch] ?: false,
-            homeButtonAction = values[StoreKeys.homeButtonAction] ?: "OPEN_SEARCH",
+            homeButtonAction = values[StoreKeys.homeButtonAction] ?: "OPEN_DRAWER",
             searchBarConfig = values[StoreKeys.searchBarConfig].orEmpty(),
             popupNotifications = values[StoreKeys.popupNotifications] ?: true,
             popupCardBg = values[StoreKeys.popupCardBg] ?: true,
@@ -495,6 +499,8 @@ class LauncherPreferences(private val context: Context) {
     suspend fun setPageIndicatorColor(value: String) = put(StoreKeys.pageIndicatorColor, value)
 
     suspend fun setInfiniteScroll(value: Boolean) = put(StoreKeys.infiniteScroll, value)
+
+    suspend fun setRemoveEmptyPages(value: Boolean) = put(StoreKeys.removeEmptyPages, value)
 
     suspend fun setDesktopPadding(horizontal: Int, vertical: Int) {
         context.supernovaStore.edit {
@@ -653,6 +659,8 @@ class LauncherPreferences(private val context: Context) {
     suspend fun setReshapeLegacy(value: String) = put(StoreKeys.reshapeLegacy, value)
 
     suspend fun setIconShadow(value: Boolean) = put(StoreKeys.iconShadow, value)
+
+    suspend fun setIconGlass(value: String) = put(StoreKeys.iconGlass, value)
 
     suspend fun setIconSwipeIndicator(value: Boolean) = put(StoreKeys.iconSwipeIndicator, value)
 

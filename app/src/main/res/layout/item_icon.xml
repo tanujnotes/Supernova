@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- clipChildren off: an icon's shadow falls outside its image view, into
-     this layout's padding (data/ShadowedIconDrawable). -->
+<!-- clipChildren and clipToPadding off: an icon's shadow falls outside its
+     image view, into this layout's padding (data/ShadowedIconDrawable). With
+     clipToPadding on, the padding still cut it: in the dock, labels hidden,
+     the shadow stopped dead at the icon's top and bottom edges. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
@@ -8,7 +10,8 @@
     android:gravity="center"
     android:orientation="vertical"
     android:padding="4dp"
-    android:clipChildren="false">
+    android:clipChildren="false"
+    android:clipToPadding="false">
 
     <ImageView
         android:id="@+id/icon"

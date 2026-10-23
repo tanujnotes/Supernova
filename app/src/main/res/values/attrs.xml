@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- The accent as text on a raised surface: set by each accent overlay. -->
+    <attr name="colorAccentOnRaised" format="color" />
     <declare-styleable name="DragGridView">
         <!-- Which half of the drag grid the view draws. -->
         <attr name="gridLayer" format="enum">

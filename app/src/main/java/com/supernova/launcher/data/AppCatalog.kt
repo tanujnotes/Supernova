@@ -166,7 +166,7 @@ class AppCatalog(
                 val calendar = iconPacks.calendarDrawable(app.packageName, app.className, day)
                 if (calendar != null) {
                     val rendered = runCatching {
-                        iconRenderer.render(calendar, null, effectiveShape, customShapeSpec)
+                        iconRenderer.render(calendar, null, effectiveShape, customShapeSpec, IconGlass.OFF)
                     }.getOrNull()
                     if (rendered != null) {
                         val badged = runCatching { pm.getUserBadgedIcon(rendered, user) }.getOrNull() ?: rendered
@@ -190,9 +190,13 @@ class AppCatalog(
 
             val source: Drawable
             val decoration: IconPackDecoration?
+            // A pack's own art or a picked picture is finished as it is:
+            // glass leaves it alone.
+            var finishedArt = false
             if (custom != null) {
                 source = custom
                 decoration = null
+                finishedArt = true
             } else if (variant == "ORIGINAL") {
                 // The app's own icon with no pack plate and no shape clip.
                 source = resolveActivity(app.packageName, app.className, user)?.getIcon(0) ?: return null
@@ -212,10 +216,13 @@ class AppCatalog(
                 source = themed ?: mono ?: resolveActivity(app.packageName, app.className, user)?.getIcon(0)
                     ?: return null
                 decoration = if (themed == null && mono == null) iconPacks.decoration(packComponent) else null
+                finishedArt = themed != null
             }
 
+            // ORIGINAL is the app's own icon, glass and all left off.
+            val glass = if (variant == "ORIGINAL" || finishedArt) IconGlass.OFF else iconRenderer.glass
             val rendered = runCatching {
-                iconRenderer.render(source, decoration, effectiveShape, customShapeSpec)
+                iconRenderer.render(source, decoration, effectiveShape, customShapeSpec, glass)
             }.getOrNull() ?: return null
             dominantColorOf(IconRenderer.bitmapOf(rendered))?.let { dominantColors[cacheKey] = it }
             val icon = runCatching { pm.getUserBadgedIcon(rendered, user) }.getOrNull() ?: return null
@@ -310,6 +317,13 @@ class AppCatalog(
     fun applyReshapeLegacy(value: ReshapeLegacy) = synchronized(renderLock) {
         if (iconRenderer.reshapeLegacy == value) return
         iconRenderer.reshapeLegacy = value
+        iconCache.evictAll()
+        dominantColors.clear()
+    }
+
+    fun applyIconGlass(value: IconGlass) = synchronized(renderLock) {
+        if (iconRenderer.glass == value) return
+        iconRenderer.glass = value
         iconCache.evictAll()
         dominantColors.clear()
     }
@@ -484,7 +498,7 @@ class AppCatalog(
     // global shape; used for custom folder icons.
     fun renderPackDrawable(packPackage: String, drawableName: String): Drawable? {
         val source = packDrawable(packPackage, drawableName) ?: return null
-        return runCatching { iconRenderer.render(source, null, iconShape, customShapeSpec) }.getOrNull()
+        return runCatching { iconRenderer.render(source, null, iconShape, customShapeSpec, IconGlass.OFF) }.getOrNull()
     }
 
     // Any drawable pushed through the shape pipeline so launcher-action tiles

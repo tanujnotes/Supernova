@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Edit-mode overlay: the home-page marker above the zoomed page and the
-     Wallpapers/Settings chips above the peeking add sheet. The root is not
-     clickable so page swipes still reach the workspace underneath. -->
+<!-- Edit-mode overlay: the home-page marker above the zoomed page (with
+     Remove page beside it on an empty page) and the Wallpapers/Settings
+     chips above the peeking add sheet. The root is not clickable so page
+     swipes still reach the workspace underneath. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/editModeRoot"
@@ -19,6 +20,21 @@
         android:elevation="6dp"
         android:padding="13dp"
         android:src="@drawable/ic_edit_home" />
+
+    <ImageView
+        android:id="@+id/editRemovePage"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginStart="64dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_edit_marker"
+        android:contentDescription="@string/remove_page"
+        android:elevation="6dp"
+        android:padding="14dp"
+        android:src="@drawable/ic_menu_remove"
+        android:visibility="gone"
+        app:tint="#FF11161D" />
 
     <LinearLayout
         android:id="@+id/editChips"

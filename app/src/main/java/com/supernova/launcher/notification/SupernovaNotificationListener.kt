@@ -73,6 +73,12 @@ class SupernovaNotificationListener : NotificationListenerService() {
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) = scheduleRefresh()
 
+    // Whether a notification may badge lives in its ranking, and the system
+    // "App icon badges" switch or a channel's badge toggle changes only that:
+    // no post or removal follows, so without this the counts kept the old
+    // verdict until the next notification arrived.
+    override fun onNotificationRankingUpdate(rankingMap: RankingMap?) = scheduleRefresh()
+
     // Each refresh reads every active notification back over binder, so a
     // burst of posts (a group and its children, a sync) is read once, a
     // moment after it settles, instead of once per notification.

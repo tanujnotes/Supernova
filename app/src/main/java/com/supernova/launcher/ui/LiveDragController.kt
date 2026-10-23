@@ -89,6 +89,8 @@ class LiveDragController(
 
         fun installedApp(packageName: String, userSerial: Long): LaunchableApp?
         fun removeItemWithUndo(item: LauncherItem)
+        // A drag is over, its picture landed or gone.
+        fun onDragFinished()
 
         // The hover's reorder preview and the drop itself.
         fun hoverTargetRect(
@@ -463,6 +465,10 @@ class LiveDragController(
         window: android.widget.PopupWindow? = null
     ): Boolean {
         val picture = dragPicture(anchor, payload) ?: return false
+        // The last drop may still be settling: it finishes first, on its own
+        // state, before this drag's takes over (its end, run later, ended
+        // this drag instead, which then had no payload to drop).
+        dragLayer.cancel()
         val prefs = viewModel.state.value.prefs
         dragSourceView = anchor
         dragFromDrawer = payload.isNew
@@ -1086,8 +1092,10 @@ class LiveDragController(
     }
 
     private fun finishDrag(accepted: Boolean, flewBack: Boolean = false) {
+        val dragged = activeDragPayload != null
         onDragEnded(accepted, flewBack)
         revealSettled()
+        if (dragged) host.onDragFinished()
     }
 
     // The settled item's rebound view (workspace child or dock slot child)
@@ -1195,7 +1203,8 @@ class LiveDragController(
             // restoring now would flash the icon at its old cell first. The
             // rebind re-adds views at full alpha; this delayed restore only
             // matters for drops the repository ends up bouncing.
-            source.postDelayed({ restore(source) }, 250)
+            // Not under a drag that has picked the same view up again since.
+            source.postDelayed({ if (dragSourceView !== source) restore(source) }, 250)
         } else {
             restore(source)
         }

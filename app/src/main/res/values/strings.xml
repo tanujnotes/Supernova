@@ -63,8 +63,8 @@
     <string name="backup_import_failed">Import failed: %1$s</string>
     <string name="shortcut_failed">Unable to launch shortcut</string>
     <string name="unable_to_launch">Unable to launch %1$s</string>
-    <string name="grid_rows">Grid rows</string>
-    <string name="grid_cols">Grid columns</string>
+    <string name="grid_rows">Rows</string>
+    <string name="grid_cols">Columns</string>
     <string name="dock_count">Dock slots</string>
     <string name="icon_scale_value">%1$.2fx</string>
     <string name="show_labels">Show icon labels</string>
@@ -143,6 +143,7 @@
     <string name="pick_icon">Choose icon</string>
     <string name="no_icons_in_pack">No icons found in this pack</string>
     <string name="option_default">Default</string>
+    <string name="folder_shape_match_icons">Same as icons</string>
     <string name="option_none">None</string>
     <string name="drawer_all">All</string>
     <string name="drawer_work">Work</string>
@@ -174,6 +175,10 @@
     <string name="label_color">Label color</string>
     <string name="label_shadow">Label shadow</string>
     <string name="icon_shadow">Icon shadow</string>
+    <string name="icon_glass">Glass background</string>
+    <string name="icon_glass_frosted">Frosted</string>
+    <string name="icon_glass_clear">Clear</string>
+    <string name="icon_glass_smoked">Smoked</string>
     <string name="icon_swipe_indicator">Mark icons with swipe actions</string>
     <string name="badge_style">Badge style</string>
     <string name="badge_style_dots">Dots</string>
@@ -334,9 +339,7 @@
     <string name="placement_hidden">Hidden</string>
     <string name="drawer_bar_filled">Filled background</string>
     <string name="drawer_search_bar">Drawer search bar</string>
-    <string name="search_bar_chips_order">Buttons show in the order you enable them</string>
     <string name="drawer_scrubber_color">Fast scroller color</string>
-    <string name="drawer_action_buttons">Header buttons</string>
     <string name="drawer_isolate_tabs">Isolate tabs</string>
     <string name="drawer_isolate_tabs_summary">Prevent changing tabs when swiping sideways</string>
     <string name="drawer_tab_style">Tab type</string>
@@ -374,7 +377,7 @@
     <string name="contact_message">Message</string>
     <string name="search_contact_cards">Contact card view</string>
     <string name="about">About</string>
-    <string name="section_about_subtitle">Version and license information</string>
+    <string name="section_about_subtitle">Version and licenses</string>
     <string name="about_version">Version</string>
     <string name="about_license">Open-source license</string>
     <string name="about_license_name">AGPL-3.0</string>
@@ -397,15 +400,15 @@
     <string name="crash_log_subject">Supernova crash log</string>
     <string name="crash_log_share_failed">Couldn\'t share the crash log: %1$s</string>
     <string name="about_license_text">Supernova is free software, released under the GNU Affero General Public License v3.0. You may redistribute and modify it under the terms of that license; it comes with no warranty. The full text ships in the LICENSE file of the source repository.</string>
-    <string name="section_home_subtitle">Icon size, labels, grid, wallpaper, transitions, and pages</string>
-    <string name="section_dock_subtitle">Icon layout, background, and dock pages</string>
-    <string name="section_drawer_subtitle">Layout, style, tabs, and drawer behavior</string>
-    <string name="section_search_subtitle">Search providers, the search window, and search bars</string>
-    <string name="section_feed_subtitle">The feed page at the edge of your home screen and its cards</string>
-    <string name="section_folders_subtitle">Window style, background, and folder icon appearance</string>
-    <string name="section_icons_subtitle">Icon shape and packs, labels, badges, and the popup menu</string>
-    <string name="section_gestures_subtitle">Swipe, tap, and pinch gestures with the home button action</string>
-    <string name="section_backup_subtitle">Back up, restore, or reset your setup</string>
+    <string name="section_home_subtitle">Grid, icons, labels and pages</string>
+    <string name="section_dock_subtitle">Icons, background and pages</string>
+    <string name="section_drawer_subtitle">Layout, style and tabs</string>
+    <string name="section_search_subtitle">Providers, window and search bars</string>
+    <string name="section_feed_subtitle">The page beside home and its cards</string>
+    <string name="section_folders_subtitle">Window, background and icon</string>
+    <string name="section_icons_subtitle">Shape, packs, labels and badges</string>
+    <string name="section_gestures_subtitle">Swipes, taps, pinch and home button</string>
+    <string name="section_backup_subtitle">Back up, restore or reset</string>
     <string name="advanced">Advanced</string>
     <string name="group_layout">Layout</string>
     <string name="group_animations">Animations</string>
@@ -415,6 +418,7 @@
     <string name="group_providers">Providers</string>
     <string name="group_bars">Search bars</string>
     <string name="group_icons">Icons</string>
+    <string name="group_appearance">Appearance</string>
     <string name="group_label_rows">Labels</string>
     <string name="group_badges">Badges</string>
     <string name="group_popup">Popup menu</string>
@@ -447,6 +451,8 @@
     <string name="page_indicator_auto_hide_summary">Show it only while changing pages</string>
     <string name="page_indicator_color">Indicator color</string>
     <string name="infinite_scroll">Infinite scroll</string>
+    <string name="remove_empty_pages">Remove empty pages</string>
+    <string name="remove_empty_pages_summary">A page left with nothing on it goes when you leave it</string>
     <string name="indicator_none">None</string>
     <string name="indicator_dots">Dots</string>
     <string name="indicator_line">Line</string>
@@ -465,11 +471,6 @@
     <string name="reshape_legacy_on">Rescale and add background</string>
     <string name="drawer_pull_to_search">Pull to search</string>
     <string name="folder_prioritize_first">Prioritize first icon</string>
-    <string name="search_bar_logo">Logo</string>
-    <string name="search_bar_logo_search">Magnifier</string>
-    <string name="search_bar_logo_supernova">Supernova</string>
-    <string name="search_bar_logo_none">None</string>
-    <string name="search_bar_logo_monochrome">Monochrome logo</string>
     <string name="label_customize">Customize labels</string>
     <string name="folder_icon_scale">Folder icon scale</string>
 
@@ -508,6 +509,8 @@
     <string name="label_group">Label</string>
     <string name="label_card_size">Size</string>
     <string name="label_card_font">Font</string>
+    <!-- Under the Label row: its size, then its font. -->
+    <string name="label_group_summary">%1$s · %2$s</string>
     <string name="label_card_shadow">Shadow</string>
     <string name="label_card_single_line">Single line</string>
     <string name="font_default">Default</string>
@@ -519,6 +522,12 @@
     <string name="dock_overlay">Display as overlay</string>
     <string name="dock_auto_close">Automatically close</string>
     <string name="dock_remember_position">Remember dock page</string>
+    <!-- Group labels on the grouped settings pages (the root list and Style). -->
+    <string name="settings_group_screens">Screens</string>
+    <string name="settings_group_customize">Customize</string>
+    <string name="settings_group_app">Supernova</string>
+    <string name="style_group_theme">Theme</string>
+    <string name="style_group_surfaces">Surfaces</string>
     <string name="style_tab">Style</string>
     <string name="color_palette">Color palette</string>
     <string name="palette_system">System</string>
@@ -539,7 +548,7 @@
     <string name="style_opacity">Opacity</string>
     <string name="group_name_taken">A group with that name already exists</string>
     <string name="labs">Labs</string>
-    <string name="section_labs_subtitle">Experimental options and tools for icon theme makers</string>
+    <string name="section_labs_subtitle">Experiments and icon theme tools</string>
     <string name="labs_enabled">Labs menu enabled</string>
     <string name="labs_disabled">Labs menu disabled</string>
     <string name="labs_show_component">Show component in edit dialog</string>
@@ -602,6 +611,7 @@
     <string name="home_button_action">Home button action</string>
     <string name="settings_search_hint">Search settings</string>
     <string name="desktop_search_bar">Desktop search bar</string>
+    <string name="search_bar_placement">Placement</string>
     <string name="search_bar_none">None</string>
     <string name="search_bar_above_dock">Above dock</string>
     <string name="search_bar_below_dock">Below dock</string>
@@ -730,7 +740,8 @@
     <string name="card_sample_event_2">Dentist</string>
     <string name="feed_show_calendar">Show upcoming events</string>
     <string name="feed_show_contacts">Show starred contacts</string>
-    <string name="feed_media_needs_access">Media card needs notification access — tap to grant</string>
+    <string name="feed_media_needs_access">Needs notification access</string>
+    <string name="feed_media_needs_access_summary">Tap to grant it, so the card can show what’s playing</string>
     <string name="feed_disabled_hint">Enable the feed page in Settings first</string>
     <string name="feed_add_card">Add card</string>
     <string name="feed_calendar_title">Calendar</string>
@@ -802,7 +813,7 @@
         <item quantity="other">%1$d rows</item>
     </plurals>
     <string name="settings_section_cards">Cards</string>
-    <string name="section_cards_subtitle">Create cards for the feed and search, or give them conditions to appear above the app drawer</string>
+    <string name="section_cards_subtitle">Make cards and when they show</string>
     <string name="cards_yours">Your cards</string>
     <string name="cards_add">Add card</string>
     <string name="cards_none">No cards yet</string>

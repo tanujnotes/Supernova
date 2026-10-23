@@ -57,7 +57,16 @@ object PageTransformers {
             // stack kept the previous page under the one in view, and mid-
             // swipe Cube swung the page two away past edge-on, mirrored, into
             // the screen. Each effect fades or turns its pages out by then.
+            //
+            // And put back where a plain slide has it: at rest a neighbour is
+            // last called here at exactly one page away, so it kept the
+            // transform of the swipe's final frame. Under Glass that is the
+            // next page held 98% over the one in view, a level above it -
+            // invisible, yet taking every touch: a long-press there opened
+            // edit mode, or the menu of an icon on the hidden page, whose
+            // Remove took that unseen icon while the one in view stayed.
             if (abs(position) >= 1f) {
+                resetTransforms(page)
                 page.alpha = 0f
             } else {
                 page.alpha = 1f

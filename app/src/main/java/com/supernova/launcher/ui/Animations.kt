@@ -64,7 +64,8 @@ enum class LaunchAnimation {
 
 // How the app drawer arrives (drawerTransition pref). SLIDE_UP is the
 // BottomSheetBehavior slide the drawer has always used; ZOOM and FADE park the
-// sheet at its open position and animate it in place, so nothing slides.
+// sheet at its open position and animate it in place, so nothing slides; a
+// swipe up opens them outright instead of pulling the sheet under the finger.
 enum class DrawerTransition {
     SLIDE_UP,
     ZOOM,

@@ -16,7 +16,7 @@ import com.supernova.launcher.ui.theme.SurfaceShapes
 
 // A choice opens where the setting is: a small menu at the row you
 // tapped, not a dialog in the middle of a dimmed screen. This is that menu -
-// the options, the current one ticked, and nothing else. No title, because
+// the options, the current one tinted and ticked, and nothing else. No title, because
 // the row it hangs off already carries one, and no Cancel, because tapping
 // away is how a menu is dismissed. Used by the settings screen and by the
 // per-app Edit sheet, which asks the same kind of question about a row.
@@ -30,6 +30,18 @@ object ChoiceMenu {
     // How much of the screen a long list may cover before it scrolls inside
     // the menu instead of growing past the anchor.
     private const val MAX_HEIGHT_FRACTION = 0.6f
+    private const val MIN_WIDTH_DP = 236
+    private const val CORNER_DP = 16
+    private const val ROW_HEIGHT_DP = 48
+    private const val LIST_PADDING_DP = 6
+    private const val MEDIUM_FAMILY = "sans-serif-medium"
+    // The tick's slot: the settings rows' 48dp control column.
+    private const val TICK_SLOT_DP = 48
+    // The current option's accent wash: 10% on a light menu, 18% on a dark.
+    private const val CHECKED_ALPHA_LIGHT = 0x1A
+    private const val CHECKED_ALPHA_DARK = 0x2E
+    private const val OPAQUE = 0xFF000000.toInt()
+    private const val HALF = 0.5
 
     // The card's lift, and the room the window has to leave around it for the
     // shadow that lift casts. A PopupWindow is sized to its content, so a
@@ -59,6 +71,10 @@ object ChoiceMenu {
         // plain list of things to do rather than a choice with a value.
         selected: Int,
         animate: Boolean = true,
+        // A settings row opens its menu against its card's end instead of at
+        // the touch, so the tick lands in the column of the chevron that
+        // opened it: the row spans its card, so its end is the card's.
+        alignToAnchorEnd: Boolean = false,
         onPick: (Int) -> Unit
     ) {
         val context = anchor.context
@@ -77,13 +93,13 @@ object ChoiceMenu {
             orientation = LinearLayout.VERTICAL
             // Wide enough that a two-word option doesn't wrap, and at least as
             // wide as the row it drops out of so it reads as belonging to it.
-            minimumWidth = maxOf(context.dp(220), anchor.width / 2)
-            setPadding(0, context.dp(8), 0, context.dp(8))
+            minimumWidth = maxOf(context.dp(MIN_WIDTH_DP), anchor.width / 2)
+            setPadding(0, context.dp(LIST_PADDING_DP), 0, context.dp(LIST_PADDING_DP))
             background = SurfaceShapes.background(
                 surface.surface,
                 surface.cornerRadiiDp?.let { radii -> FloatArray(4) { radii[it] * density } },
                 surface.cornerCuts,
-                context.dp(20).toFloat()
+                context.dp(CORNER_DP).toFloat()
             )
             clipToOutline = true
         }
@@ -188,11 +204,11 @@ object ChoiceMenu {
         // The touch is the card's leading edge until that would hang it off
         // the screen, at which point it slides back in rather than being
         // clipped - so a tap on the value at the far end still opens beside it.
-        val cardLeft = touchX.toInt()
-            .coerceIn(edge, maxOf(edge, window.width - cardWidth - edge))
+        val cardLeft = if (alignToAnchorEnd) location[0] + anchor.width - cardWidth else touchX.toInt()
+        val clampedLeft = cardLeft.coerceIn(edge, maxOf(edge, window.width - cardWidth - edge))
         val cardTop =
             if (below) location[1] + anchor.height else location[1] - cardHeight
-        popup.showAtLocation(anchor, Gravity.NO_GRAVITY, cardLeft - pad, cardTop - pad)
+        popup.showAtLocation(anchor, Gravity.NO_GRAVITY, clampedLeft - pad, cardTop - pad)
 
         // Open on the current value rather than at the top: on a long list it
         // is the one thing the user came to look at.
@@ -204,6 +220,9 @@ object ChoiceMenu {
         }
     }
 
+    // An option: its label, then the tick in a 48dp slot 4dp in from the
+    // menu's end - the settings rows' control column. The current one is
+    // tinted with the accent and its label set in it.
     private fun row(
         context: Context,
         surface: ResolvedSurface,
@@ -213,38 +232,46 @@ object ChoiceMenu {
         onClick: () -> Unit
     ): View {
         fun dp(value: Int) = (value * density).toInt()
+        val dark = androidx.core.graphics.ColorUtils.calculateLuminance(surface.surface or OPAQUE) < HALF
         return LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(16), dp(12), dp(20), dp(12))
+            minimumHeight = dp(ROW_HEIGHT_DP)
+            setPadding(dp(16), dp(4), dp(4), dp(4))
             isClickable = true
-            background = rippleFor(context)
+            if (checked) {
+                setBackgroundColor(androidx.core.graphics.ColorUtils.setAlphaComponent(
+                    surface.accent, if (dark) CHECKED_ALPHA_DARK else CHECKED_ALPHA_LIGHT
+                ))
+            }
+            foreground = rippleFor(context)
             setOnClickListener { onClick() }
 
-            // The tick keeps its space on every row so the labels line up
-            // whether or not one of them is the current value.
+            addView(
+                TextView(context).apply {
+                    text = label
+                    setTextColor(if (checked) surface.accent else surface.text)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+                    if (checked) {
+                        typeface = android.graphics.Typeface.create(MEDIUM_FAMILY, android.graphics.Typeface.NORMAL)
+                    }
+                    maxLines = 2
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                },
+                LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            )
+            // The slot stays on every row so the labels wrap alike.
             addView(
                 ImageView(context).apply {
                     if (checked) {
                         setImageResource(R.drawable.ic_check)
                         imageTintList = android.content.res.ColorStateList.valueOf(surface.accent)
                     }
+                    scaleType = ImageView.ScaleType.CENTER_INSIDE
+                    setPadding(dp(14), 0, dp(14), 0)
                     importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
                 },
-                LinearLayout.LayoutParams(dp(20), dp(20)).apply { marginEnd = dp(14) }
-            )
-            addView(
-                TextView(context).apply {
-                    text = label
-                    setTextColor(surface.text)
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-                    maxLines = 2
-                    ellipsize = android.text.TextUtils.TruncateAt.END
-                },
-                LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                )
+                LinearLayout.LayoutParams(dp(TICK_SLOT_DP), dp(20)).apply { marginStart = dp(8) }
             )
         }
     }

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A Row in its card: an optional icon tile, the title, the current value
+     on the right, and a chevron centred in the 48dp control slot that ends
+     4dp in from the card. On a tiled page (root and Style) a row with no
+     icon starts its text where the tiled rows' text starts (72dp), as an
+     option of the row above; on a section page every row starts 16dp in. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:foreground="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:minHeight="56dp"
+    android:orientation="horizontal"
+    android:paddingVertical="8dp"
+    android:paddingStart="16dp"
+    android:paddingEnd="4dp">
+
+    <FrameLayout
+        android:id="@+id/groupRowTile"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/bg_settings_tile">
+
+        <ImageView
+            android:id="@+id/groupRowIcon"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="center"
+            android:importantForAccessibility="no"
+            app:tint="?attr/colorAccent" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/settingTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="@color/textPrimary"
+            android:textSize="16sp" />
+
+        <!-- A value too long for the right-hand side goes here instead. -->
+        <TextView
+            android:id="@+id/settingSubtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/textSecondary"
+            android:textSize="13sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <View
+        android:id="@+id/groupRowSwatch"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:layout_marginStart="16dp"
+        android:background="@drawable/bg_settings_swatch"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/groupRowValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:ellipsize="end"
+        android:maxWidth="160dp"
+        android:maxLines="1"
+        android:textColor="@color/textSecondary"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+    <!-- An action that runs on the tap (Clear icon cache) has none; the
+         slot stays, so its text wraps where its neighbours' does. -->
+    <ImageView
+        android:id="@+id/groupRowChevron"
+        android:layout_width="48dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="8dp"
+        android:importantForAccessibility="no"
+        android:paddingHorizontal="14dp"
+        android:src="@drawable/ic_settings_chevron"
+        app:tint="@color/textSecondary" />
+</LinearLayout>

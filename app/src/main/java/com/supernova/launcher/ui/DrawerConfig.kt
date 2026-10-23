@@ -48,9 +48,9 @@ enum class DrawerTabStyle {
 }
 
 // Optional header action buttons beside the drawer search field (C10),
-// stored comma-joined in the drawerActionButtons pref.
+// stored comma-joined in the drawerActionButtons pref. A stored SEARCH (since
+// removed) is simply dropped by decode.
 enum class DrawerActionButton {
-    SEARCH,
     PLAY_STORE,
     SETTINGS;
 

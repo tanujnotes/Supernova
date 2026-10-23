@@ -26,6 +26,7 @@ import com.supernova.launcher.ui.PopupExtraRow
 import com.supernova.launcher.ui.ScrollEffect
 import com.supernova.launcher.ui.StatusBarIcons
 import com.supernova.launcher.ui.WallpaperScrollMode
+import com.supernova.launcher.data.IconGlass
 import com.supernova.launcher.data.ReshapeLegacy
 import com.supernova.launcher.ui.SearchBarPlacement
 import com.supernova.launcher.ui.theme.AccentColor
@@ -292,6 +293,14 @@ object EnumLabels {
         WallpaperScrollMode.ON -> R.string.mode_on
         WallpaperScrollMode.OFF -> R.string.mode_off
         WallpaperScrollMode.REVERSE -> R.string.wallpaper_scroll_reverse
+    }
+
+    @StringRes
+    fun of(glass: IconGlass): Int = when (glass) {
+        IconGlass.OFF -> R.string.mode_off
+        IconGlass.FROSTED -> R.string.icon_glass_frosted
+        IconGlass.CLEAR -> R.string.icon_glass_clear
+        IconGlass.SMOKED -> R.string.icon_glass_smoked
     }
 
     @StringRes

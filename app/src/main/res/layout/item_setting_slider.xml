@@ -1,36 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- A bar in its card: the title and value over the bar, its minus and plus
+     on light circles, the plus centred in the control column (the stepper
+     row runs 8dp in from the card, the title row 8dp more, where every
+     row's text starts); the value stops short of that column. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingHorizontal="20dp"
-    android:paddingVertical="10dp">
+    android:paddingHorizontal="8dp"
+    android:paddingVertical="12dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp">
 
         <TextView
             android:id="@+id/settingTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
             android:textColor="@color/textPrimary"
-            android:textSize="15sp" />
+            android:textSize="16sp" />
 
         <TextView
             android:id="@+id/settingValue"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="44dp"
             android:textColor="@color/textSecondary"
             android:textSize="14sp" />
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
+        android:layout_height="40dp"
+        android:layout_marginTop="4dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -38,22 +47,27 @@
             android:id="@+id/stepDown"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:background="@drawable/bg_step_circle"
             android:contentDescription="@string/stepper_decrease"
+            android:padding="11dp"
+            android:scaleType="fitCenter"
             android:src="@drawable/ic_step_minus" />
 
         <SeekBar
             android:id="@+id/settingSeek"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:paddingHorizontal="8dp" />
 
         <ImageButton
             android:id="@+id/stepUp"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:background="@drawable/bg_step_circle"
             android:contentDescription="@string/stepper_increase"
+            android:padding="11dp"
+            android:scaleType="fitCenter"
             android:src="@drawable/ic_step_plus" />
     </LinearLayout>
 </LinearLayout>

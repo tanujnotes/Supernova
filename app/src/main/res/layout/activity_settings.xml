@@ -34,34 +34,42 @@
             app:elevation="0dp">
 
             <!-- Padding, not margins: a hidden child's margins still count
-                 toward the bar's scroll range. -->
+                 toward the bar's scroll range. The root list and the Style
+                 tab share one grid (item_setting_section): a 16dp gutter
+                 holds the title, the search bar and the cards; the title
+                 sits 32dp under the status bar and 16dp over the bar (8dp here,
+                 8dp in the bar's own padding, which it keeps once pinned). Its
+                 text is the tab's name (applyHeader). -->
             <TextView
                 android:id="@+id/rootTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="20dp"
-                android:paddingTop="80dp"
-                android:paddingBottom="20dp"
-                android:text="@string/app_name"
+                android:lineHeight="38sp"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="32dp"
+                android:paddingBottom="8dp"
+                android:text="@string/settings"
                 android:textColor="@color/textPrimary"
                 android:textSize="32sp"
                 android:textStyle="bold"
                 android:visibility="gone"
                 app:layout_scrollFlags="scroll" />
 
+            <!-- A section's toolbar: 24dp under the status bar, a 56dp row
+                 with its buttons 4dp in from the sides. -->
             <LinearLayout
                 android:id="@+id/settingsToolbar"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="80dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="12dp">
+                android:paddingHorizontal="4dp"
+                android:paddingTop="24dp">
 
                 <ImageButton
                     android:id="@+id/backButton"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/back"
                     android:src="@drawable/ic_back" />
@@ -71,7 +79,10 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:ellipsize="end"
                     android:layout_weight="1"
+                    android:maxLines="1"
                     android:text="@string/settings_title"
                     android:textColor="@color/textPrimary"
                     android:textSize="22sp"
@@ -96,8 +107,8 @@
 
                 <ImageButton
                     android:id="@+id/settingsSearchButton"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/settings_search_hint"
                     android:src="@drawable/ic_search"
@@ -105,22 +116,37 @@
             </LinearLayout>
 
             <!-- Pinned preview: section screens park their live
-                 preview here so it stays put while the list scrolls. -->
-            <com.supernova.launcher.ui.settings.preview.PreviewPane
-                android:id="@+id/previewPane"
+                 preview here so it stays put while the list scrolls, on a
+                 card of its own 8dp under the toolbar, in the cards' 16dp
+                 gutter. The frame's padding, not margins, holds it there
+                 (margins of a hidden child count toward the bar's scroll
+                 range). -->
+            <FrameLayout
+                android:id="@+id/previewFrame"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@color/settingsPillBg"
-                android:paddingVertical="6dp"
-                android:visibility="gone" />
+                android:paddingHorizontal="16dp"
+                android:paddingTop="8dp"
+                android:visibility="gone">
+
+                <com.supernova.launcher.ui.settings.preview.PreviewPane
+                    android:id="@+id/previewPane"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_settings_preview"
+                    android:minHeight="168dp"
+                    android:paddingVertical="6dp" />
+            </FrameLayout>
 
             <!-- The search pill is the search field itself: type
-                 into it and the list below turns into results. -->
+                 into it and the list below turns into results. 48dp tall
+                 like every bar in the app; its magnifier sits over the
+                 cards' icon tiles, 16dp in. -->
             <FrameLayout
                 android:id="@+id/rootSearch"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="20dp"
+                android:paddingHorizontal="16dp"
                 android:paddingTop="8dp"
                 android:paddingBottom="8dp"
                 android:visibility="gone">
@@ -128,12 +154,12 @@
                 <LinearLayout
                     android:id="@+id/rootSearchPill"
                     android:layout_width="match_parent"
-                    android:layout_height="52dp"
+                    android:layout_height="48dp"
                     android:background="@drawable/bg_settings_pill"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingStart="18dp"
-                    android:paddingEnd="6dp">
+                    android:paddingStart="16dp"
+                    android:paddingEnd="4dp">
 
                     <ImageView
                         android:layout_width="24dp"
@@ -156,7 +182,7 @@
                         android:maxLines="1"
                         android:textColor="@color/textPrimary"
                         android:textColorHint="@color/textSecondary"
-                        android:textSize="15sp" />
+                        android:textSize="16sp" />
 
                     <ImageButton
                         android:id="@+id/rootSearchClear"
@@ -196,11 +222,44 @@
         </FrameLayout>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
+    <!-- The tab bar: the two tabs with equal space before, between and
+         after them, each with its icon and label side by side, the current
+         tab on an accent pill. -->
+    <LinearLayout
         android:id="@+id/settingsTabs"
-        style="@style/Widget.Supernova.BottomNavigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:labelVisibilityMode="labeled"
-        app:menu="@menu/settings_tabs" />
+        android:background="@drawable/bg_settings_nav"
+        android:baselineAligned="false"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingVertical="12dp">
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/tabSettings"
+            style="@style/Widget.Supernova.SettingsTab"
+            android:text="@string/settings"
+            app:drawableStartCompat="@drawable/ic_tab_settings" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/tabStyle"
+            style="@style/Widget.Supernova.SettingsTab"
+            android:text="@string/style_tab"
+            app:drawableStartCompat="@drawable/ic_tab_style" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+    </LinearLayout>
 </LinearLayout>

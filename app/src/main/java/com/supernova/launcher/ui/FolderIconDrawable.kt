@@ -1,15 +1,29 @@
 package com.supernova.launcher.ui
 
+import android.graphics.Bitmap
+import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.ColorFilter
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PixelFormat
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
 import android.graphics.RectF
+import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.Drawable
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.drawable.toDrawable
+import androidx.core.graphics.withClip
+import androidx.core.graphics.withTranslation
 import com.supernova.launcher.data.CustomShapeSpec
+import com.supernova.launcher.data.GlassPainter
+import com.supernova.launcher.data.IconGlass
 import com.supernova.launcher.data.IconShape
+import com.supernova.launcher.data.LauncherPrefs
+import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -30,8 +44,10 @@ enum class FolderPreviewStyle {
 
 // Folder preview: a plate with member icons arranged per the chosen style -
 // tiled grids, offset stack, rotated fan, a single row, or icon rings. The
-// plate clips to `shape` when one is set (folderIconShape pref), and can carry
-// an accent outline; `clipMembers` keeps icons inside the plate.
+// plate clips to `shape` when one is set (plateShape: the folder's own pick,
+// else the icons'), and can carry an accent outline; `clipMembers` keeps
+// icons inside the plate. It is dressed as the icons are: a glass pane for
+// iconGlass, the icons' drop shadow for iconShadow.
 class FolderIconDrawable(
     private val members: List<Drawable>,
     private val sizePx: Int,
@@ -44,12 +60,27 @@ class FolderIconDrawable(
     private val clipMembers: Boolean = true,
     // First member drawn large and centred, the next three small along the
     // bottom; overrides the arrangement of every style.
-    private val prioritizeFirst: Boolean = false
+    private val prioritizeFirst: Boolean = false,
+    // The plate as glass, the pane an icon with this colour's background
+    // gets; OFF fills it with plateColor.
+    private val glass: IconGlass = IconGlass.OFF,
+    // The icons' drop shadow, cast by the plate's outline.
+    private val shadow: Boolean = false
 ) : Drawable() {
 
     private val platePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = plateColor
     }
+    // The plate's pane takes the colour without its alpha; the glass sets
+    // how much of it shows.
+    private val paneColor = plateColor or OPAQUE_ALPHA
+
+    // The plate, its shadow and rim, painted once per size and drawn from
+    // here every frame: a blur and a pane are too slow for draw(). It runs
+    // `margin` past the bounds on every side, room for the shadow.
+    private var plate: Bitmap? = null
+    private var margin = 0
+    private val bitmapPaint = Paint(Paint.FILTER_BITMAP_FLAG)
 
     private val outlinePaint: Paint? = if (outlineColor != 0 && outlineWidthPx > 0f) {
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -72,7 +103,7 @@ class FolderIconDrawable(
 
     override fun onBoundsChange(bounds: Rect) {
         val size = bounds.width().toFloat()
-        val shaped = shape?.takeIf { it != IconShape.SYSTEM }?.pathFor(size, customSpec)
+        val shaped = if (shape == IconShape.SYSTEM) systemMask(bounds.width()) else shape?.pathFor(size, customSpec)
         platePath = if (shaped != null) {
             shaped.apply { offset(bounds.left.toFloat(), bounds.top.toFloat()) }
         } else {
@@ -87,10 +118,16 @@ class FolderIconDrawable(
                 )
             }
         }
+        plate?.recycle()
+        plate = null
     }
 
     override fun draw(canvas: Canvas) {
-        canvas.drawPath(platePath, platePaint)
+        if (bounds.isEmpty) return
+        val painted = plate ?: paintPlate().also { plate = it }
+        canvas.drawBitmap(
+            painted, (bounds.left - margin).toFloat(), (bounds.top - margin).toFloat(), bitmapPaint
+        )
 
         if (members.isNotEmpty()) {
             val save = if (clipMembers) {
@@ -98,23 +135,66 @@ class FolderIconDrawable(
             } else {
                 -1
             }
-            if (prioritizeFirst) {
-                drawPrioritized(canvas)
-            } else {
-                when (style) {
-                    FolderPreviewStyle.GRID -> drawGrid(canvas)
-                    FolderPreviewStyle.STACK -> drawStack(canvas)
-                    FolderPreviewStyle.FAN -> drawFan(canvas)
-                    FolderPreviewStyle.LINE -> drawLine(canvas)
-                    FolderPreviewStyle.RADIAL -> drawRadial(canvas, shownSeven, ringScale = 0.26f, centerScale = 0.34f)
-                    FolderPreviewStyle.RADIAL_DENSE -> drawRadial(canvas, shownNine, ringScale = 0.22f, centerScale = 0.30f)
-                    FolderPreviewStyle.GRID_3X3 -> drawGrid3x3(canvas)
-                }
-            }
+            drawMembers(canvas)
             if (save >= 0) canvas.restoreToCount(save)
         }
 
         outlinePaint?.let { canvas.drawPath(platePath, it) }
+    }
+
+    private fun drawMembers(canvas: Canvas) {
+        if (prioritizeFirst) {
+            drawPrioritized(canvas)
+            return
+        }
+        when (style) {
+            FolderPreviewStyle.GRID -> drawGrid(canvas)
+            FolderPreviewStyle.STACK -> drawStack(canvas)
+            FolderPreviewStyle.FAN -> drawFan(canvas)
+            FolderPreviewStyle.LINE -> drawLine(canvas)
+            FolderPreviewStyle.RADIAL -> drawRadial(canvas, shownSeven, ringScale = 0.26f, centerScale = 0.34f)
+            FolderPreviewStyle.RADIAL_DENSE -> drawRadial(canvas, shownNine, ringScale = 0.22f, centerScale = 0.30f)
+            FolderPreviewStyle.GRID_3X3 -> drawGrid3x3(canvas)
+        }
+    }
+
+    // Shadow first, then the plate over it: plateColor, or the glass pane and
+    // its rim. The shadow is kept only outside the plate, as a glass icon's
+    // is - seen through a pane or a translucent plate it just muddies it. It
+    // is the icons' (IconRenderer.withShadow): 30% black, blurred 2dp and
+    // dropped 1dp at the 48dp base size, scaled with the plate.
+    private fun paintPlate(): Bitmap {
+        val size = bounds.width()
+        val local = Path(platePath).apply { offset(-bounds.left.toFloat(), -bounds.top.toFloat()) }
+        val blur = size * SHADOW_BLUR / BASE_SIZE
+        val drop = size * SHADOW_DROP / BASE_SIZE
+        margin = if (shadow) ceil(blur + drop).toInt() else 0
+        val bitmap = createBitmap(size + 2 * margin, bounds.height() + 2 * margin)
+        val canvas = Canvas(bitmap)
+        canvas.withTranslation(margin.toFloat(), margin.toFloat()) {
+            if (shadow && blur > 0f) {
+                val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = SHADOW_COLOR
+                    maskFilter = BlurMaskFilter(blur, BlurMaskFilter.Blur.NORMAL)
+                }
+                withTranslation(0f, drop) { drawPath(local, shadowPaint) }
+                drawPath(local, Paint(Paint.ANTI_ALIAS_FLAG).apply { xfermode = CLEAR })
+            }
+            if (glass == IconGlass.OFF) {
+                drawPath(local, platePaint)
+            } else {
+                withClip(local) { painter.drawPane(this, glass, paneColor, size, bounds.height()) }
+                painter.drawEdge(this, local, glass, size, bounds.height())
+            }
+        }
+        return bitmap
+    }
+
+    // The System shape: the platform's own icon mask at this size.
+    private fun systemMask(size: Int): Path {
+        val icon = AdaptiveIconDrawable(Color.BLACK.toDrawable(), Color.BLACK.toDrawable())
+        icon.setBounds(0, 0, size, size)
+        return Path(icon.iconMask)
     }
 
     // folderPrioritizeFirst pref: the first member fills most of the plate,
@@ -267,5 +347,21 @@ class FolderIconDrawable(
 
     companion object {
         const val DEFAULT_PLATE_COLOR = 0x59FFFFFF
+
+        // The plate's shape: the folder's own pick, else the icons' -
+        // "" (Default) follows the icon shape.
+        fun plateShape(folderIconShape: String, prefs: LauncherPrefs): IconShape =
+            IconShape.fromName(folderIconShape.ifEmpty { prefs.iconShape })
+
+        fun glassFor(prefs: LauncherPrefs): IconGlass = IconGlass.fromName(prefs.iconGlass)
+
+        private const val OPAQUE_ALPHA = 0xFF000000.toInt()
+        private const val SHADOW_COLOR = 0x4D000000
+        private const val BASE_SIZE = 48f
+        private const val SHADOW_BLUR = 2f
+        private const val SHADOW_DROP = 1f
+        private val CLEAR = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+        // Stateless apart from its grain tile, which every plate can share.
+        private val painter = GlassPainter()
     }
 }

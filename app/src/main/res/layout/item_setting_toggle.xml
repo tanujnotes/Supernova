@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- A checkbox row in its card: the text 16dp in, the box centred in the
+     48dp control slot that ends 4dp in from the card, the column every
+     row's control sits in. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -6,8 +9,9 @@
     android:gravity="center_vertical"
     android:minHeight="56dp"
     android:orientation="horizontal"
-    android:paddingHorizontal="20dp"
-    android:paddingVertical="10dp">
+    android:paddingVertical="8dp"
+    android:paddingStart="16dp"
+    android:paddingEnd="4dp">
 
     <LinearLayout
         android:layout_width="0dp"
@@ -19,8 +23,9 @@
             android:id="@+id/settingTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
             android:textColor="@color/textPrimary"
-            android:textSize="15sp" />
+            android:textSize="16sp" />
 
         <!-- Most toggles are explained under the title. -->
         <TextView
@@ -34,12 +39,14 @@
     </LinearLayout>
 
     <!-- Checkboxes, not switches (F7); the id stays so the
-         adapter's CompoundButton handling is untouched. -->
+         adapter's CompoundButton handling is untouched. With no text the
+         box centres in its 48dp. -->
     <com.google.android.material.checkbox.MaterialCheckBox
         android:id="@+id/settingSwitch"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="16dp"
         android:clickable="false"
-        android:focusable="false" />
+        android:focusable="false"
+        android:minWidth="48dp" />
 </LinearLayout>

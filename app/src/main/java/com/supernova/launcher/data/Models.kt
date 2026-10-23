@@ -143,6 +143,9 @@ data class LauncherPrefs(
     // arrow is.
     val pageIndicatorColor: String = "",
     val infiniteScroll: Boolean = false,
+    // A page left with nothing on it goes once a drag ends or the pager
+    // leaves it; the home page and the page in view always stay.
+    val removeEmptyPages: Boolean = true,
     // Workspace page padding in dp per axis. None across: the
     // columns span the whole width, 216px apiece on a 1080px phone.
     val desktopPaddingH: Int = 0,
@@ -261,6 +264,8 @@ data class LauncherPrefs(
     // On by default. The shadow falls outside the icon, which keeps
     // its size (ShadowedIconDrawable).
     val iconShadow: Boolean = true,
+    // IconGlass name (OFF/FROSTED/CLEAR/SMOKED): icon backgrounds as glass.
+    val iconGlass: String = "OFF",
     // A short bar under any icon that has a swipe action bound. An icon swipe
     // is invisible without it, so it stays on by default; it only ever draws
     // on icons that actually carry one.
@@ -387,8 +392,8 @@ data class LauncherPrefs(
     // compat: homeButtonAction supersedes it ("" derives from this flag).
     val homeSearch: Boolean = false,
     // Home re-press action as a GestureAction name; "" = derive from homeSearch.
-    // Search by default.
-    val homeButtonAction: String = "OPEN_SEARCH",
+    // The app drawer by default.
+    val homeButtonAction: String = "OPEN_DRAWER",
     // On: the first home press returns to the main page and only a second one
     // runs the action (the behavior before this pref existed). Off runs the
     // action straight away, wherever the workspace was.

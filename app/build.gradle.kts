@@ -8,12 +8,16 @@ plugins {
     alias(libs.plugins.baselineprofile)
 }
 
-// Release signing: keystore.properties at the project root (gitignored) with
+// Release signing: keystore.properties in local/ (the gitignored folder for
+// everything kept out of the repo; the project root also works) with
 // storeFile, storePassword, keyAlias and keyPassword. Every tester APK, GitHub
 // release and Play upload must carry this one key, or installs can't update.
 // Without the file, release builds come out unsigned.
 val keystoreProperties = Properties().apply {
-    rootProject.file("keystore.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
+    listOf("local/keystore.properties", "keystore.properties")
+        .map(rootProject::file)
+        .firstOrNull { it.exists() }
+        ?.inputStream()?.use(::load)
 }
 
 android {

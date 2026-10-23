@@ -643,7 +643,11 @@ class FeedController(
         // user-styleable through the existing pickers.
         val paneText = paneTextColor(prefs)
         pane.root.setBackgroundColor(FEED_DIM)
-        pane.feedMenu.imageTintList = android.content.res.ColorStateList.valueOf(paneText)
+        // Inside the bar the menu wears the bar's text colour, like its
+        // buttons; beside a hidden bar, the pane's.
+        pane.feedMenu.imageTintList = android.content.res.ColorStateList.valueOf(
+            if (pane.feedSearchBar.trailing === pane.feedMenu) resolved.of(SurfaceId.SEARCH_BAR).text else paneText
+        )
         pane.feedNoFrequent.setTextColor((0xB3 shl 24) or (paneText and 0xFFFFFF))
         val popupSurface = resolved.of(SurfaceId.POPUP)
         adapter.setAppearance(popupSurface.surface, popupSurface.text, popupSurface.accent, paneText)
@@ -674,6 +678,31 @@ class FeedController(
         val pane = ui ?: return
         val prefs = viewModel.state.value.prefs
         pane.feedSearchBar.visibility = if (prefs.feedShowSearch) View.VISIBLE else View.GONE
+        // The overflow sits inside the bar, at its right end; with the bar
+        // off it stays on its own in the header row, the menu's only door.
+        val menuInBar = prefs.feedShowSearch
+        if (menuInBar != (pane.feedSearchBar.trailing === pane.feedMenu)) {
+            val density = context.resources.displayMetrics.density
+            if (menuInBar) {
+                pane.feedSearchBar.trailing = pane.feedMenu
+            } else {
+                pane.feedSearchBar.trailing = null
+                // On its own it centres its 24dp icon, as its layout had it.
+                val pad = ((MENU_DP - MENU_ICON_DP) / 2 * density).toInt()
+                pane.feedMenu.setPadding(pad, pad, pad, pad)
+                val size = (MENU_DP * density).toInt()
+                pane.feedHeaderRow.addView(pane.feedMenu, android.widget.LinearLayout.LayoutParams(size, size))
+            }
+            // The bar runs to the same edge margin as its start; the lone
+            // menu keeps the narrower one its touch padding needs.
+            (pane.feedHeaderRow.layoutParams as? android.view.ViewGroup.MarginLayoutParams)?.let {
+                it.marginEnd = ((if (menuInBar) BAR_END_DP else MENU_END_DP) * density).toInt()
+                pane.feedHeaderRow.layoutParams = it
+            }
+            // The menu's tint depends on where it sits.
+            appliedStyle = null
+            applyStyle()
+        }
         if (prefs.feedShowFrequent) {
             val counts = viewModel.launchCounts()
             val frequent = viewModel.visibleApps()
@@ -752,6 +781,12 @@ class FeedController(
 
 
     private companion object {
+        // The overflow menu's size, and the header row's end margin with the
+        // menu inside the bar or on its own.
+        const val MENU_DP = 44
+        const val MENU_ICON_DP = 24
+        const val BAR_END_DP = 16
+        const val MENU_END_DP = 8
         // Horizontal must beat vertical by this much before a drag is ours.
         const val DIRECTION_BIAS = 2f
         const val MAX_SUGGESTED_SHORTCUTS = 12

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The icon shape sheet: every shape drawn as itself, four to a row, the
+     current one ringed in the accent. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="32dp">
+
+    <include layout="@layout/sheet_handle" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="24dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="16dp"
+        android:text="@string/icon_shape"
+        android:textColor="@color/textPrimary"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <GridLayout
+            android:id="@+id/shapeGrid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:columnCount="4"
+            android:paddingHorizontal="16dp"
+            android:useDefaultMargins="false" />
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

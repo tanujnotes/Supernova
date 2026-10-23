@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The checkbox: a 22dp box with 6dp corners, outlined when unchecked and
+     filled with the white tick over it when checked. Its colours are the
+     selection controls' (the accent, or a quiet grey, faded when disabled),
+     taken as colour state lists rather than as a tint, which would paint
+     the tick too. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true">
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <size android:width="22dp" android:height="22dp" />
+                    <corners android:radius="6dp" />
+                    <solid android:color="@color/selection_control_tint" />
+                </shape>
+            </item>
+            <item android:drawable="@drawable/ic_checkbox_tick" />
+        </layer-list>
+    </item>
+    <!-- The stroke is drawn on a path 1dp in from the box's edge, so its
+         radius is 1dp less: its outer corners then round at 6dp, as the
+         filled box's do. -->
+    <item>
+        <shape android:shape="rectangle">
+            <size android:width="22dp" android:height="22dp" />
+            <corners android:radius="5dp" />
+            <stroke android:width="2dp" android:color="@color/selection_control_tint" />
+        </shape>
+    </item>
+</selector>

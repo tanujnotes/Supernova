@@ -20,6 +20,8 @@ import com.supernova.launcher.ui.FolderPreviewStyle
 import com.supernova.launcher.ui.LabelContext
 import com.supernova.launcher.ui.LabelStyler
 import com.supernova.launcher.ui.LauncherViewModel
+import com.supernova.launcher.ui.SearchBarConfig
+import com.supernova.launcher.ui.SearchBarView
 import com.supernova.launcher.ui.dp
 import com.supernova.launcher.ui.settings.PreviewKind
 import com.supernova.launcher.ui.theme.StyleConfig
@@ -53,6 +55,15 @@ class SettingsPreviewView @JvmOverloads constructor(
     // tick can show and hide them without rebuilding the window.
     private val searchRows = mutableMapOf<String, View>()
     private var searchAppsSecondRow: View? = null
+    // Desktop search bar preview: the bar itself, and the surface it wears,
+    // resolved once at bind so a slider frame only re-applies the config.
+    private var searchBar: SearchBarView? = null
+    private var searchBarSurface: com.supernova.launcher.ui.theme.ResolvedSurface? = null
+    // Drawer field preview: the field's pill and start icon, on the drawer's
+    // own surface (searchBarSurface holds the DRAWER colours for it).
+    private var drawerField: View? = null
+    private var drawerFieldPill: GradientDrawable? = null
+    private var drawerFieldIcon: ImageView? = null
 
     // Base RGB plus any explicit style-config alpha, captured at bind so a
     // tick can recombine the surface color without re-resolving.
@@ -71,6 +82,11 @@ class SettingsPreviewView @JvmOverloads constructor(
         folderTitleView = null
         searchRows.clear()
         searchAppsSecondRow = null
+        searchBar = null
+        searchBarSurface = null
+        drawerField = null
+        drawerFieldPill = null
+        drawerFieldIcon = null
         keepsLargestIconRoom = kind == PreviewKind.DRAWER || kind == PreviewKind.DOCK
 
         when (kind) {
@@ -80,6 +96,8 @@ class SettingsPreviewView @JvmOverloads constructor(
             PreviewKind.FOLDER -> buildFolder(prefs, viewModel)
             PreviewKind.DRAWER -> buildDrawer(prefs, viewModel)
             PreviewKind.SEARCH -> buildSearch(prefs, viewModel)
+            PreviewKind.SEARCH_BAR -> buildSearchBar(prefs)
+            PreviewKind.DRAWER_SEARCH_BAR -> buildDrawerField(prefs)
         }
         tick(prefs)
     }
@@ -135,6 +153,10 @@ class SettingsPreviewView @JvmOverloads constructor(
                 searchRows["folder"]?.visibility = if (prefs.searchFolders) VISIBLE else GONE
                 styleLabels(prefs, visible = true)
             }
+            PreviewKind.SEARCH_BAR -> searchBarSurface?.let { surface ->
+                searchBar?.apply(SearchBarConfig.decode(prefs.searchBarConfig).desktop, surface)
+            }
+            PreviewKind.DRAWER_SEARCH_BAR -> styleDrawerField(prefs)
             null -> Unit
         }
     }
@@ -213,6 +235,107 @@ class SettingsPreviewView @JvmOverloads constructor(
     // truncation read the way they will on the home screen. The strip keeps
     // one height whatever the settings, so dragging a bar never moves the
     // list under the finger.
+    // The bar as the home screen shows it, over the wallpaper, at its real
+    // height and side inset; its buttons stay inert here.
+    private fun buildSearchBar(prefs: LauncherPrefs) {
+        searchBarSurface = Styles.resolve(context, prefs).of(SurfaceId.SEARCH_BAR)
+        val bar = SearchBarView(context).apply {
+            interactive = false
+            isClickable = false
+            isLongClickable = false
+        }
+        searchBar = bar
+        addView(
+            bar,
+            LayoutParams(LayoutParams.MATCH_PARENT, dp(SEARCH_BAR_HEIGHT_DP)).apply {
+                val inset = dp(SEARCH_BAR_INSET_DP)
+                val pad = dp(SEARCH_BAR_PAD_DP)
+                setMargins(inset, pad, inset, pad)
+            }
+        )
+    }
+
+    // The drawer's search field as the drawer draws it (DrawerController's
+    // field styling), on a strip of the drawer's surface.
+    private fun buildDrawerField(prefs: LauncherPrefs) {
+        val surface = Styles.resolve(context, prefs).of(SurfaceId.DRAWER)
+        searchBarSurface = surface
+        setBackgroundColor(surface.surface)
+        val pill = GradientDrawable()
+        val field = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(SEARCH_BAR_INSET_DP), 0, dp(SEARCH_BAR_INSET_DP), 0)
+            background = pill
+        }
+        val icon = ImageView(context).apply { setImageResource(R.drawable.ic_search) }
+        field.addView(icon, LinearLayout.LayoutParams(dp(DRAWER_ICON_DP), dp(DRAWER_ICON_DP)).apply {
+            marginEnd = dp(DRAWER_ICON_GAP_DP)
+        })
+        field.addView(TextView(context).apply {
+            setText(R.string.search_apps)
+            textSize = DRAWER_HINT_SP
+            setTextColor((DRAWER_HINT_ALPHA shl 24) or (surface.text and 0xFFFFFF))
+        }, LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+        // The drawer's action buttons, inside the field as the drawer has them.
+        val buttons = com.supernova.launcher.ui.DrawerActionButton.decode(prefs.drawerActionButtons)
+        buttons.forEach { button ->
+            field.addView(ImageView(context).apply {
+                setImageResource(
+                    when (button) {
+                        com.supernova.launcher.ui.DrawerActionButton.PLAY_STORE -> R.drawable.ic_play_store
+                        com.supernova.launcher.ui.DrawerActionButton.SETTINGS -> R.drawable.ic_tab_settings
+                    }
+                )
+                imageTintList = android.content.res.ColorStateList.valueOf(surface.text)
+                val pad = dp(DRAWER_BUTTON_PAD_DP)
+                setPadding(pad, pad, pad, pad)
+                importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
+            }, LinearLayout.LayoutParams(dp(DRAWER_BUTTON_DP), dp(DRAWER_BUTTON_DP)))
+        }
+        if (buttons.isNotEmpty()) field.setPaddingRelative(dp(SEARCH_BAR_INSET_DP), 0, dp(DRAWER_BUTTON_END_DP), 0)
+        drawerField = field
+        drawerFieldPill = pill
+        drawerFieldIcon = icon
+        addView(
+            field,
+            LayoutParams(LayoutParams.MATCH_PARENT, dp(SEARCH_BAR_HEIGHT_DP)).apply {
+                val inset = dp(SEARCH_BAR_INSET_DP)
+                val pad = dp(SEARCH_BAR_PAD_DP)
+                setMargins(inset, pad, inset, pad)
+            }
+        )
+    }
+
+    private fun styleDrawerField(prefs: LauncherPrefs) {
+        val surface = searchBarSurface ?: return
+        val config = SearchBarConfig.decode(prefs.searchBarConfig).drawer
+        // Hidden leaves the strip empty, as the drawer has no field then.
+        drawerField?.visibility =
+            if (com.supernova.launcher.ui.DrawerBarPlacement.fromConfig(config) ==
+                com.supernova.launcher.ui.DrawerBarPlacement.HIDDEN
+            ) INVISIBLE else VISIBLE
+        val density = resources.displayMetrics.density
+        val max = com.supernova.launcher.ui.DrawerSearchBarConfig.MAX_RADIUS
+        val glass = com.supernova.launcher.data.IconGlass.fromName(config.glass)
+        drawerField?.background = if (glass == com.supernova.launcher.data.IconGlass.OFF) {
+            drawerFieldPill
+        } else {
+            com.supernova.launcher.ui.GlassPillDrawable(glass, (config.radius ?: max).coerceIn(0, max) * density)
+        }
+        drawerFieldPill?.apply {
+            cornerRadius = (config.radius ?: max).coerceIn(0, max) * density
+            if (config.filled) {
+                setColor((DRAWER_FILL_ALPHA shl 24) or (surface.text and 0xFFFFFF))
+                setStroke(0, android.graphics.Color.TRANSPARENT)
+            } else {
+                setColor(android.graphics.Color.TRANSPARENT)
+                setStroke(dp(2), (DRAWER_STROKE_ALPHA shl 24) or (surface.text and 0xFFFFFF))
+            }
+        }
+        drawerFieldIcon?.imageTintList = android.content.res.ColorStateList.valueOf(surface.text)
+    }
+
     private fun buildHome(prefs: LauncherPrefs, viewModel: LauncherViewModel) {
         val row = newRow()
         homeSampleApps(viewModel, prefs.gridCols.coerceIn(HOME_MIN_COLS, HOME_MAX_COLS)).forEach { (app, icon) ->
@@ -359,13 +482,14 @@ class SettingsPreviewView @JvmOverloads constructor(
                 } else {
                     FolderIconDrawable.DEFAULT_PLATE_COLOR
                 },
-                shape = com.supernova.launcher.data.IconShape.fromName(prefs.folderIconShape)
-                    .takeIf { prefs.folderIconShape.isNotEmpty() },
+                shape = FolderIconDrawable.plateShape(prefs.folderIconShape, prefs),
                 customSpec = com.supernova.launcher.data.CustomShapeSpec.decode(prefs.iconShapeCustom),
                 outlineColor = if (prefs.folderIconOutline) resolved.accent else 0,
                 outlineWidthPx = 2f * resources.displayMetrics.density,
                 clipMembers = prefs.folderClipToBg,
-                prioritizeFirst = prefs.folderPrioritizeFirst
+                prioritizeFirst = prefs.folderPrioritizeFirst,
+                glass = FolderIconDrawable.glassFor(prefs),
+                shadow = prefs.iconShadow
             )
         )
         return image
@@ -515,7 +639,7 @@ class SettingsPreviewView @JvmOverloads constructor(
             val pad = dp(8)
             setPadding(pad, pad, pad, pad)
             background = GradientDrawable().apply {
-                cornerRadius = dp(22).toFloat()
+                cornerRadius = dp(24).toFloat()
                 setColor((0x24 shl 24) or (resolved.text and 0xFFFFFF))
             }
         }
@@ -785,6 +909,20 @@ class SettingsPreviewView @JvmOverloads constructor(
     }
 
     private companion object {
+        // The home bar's height and side inset, with room above and below.
+        const val SEARCH_BAR_HEIGHT_DP = 48
+        const val SEARCH_BAR_INSET_DP = 16
+        const val SEARCH_BAR_PAD_DP = 28
+        // The drawer field's start icon, hint and box, as the drawer has them.
+        const val DRAWER_ICON_DP = 20
+        const val DRAWER_ICON_GAP_DP = 12
+        const val DRAWER_HINT_SP = 16f
+        const val DRAWER_HINT_ALPHA = 0x8A
+        const val DRAWER_FILL_ALPHA = 0x24
+        const val DRAWER_STROKE_ALPHA = 0x5A
+        const val DRAWER_BUTTON_DP = 36
+        const val DRAWER_BUTTON_PAD_DP = 8
+        const val DRAWER_BUTTON_END_DP = 4
         // The stand-in notification picture a Dynamic badge shows here, and
         // the count a Numeric one does.
         const val SAMPLE_FACE_PX = 96

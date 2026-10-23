@@ -16,3 +16,6 @@ output-metadata.json
 keystore.properties
 *.jks
 *.keystore
+# Everything kept out of the public repo: signing keys, release notes,
+# release APKs, marketing images.
+/local/

@@ -167,7 +167,7 @@ internal object BottomChrome {
     }
 
     // The desktop search bar's own height, matching activity_launcher.xml.
-    const val SEARCH_BAR_HEIGHT_DP = 44
+    const val SEARCH_BAR_HEIGHT_DP = 48
 
     // The band a bar at the bottom centres in
     // and how much more a below-dock bar's dock clears it by.

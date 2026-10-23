@@ -113,8 +113,6 @@ class SearchBarConfigTest {
         val fresh = DesktopSearchBarConfig.FRESH
         assertEquals(SearchBarPlacement.DOCK_BELOW, SearchBarPlacement.fromName(fresh.placement))
         assertEquals(true, fresh.shadow)
-        assertEquals(SearchBarLogo.SUPERNOVA, SearchBarLogo.fromName(fresh.logo))
-        assertEquals(false, fresh.logoMonochrome)
         assertEquals(listOf(SearchBarChip.ASSISTANT), fresh.chips.mapNotNull(SearchBarChip::fromName))
         assertEquals(false, fresh.hint)
         val config = SearchBarConfig(desktop = fresh)
