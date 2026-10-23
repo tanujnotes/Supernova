@@ -1,0 +1,9 @@
+New Glass look: frosted, clear or smoked backgrounds for icons, folders and search bars.
+
+- Search bars hold their own buttons, and each has its own settings page
+- Redesigned settings with grouped cards
+- Recents row matches the drawer's icons, labels and badges
+- Home button opens the app drawer by default
+- Swipe up follows the drawer's transition
+- Empty home pages are removed
+- Fixes for badges and drawer header icons
