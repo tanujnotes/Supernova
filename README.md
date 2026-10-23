@@ -2,12 +2,17 @@
 
 ### Infinitely Customizable Android Homescreen
 
-[Download APK](https://github.com/tanujnotes/Supernova/releases)
+[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
+    alt="Get it on F-Droid"
+    height="80" align="middle">](https://f-droid.org/packages/com.supernova.launcher)
 
-Follow Supernova on [X/Twitter](https://x.com/supernovalaunch) or [Reddit](https://www.reddit.com/r/SupernovaLauncher/)
+Install: [F-Droid](https://f-droid.org/packages/com.supernova.launcher) • [Download APK](https://github.com/tanujnotes/Supernova/releases)
+
+Follow Supernova:
+[X/Twitter](https://x.com/supernovalaunch) • [Reddit](https://www.reddit.com/r/SupernovaLauncher/)
 
 ## License
 
 AGPL-3.0. See [LICENSE](LICENSE).
 
-[Developer](https://x.com/tanujnotes)
+Developer: [@tanujnotes](https://x.com/tanujnotes)
