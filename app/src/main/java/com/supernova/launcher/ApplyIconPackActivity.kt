@@ -7,6 +7,10 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import com.supernova.launcher.ui.theme.ThemeEngine
+import com.supernova.launcher.ui.theme.AccentColor
 
 // The "Apply" button inside an icon pack's own app. Every pack dashboard ships
 // one per launcher it knows about, firing an action at that launcher with the
@@ -30,6 +34,10 @@ class ApplyIconPackActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // The accent overlay is what sets colorAccent, which the dialog's
+        // colours resolve through: without it MaterialAlertDialogBuilder
+        // found no theme colours and this screen crashed on open.
+        ThemeEngine.applyAccent(this, AccentColor.fromName(runBlocking { preferences.flow.first() }.accentColor))
 
         val requested = requestedPack()
         if (requested == null) {

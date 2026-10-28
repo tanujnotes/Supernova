@@ -17,6 +17,9 @@ import com.supernova.launcher.data.WorkspaceGeometry
 import com.supernova.launcher.widget.WidgetSizing
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import com.supernova.launcher.ui.theme.ThemeEngine
+import com.supernova.launcher.ui.theme.AccentColor
 
 // Handles "add to home screen" requests from other apps. The system routes
 // these here only while Supernova is the default launcher.
@@ -55,6 +58,10 @@ class PinRequestActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // The accent overlay is what sets colorAccent, which the dialog's
+        // colours resolve through: without it MaterialAlertDialogBuilder
+        // found no theme colours and this screen crashed on open.
+        ThemeEngine.applyAccent(this, AccentColor.fromName(runBlocking { preferences.flow.first() }.accentColor))
 
         if (savedInstanceState != null) {
             pendingWidgetId = savedInstanceState.getInt(KEY_PENDING_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
@@ -89,6 +96,14 @@ class PinRequestActivity : AppCompatActivity() {
             .setTitle(getString(R.string.pin_shortcut_title, label))
             .setPositiveButton(R.string.add_to_home) { _, _ ->
                 if (request.accept()) {
+                    // The shortcut's own picture (a contact's photo, say), as
+                    // the create-shortcut path keeps it; without it the icon
+                    // fell back to the app's.
+                    val icon = runCatching {
+                        getSystemService(LauncherApps::class.java)
+                            ?.getShortcutIconDrawable(shortcut, resources.displayMetrics.densityDpi)
+                    }.getOrNull()
+                    val icon64 = icon?.let { com.supernova.launcher.data.GalleryIconCodec.encode(it) }
                     lifecycleScope.launch {
                         val placement = findPlacement(spanX = 1, spanY = 1)
                         repository.addShortcutToWorkspace(
@@ -107,7 +122,8 @@ class PinRequestActivity : AppCompatActivity() {
                             cellX = placement.cellX,
                             cellY = placement.cellY,
                             cols = placement.cols,
-                            rows = placement.rows
+                            rows = placement.rows,
+                            iconBase64 = icon64
                         )
                         finish()
                     }
