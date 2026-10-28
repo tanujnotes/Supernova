@@ -607,6 +607,8 @@
     <string name="search_contacts">Search contacts</string>
     <string name="search_shortcuts">Search app shortcuts</string>
     <string name="search_calculator">Calculator</string>
+    <string name="search_hidden_apps">Hidden apps</string>
+    <string name="search_hidden_apps_summary">Find apps hidden from the drawer when you search</string>
     <string name="search_private_keyboard">Private keyboard mode</string>
     <string name="home_button_action">Home button action</string>
     <string name="settings_search_hint">Search settings</string>

@@ -967,6 +967,8 @@ class LauncherViewModel(
 
     fun setSearchCalculator(value: Boolean) = persist { preferences.setSearchCalculator(value) }
 
+    fun setSearchHiddenApps(value: Boolean) = persist { preferences.setSearchHiddenApps(value) }
+
     fun setSearchHistory(value: Boolean) = persist { preferences.setSearchHistory(value) }
 
     fun setSearchPrivateKeyboard(value: Boolean) = persist { preferences.setSearchPrivateKeyboard(value) }
@@ -1124,6 +1126,11 @@ class LauncherViewModel(
         val hidden = state.value.prefs.hiddenApps
         return sortedApps(withOverrides(state.value.apps.filterNot { hiddenKey(it) in hidden }))
     }
+
+    // The apps search matches: the drawer's, plus the hidden ones when the
+    // user wants them found.
+    fun searchableApps(): List<LaunchableApp> =
+        if (state.value.prefs.searchHiddenApps) appsForPicking() else visibleApps()
 
     // Every app, hidden ones too, under the names the user gave them: what a
     // gesture or icon swipe can open.

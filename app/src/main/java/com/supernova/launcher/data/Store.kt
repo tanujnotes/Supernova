@@ -165,6 +165,7 @@ object StoreKeys {
     val searchContactCards: Preferences.Key<Boolean> = booleanPreferencesKey("search_contact_cards")
     val searchCards: Preferences.Key<Boolean> = booleanPreferencesKey("search_cards")
     val searchCalculator: Preferences.Key<Boolean> = booleanPreferencesKey("search_calculator")
+    val searchHiddenApps: Preferences.Key<Boolean> = booleanPreferencesKey("search_hidden_apps")
     val searchHistory: Preferences.Key<Boolean> = booleanPreferencesKey("search_history")
     val searchPrivateKeyboard: Preferences.Key<Boolean> = booleanPreferencesKey("search_private_keyboard")
     val homeSearch: Preferences.Key<Boolean> = booleanPreferencesKey("home_search")

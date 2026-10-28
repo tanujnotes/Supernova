@@ -168,6 +168,7 @@ class LauncherPreferences(private val context: Context) {
             target[StoreKeys.searchContactCards] = prefs.searchContactCards
             target[StoreKeys.searchCards] = prefs.searchCards
             target[StoreKeys.searchCalculator] = prefs.searchCalculator
+            target[StoreKeys.searchHiddenApps] = prefs.searchHiddenApps
             target[StoreKeys.searchHistory] = prefs.searchHistory
             target[StoreKeys.searchPrivateKeyboard] = prefs.searchPrivateKeyboard
             target[StoreKeys.homeSearch] = prefs.homeSearch
@@ -374,6 +375,7 @@ class LauncherPreferences(private val context: Context) {
             searchContactCards = values[StoreKeys.searchContactCards] ?: true,
             searchCards = values[StoreKeys.searchCards] ?: true,
             searchCalculator = values[StoreKeys.searchCalculator] ?: true,
+            searchHiddenApps = values[StoreKeys.searchHiddenApps] ?: false,
             searchHistory = values[StoreKeys.searchHistory] ?: true,
             searchPrivateKeyboard = values[StoreKeys.searchPrivateKeyboard] ?: true,
             homeSearch = values[StoreKeys.homeSearch] ?: false,
@@ -779,6 +781,8 @@ class LauncherPreferences(private val context: Context) {
     suspend fun setSearchCards(value: Boolean) = put(StoreKeys.searchCards, value)
 
     suspend fun setSearchCalculator(value: Boolean) = put(StoreKeys.searchCalculator, value)
+
+    suspend fun setSearchHiddenApps(value: Boolean) = put(StoreKeys.searchHiddenApps, value)
 
     suspend fun setSearchHistory(value: Boolean) = put(StoreKeys.searchHistory, value)
 

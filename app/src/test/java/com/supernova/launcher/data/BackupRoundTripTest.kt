@@ -87,6 +87,7 @@ class BackupRoundTripTest {
         searchContactCards = true,
         searchCards = false,
         searchCalculator = false,
+        searchHiddenApps = true,
         searchHistory = false,
         searchPrivateKeyboard = true,
         homeSearch = true,

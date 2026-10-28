@@ -130,7 +130,7 @@ class SearchController(
     // Shared between the immediate tier and the shortcut provider, so both
     // agree on which apps matched.
     private val appProvider = AppSearchProvider(
-        apps = { viewModel.visibleApps() },
+        apps = { viewModel.searchableApps() },
         launchCounts = { viewModel.launchCounts() }
     )
 

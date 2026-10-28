@@ -373,6 +373,8 @@ data class LauncherPrefs(
     // Custom cards match by name and render as full cards in the results.
     val searchCards: Boolean = true,
     val searchCalculator: Boolean = true,
+    // Apps hidden from the drawer still turn up in search. Off by default.
+    val searchHiddenApps: Boolean = false,
     val searchHistory: Boolean = true,
     // Sets IME_FLAG_NO_PERSONALIZED_LEARNING on the search field. On by
     // default.

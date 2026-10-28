@@ -843,6 +843,12 @@ object SettingsCatalogue {
                     get = { it.searchCalculator },
                     set = { viewModel.setSearchCalculator(it) }
                 ),
+                SettingItem.Toggle(
+                    R.string.search_hidden_apps,
+                    get = { it.searchHiddenApps },
+                    set = { viewModel.setSearchHiddenApps(it) },
+                    subtitle = R.string.search_hidden_apps_summary
+                ),
                 SettingItem.Row(
                     R.string.search_chips,
                     subtitle = {
