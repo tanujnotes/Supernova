@@ -881,6 +881,9 @@ class LiveDragController(
     }
 
     private fun onLiveDragRelease(rawX: Float, rawY: Float) {
+        // Before the bar goes: with animations off it hides at once, and the
+        // zones, hit-tested only while it shows, never took a drop.
+        val target = findDragTarget(rawX, rawY)
         cancelEdgeFlip()
         watchDragPage(false)
         hideDropTargetBar()
@@ -889,7 +892,6 @@ class LiveDragController(
         val payload = activeDragPayload ?: return cancel()
         val prefs = viewModel.state.value.prefs
         val settleMs = Animations.duration(prefs, DRAG_SETTLE_MS)
-        val target = findDragTarget(rawX, rawY)
         // Leaving a workspace target here would wipe the reorder preview the
         // drop is about to commit; onDropToWorkspace clears it itself.
         if (dragTarget is DragTarget.Zone) leaveDragTarget(dragTarget)
