@@ -243,6 +243,36 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
         }
     }
 
+    // A widget has one host view, but infinite scroll binds a page at up to
+    // three positions, so only the copy bound last holds the page's widgets.
+    // With two pages both neighbours of the page in view are copies of the
+    // other page, and the one bound first came into view with every widget
+    // gone. The copies on screen take their widgets back: on every scroll
+    // frame, and after any bind (a rebind of another copy can take them).
+    private var list: RecyclerView? = null
+
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        list = recyclerView
+    }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        list = null
+    }
+
+    fun claimWidgetsInView() {
+        if (!looping) return
+        val list = list ?: return
+        for (i in 0 until list.childCount) {
+            val child = list.getChildAt(i)
+            val holder = list.getChildViewHolder(child) as? PageViewHolder
+            val position = holder?.bindingAdapterPosition ?: RecyclerView.NO_POSITION
+            val onScreen = child.right > 0 && child.left < list.width
+            if (onScreen && position != RecyclerView.NO_POSITION && holder?.lostWidgets() == true) {
+                holder.bind(realPage(position))
+            }
+        }
+    }
+
     fun invalidateAll() {
         renderedPages.clear()
         notifyDataSetChanged()
@@ -352,6 +382,7 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
         // scroll re-applies the rest on its first frame.
         PageTransformers.resetTransforms(holder.itemView)
         if (holder is PageViewHolder) holder.bind(realPage(position))
+        if (looping) list?.post(::claimWidgetsInView)
     }
 
     inner class AddPageViewHolder(binding: ViewWorkspaceAddPageBinding) : RecyclerView.ViewHolder(binding.root) {
@@ -381,6 +412,8 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
                 }
             }
         }
+
+        fun lostWidgets(): Boolean = widgets.any { (_, view) -> view.parent !== binding.workspaceCanvas }
 
         fun bind(page: Int) {
             val state = host.state()

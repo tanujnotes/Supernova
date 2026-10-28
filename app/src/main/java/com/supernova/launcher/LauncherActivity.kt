@@ -1127,6 +1127,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 val realPage = workspaceAdapter.realPage(position)
                 updateWallpaperOffset(realPage + positionOffset)
                 binding.pageIndicator.onPageScrolled(realPage, positionOffset)
+                workspaceAdapter.claimWidgetsInView()
             }
 
             override fun onPageScrollStateChanged(state: Int) {
