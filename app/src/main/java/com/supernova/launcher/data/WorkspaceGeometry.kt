@@ -1,6 +1,9 @@
 package com.supernova.launcher.data
 
 import kotlin.math.ceil
+import kotlin.math.floor
+import kotlin.math.max
+import kotlin.math.roundToInt
 
 // Collision model for the workspace, in cell units: widgets occupy their exact
 // cell rectangle, free-positioned icons a one-cell square centred on their
@@ -33,7 +36,11 @@ object WorkspaceGeometry {
     )
 
     fun itemRect(item: LauncherItem, cols: Int, rows: Int): CellRect {
-        return if (item.itemType == ItemType.WIDGET || item.workspaceX == null || item.workspaceY == null) {
+        return if (item.itemType == ItemType.WIDGET && item.halfCells) {
+            CellRect(
+                item.cellX / 2f, item.cellY / 2f, (item.cellX + item.spanX) / 2f, (item.cellY + item.spanY) / 2f
+            )
+        } else if (item.itemType == ItemType.WIDGET || item.workspaceX == null || item.workspaceY == null) {
             cellRect(item.cellX, item.cellY, item.spanX, item.spanY)
         } else {
             val centerX = item.workspaceX * cols
@@ -162,6 +169,49 @@ object WorkspaceGeometry {
 
     data class ResizeRoom(val left: Int, val top: Int, val right: Int, val bottom: Int)
 
+    // A widget on `rect` (in cells): whole cells where every edge is on one,
+    // half cells (halfCells) where any edge falls between two.
+    fun widgetOn(item: LauncherItem, rect: CellRect): LauncherItem {
+        val units = listOf(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top)
+            .map { (it * 2).roundToInt() }
+        val half = units.any { it % 2 != 0 }
+        val cells = if (half) units else units.map { it / 2 }
+        val (x, y, w) = cells
+        return item.copy(cellX = x, cellY = y, spanX = max(1, w), spanY = max(1, cells.last()), halfCells = half)
+    }
+
+    // resizeRoom in steps of `step` cells (a half with the subgrid on): how
+    // many free steps lie beyond each edge of `rect` before another item or
+    // the grid edge.
+    fun resizeRoom(
+        model: LauncherModel,
+        page: Int,
+        itemId: String,
+        rect: CellRect,
+        step: Float,
+        cols: Int,
+        rows: Int
+    ): ResizeRoom {
+        val exclude = setOf(itemId)
+        fun free(area: CellRect) = isAreaFree(model, page, area, cols, rows, exclude)
+        fun count(next: (Int) -> CellRect): Int {
+            var n = 0
+            while (free(next(n))) n++
+            return n
+        }
+        // isAreaFree already refuses an area past the grid edge.
+        return ResizeRoom(
+            left = count { n -> CellRect(rect.left - (n + 1) * step, rect.top, rect.left - n * step, rect.bottom) },
+            top = count { n -> CellRect(rect.left, rect.top - (n + 1) * step, rect.right, rect.top - n * step) },
+            right = count { n ->
+                CellRect(rect.right + n * step, rect.top, rect.right + (n + 1) * step, rect.bottom)
+            },
+            bottom = count { n ->
+                CellRect(rect.left, rect.bottom + n * step, rect.right, rect.bottom + (n + 1) * step)
+            }
+        )
+    }
+
     // How many free whole cells lie beyond each edge of a widget before
     // another item or the grid edge. Scans one strip at a time per direction.
     fun resizeRoom(model: LauncherModel, item: LauncherItem, cols: Int, rows: Int): ResizeRoom {
@@ -191,6 +241,24 @@ object WorkspaceGeometry {
             bottom++
         }
         return ResizeRoom(left, top, right, bottom)
+    }
+
+    // The whole cells an item's rect needs: a widget on half cells rounds up.
+    fun wholeSpans(rect: CellRect): Pair<Int, Int> =
+        max(1, ceil(rect.right - rect.left - EPSILON).toInt()) to max(1, ceil(rect.bottom - rect.top - EPSILON).toInt())
+
+    // Where a reorder move takes a rect: pushed by whole cells, or, for a
+    // relocation (snapToCell), onto whole cells from its top-left cell.
+    fun displaced(rect: CellRect, move: ReorderMove): CellRect {
+        if (!move.snapToCell) {
+            return CellRect(
+                rect.left + move.dCellX, rect.top + move.dCellY, rect.right + move.dCellX, rect.bottom + move.dCellY
+            )
+        }
+        val (spanX, spanY) = wholeSpans(rect)
+        val x = floor(rect.left + EPSILON).toInt() + move.dCellX
+        val y = floor(rect.top + EPSILON).toInt() + move.dCellY
+        return cellRect(x, y, spanX, spanY)
     }
 
     fun cellCenteredPosition(cellX: Int, cellY: Int, cols: Int, rows: Int): Pair<Float, Float> =
@@ -344,14 +412,20 @@ object WorkspaceGeometry {
             val from = rects.getValue(b.id)
             val cx = (from.left + from.right) / 2f
             val cy = (from.top + from.bottom) / 2f
+            // A widget on half cells moves as the whole cells it needs, from
+            // its top-left cell (see displaced).
+            val half = b.itemType == ItemType.WIDGET && b.halfCells
+            val (spanX, spanY) = if (half) wholeSpans(from) else b.spanX to b.spanY
+            val originX = if (half) floor(from.left + EPSILON).toInt() else b.cellX
+            val originY = if (half) floor(from.top + EPSILON).toInt() else b.cellY
             var best: Pair<Int, Int>? = null
             var bestDistance = Float.MAX_VALUE
-            for (row in 0..(rows - b.spanY)) {
-                for (col in 0..(cols - b.spanX)) {
-                    val r = cellRect(col, row, b.spanX, b.spanY)
+            for (row in 0..(rows - spanY)) {
+                for (col in 0..(cols - spanX)) {
+                    val r = cellRect(col, row, spanX, spanY)
                     if (occupied.any { overlaps(it, r) }) continue
-                    val dx = (col + b.spanX / 2f) - cx
-                    val dy = (row + b.spanY / 2f) - cy
+                    val dx = (col + spanX / 2f) - cx
+                    val dy = (row + spanY / 2f) - cy
                     val distance = dx * dx + dy * dy
                     if (distance < bestDistance) {
                         bestDistance = distance
@@ -360,8 +434,8 @@ object WorkspaceGeometry {
                 }
             }
             val cell = best ?: return null
-            occupied += cellRect(cell.first, cell.second, b.spanX, b.spanY)
-            moves += ReorderMove(b.id, cell.first - b.cellX, cell.second - b.cellY, snapToCell = true)
+            occupied += cellRect(cell.first, cell.second, spanX, spanY)
+            moves += ReorderMove(b.id, cell.first - originX, cell.second - originY, snapToCell = true)
         }
         return moves
     }

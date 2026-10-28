@@ -630,6 +630,17 @@ class LauncherViewModel(
         viewModelScope.launch { repository.addAppToDock(app, rank, prefs.gridCols, prefs.gridRows, preferredPage) }
     }
 
+    // A placed widget onto `rect` (in cells, half ones included).
+    fun moveWidget(
+        itemId: String,
+        page: Int,
+        rect: WorkspaceGeometry.CellRect,
+        displace: List<WorkspaceGeometry.ReorderMove>
+    ) {
+        val prefs = state.value.prefs
+        viewModelScope.launch { repository.moveWidget(itemId, page, rect, prefs.gridCols, prefs.gridRows, displace) }
+    }
+
     fun moveItemToWorkspace(
         itemId: String,
         page: Int,
@@ -702,10 +713,10 @@ class LauncherViewModel(
             listOfNotNull(searchBarWidget.takeIf { it != 0 })).toSet()
     }
 
-    fun resizeWidget(itemId: String, cellX: Int, cellY: Int, spanX: Int, spanY: Int, onRefused: () -> Unit = {}) {
+    fun resizeWidget(itemId: String, rect: WorkspaceGeometry.CellRect, onRefused: () -> Unit = {}) {
         val prefs = state.value.prefs
         viewModelScope.launch {
-            if (!repository.resizeWidget(itemId, cellX, cellY, spanX, spanY, prefs.gridCols, prefs.gridRows)) onRefused()
+            if (!repository.resizeWidget(itemId, rect, prefs.gridCols, prefs.gridRows)) onRefused()
         }
     }
 

@@ -13,6 +13,7 @@ import com.supernova.launcher.data.ItemType
 import com.supernova.launcher.data.LauncherItem
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.LauncherRepository
+import com.supernova.launcher.data.WorkspaceGeometry
 import com.supernova.launcher.databinding.ViewWorkspaceAddPageBinding
 import com.supernova.launcher.databinding.ViewWorkspacePageBinding
 import com.supernova.launcher.widget.WidgetResizeFrame
@@ -310,7 +311,7 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
         val items = pageItems
             .sortedBy { it.id }
             .joinToString(";") {
-                "${it.id}:${it.cellX},${it.cellY},${it.spanX},${it.spanY}," +
+                "${it.id}:${it.cellX},${it.cellY},${it.spanX},${it.spanY},${it.halfCells}," +
                     "${it.workspaceX},${it.workspaceY},${it.label}," +
                     "${it.swipeAction},${it.swipeActionDown},${it.swipeToOpen},${it.widgetPadding}" +
                     // A folder's icon is drawn from its members, which live
@@ -475,13 +476,21 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
                         // no size at all. The provider hears the first size
                         // here, and any later one through the canvas (see
                         // init).
+                        // In cells, half ones included (subgrid placement).
+                        val rect = WorkspaceGeometry.itemRect(item, cols, rows)
+                        val spanX = (rect.right - rect.left).coerceIn(MIN_WIDGET_SPAN, cols.toFloat())
+                        val spanY = (rect.bottom - rect.top).coerceIn(MIN_WIDGET_SPAN, rows.toFloat())
                         canvas.addView(
                             child,
                             WorkspaceCanvas.WidgetParams(
-                                item.cellX.coerceIn(0, cols - 1), item.cellY.coerceIn(0, rows - 1),
-                                item.spanX.coerceIn(1, cols), item.spanY.coerceIn(1, rows),
-                                cols, rows, ((item.widgetPadding ?: state.prefs.widgetPadding) * density).toInt()
-                            )
+                                0, 0, 1, 1, cols, rows,
+                                ((item.widgetPadding ?: state.prefs.widgetPadding) * density).toInt()
+                            ).apply {
+                                this.cellX = rect.left.coerceIn(0f, cols - MIN_WIDGET_SPAN)
+                                this.cellY = rect.top.coerceIn(0f, rows - MIN_WIDGET_SPAN)
+                                this.spanX = spanX
+                                this.spanY = spanY
+                            }
                         )
                         child.doOnLayout { host.reportWidgetSize(item, child) }
                         boundWidgets += item to child
@@ -543,6 +552,7 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
     }
 
     private companion object {
+        const val MIN_WIDGET_SPAN = 0.5f
         const val TYPE_PAGE = 0
         const val TYPE_ADD_PAGE = 1
     }

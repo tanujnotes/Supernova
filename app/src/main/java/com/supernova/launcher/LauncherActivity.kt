@@ -127,6 +127,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.roundToInt
 
 class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDragController.Host, WidgetController.Host {
 
@@ -4434,15 +4435,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     pulseFolderTarget(page, rawCellX, rawCellY, movingItem.id)
                     return true
                 }
-                val spanX = movingItem.spanX.coerceAtLeast(1)
-                val spanY = movingItem.spanY.coerceAtLeast(1)
-                val anchorX = clampAnchor(cellX, spanX, prefs.gridCols)
-                val anchorY = clampAnchor(cellY, spanY, prefs.gridRows)
                 val target = if (widget) {
-                    WorkspaceGeometry.cellRect(anchorX, anchorY, spanX, spanY)
+                    widgetDropRect(movingItem, cellX, cellY, rawCellX, rawCellY)
                 } else {
                     iconRectAt(workspaceX, workspaceY, prefs.gridCols, prefs.gridRows)
                 }
+                val (spanX, spanY) = if (widget) WorkspaceGeometry.wholeSpans(target) else 1 to 1
                 val moves = WorkspaceGeometry.solveReorder(
                     model, page, target, prefs.gridCols, prefs.gridRows, setOf(movingItem.id)
                 )
@@ -4451,9 +4449,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     return false
                 }
                 if (widget) {
-                    viewModel.moveItemToWorkspace(
-                        payload.itemId, page, anchorX, anchorY, displace = moves.orEmpty(), mergeFolders = false
-                    )
+                    viewModel.moveWidget(payload.itemId, page, target, moves.orEmpty())
                 } else {
                     viewModel.moveItemToWorkspace(
                         payload.itemId, page, cellX, cellY, workspaceX, workspaceY, moves.orEmpty(), mergeFolders = false
@@ -4533,6 +4529,31 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // and refuses it only when there is none. Refused, the picture used to
     // settle into the occupied cell and vanish - a drawer app never added,
     // a moved icon popping back to where it was.
+    // Where a placed widget dropped here lands, in cells, keeping its size:
+    // its top-left on the hovered cell, or with subgrid positioning on the
+    // nearest half cell. rawCellX is the drop point, half a cell in from the
+    // picture's top-left.
+    private fun widgetDropRect(
+        item: LauncherItem,
+        cellX: Int,
+        cellY: Int,
+        rawCellX: Float,
+        rawCellY: Float
+    ): WorkspaceGeometry.CellRect {
+        val prefs = viewModel.state.value.prefs
+        val rect = WorkspaceGeometry.itemRect(item, prefs.gridCols, prefs.gridRows)
+        val width = rect.right - rect.left
+        val height = rect.bottom - rect.top
+        fun anchor(cell: Int, raw: Float, size: Float, count: Int): Float {
+            val most = (count - size).coerceAtLeast(0f)
+            val start = if (prefs.subgrid) ((raw - 0.5f) * 2).roundToInt() / 2f else cell.toFloat()
+            return start.coerceIn(0f, most)
+        }
+        val left = anchor(cellX, rawCellX, width, prefs.gridCols)
+        val top = anchor(cellY, rawCellY, height, prefs.gridRows)
+        return WorkspaceGeometry.CellRect(left, top, left + width, top + height)
+    }
+
     private fun pageHasRoom(
         model: com.supernova.launcher.data.LauncherModel,
         page: Int,
@@ -4633,7 +4654,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             is DragPayload.ExistingItem -> {
                 val item = viewModel.state.value.model.items.firstOrNull { it.id == payload.itemId } ?: return null
                 if (item.itemType == ItemType.WIDGET) {
-                    widgetRect(item.spanX.coerceAtLeast(1), item.spanY.coerceAtLeast(1)) to setOf(item.id)
+                    widgetDropRect(item, cellX, cellY, rawCellX, rawCellY) to setOf(item.id)
                 } else {
                     snappedIconRect() to setOf(item.id)
                 }

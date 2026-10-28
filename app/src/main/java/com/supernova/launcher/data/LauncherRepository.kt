@@ -526,16 +526,17 @@ class LauncherRepository(private val context: Context) {
     // moves along with the span when resizing from the top or left edge.
     // False when the resize was refused (nothing saved), so the caller can
     // put the widget and its frame back.
-    suspend fun resizeWidget(itemId: String, cellX: Int, cellY: Int, spanX: Int, spanY: Int, cols: Int, rows: Int): Boolean {
+    // rect is in cells, on half cells with the subgrid on.
+    suspend fun resizeWidget(itemId: String, rect: WorkspaceGeometry.CellRect, cols: Int, rows: Int): Boolean {
         var saved = false
         mutate { current ->
             val widget = current.items.firstOrNull { it.id == itemId && it.itemType == ItemType.WIDGET }
                 ?: return@mutate current
-            val newSpanX = spanX.coerceAtLeast(1)
-            val newSpanY = spanY.coerceAtLeast(1)
-            val newCellX = cellX.coerceIn(0, (cols - newSpanX).coerceAtLeast(0))
-            val newCellY = cellY.coerceIn(0, (rows - newSpanY).coerceAtLeast(0))
-            val area = WorkspaceGeometry.cellRect(newCellX, newCellY, newSpanX, newSpanY)
+            val width = (rect.right - rect.left).coerceIn(MIN_WIDGET_SPAN, cols.toFloat())
+            val height = (rect.bottom - rect.top).coerceIn(MIN_WIDGET_SPAN, rows.toFloat())
+            val left = rect.left.coerceIn(0f, cols - width)
+            val top = rect.top.coerceIn(0f, rows - height)
+            val area = WorkspaceGeometry.CellRect(left, top, left + width, top + height)
             // Items already under the widget were let in there (widget
             // overlap, overlap when placing); like the frame's room check,
             // the resize only has to keep clear of the rest. Counted, they
@@ -553,9 +554,7 @@ class LauncherRepository(private val context: Context) {
             saved = true
             current.copy(
                 items = current.items.map {
-                    if (it.id == itemId) {
-                        it.copy(cellX = newCellX, cellY = newCellY, spanX = newSpanX, spanY = newSpanY)
-                    } else it
+                    if (it.id == itemId) WorkspaceGeometry.widgetOn(it, area) else it
                 }
             )
         }
@@ -936,6 +935,27 @@ class LauncherRepository(private val context: Context) {
         }
     }
 
+    // A placed widget onto `rect` (in cells, half ones included), clear of
+    // what a drag previewed aside; an occupied spot sends it to the nearest
+    // free whole cells.
+    suspend fun moveWidget(
+        itemId: String,
+        page: Int,
+        rect: WorkspaceGeometry.CellRect,
+        cols: Int,
+        rows: Int,
+        displace: List<WorkspaceGeometry.ReorderMove> = emptyList()
+    ) {
+        mutate { original ->
+            val current = applyDisplacement(original, displace, itemId, cols, rows) ?: original
+            val moving = current.items.firstOrNull { it.id == itemId && it.itemType == ItemType.WIDGET }
+                ?: return@mutate original
+            val moved = WorkspaceGeometry.widgetOn(moving.copy(page = page), rect)
+            val placed = resolvePlacement(current, moved, cols, rows) ?: return@mutate original
+            current.copy(items = current.items.map { if (it.id == placed.id) placed else it })
+        }
+    }
+
     private suspend fun addNewWorkspaceItem(
         item: LauncherItem,
         cols: Int,
@@ -1123,6 +1143,11 @@ class LauncherRepository(private val context: Context) {
             val updated = current.copy(
                 items = current.items.map { item ->
                     val m = byId[item.id] ?: return@map item
+                    if (item.itemType == ItemType.WIDGET && item.halfCells) {
+                        return@map WorkspaceGeometry.widgetOn(
+                            item, WorkspaceGeometry.displaced(WorkspaceGeometry.itemRect(item, cols, rows), m)
+                        )
+                    }
                     val newCellX = (item.cellX + m.dCellX).coerceIn(0, cols - 1)
                     val newCellY = (item.cellY + m.dCellY).coerceIn(0, rows - 1)
                     if (item.workspaceX == null || item.workspaceY == null || item.itemType == ItemType.WIDGET) {
@@ -1231,19 +1256,24 @@ class LauncherRepository(private val context: Context) {
                 return item
             }
 
+            // A widget on half cells settles on whole ones when it has to
+            // move somewhere else.
+            val (spanX, spanY) = WorkspaceGeometry.wholeSpans(rect)
             val cell = WorkspaceGeometry.nearestFreeCell(
                 model = current,
                 page = item.page,
                 nearCellX = (rect.left + rect.right) / 2f,
                 nearCellY = (rect.top + rect.bottom) / 2f,
-                spanX = item.spanX,
-                spanY = item.spanY,
+                spanX = if (item.itemType == ItemType.WIDGET) spanX else item.spanX,
+                spanY = if (item.itemType == ItemType.WIDGET) spanY else item.spanY,
                 cols = cols,
                 rows = rows,
                 excludeIds = exclude
             ) ?: return null
 
-            return if (item.itemType == ItemType.WIDGET || item.workspaceX == null || item.workspaceY == null) {
+            return if (item.itemType == ItemType.WIDGET) {
+                WorkspaceGeometry.widgetOn(item, WorkspaceGeometry.cellRect(cell.first, cell.second, spanX, spanY))
+            } else if (item.workspaceX == null || item.workspaceY == null) {
                 item.copy(cellX = cell.first, cellY = cell.second)
             } else {
                 val (centerX, centerY) = WorkspaceGeometry.cellCenteredPosition(cell.first, cell.second, cols, rows)
@@ -1390,6 +1420,8 @@ class LauncherRepository(private val context: Context) {
         }
 
         private const val AUTO_BACKUP_KEEP = 5
+        // The narrowest a widget resizes to: half a cell, on the subgrid.
+        private const val MIN_WIDGET_SPAN = 0.5f
         // Shared with the surfaces that offer an add-page control.
         const val MAX_PAGES = 9
         // The top of the Widget padding bar, which a widget's own padding

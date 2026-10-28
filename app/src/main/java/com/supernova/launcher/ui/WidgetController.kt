@@ -423,7 +423,7 @@ class WidgetController(
         val info = item.appWidgetId?.let(appWidgetManager::getAppWidgetInfo)
         val defaults = info
             ?.let { WidgetSizing.defaultSpans(activity, it, cellWidth, cellHeight, prefs.gridCols, prefs.gridRows) }
-            ?: (item.spanX to item.spanY)
+            ?: WorkspaceGeometry.wholeSpans(WorkspaceGeometry.itemRect(item, prefs.gridCols, prefs.gridRows))
         return WidgetSizing.spanBounds(
             info, defaults.first, defaults.second, cellWidth, cellHeight, prefs.gridCols, prefs.gridRows
         )
@@ -436,25 +436,34 @@ class WidgetController(
     // press takes it down.
     fun showResizeFrame(item: LauncherItem, widgetView: View) {
         dismissResizeFrame()
+        // Subgrid positioning resizes in half cells; the frame counts in
+        // those steps.
+        val units = if (viewModel.state.value.prefs.subgrid) 2 else 1
+        fun rect(cellX: Int, cellY: Int, spanX: Int, spanY: Int) = WorkspaceGeometry.CellRect(
+            cellX / units.toFloat(), cellY / units.toFloat(),
+            (cellX + spanX) / units.toFloat(), (cellY + spanY) / units.toFloat()
+        )
         val frame = WidgetResizeFrame(
             context = activity,
             itemId = item.id,
             // Growth stops at the first neighbouring item, not just the grid edge.
             roomProvider = { cellX, cellY, spanX, spanY ->
                 val state = viewModel.state.value
-                val current = state.model.items.firstOrNull { it.id == item.id } ?: item
                 WorkspaceGeometry.resizeRoom(
-                    state.model, current.copy(cellX = cellX, cellY = cellY, spanX = spanX, spanY = spanY),
+                    state.model, item.page, item.id, rect(cellX, cellY, spanX, spanY), 1f / units,
                     state.prefs.gridCols, state.prefs.gridRows
                 )
             },
             snapDurationMs = Animations.duration(viewModel.state.value.prefs, RESIZE_SNAP_MS),
+            units = units,
             onCommit = { cellX, cellY, spanX, spanY ->
-                val current = viewModel.state.value.model.items.firstOrNull { it.id == item.id }
-                if (current != null && (cellX != current.cellX || cellY != current.cellY ||
-                        spanX != current.spanX || spanY != current.spanY)
+                val state = viewModel.state.value
+                val current = state.model.items.firstOrNull { it.id == item.id }
+                val resized = rect(cellX, cellY, spanX, spanY)
+                if (current != null &&
+                    resized != WorkspaceGeometry.itemRect(current, state.prefs.gridCols, state.prefs.gridRows)
                 ) {
-                    viewModel.resizeWidget(item.id, cellX, cellY, spanX, spanY) {
+                    viewModel.resizeWidget(item.id, resized) {
                         // Nothing was saved, so no rebind is coming: the page
                         // is rebuilt to put the widget, and the frame with it
                         // (onPageBound), back at the size it has.

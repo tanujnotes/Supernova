@@ -32,6 +32,10 @@ class WidgetResizeFrame(
     private val roomProvider: (cellX: Int, cellY: Int, spanX: Int, spanY: Int) -> WorkspaceGeometry.ResizeRoom,
     // How long each snap step takes; 0 snaps at once.
     private val snapDurationMs: Long = 0L,
+    // Steps per cell: 2 with subgrid positioning, which resizes in half
+    // cells. cellX, spanX and the rest, and what roomProvider and onCommit
+    // are handed, all count these steps.
+    private val units: Int = 1,
     private val onCommit: (cellX: Int, cellY: Int, spanX: Int, spanY: Int) -> Unit
 ) : View(context) {
 
@@ -90,12 +94,22 @@ class WidgetResizeFrame(
             placeWidget()
             return true
         }
-        this.bounds = bounds
-        cellX = cells.cellX.roundToInt()
-        cellY = cells.cellY.roundToInt()
-        spanX = cells.spanX.roundToInt()
-        spanY = cells.spanY.roundToInt()
-        layoutParams = WorkspaceCanvas.WidgetParams(cellX, cellY, spanX, spanY, cells.cols, cells.rows, 0)
+        this.bounds = bounds.copy(
+            minX = bounds.minX * units,
+            maxX = bounds.maxX * units,
+            minY = bounds.minY * units,
+            maxY = bounds.maxY * units
+        )
+        cellX = (cells.cellX * units).roundToInt()
+        cellY = (cells.cellY * units).roundToInt()
+        spanX = (cells.spanX * units).roundToInt()
+        spanY = (cells.spanY * units).roundToInt()
+        layoutParams = WorkspaceCanvas.WidgetParams(0, 0, 1, 1, cells.cols, cells.rows, 0).apply {
+            this.cellX = this@WidgetResizeFrame.cellX / units.toFloat()
+            this.cellY = this@WidgetResizeFrame.cellY / units.toFloat()
+            this.spanX = this@WidgetResizeFrame.spanX / units.toFloat()
+            this.spanY = this@WidgetResizeFrame.spanY / units.toFloat()
+        }
         invalidate()
         return true
     }
@@ -147,8 +161,8 @@ class WidgetResizeFrame(
                 startCellY = cellY
                 startSpanX = spanX
                 startSpanY = spanY
-                cellWidthPx = cellSize(canvas.width, cells.cols)
-                cellHeightPx = cellSize(canvas.height, cells.rows)
+                cellWidthPx = (cellSize(canvas.width, cells.cols) / units).coerceAtLeast(1)
+                cellHeightPx = (cellSize(canvas.height, cells.rows) / units).coerceAtLeast(1)
                 room = roomProvider(cellX, cellY, spanX, spanY)
                 return true
             }
@@ -227,8 +241,9 @@ class WidgetResizeFrame(
         val fromCellY = frameLp.cellY
         val fromSpanX = frameLp.spanX
         val fromSpanY = frameLp.spanY
-        // Exact at both ends, so a finished slide sits on whole cells.
-        fun lerp(from: Float, to: Int, fraction: Float): Float = from * (1f - fraction) + to * fraction
+        // Exact at both ends, so a finished slide sits on whole steps.
+        fun lerp(from: Float, to: Int, fraction: Float): Float =
+            from * (1f - fraction) + to / units.toFloat() * fraction
         fun apply(fraction: Float) {
             frameLp.cellX = lerp(fromCellX, toCellX, fraction)
             frameLp.cellY = lerp(fromCellY, toCellY, fraction)

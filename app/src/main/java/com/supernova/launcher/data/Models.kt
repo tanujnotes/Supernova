@@ -52,6 +52,10 @@ data class LauncherItem(
     // Widgets only, per-widget padding: this widget's inset in dp
     // inside its cells. Null follows the Widget padding setting.
     val widgetPadding: Int? = null,
+    // Widgets only: cellX/cellY/spanX/spanY count half cells, for a widget
+    // placed or sized with subgrid positioning on. WorkspaceGeometry.itemRect
+    // reads it; nothing else should use those four fields raw.
+    val halfCells: Boolean = false,
     // Custom icon override for folders: a drawable inside an icon pack.
     val customIconPack: String? = null,
     val customIconName: String? = null,

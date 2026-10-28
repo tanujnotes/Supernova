@@ -21,7 +21,6 @@
     <ID>ComplexCondition:LiveDragController.kt$LiveDragController$direction &gt; 0 &amp;&amp; pendingDragPageFlip &lt; 0 &amp;&amp; activeDragPayload != null &amp;&amp; host.workspaceAdapter.realPageCount &lt; LauncherRepository.MAX_PAGES</ID>
     <ID>ComplexCondition:PinRequestActivity.kt$PinRequestActivity$result.resultCode == RESULT_OK &amp;&amp; request != null &amp;&amp; info != null &amp;&amp; widgetId != AppWidgetManager.INVALID_APPWIDGET_ID</ID>
     <ID>ComplexCondition:SearchController.kt$SearchController$query.isEmpty() || label == null || label.length &lt;= query.length || !label.startsWith(query, ignoreCase = true)</ID>
-    <ID>ComplexCondition:WidgetController.kt$WidgetController$current != null &amp;&amp; (cellX != current.cellX || cellY != current.cellY || spanX != current.spanX || spanY != current.spanY)</ID>
     <ID>ComplexCondition:WidgetResizeFrame.kt$WidgetResizeFrame$newSpanX == spanX &amp;&amp; newSpanY == spanY &amp;&amp; newCellX == cellX &amp;&amp; newCellY == cellY</ID>
     <ID>ComplexCondition:WidgetResizeFrame.kt$WidgetResizeFrame$x &lt; 0f || y &lt; 0f || x &gt;= width || y &gt;= height</ID>
     <ID>ComplexCondition:WorkspaceGeometry.kt$WorkspaceGeometry$area.left &lt; -EPSILON || area.top &lt; -EPSILON || area.right &gt; cols + EPSILON || area.bottom &gt; rows + EPSILON</ID>
@@ -164,10 +163,10 @@
     <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$( item: LauncherItem, cols: Int, rows: Int, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList(), mergeFolders: Boolean = true, mergeTargetId: String? = null )</ID>
     <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$( item: LauncherItem, members: List&lt;LauncherItem&gt;, rank: Int, cols: Int, rows: Int, preferredPage: Int )</ID>
     <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$( itemId: String, page: Int, cellX: Int, cellY: Int, cols: Int, rows: Int, workspaceX: Float? = null, workspaceY: Float? = null, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList(), mergeFolders: Boolean = true, mergeTargetId: String? = null )</ID>
+    <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$( itemId: String, page: Int, rect: WorkspaceGeometry.CellRect, cols: Int, rows: Int, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList() )</ID>
     <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$( label: String, apps: List&lt;LaunchableApp&gt;, page: Int, cellX: Int, cellY: Int, cols: Int, rows: Int, workspaceX: Float? = null, workspaceY: Float? = null, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList() )</ID>
     <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$( label: String, apps: List&lt;LaunchableApp&gt;, rank: Int, cols: Int, rows: Int, preferredPage: Int = 0 )</ID>
     <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$( page: Int, cellX: Int, cellY: Int, cols: Int, rows: Int, appWidgetId: Int, provider: String, label: String, spanX: Int, spanY: Int, // Neighbours a drag previewed aside; re-validated like every other // displacement, and dropped wholesale if the layout moved on. displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList() )</ID>
-    <ID>LongParameterList:LauncherRepository.kt$LauncherRepository$(itemId: String, cellX: Int, cellY: Int, spanX: Int, spanY: Int, cols: Int, rows: Int)</ID>
     <ID>LongParameterList:LauncherRepository.kt$LauncherRepository.Companion$( current: LauncherModel, item: LauncherItem, members: List&lt;LauncherItem&gt;, rank: Int, cols: Int, rows: Int, preferredPage: Int )</ID>
     <ID>LongParameterList:LauncherRepository.kt$LauncherRepository.Companion$( original: LauncherModel, folder: LauncherItem, members: List&lt;LauncherItem&gt;, displace: List&lt;WorkspaceGeometry.ReorderMove&gt;, cols: Int, rows: Int )</ID>
     <ID>LongParameterList:LauncherViewModel.kt$LauncherViewModel$( app: LaunchableApp, page: Int, cellX: Int, cellY: Int, workspaceX: Float? = null, workspaceY: Float? = null, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList(), mergeFolders: Boolean = true, mergeTargetId: String? = null )</ID>
@@ -177,7 +176,6 @@
     <ID>LongParameterList:LauncherViewModel.kt$LauncherViewModel$( itemId: String, page: Int, cellX: Int, cellY: Int, workspaceX: Float? = null, workspaceY: Float? = null, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList(), mergeFolders: Boolean = true, mergeTargetId: String? = null )</ID>
     <ID>LongParameterList:LauncherViewModel.kt$LauncherViewModel$( label: String, apps: List&lt;LaunchableApp&gt;, page: Int, cellX: Int, cellY: Int, workspaceX: Float? = null, workspaceY: Float? = null, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList() )</ID>
     <ID>LongParameterList:LauncherViewModel.kt$LauncherViewModel$( page: Int, cellX: Int, cellY: Int, appWidgetId: Int, provider: String, label: String, spanX: Int, spanY: Int, displace: List&lt;WorkspaceGeometry.ReorderMove&gt; = emptyList() )</ID>
-    <ID>LongParameterList:LauncherViewModel.kt$LauncherViewModel$(itemId: String, cellX: Int, cellY: Int, spanX: Int, spanY: Int, onRefused: () -&gt; Unit = {})</ID>
     <ID>LongParameterList:LiveDragController.kt$LiveDragController.Host$( payload: DragPayload, page: Int, canvas: ViewGroup, cellWidth: Int, cellHeight: Int, cellX: Int, cellY: Int, rawCellX: Float, rawCellY: Float )</ID>
     <ID>LongParameterList:LiveDragController.kt$LiveDragController.Host$( payload: DragPayload, page: Int, cellX: Int, cellY: Int, workspaceX: Float, workspaceY: Float, rawCellX: Float, rawCellY: Float )</ID>
     <ID>LongParameterList:SearchController.kt$SearchController$( input: android.widget.EditText, ghost: android.widget.TextView, results: androidx.recyclerview.widget.RecyclerView, cards: CardViewBinder?, afterLaunch: () -&gt; Unit, dismiss: () -&gt; Unit )</ID>
@@ -196,6 +194,7 @@
     <ID>LongParameterList:WidgetSizing.kt$WidgetSizing$( info: AppWidgetProviderInfo?, defaultSpanX: Int, defaultSpanY: Int, cellWidthPx: Int, cellHeightPx: Int, cols: Int, rows: Int )</ID>
     <ID>LongParameterList:WorkspaceCanvas.kt$WorkspaceCanvas.WidgetParams$( cellX: Int, cellY: Int, spanX: Int, spanY: Int, val cols: Int, val rows: Int, // Settable, so a padding being picked can preview on the widget. var inset: Int )</ID>
     <ID>LongParameterList:WorkspaceGeometry.kt$WorkspaceGeometry$( model: LauncherModel, page: Int, area: CellRect, cols: Int, rows: Int, excludeIds: Set&lt;String&gt; = emptySet(), // Bounds-only check: occupied cells count as free. Placement paths // pass allowPlacementOverlap here so drops may land on other items. ignoreItems: Boolean = false )</ID>
+    <ID>LongParameterList:WorkspaceGeometry.kt$WorkspaceGeometry$( model: LauncherModel, page: Int, itemId: String, rect: CellRect, step: Float, cols: Int, rows: Int )</ID>
     <ID>LongParameterList:WorkspaceGeometry.kt$WorkspaceGeometry$( model: LauncherModel, page: Int, nearCellX: Float, nearCellY: Float, spanX: Int, spanY: Int, cols: Int, rows: Int, excludeIds: Set&lt;String&gt; = emptySet() )</ID>
     <ID>LongParameterList:WorkspaceGeometry.kt$WorkspaceGeometry$( model: LauncherModel, page: Int, spanX: Int, spanY: Int, cols: Int, rows: Int, excludeIds: Set&lt;String&gt; = emptySet() )</ID>
     <ID>LongParameterList:WorkspaceGeometry.kt$WorkspaceGeometry$( model: LauncherModel, page: Int, target: CellRect, cols: Int, rows: Int, excludeIds: Set&lt;String&gt; )</ID>
@@ -817,7 +816,6 @@
     <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$viewModel.moveItemToWorkspace(member.id, page, free.first, free.second, mergeFolders = false)</ID>
     <ID>MaxLineLength:LauncherPreferences.kt$LauncherPreferences$suspend fun setDrawerColumns(value: Int)</ID>
     <ID>MaxLineLength:LauncherPreferences.kt$LauncherPreferences$suspend fun setFolderColumns(value: Int)</ID>
-    <ID>MaxLineLength:LauncherRepository.kt$LauncherRepository$suspend</ID>
     <ID>MaxLineLength:LauncherRepository.kt$LauncherRepository$val folder = LauncherItem(id = id(), itemType = ItemType.FOLDER, container = ContainerType.DOCK, rank = rank, label = label)</ID>
     <ID>MaxLineLength:LauncherRepository.kt$LauncherRepository.ImportResult$append(res.getQuantityString(R.plurals.backup_widgets_rebind, widgetsNeedingRebind, widgetsNeedingRebind))</ID>
     <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$// the default tablet dock. The first-run wizard plants it as it opens. Planted once per install, and only over a layout that</ID>
@@ -828,7 +826,6 @@
     <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$fun setFolderIcon(folderId: String, pack: String?, drawableName: String?, base64: String? = null)</ID>
     <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$fun setSwipeAction(itemId: String, component: String?, label: String?, down: Boolean = false)</ID>
     <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$fun setThemeSchedule(startMinute: Int, endMinute: Int)</ID>
-    <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$if (!repository.resizeWidget(itemId, cellX, cellY, spanX, spanY, prefs.gridCols, prefs.gridRows)) onRefused()</ID>
     <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$repository.restoreItems(items, prefs.gridCols, prefs.gridRows, prefs.dockCount * prefs.dockPages.coerceAtLeast(1))</ID>
     <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$return state.value.model.items.filter { it.container == ContainerType.FOLDER &amp;&amp; it.folderId == folderId }.sortedBy { it.rank }</ID>
     <ID>MaxLineLength:LauncherViewModel.kt$LauncherViewModel$viewModelScope.launch(Dispatchers.Default) { catalog.invalidatePackages(listOf(change.packageName)) }</ID>

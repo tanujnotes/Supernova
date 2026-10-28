@@ -1079,13 +1079,17 @@ class LiveDragController(
             val paddingDp = (payload as? DragPayload.ExistingItem)?.let { itemById(it.itemId) }
                 ?.let(viewModel::widgetPaddingDp) ?: prefs.widgetPadding
             val inset = context.dp(paddingDp)
-            val cellX = clampAnchor(p[0].toInt(), widget.first, prefs.gridCols)
-            val cellY = clampAnchor(p[1].toInt(), widget.second, prefs.gridRows)
-            val left = cellX * cellW + inset
-            val top = cellY * cellH + inset
+            // The cells the drop takes, as the hover outlined them: a placed
+            // widget may sit on half cells.
+            val cells = host.hoverTargetRect(payload, p[0].toInt(), p[1].toInt(), p[4], p[5])?.first
+                ?: WorkspaceGeometry.cellRect(
+                    clampAnchor(p[0].toInt(), widget.first, prefs.gridCols),
+                    clampAnchor(p[1].toInt(), widget.second, prefs.gridRows),
+                    widget.first, widget.second
+                )
             return RectF(
-                left, top,
-                left + widget.first * cellW - inset * 2, top + widget.second * cellH - inset * 2
+                cells.left * cellW + inset, cells.top * cellH + inset,
+                cells.right * cellW - inset, cells.bottom * cellH - inset
             )
         }
         // The canvas centres the item on its snapped point and pulls it back
