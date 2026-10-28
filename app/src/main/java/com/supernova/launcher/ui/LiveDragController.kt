@@ -291,10 +291,23 @@ class LiveDragController(
             val rawX = ev.getX(index) + (ev.rawX - ev.x)
             val rawY = ev.getY(index) + (ev.rawY - ev.y)
             when (ev.actionMasked) {
-                MotionEvent.ACTION_MOVE -> onLiveDragMove(rawX, rawY)
+                MotionEvent.ACTION_MOVE -> {
+                    trackFlipFinger(ev)
+                    onLiveDragMove(rawX, rawY)
+                }
                 MotionEvent.ACTION_UP -> onLiveDragRelease(rawX, rawY)
-                MotionEvent.ACTION_POINTER_UP ->
-                    if (ev.getPointerId(ev.actionIndex) == dragPointerId) onLiveDragRelease(rawX, rawY)
+                MotionEvent.ACTION_POINTER_DOWN -> {
+                    val id = ev.getPointerId(ev.actionIndex)
+                    if (id != dragPointerId && flipPointerId < 0) {
+                        flipPointerId = id
+                        flipStartX = ev.getX(ev.actionIndex)
+                    }
+                }
+                MotionEvent.ACTION_POINTER_UP -> {
+                    val id = ev.getPointerId(ev.actionIndex)
+                    if (id == dragPointerId) onLiveDragRelease(rawX, rawY)
+                    if (id == flipPointerId) flipPointerId = -1
+                }
                 MotionEvent.ACTION_CANCEL -> cancel()
                 else -> Unit
             }
@@ -862,6 +875,22 @@ class LiveDragController(
     // Edge hover: a finger held in the band along either side of the
     // workspace flips a page after a short pause, and keeps flipping while it
     // stays. Past the last page (not looping) a fresh page opens.
+    // A second finger swiping across the screen while the first holds the
+    // picture turns the page, one page per swipe: left for the next page,
+    // right for the one before, as a swipe on the pages does.
+    private var flipPointerId = -1
+    private var flipStartX = 0f
+
+    private fun trackFlipFinger(ev: MotionEvent) {
+        val index = if (flipPointerId < 0 || flipStartX.isNaN()) -1 else ev.findPointerIndex(flipPointerId)
+        val dx = if (index < 0) 0f else ev.getX(index) - flipStartX
+        if (abs(dx) < context.dp(FLIP_SWIPE_DP)) return
+        // Spent: the next page takes another swipe.
+        flipStartX = Float.NaN
+        cancelEdgeFlip()
+        flipPageForDrag(if (dx < 0) 1 else -1)
+    }
+
     private fun trackEdgeFlip(rawX: Float, rawY: Float) {
         val pagerRect = binding.workspacePager.screenRect()
         val edge = context.dp(EDGE_FLIP_DP)
@@ -1227,6 +1256,7 @@ class LiveDragController(
         val source = currentDragSource(activeDragPayload)
         activeDragPayload = null
         dragPointerId = -1
+        flipPointerId = -1
         // A page asked for during the drag no longer has a drag to carry.
         pendingDragPageFlip = -1
         val prefs = viewModel.state.value.prefs
@@ -1368,6 +1398,8 @@ class LiveDragController(
         private const val DOCK_MERGE_ZONE = 0.3f
         private const val DOCK_MERGE_SCALE = 1.15f
         private const val DOCK_MERGE_MS = 120L
+        // How far a second finger travels sideways to turn the page.
+        private const val FLIP_SWIPE_DP = 48
         private const val DRAG_GRID_FADE_MS = 150L
         private const val DRAG_GRID_SLIDE_MS = 120L
         private const val EDGE_FLIP_DP = 22
