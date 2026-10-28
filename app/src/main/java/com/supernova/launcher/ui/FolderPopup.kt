@@ -10,6 +10,8 @@ import android.view.ViewGroup
 import android.view.animation.PathInterpolator
 import android.widget.FrameLayout
 import android.widget.PopupWindow
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnLayout
 import androidx.recyclerview.widget.GridLayoutManager
 import com.supernova.launcher.data.LauncherItem
@@ -168,6 +170,9 @@ class FolderPopup(private val context: Context) {
             // app from the folder); 0 restores the old instant pop when
             // animations are disabled.
             animationStyle = if (animate) com.supernova.launcher.R.style.FolderPopupAnimation else 0
+            // Below Android 11 a resizing window is what reports the keyboard
+            // at all; the card is lifted clear of it below either way.
+            softInputMode = android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
         }
 
         // The root always fills the window so the card can expand from the
@@ -180,6 +185,10 @@ class FolderPopup(private val context: Context) {
         ).apply { if (immersive) setMargins(context.dp(24), context.dp(24), context.dp(24), context.dp(24)) }
         // The card swallows taps; only true outside taps reach the scrim.
         binding.folderCard.isClickable = true
+
+        // Where the card rests once positioned: over its icon in WINDOW mode,
+        // centred in IMMERSIVE.
+        var restingY = 0f
 
         // Collapse back into the folder icon, then dismiss for real. The
         // pivot/scale captured at open time make close the exact reverse.
@@ -195,12 +204,44 @@ class FolderPopup(private val context: Context) {
             binding.root.animate().alpha(0f).setDuration((CLOSE_MS * speed).toLong()).start()
             binding.folderCard.animate()
                 .scaleX(openScale).scaleY(openScale)
+                // Down from above the keyboard too, if the title had it up.
+                .translationY(restingY)
                 .setDuration((CLOSE_MS * speed).toLong())
                 .setInterpolator(COLLAPSE)
                 .withEndAction { popup.dismiss() }
                 .start()
         }
         binding.folderScrim.setOnClickListener { animateClose() }
+
+        // Renaming in the title brings up the keyboard, which covered a card
+        // opened low on the screen, title and all. While it is up the card
+        // rises until its title row clears it, as a panned window would, and
+        // it settles back when the keyboard goes.
+        var imeBottom = 0
+        fun clearKeyboard() {
+            val card = binding.folderCard
+            if (!card.isLaidOut || closing) return
+            val keyboardTop = binding.root.height - imeBottom
+            val cardBottom = card.top + restingY + card.height + context.dp(KEYBOARD_GAP_DP)
+            val target = restingY - (cardBottom - keyboardTop).coerceAtLeast(0f)
+            if (card.translationY == target) return
+            if (animate) {
+                card.animate().translationY(target)
+                    .setDuration((LIFT_MS * speed).toLong()).setInterpolator(EXPAND).start()
+            } else {
+                card.translationY = target
+            }
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            clearKeyboard()
+            insets
+        }
+        // A window the keyboard resized (below Android 11) reports no
+        // overlap, only a shorter root.
+        binding.root.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            if (bottom - top != oldBottom - oldTop) clearKeyboard()
+        }
 
         popup.setOnDismissListener {
             val newName = binding.folderTitle.text?.toString().orEmpty()
@@ -260,7 +301,8 @@ class FolderPopup(private val context: Context) {
                 val top = (anchorAt[1] - rootAt[1] + (anchor.height - card.height) / 2)
                     .coerceIn(margin, (binding.root.height - card.height - margin).coerceAtLeast(margin))
                 card.translationX = left.toFloat()
-                card.translationY = top.toFloat()
+                restingY = top.toFloat()
+                card.translationY = restingY
             }
             startExpand(card)
         }
@@ -330,6 +372,10 @@ class FolderPopup(private val context: Context) {
         const val OPEN_MS = 240L
         const val CLOSE_MS = 160L
         const val SCRIM_MS = 120L
+        const val LIFT_MS = 200L
+
+        // Room left between the card's title row and the keyboard's top.
+        const val KEYBOARD_GAP_DP = 12
 
         // Material fast-out-slow-in out, and its accelerating counterpart
         // for collapsing back into the icon.
