@@ -1076,7 +1076,7 @@ class DrawerController(
         binding.drawerPrivateInstall.visibility = if (space.locked) View.GONE else View.VISIBLE
         binding.drawerPrivateSettings.visibility =
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.BAKLAVA) View.VISIBLE else View.GONE
-        binding.drawerPrivateLock.contentDescription = binding.root.context.getString(
+        binding.drawerPrivateLock.setText(
             if (space.locked) R.string.private_space_unlock else R.string.private_space_lock
         )
     }

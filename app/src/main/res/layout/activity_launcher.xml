@@ -236,32 +236,20 @@
                 android:textColor="@color/textSecondary"
                 android:textSize="14sp" />
 
-            <ImageButton
+            <TextView
                 android:id="@+id/drawerPrivateInstall"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/private_space_install"
-                android:src="@drawable/ic_menu_add"
-                app:tint="@color/textPrimary" />
+                style="@style/DrawerPrivateButton"
+                android:text="@string/private_space_install" />
 
-            <ImageButton
+            <TextView
                 android:id="@+id/drawerPrivateSettings"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/private_space_settings"
-                android:src="@drawable/ic_action_settings"
-                app:tint="@color/textPrimary" />
+                style="@style/DrawerPrivateButton"
+                android:text="@string/private_space_settings" />
 
-            <ImageButton
+            <TextView
                 android:id="@+id/drawerPrivateLock"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/private_space_lock"
-                android:src="@drawable/ic_action_lock"
-                app:tint="@color/textPrimary" />
+                style="@style/DrawerPrivateButton"
+                android:text="@string/private_space_lock" />
         </LinearLayout>
 
         <!-- Activated custom cards (all conditions met) sit above the list;
