@@ -52,7 +52,8 @@ class FolderPopup(private val context: Context) {
         // Duration multiplier from the animation-speed pref.
         speed: Float = 1f,
         onRename: (String) -> Unit,
-        onEdit: (() -> Unit)? = null,
+        // The title row's overflow button, handed over to anchor a menu on.
+        onMenu: ((View) -> Unit)? = null,
         onDismiss: (() -> Unit)? = null
     ): PopupWindow {
         // A drawer folder can be opened with the drawer's search keyboard up;
@@ -147,9 +148,9 @@ class FolderPopup(private val context: Context) {
         binding.folderGrid.adapter = adapter
         adapter.submit(ordered)
 
-        if (onEdit != null) {
+        if (onMenu != null) {
             binding.folderEditButton.visibility = View.VISIBLE
-            binding.folderEditButton.setOnClickListener { onEdit() }
+            binding.folderEditButton.setOnClickListener { onMenu(it) }
         }
 
         val popup = PopupWindow(

@@ -23,7 +23,7 @@ object CustomIcons {
             .filterValues { !it.isEmpty() },
         items = model.items.map { item ->
             if (item.hasCustomIcon()) {
-                item.copy(customIconPack = null, customIconName = null, iconBase64 = null)
+                item.copy(customIconPack = null, customIconName = null, iconBase64 = null, iconRaw = false)
             } else {
                 item
             }

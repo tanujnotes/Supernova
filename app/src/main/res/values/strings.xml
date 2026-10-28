@@ -139,6 +139,11 @@
     <string name="edit">Edit</string>
     <string name="hide_label">Hide label</string>
     <string name="change_icon">Change icon</string>
+    <string name="select_apps">Select apps</string>
+    <string name="sort">Sort</string>
+    <string name="reshape">Reshape</string>
+    <string name="reshape_summary">Fit the icon to the icon shape</string>
+    <string name="folder_menu">Folder options</string>
     <string name="reset">Reset</string>
     <string name="pick_icon">Choose icon</string>
     <string name="no_icons_in_pack">No icons found in this pack</string>

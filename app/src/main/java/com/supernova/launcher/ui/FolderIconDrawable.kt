@@ -348,6 +348,12 @@ class FolderIconDrawable(
     companion object {
         const val DEFAULT_PLATE_COLOR = 0x59FFFFFF
 
+        // What a folder's own icon is drawn from, for the page and dock
+        // signatures: a custom icon, or Reshape turned off for one, changes
+        // nothing else they look at, and the old icon stayed on screen.
+        fun customIconKey(folder: com.supernova.launcher.data.LauncherItem): String =
+            "${folder.customIconPack}/${folder.customIconName}/${folder.iconBase64?.hashCode()}/${folder.iconRaw}"
+
         // The plate's shape: the folder's own pick, else the icons' -
         // "" (Default) follows the icon shape.
         fun plateShape(folderIconShape: String, prefs: LauncherPrefs): IconShape =

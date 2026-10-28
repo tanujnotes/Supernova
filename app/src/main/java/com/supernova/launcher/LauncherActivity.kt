@@ -93,7 +93,6 @@ import com.supernova.launcher.ui.BadgeDiff
 import com.supernova.launcher.ui.BadgeDrawable
 import com.supernova.launcher.ui.BadgeLook
 import com.supernova.launcher.ui.BadgeStyle
-import com.supernova.launcher.ui.IconPickerSheet
 import com.supernova.launcher.ui.FolderEditSheet
 import com.supernova.launcher.ui.FolderPreviewStyle
 import com.supernova.launcher.ui.LabelStyler
@@ -2026,10 +2025,11 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 // The swipes decide the icon's touch handling and its mark.
                 ":${item.swipeAction}:${item.swipeActionDown}:${item.swipeToOpen}" +
                 // A folder's icon is drawn from its members, which are not
-                // dock items themselves.
+                // dock items themselves, or from its own custom icon.
                 if (item.itemType == ItemType.FOLDER) {
                     viewModel.folderMembers(item.id)
-                        .joinToString(",", "[", "]") { "${it.id}:${it.packageName}/${it.className}" }
+                        .joinToString(",", "[", "]") { "${it.id}:${it.packageName}/${it.className}" } +
+                        FolderIconDrawable.customIconKey(item)
                 } else {
                     ""
                 }
@@ -3026,8 +3026,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 }
             }
         }
-        menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) { showDrawerGroupChecklist(group) }
-        menu.addRow(getString(R.string.rename), R.drawable.ic_menu_edit) { promptRenameDrawerGroup(group) }
+        // A drawer folder lists its apps in the drawer's order, so it has no
+        // order of its own to Sort.
+        menu.addRow(getString(R.string.select_apps), R.drawable.ic_menu_select_apps) { showDrawerGroupChecklist(group) }
+        menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) { promptRenameDrawerGroup(group) }
         menu.show(anchor, menuTouchX)
         return menu
     }
@@ -3095,25 +3097,31 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
         when (item.itemType) {
             ItemType.FOLDER -> {
-                menu.addRow(getString(R.string.change_icon), R.drawable.ic_menu_image) {
-                    IconPickerSheet.show(
-                        this, lifecycleScope, viewModel, allowDefault = true,
-                        onPickPhoto = { pickFolderPhoto(item.id) }
-                    ) { pack, name -> viewModel.setFolderIcon(item.id, pack, name) }
-                }
+                // Remove, Select apps, Sort, Edit. The icon is changed in
+                // Edit, as an app's is.
                 if (!locked) {
-                    // Folder Edit: name, icon, Swipe to open folder
-                    // and the swipe actions in one sheet, as an app's Edit
-                    // holds its label, icon and swipes.
-                    menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) {
-                        FolderEditSheet.show(
-                            this, lifecycleScope, viewModel, item, ::pickPhoto,
-                            onEditSwipe = { down, onPicked -> showSwipeActionPicker(item, down) { onPicked(it) } }
-                        )
-                    }
                     menu.addRow(getString(R.string.remove), R.drawable.ic_menu_remove) {
                         removeItemWithUndo(item)
                     }
+                    menu.addRow(getString(R.string.select_apps), R.drawable.ic_menu_select_apps) {
+                        showFolderChecklist(item)
+                    }
+                    // An A-Z folder shows its apps sorted whatever their order.
+                    if (!viewModel.state.value.prefs.folderSortAz) {
+                        menu.addRow(getString(R.string.sort), R.drawable.ic_menu_sort) {
+                            viewModel.sortFolder(item.id)
+                        }
+                    }
+                }
+                // Folder Edit: name, icon, Swipe to open folder and the swipe
+                // actions in one sheet, as an app's Edit holds its label, icon
+                // and swipes - and like an app's, it keeps the name and icon
+                // on a locked desktop.
+                menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) {
+                    FolderEditSheet.show(
+                        this, lifecycleScope, viewModel, item, ::pickPhoto,
+                        onEditSwipe = { down, onPicked -> showSwipeActionPicker(item, down) { onPicked(it) } }
+                    )
                 }
                 addExportPngRow(menu, anchor, item.label)
             }
@@ -3431,6 +3439,23 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // at the closed folder.
         var memberMenu: SupernovaPopupMenu? = null
 
+        // The folder shows its members again once a change is saved - waited
+        // for, not guessed at with a delay - and in the order it shows them:
+        // re-listed in stored order, an A-Z folder jumped out of order after
+        // every action.
+        fun applied(before: com.supernova.launcher.data.LauncherModel) {
+            lifecycleScope.launch {
+                withTimeoutOrNull(FOLDER_SAVE_WAIT_MS) { viewModel.state.first { it.model !== before } }
+                val remaining = viewModel.folderMembers(folder.id)
+                when {
+                    remaining.isEmpty() -> popup?.dismiss()
+                    viewModel.state.value.prefs.folderSortAz ->
+                        folderAdapter?.submit(remaining.sortedBy { it.label.lowercase() })
+                    else -> folderAdapter?.submit(remaining)
+                }
+            }
+        }
+
         val folderPrefs = viewModel.state.value.prefs
         val adapter = FolderMemberAdapter(
             appCatalog = viewModel.appCatalog(),
@@ -3448,21 +3473,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             // interceptor (below), not dispatchTouchEvent.
             onLongPress = { memberView, member ->
                 val sortAz = viewModel.state.value.prefs.folderSortAz
-                // The folder shows its members again once the change is
-                // saved - waited for, not guessed at with a delay - and in
-                // the order it shows them: re-listed in stored order, an A-Z
-                // folder jumped out of order after every action.
-                fun applied(before: com.supernova.launcher.data.LauncherModel) {
-                    lifecycleScope.launch {
-                        withTimeoutOrNull(FOLDER_SAVE_WAIT_MS) { viewModel.state.first { it.model !== before } }
-                        val remaining = viewModel.folderMembers(folder.id)
-                        when {
-                            remaining.isEmpty() -> popup?.dismiss()
-                            sortAz -> folderAdapter?.submit(remaining.sortedBy { it.label.lowercase() })
-                            else -> folderAdapter?.submit(remaining)
-                        }
-                    }
-                }
                 memberMenu?.dismiss()
                 drag.arm(memberView, DragPayload.ExistingItem(member.id), window = popup) {
                     val menu = newItemPopup()
@@ -3525,12 +3535,31 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             animate = Animations.enabled(prefs),
             speed = Animations.factor(prefs),
             onRename = { viewModel.renameFolder(folder.id, it) },
-            onEdit = {
-                // The folder closes first: as a focusable window it stays the
-                // IME target even under the dialog, so the checklist's rename
-                // field could never summon the keyboard while it was up.
-                popup?.dismiss()
-                showFolderChecklist(folder)
+            // The title row's overflow: Select apps and Sort, as the folder's
+            // long-press has them. Opened by a tap, so modal at once, and the
+            // card's touch interceptor closes it on a tap outside it.
+            onMenu = { button ->
+                memberMenu?.dismiss()
+                val menu = newItemPopup()
+                menu.addRow(getString(R.string.select_apps), R.drawable.ic_menu_select_apps) {
+                    // The folder closes first: as a focusable window it stays
+                    // the IME target even under the dialog, so the checklist's
+                    // rename field could never summon the keyboard while it
+                    // was up.
+                    popup?.dismiss()
+                    showFolderChecklist(folder)
+                }
+                if (!viewModel.state.value.prefs.folderSortAz) {
+                    menu.addRow(getString(R.string.sort), R.drawable.ic_menu_sort) {
+                        val before = viewModel.state.value.model
+                        viewModel.sortFolder(folder.id)
+                        applied(before)
+                    }
+                }
+                drag.activeItemPopup = menu
+                menu.show(button)
+                menu.makeModal()
+                memberMenu = menu
             },
             onDismiss = {
                 memberMenu?.dismiss()
@@ -3773,7 +3802,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     groupName = renamed
                 }
             },
-            onEdit = {
+            onMenu = {
                 // The group editor rewrites the members pref; the drawer
                 // rebuilds from the emission, so close the stale popup.
                 popup?.dismiss()
@@ -3890,33 +3919,24 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         return if (count > 0) badgeDrawable(icon, count) else icon
     }
 
-    // Center-crops a chosen gallery image and stores it as the folder's icon.
-    private fun pickFolderPhoto(folderId: String) {
-        pickPhoto { uri ->
-            uri ?: return@pickPhoto
-            lifecycleScope.launch {
-                val encoded = withContext(kotlinx.coroutines.Dispatchers.Default) {
-                    com.supernova.launcher.data.GalleryIconCodec.encode(applicationContext, uri)
-                }
-                if (encoded != null) {
-                    viewModel.setFolderIcon(folderId, null, null, encoded)
-                } else {
-                    Toast.makeText(this@LauncherActivity, R.string.photo_load_failed, Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
-
+    // A custom icon is fitted to the icon shape like any other, unless its
+    // Edit has Reshape off: then it is drawn as it is.
     private fun folderPreviewDrawable(folder: LauncherItem): android.graphics.drawable.Drawable {
+        val catalog = viewModel.appCatalog()
         folder.iconBase64?.takeIf { it.isNotEmpty() }?.let { data ->
             com.supernova.launcher.data.GalleryIconCodec.decode(data)?.let { bmp ->
                 val src = android.graphics.drawable.BitmapDrawable(resources, bmp)
-                return viewModel.appCatalog().renderThemedDrawable(src) ?: src
+                return if (folder.iconRaw) src else catalog.renderThemedDrawable(src) ?: src
             }
         }
         folder.customIconPack?.let { pack ->
             folder.customIconName?.let { name ->
-                viewModel.appCatalog().renderPackDrawable(pack, name)?.let { return it }
+                val icon = if (folder.iconRaw) {
+                    catalog.packDrawable(pack, name)
+                } else {
+                    catalog.renderPackDrawable(pack, name)
+                }
+                icon?.let { return it }
             }
         }
         val memberIcons = viewModel.folderMembers(folder.id)

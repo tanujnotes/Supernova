@@ -68,7 +68,10 @@ data class LauncherItem(
     // Inline base64 PNG icon (GalleryIconCodec) for items with no app to draw
     // an icon from - activities and legacy shortcuts snapshot theirs here so
     // backups stay self-contained. Launcher actions use a built-in vector.
-    val iconBase64: String? = null
+    val iconBase64: String? = null,
+    // Folders only, Edit's Reshape switched off: the custom icon (a pack
+    // drawable or a photo) is drawn as it is, not fitted to the icon shape.
+    val iconRaw: Boolean = false
 )
 
 // Per-app customization, keyed "userSerial/pkg/cls" in LauncherModel so one

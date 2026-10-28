@@ -723,6 +723,8 @@ class LauncherViewModel(
 
     fun reorderFolderMember(folderId: String, memberId: String, direction: Int) = persist { repository.reorderFolderMember(folderId, memberId, direction) }
 
+    fun sortFolder(folderId: String) = persist { repository.sortFolder(folderId) }
+
     fun addWidget(
         page: Int,
         cellX: Int,
@@ -1256,6 +1258,8 @@ class LauncherViewModel(
     }
 
     fun setFolderIcon(folderId: String, pack: String?, drawableName: String?, base64: String? = null) = persist { repository.setFolderIcon(folderId, pack, drawableName, base64) }
+
+    fun setFolderIconRaw(folderId: String, raw: Boolean) = persist { repository.setFolderIconRaw(folderId, raw) }
 
     fun customIcons(): CustomIcons.Count = CustomIcons.count(state.value.model)
 

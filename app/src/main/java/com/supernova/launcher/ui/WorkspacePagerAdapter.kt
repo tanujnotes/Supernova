@@ -318,7 +318,11 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
                     // in the FOLDER container: an app dropped in from the
                     // dock or the drawer changes nothing else on this page,
                     // and the icon stayed a member short without this.
-                    if (it.itemType == ItemType.FOLDER) folderSignature(state, it.id) else ""
+                    if (it.itemType == ItemType.FOLDER) {
+                        folderSignature(state, it.id) + FolderIconDrawable.customIconKey(it)
+                    } else {
+                        ""
+                    }
             }
         val prefs = state.prefs
         return "$items|$stack|${prefs.gridRows}x${prefs.gridCols}|${prefs.iconScale}|" +

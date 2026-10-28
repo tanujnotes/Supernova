@@ -13,11 +13,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-// A placed folder's Edit sheet, the edit dialog for folders: name, icon,
-// Swipe to open folder, and the swipe up and down actions. It is the app Edit
-// sheet's layout with the app-only rows hidden. Name and icon commit with
-// Save, like the app sheet's fields; the switch and the swipe actions commit
-// at once, as the app sheet's swipe rows do.
+// A placed folder's Edit sheet, the edit dialog for folders: name, icon
+// (and Reshape, for a custom one), Swipe to open folder, and the swipe up and
+// down actions. It is the app Edit sheet's layout with the app-only rows
+// hidden. Name, icon and Reshape commit with Save, like the app sheet's
+// fields; the swipe switch and actions commit at once, as the app sheet's
+// swipe rows do.
 object FolderEditSheet {
 
     fun show(
@@ -44,6 +45,8 @@ object FolderEditSheet {
         var chosenPack = originalPack
         var chosenIcon = originalIcon
         var chosenPhoto = originalPhoto
+        val originalRaw = folder.iconRaw
+        var chosenRaw = originalRaw
 
         binding.editTitle.text = originalName.ifBlank { context.getString(R.string.folder) }
         binding.editLabel.setText(originalName)
@@ -58,8 +61,14 @@ object FolderEditSheet {
                 chosenIcon != null -> chosenIcon
                 else -> context.getString(R.string.option_default)
             }
+            // The default icon is the folder's own preview: nothing to fit.
+            binding.reshapeRow.visibility =
+                if (chosenPhoto != null || chosenIcon != null) View.VISIBLE else View.GONE
         }
         renderIcon()
+        binding.reshapeSwitch.isChecked = !chosenRaw
+        binding.reshapeRow.setOnClickListener { binding.reshapeSwitch.toggle() }
+        binding.reshapeSwitch.setOnCheckedChangeListener { _, checked -> chosenRaw = !checked }
 
         binding.iconRow.setOnClickListener {
             IconPickerSheet.show(context, scope, viewModel, allowDefault = true) { pack, name ->
@@ -103,9 +112,12 @@ object FolderEditSheet {
             binding.swipeUpRow.alpha = if (swipeToOpen) DISABLED_ALPHA else 1f
             binding.swipeDownValue.text = downLabel ?: none
         }
-        binding.swipeToOpenRow.visibility = View.VISIBLE
-        binding.swipeUpRow.visibility = View.VISIBLE
-        binding.swipeDownRow.visibility = View.VISIBLE
+        // A locked desktop keeps the name and icon editable but hides the
+        // swipe rows, as an app's Edit does.
+        val swipeRows = if (viewModel.state.value.prefs.desktopLocked) View.GONE else View.VISIBLE
+        binding.swipeToOpenRow.visibility = swipeRows
+        binding.swipeUpRow.visibility = swipeRows
+        binding.swipeDownRow.visibility = swipeRows
         binding.swipeToOpenSwitch.isChecked = swipeToOpen
         renderSwipes()
         binding.swipeToOpenRow.setOnClickListener { binding.swipeToOpenSwitch.toggle() }
@@ -131,6 +143,9 @@ object FolderEditSheet {
                     viewModel.setFolderIcon(folder.id, chosenPack, chosenIcon)
                 }
             }
+            // Back on the default icon, a later custom one starts reshaped.
+            val raw = chosenRaw && (chosenPhoto != null || chosenIcon != null)
+            if (raw != originalRaw) viewModel.setFolderIconRaw(folder.id, raw)
             dialog.dismiss()
         }
 

@@ -744,6 +744,19 @@ class LauncherRepository(private val context: Context) {
         }
     }
 
+    // A folder's Sort: its apps ranked A-Z, an order it then keeps.
+    suspend fun sortFolder(folderId: String) {
+        mutate { FolderSort.sorted(it, folderId) }
+    }
+
+    suspend fun setFolderIconRaw(folderId: String, raw: Boolean) {
+        mutate { current ->
+            current.copy(items = current.items.map { item ->
+                if (item.id == folderId && item.itemType == ItemType.FOLDER) item.copy(iconRaw = raw) else item
+            })
+        }
+    }
+
     suspend fun setFolderIcon(folderId: String, pack: String?, drawableName: String?, base64: String? = null) {
         mutate { current ->
             current.copy(items = current.items.map { item ->
