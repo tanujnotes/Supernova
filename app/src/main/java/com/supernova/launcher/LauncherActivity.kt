@@ -4004,8 +4004,48 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     override fun isSettling(itemId: String): Boolean = drag.isSettling(itemId)
 
     // False when the drop can't be taken: the picture then flies back.
-    override fun handleDropToDock(payload: DragPayload, rank: Int): Boolean {
+    override fun canMergeIntoDock(payload: DragPayload, rank: Int): Boolean =
+        dockMergeItem(payload, preview = true)?.let {
+            com.supernova.launcher.data.DockFolders.target(viewModel.state.value.model, it, rank)
+        } != null
+
+    // The item a dock merge drops: the dragged one, or a new one for an app
+    // or shortcut from the drawer. preview: only asking, so a shortcut isn't
+    // pinned yet.
+    private fun dockMergeItem(payload: DragPayload, preview: Boolean): LauncherItem? = when (payload) {
+        is DragPayload.ExistingItem -> viewModel.state.value.model.items.firstOrNull { it.id == payload.itemId }
+        is DragPayload.DrawerApp -> LauncherItem(
+            id = java.util.UUID.randomUUID().toString(),
+            itemType = ItemType.APP,
+            container = ContainerType.DOCK,
+            label = payload.app.label,
+            packageName = payload.app.packageName,
+            className = payload.app.className,
+            userSerial = payload.app.userSerial
+        )
+        is DragPayload.DrawerShortcut -> {
+            val shortcut = if (preview) null else shortcutItem(payload)
+            LauncherItem(
+                id = java.util.UUID.randomUUID().toString(),
+                itemType = ItemType.SHORTCUT,
+                container = ContainerType.DOCK,
+                label = payload.label,
+                packageName = shortcut?.owner?.packageName ?: payload.packageName,
+                className = shortcut?.owner?.className,
+                shortcutId = payload.shortcutId,
+                userSerial = shortcut?.owner?.userSerial ?: payload.userSerial,
+                iconBase64 = shortcut?.iconBase64
+            )
+        }
+        else -> null
+    }
+
+    override fun handleDropToDock(payload: DragPayload, rank: Int, merge: Boolean): Boolean {
         if (desktopLocked) return false
+        if (merge && canMergeIntoDock(payload, rank)) {
+            dockMergeItem(payload, preview = false)?.let { viewModel.mergeIntoDock(it, rank) }
+            return true
+        }
         when (payload) {
             is DragPayload.ExistingItem -> {
                 // A folder's app on a docked folder, its own included, can't

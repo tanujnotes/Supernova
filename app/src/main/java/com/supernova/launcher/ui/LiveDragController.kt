@@ -39,6 +39,7 @@ import com.supernova.launcher.data.WorkspaceGeometry
 import com.supernova.launcher.databinding.ActivityLauncherBinding
 import com.supernova.launcher.widget.WidgetResizeFrame
 import com.supernova.launcher.widget.WidgetSizing
+import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
 
@@ -117,7 +118,12 @@ class LiveDragController(
         fun cancelReorderPreview(animate: Boolean)
 
         // False when the drop can't be taken: the picture then flies back.
-        fun handleDropToDock(payload: DragPayload, rank: Int): Boolean
+        // merge: the drop was on the middle of the slot's icon, so it joins
+        // or makes a folder there rather than trading places.
+        fun handleDropToDock(payload: DragPayload, rank: Int, merge: Boolean): Boolean
+
+        // Whether the payload could go into a folder with the dock slot's item.
+        fun canMergeIntoDock(payload: DragPayload, rank: Int): Boolean
 
         fun onDropToWorkspace(
             payload: DragPayload,
@@ -680,7 +686,43 @@ class LiveDragController(
             enterDragTarget(target)
         }
         if (target is DragTarget.Workspace) hoverWorkspace(target, rawX, rawY)
+        showDockMerge(if (target is DragTarget.Dock && dockMerge(target)) target.slot else null)
         trackEdgeFlip(rawX, rawY)
+    }
+
+    // A dock icon the picture's centre sits in the middle of: a drop there
+    // makes a folder with it (or joins its folder). The same centre rule
+    // the pages use, measured against the slot's width.
+    private fun dockMerge(target: DragTarget.Dock): Boolean {
+        val payload = activeDragPayload
+        val visual = dragLayer.visualRect()
+        val icon = dockIconRect(target.slot, viewModel.state.value.prefs)
+        val zone = target.slot.width * DOCK_MERGE_ZONE
+        return payload != null && visual != null && host.canMergeIntoDock(payload, target.rank) &&
+            abs(visual.centerX() - icon.centerX()) <= zone && abs(visual.centerY() - icon.centerY()) <= zone
+    }
+
+    // The icon a dock drop would merge with grows a little until the hover
+    // leaves it.
+    private var dockMergeSlot: View? = null
+
+    private fun showDockMerge(slot: View?) {
+        if (slot === dockMergeSlot) return
+        dockMergeSlot?.let { scaleDockIcon(it, 1f) }
+        dockMergeSlot = slot
+        slot?.let { scaleDockIcon(it, DOCK_MERGE_SCALE) }
+    }
+
+    private fun scaleDockIcon(slot: View, scale: Float) {
+        val icon = (slot as? ViewGroup)?.getChildAt(0) ?: return
+        val prefs = viewModel.state.value.prefs
+        icon.animate().cancel()
+        if (Animations.enabled(prefs)) {
+            icon.animate().scaleX(scale).scaleY(scale).setDuration(Animations.duration(prefs, DOCK_MERGE_MS)).start()
+        } else {
+            icon.scaleX = scale
+            icon.scaleY = scale
+        }
     }
 
     private fun findDragTarget(rawX: Float, rawY: Float): DragTarget {
@@ -892,6 +934,8 @@ class LiveDragController(
         val payload = activeDragPayload ?: return cancel()
         val prefs = viewModel.state.value.prefs
         val settleMs = Animations.duration(prefs, DRAG_SETTLE_MS)
+        val merge = target is DragTarget.Dock && dockMerge(target)
+        showDockMerge(null)
         // Leaving a workspace target here would wipe the reorder preview the
         // drop is about to commit; onDropToWorkspace clears it itself.
         if (dragTarget is DragTarget.Zone) leaveDragTarget(dragTarget)
@@ -911,7 +955,7 @@ class LiveDragController(
             // Widgets never dock; findDragTarget already keeps them off it.
             is DragTarget.Dock -> if (!isWidgetPayload(payload) && !desktopLocked) {
                 host.cancelReorderPreview(animate = false)
-                if (host.handleDropToDock(payload, target.rank)) {
+                if (host.handleDropToDock(payload, target.rank, merge)) {
                     markSettling(payload)
                     dragLayer.settle(dockIconRect(target.slot, prefs), settleMs) { finishDrag(accepted = true) }
                     return
@@ -1088,6 +1132,7 @@ class LiveDragController(
         // A card the drag came from, invisible since the pickup, would stand
         // over everything, taking every touch.
         releaseDragWindow()
+        showDockMerge(null)
         cancelEdgeFlip()
         watchDragPage(false)
         hideDropTargetBar()
@@ -1315,6 +1360,10 @@ class LiveDragController(
         private const val DRAG_PICKUP_SCALE = 1.15f
         private const val DRAG_PICKUP_MS = 120L
         private const val DRAG_SETTLE_MS = 220L
+        // Half-width of a dock icon's merge zone, as a share of its slot.
+        private const val DOCK_MERGE_ZONE = 0.3f
+        private const val DOCK_MERGE_SCALE = 1.15f
+        private const val DOCK_MERGE_MS = 120L
         private const val DRAG_GRID_FADE_MS = 150L
         private const val DRAG_GRID_SLIDE_MS = 120L
         private const val EDGE_FLIP_DP = 22

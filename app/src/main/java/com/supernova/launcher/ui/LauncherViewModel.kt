@@ -652,6 +652,8 @@ class LauncherViewModel(
 
     fun moveItemToDock(itemId: String, rank: Int) = persist { repository.moveItemToDock(itemId, rank) }
 
+    fun mergeIntoDock(item: LauncherItem, rank: Int) = persist { repository.mergeIntoDock(item, rank) }
+
     fun moveIntoFolder(itemId: String, folderId: String) = persist { repository.moveItemIntoFolder(itemId, folderId) }
 
     fun addAppToFolder(app: LaunchableApp, folderId: String) = persist { repository.addAppToFolder(app, folderId) }

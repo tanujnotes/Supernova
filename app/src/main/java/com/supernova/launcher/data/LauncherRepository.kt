@@ -351,6 +351,15 @@ class LauncherRepository(private val context: Context) {
         mutate { current -> movedToDock(current, itemId, rank) }
     }
 
+    // A drop on the middle of a dock icon: into the folder there, or a new
+    // folder of the two. An item from the drawer comes in new.
+    suspend fun mergeIntoDock(item: LauncherItem, rank: Int) {
+        mutate { current ->
+            val moving = current.items.firstOrNull { it.id == item.id } ?: item
+            DockFolders.merged(current, moving, rank, id())
+        }
+    }
+
     suspend fun moveItemIntoFolder(itemId: String, folderId: String) {
         mutate { current ->
             val moving = current.items.firstOrNull { it.id == itemId } ?: return@mutate current

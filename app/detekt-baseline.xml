@@ -52,7 +52,7 @@
     <ID>CyclomaticComplexMethod:IconShape.kt$IconShape$fun pathFor(size: Float, custom: CustomShapeSpec? = null): Path?</ID>
     <ID>CyclomaticComplexMethod:LabelStyler.kt$LabelStyler$fun apply( view: TextView, prefs: LauncherPrefs, onWallpaper: Boolean, context: LabelContext = LabelContext.DESKTOP )</ID>
     <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$override fun dispatchTouchEvent(ev: MotionEvent): Boolean</ID>
-    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$override fun handleDropToDock(payload: DragPayload, rank: Int): Boolean</ID>
+    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$override fun handleDropToDock(payload: DragPayload, rank: Int, merge: Boolean): Boolean</ID>
     <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$override fun onDropToWorkspace( payload: DragPayload, page: Int, cellX: Int, cellY: Int, workspaceX: Float, workspaceY: Float, rawCellX: Float, rawCellY: Float ): Boolean</ID>
     <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$override fun viewForItem(item: LauncherItem): View</ID>
     <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun applyDockChrome(prefs: LauncherPrefs)</ID>
@@ -943,7 +943,7 @@
     <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$fun carries(item: LauncherItem): Boolean</ID>
     <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$override fun animateWallpaperZoom(target: Float)</ID>
     <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$override fun dispatchTouchEvent(ev: MotionEvent): Boolean</ID>
-    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$override fun handleDropToDock(payload: DragPayload, rank: Int): Boolean</ID>
+    <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$override fun handleDropToDock(payload: DragPayload, rank: Int, merge: Boolean): Boolean</ID>
     <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$override fun onCanvasTap(page: Int, cellX: Int, cellY: Int, workspaceX: Float, workspaceY: Float)</ID>
     <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$override fun onDragOverWorkspace( payload: DragPayload, page: Int, canvas: ViewGroup, cellWidth: Int, cellHeight: Int, cellX: Int, cellY: Int, rawCellX: Float, rawCellY: Float )</ID>
     <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$override fun onDropToWorkspace( payload: DragPayload, page: Int, cellX: Int, cellY: Int, workspaceX: Float, workspaceY: Float, rawCellX: Float, rawCellY: Float ): Boolean</ID>
