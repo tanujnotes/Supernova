@@ -554,7 +554,7 @@
     <string name="labs_show_component">Show component in edit dialog</string>
     <string name="labs_show_component_summary">For icon theme makers: an app\'s edit sheet shows its component name</string>
     <string name="labs_big_grid">Big grid size options</string>
-    <string name="labs_big_grid_summary">Lift the limits on grid sizes, for heavily customized setups: up to 20 by 20 on the home screen, 12 dock icons, 12 drawer columns and 10 folder columns</string>
+    <string name="labs_big_grid_summary">Lift the limits on grid sizes, for heavily customized setups: up to 24 by 24 on the home screen, 12 dock icons, 12 drawer columns and 10 folder columns</string>
     <string name="labs_export_png">Show Export PNG in long-press menu</string>
     <string name="labs_export_png_summary">Save a transparent image of a widget, folder or icon from its menu on the home screen</string>
     <string name="export_png">Export PNG</string>

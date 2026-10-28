@@ -6,7 +6,7 @@ package com.supernova.launcher.data
 // as it is when it goes off; only the pickers stop offering more.
 object GridLimits {
     const val DESKTOP = 12
-    const val DESKTOP_BIG = 20
+    const val DESKTOP_BIG = 24
     const val DOCK = 7
     const val DOCK_BIG = 12
     const val DRAWER_COLUMNS = 8
