@@ -147,6 +147,13 @@
     <string name="option_none">None</string>
     <string name="drawer_all">All</string>
     <string name="drawer_work">Work</string>
+    <string name="drawer_private">Private</string>
+    <string name="private_space_locked">Locked</string>
+    <string name="private_space_unlocked">Unlocked</string>
+    <string name="private_space_lock">Lock private space</string>
+    <string name="private_space_unlock">Unlock private space</string>
+    <string name="private_space_install">Install apps</string>
+    <string name="private_space_settings">Private space settings</string>
     <string name="group_name">Group name</string>
     <string name="delete_group">Delete group</string>
     <string name="edit_group_apps">Choose apps</string>

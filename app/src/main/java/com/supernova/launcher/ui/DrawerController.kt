@@ -70,6 +70,10 @@ class DrawerController(
     // Tab identity: null = All (or Personal when the work tab is on).
     private object WorkTab
 
+    // The private space's own container: its apps show nowhere else in the
+    // drawer, and its bar locks, unlocks and opens its settings.
+    private object PrivateTab
+
     val adapter = newCellAdapter()
 
     private fun newCellAdapter(): AppDrawerAdapter = AppDrawerAdapter(
@@ -313,6 +317,7 @@ class DrawerController(
             tabsHiddenForSearch = false
             binding.drawerTabs.visibility = View.VISIBLE
         }
+        updatePrivateBar()
     }
 
     // Exactly one of the three lists shows: the results while searching,
@@ -514,6 +519,15 @@ class DrawerController(
 
             override fun onTabReselected(tab: TabLayout.Tab) = Unit
         })
+        binding.drawerPrivateLock.setOnClickListener {
+            viewModel.privateSpace()?.let { viewModel.setPrivateSpaceLocked(!it.locked) }
+        }
+        binding.drawerPrivateSettings.setOnClickListener {
+            startSender(viewModel.appCatalog().privateSpaceSettings())
+        }
+        binding.drawerPrivateInstall.setOnClickListener {
+            startSender(viewModel.appCatalog().privateSpaceInstall())
+        }
         binding.drawerFastScroller.attach(binding.drawerRecycler, binding.drawerFastScrollBubble)
         binding.drawerFastScroller.sections = { adapter.fastScrollSections() }
     }
@@ -1042,6 +1056,37 @@ class DrawerController(
     private fun workTabActive(): Boolean =
         viewModel.state.value.prefs.drawerWorkTab && viewModel.hasWorkApps()
 
+    // Shown unless the system hides the locked space's entry point.
+    private fun privateTabActive(): Boolean {
+        val space = viewModel.privateSpace() ?: return false
+        return !(space.locked && space.hiddenWhenLocked)
+    }
+
+    private fun updatePrivateBar() {
+        val bar = binding.drawerPrivateBar
+        val space = viewModel.privateSpace()
+        if (selectedTab !== PrivateTab || space == null || searchingExternally) {
+            bar.visibility = View.GONE
+            return
+        }
+        bar.visibility = View.VISIBLE
+        binding.drawerPrivateStatus.setText(
+            if (space.locked) R.string.private_space_locked else R.string.private_space_unlocked
+        )
+        binding.drawerPrivateInstall.visibility = if (space.locked) View.GONE else View.VISIBLE
+        binding.drawerPrivateSettings.visibility =
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.BAKLAVA) View.VISIBLE else View.GONE
+        binding.drawerPrivateLock.contentDescription = binding.root.context.getString(
+            if (space.locked) R.string.private_space_unlock else R.string.private_space_lock
+        )
+    }
+
+    private fun startSender(sender: android.content.IntentSender?) {
+        sender ?: return
+        val activity = binding.root.context as? android.app.Activity ?: return
+        runCatching { activity.startIntentSender(sender, null, 0, 0, 0) }
+    }
+
     private fun appsForTab(tab: Any?): List<LaunchableApp> = when (tab) {
         null -> {
             val all = if (workTabActive()) viewModel.personalApps() else viewModel.visibleApps()
@@ -1049,6 +1094,7 @@ class DrawerController(
             if (isolated.isEmpty()) all else all.filterNot { viewModel.hiddenKey(it) in isolated }
         }
         WorkTab -> viewModel.workApps()
+        PrivateTab -> viewModel.privateApps()
         is DrawerGroup -> viewModel.appsInGroup(tab)
         else -> viewModel.visibleApps()
     }
@@ -1077,6 +1123,7 @@ class DrawerController(
             }
         }
         adapter.submit(apps, folders, prefs.drawerFoldersFirst, listOrder(prefs))
+        updatePrivateBar()
         syncPages()
         updateFrequentRow()
     }
@@ -1228,8 +1275,13 @@ class DrawerController(
         val tabBarMode = DrawerTabBar.fromName(prefs.drawerTabBar)
         val groups = viewModel.drawerTabGroups()
         val workTab = workTabActive()
-        val hideAll = prefs.drawerHideAllTab && groups.isNotEmpty()
-        val key = "${tabBarMode.name}|${groups.joinToString { "${it.name}:${it.order}" }}|$workTab|$hideAll|${prefs.drawerDefaultTab}"
+        val privateTab = privateTabActive()
+        // Private space apps need their own container, so their tab keeps
+        // the bar up even when it is set to None - with All beside it only.
+        val tabsOff = tabBarMode == DrawerTabBar.NONE
+        val hideAll = prefs.drawerHideAllTab && groups.isNotEmpty() && !tabsOff
+        val key = "${tabBarMode.name}|${groups.joinToString { "${it.name}:${it.order}" }}|" +
+            "$workTab|$privateTab|$hideAll|${prefs.drawerDefaultTab}"
         if (key == renderedTabsKey) return
         renderedTabsKey = key
         // Read before the tabs go: selecting one below overwrites it.
@@ -1244,7 +1296,8 @@ class DrawerController(
         tabs.removeAllTabs()
         // NONE hides the bar outright; with tabs unreachable the drawer must
         // show the All list, so the selection resets too.
-        if (tabBarMode == DrawerTabBar.NONE || (groups.isEmpty() && !workTab)) {
+        val nothingToTab = tabsOff || (groups.isEmpty() && !workTab)
+        if (nothingToTab && !privateTab) {
             tabs.visibility = View.GONE
             if (selectedTab != null) {
                 selectedTab = null
@@ -1260,11 +1313,16 @@ class DrawerController(
         if (!hideAll) {
             tabs.addTab(tabs.newTab().setText(R.string.drawer_all).also { it.tag = null }, false)
         }
-        if (workTab) {
+        if (workTab && !tabsOff) {
             tabs.addTab(tabs.newTab().setText(R.string.drawer_work).also { it.tag = WorkTab }, false)
         }
-        groups.forEach { group ->
-            tabs.addTab(tabs.newTab().setText(group.name).also { it.tag = group }, false)
+        if (!tabsOff) {
+            groups.forEach { group ->
+                tabs.addTab(tabs.newTab().setText(group.name).also { it.tag = group }, false)
+            }
+        }
+        if (privateTab) {
+            tabs.addTab(tabs.newTab().setText(R.string.drawer_private).also { it.tag = PrivateTab }, false)
         }
 
         // The tab the user was on, else the default tab pref, else the first.
@@ -1273,6 +1331,7 @@ class DrawerController(
         val kept = if (defaultChanged) null else when (previous) {
             is DrawerGroup -> indexOf { it is DrawerGroup && it.name == previous.name }
             WorkTab -> indexOf { it === WorkTab }
+            PrivateTab -> indexOf { it === PrivateTab }
             else -> indexOf { it == null }
         }
         val defaultName = prefs.drawerDefaultTab.takeIf { it.isNotEmpty() }

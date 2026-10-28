@@ -3,11 +3,13 @@ package com.supernova.launcher.ui
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.data.LauncherModel
 import com.supernova.launcher.data.LauncherPrefs
+import com.supernova.launcher.data.PrivateSpace
 
 data class LauncherUiState(
     val model: LauncherModel = LauncherModel(),
     val prefs: LauncherPrefs = LauncherPrefs(),
     val apps: List<LaunchableApp> = emptyList(),
+    val privateSpace: PrivateSpace? = null,
     val currentPage: Int = 0,
     val iconGeneration: Int = 0,
     // False only for the stateIn placeholder; the collector skips rendering

@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+    <!-- Private space apps (Android 15+), shown while this is the default
+         home app. -->
+    <uses-permission android:name="android.permission.ACCESS_HIDDEN_PROFILES" />
     <!-- Runtime-gated; requested from the Search settings section and only
          used by the contacts search provider (and the feed's starred
          contacts card). -->

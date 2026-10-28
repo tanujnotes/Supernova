@@ -3,11 +3,14 @@ package com.supernova.launcher.data
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentSender
 import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
+import android.content.pm.LauncherUserInfo
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.UserHandle
@@ -79,8 +82,12 @@ class AppCatalog(
 
     fun listLaunchableApps(): List<LaunchableApp> {
         val infoCache = mutableMapOf<String, LauncherActivityInfo>()
+        val privateUser = privateSpaceUser()
         val apps = launcherApps.profiles.flatMap { user ->
             val serial = serialFor(user)
+            val isPrivate = user == privateUser
+            // A locked private space shows nothing anywhere, search included.
+            if (isPrivate && userManager.isQuietModeEnabled(user)) return@flatMap emptyList()
             launcherApps.getActivityList(null, user).map { info ->
                 val component = info.componentName
                 infoCache["$serial/${component.packageName}/${component.className}"] = info
@@ -89,7 +96,8 @@ class AppCatalog(
                     className = component.className,
                     label = info.label?.toString().orEmpty(),
                     userSerial = serial,
-                    installTime = info.firstInstallTime
+                    installTime = info.firstInstallTime,
+                    privateSpace = isPrivate
                 )
             }
         }.sortedBy { it.label.lowercase() }
@@ -543,6 +551,49 @@ class AppCatalog(
     fun isInstalled(packageName: String, userSerial: Long): Boolean {
         val user = userForSerial(userSerial) ?: return false
         return runCatching { launcherApps.isPackageEnabled(packageName, user) }.getOrDefault(false)
+    }
+
+    // The private space profile (Android 15+), seen only while this is the
+    // default home app and holds ACCESS_HIDDEN_PROFILES.
+    fun privateSpaceUser(): UserHandle? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) return null
+        return runCatching {
+            launcherApps.profiles.firstOrNull { user ->
+                launcherApps.getLauncherUserInfo(user)?.userType == UserManager.USER_TYPE_PROFILE_PRIVATE
+            }
+        }.getOrNull()
+    }
+
+    fun privateSpace(): PrivateSpace? {
+        val user = privateSpaceUser() ?: return null
+        val locked = runCatching { userManager.isQuietModeEnabled(user) }.getOrDefault(true)
+        // The system's "Hide private space when locked": the entry point
+        // goes too while it is locked.
+        val entryHidden = Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA && runCatching {
+            launcherApps.getLauncherUserInfo(user)?.userConfig
+                ?.getBoolean(LauncherUserInfo.PRIVATE_SPACE_ENTRYPOINT_HIDDEN) == true
+        }.getOrDefault(false)
+        return PrivateSpace(serialFor(user), locked, entryHidden)
+    }
+
+    // Locking takes effect at once; unlocking asks for the space's own
+    // lock first, through the system's prompt.
+    fun setPrivateSpaceLocked(locked: Boolean): Boolean {
+        val user = privateSpaceUser() ?: return false
+        return runCatching { userManager.requestQuietModeEnabled(locked, user) }.getOrDefault(false)
+    }
+
+    // Android 16 on; Android 15 offers launchers no way in.
+    fun privateSpaceSettings(): IntentSender? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.BAKLAVA) return null
+        return runCatching { launcherApps.privateSpaceSettingsIntent }.getOrNull()
+    }
+
+    // The app store, opened to install into the private space.
+    fun privateSpaceInstall(): IntentSender? {
+        val user = privateSpaceUser()
+        if (user == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) return null
+        return runCatching { launcherApps.getAppMarketActivityIntent(null, user) }.getOrNull()
     }
 
     fun userForSerial(serial: Long): UserHandle? {

@@ -566,5 +566,14 @@ data class LaunchableApp(
     val userSerial: Long = 0L,
     val installTime: Long = 0L,
     // Resolved from the app's override so list surfaces can honor it.
-    val hideLabel: Boolean = false
+    val hideLabel: Boolean = false,
+    // In the private space: drawer and search only, never the home screen.
+    val privateSpace: Boolean = false
+)
+
+data class PrivateSpace(
+    val userSerial: Long,
+    val locked: Boolean,
+    // The system setting that hides the space's entry point while locked.
+    val hiddenWhenLocked: Boolean
 )

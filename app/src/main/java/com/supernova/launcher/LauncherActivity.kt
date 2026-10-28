@@ -1752,11 +1752,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     // the settle animation's frames alone.
                     val last = lastRenderedState
                     lastRenderedState = state
-                    if (last != null && last.model === state.model && last.prefs === state.prefs &&
-                        last.apps === state.apps && last.iconGeneration == state.iconGeneration
-                    ) {
-                        return@collect
-                    }
+                    if (last != null && onlyPageMoved(last, state)) return@collect
                     // Disable-animations forces the NONE transformer path.
                     applyScrollEffect(
                         if (Animations.enabled(state.prefs)) {
@@ -2909,7 +2905,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // Drawer menu: Add to home, App info, Uninstall, Edit (+
         // Hide). Placement into the dock, opening, and widgets are all
         // drag/tap gestures, so they leave the menu. Extra rows stay opt-in.
-        if (!desktopLocked) {
+        // Nothing of a private space app goes home (longPressNewApp).
+        val homeClosed = desktopLocked || app.privateSpace
+        if (!homeClosed) {
             menu.addRow(getString(R.string.add_to_home), R.drawable.ic_menu_add) {
                 val page = viewModel.state.value.currentPage
                 val free = viewModel.firstFreeWorkspaceCell(page)
@@ -2952,7 +2950,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 shortcut.shortLabel ?: shortcut.longLabel ?: shortcut.id,
                 shortcutIcon(shortcut)
             ) {
-                if (desktopLocked) {
+                if (homeClosed) {
                     launchShortcut(app.packageName, shortcut.id, app.userSerial, anchor)
                     if (viewModel.state.value.prefs.folderCloseOnLaunch) source?.dismiss()
                     if (::search.isInitialized && search.isOpen) search.hide()
@@ -2986,7 +2984,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // Add to Home and its app's App info. A drag pins it where it lands.
     private fun showShortcutItemMenu(anchor: View, shortcut: DragPayload.DrawerShortcut): SupernovaPopupMenu {
         val menu = newItemPopup()
-        if (!desktopLocked) {
+        if (!desktopLocked && !viewModel.isPrivateSerial(shortcut.userSerial)) {
             menu.addRow(getString(R.string.add_to_home), R.drawable.ic_menu_add) {
                 val page = viewModel.state.value.currentPage
                 val free = viewModel.firstFreeWorkspaceCell(page)
@@ -3061,14 +3059,22 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // finger lifts and the menu takes focus - the menu appearing to jump for
     // no reason the user can see. The drawer is adjustNothing, so nothing
     // under the menu moves when the keyboard goes.
+    private fun onlyPageMoved(last: LauncherUiState, state: LauncherUiState): Boolean =
+        last.model === state.model && last.prefs === state.prefs && last.apps === state.apps &&
+            last.iconGeneration == state.iconGeneration && last.privateSpace == state.privateSpace
+
     private fun longPressNewApp(view: View, app: LaunchableApp) {
         drawer.hideKeyboardIfShowing()
-        drag.arm(view, DragPayload.DrawerApp(app)) { showDrawerItemMenu(view, app) }
+        // A private space app stays in the drawer: on the home screen it
+        // would show while the space is locked.
+        drag.arm(view, DragPayload.DrawerApp(app), draggable = !app.privateSpace) { showDrawerItemMenu(view, app) }
     }
 
     private fun longPressNewShortcut(view: View, shortcut: DragPayload.DrawerShortcut) {
         drawer.hideKeyboardIfShowing()
-        drag.arm(view, shortcut) { showShortcutItemMenu(view, shortcut) }
+        drag.arm(view, shortcut, draggable = !viewModel.isPrivateSerial(shortcut.userSerial)) {
+            showShortcutItemMenu(view, shortcut)
+        }
     }
 
     private fun longPressDrawerFolder(view: View, group: DrawerGroup, apps: List<LaunchableApp>) {

@@ -1,6 +1,10 @@
 package com.supernova.launcher.ui
 
 import android.app.Application
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -23,6 +27,7 @@ import com.supernova.launcher.data.LauncherItem
 import com.supernova.launcher.data.LauncherPreferences
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.LauncherRepository
+import com.supernova.launcher.data.PrivateSpace
 import com.supernova.launcher.data.WorkspaceGeometry
 import com.supernova.launcher.gesture.Gesture
 import com.supernova.launcher.gesture.GestureAction
@@ -65,6 +70,7 @@ class LauncherViewModel(
     }
 
     private val appsFlow = MutableStateFlow(emptyList<LaunchableApp>())
+    private val privateSpaceFlow = MutableStateFlow<PrivateSpace?>(null)
     private val currentPageFlow = MutableStateFlow(0)
     // Launch counts for most-used sort; device-local, collected eagerly.
     private var launchCounts: Map<String, Int> = emptyMap()
@@ -91,14 +97,15 @@ class LauncherViewModel(
     val state = combine(
         repository.modelFlow,
         preferences.flow,
-        appsFlow,
+        combine(appsFlow, privateSpaceFlow, ::Pair),
         currentPageFlow,
         iconGeneration
-    ) { model, prefs, apps, page, generation ->
+    ) { model, prefs, (apps, privateSpace), page, generation ->
         LauncherUiState(
             model = model,
             prefs = prefs,
             apps = apps,
+            privateSpace = privateSpace,
             currentPage = page,
             iconGeneration = generation,
             loaded = true,
@@ -355,6 +362,7 @@ class LauncherViewModel(
         // Behind the drawn frame: the list the drawer needs, and every other
         // icon. The first-frame icons are cache hits here.
         val apps = catalog.listLaunchableApps()
+        privateSpaceFlow.value = catalog.privateSpace()
         appsFlow.value = apps
         catalog.warmIcons(apps)
     }
@@ -371,7 +379,44 @@ class LauncherViewModel(
         }
     }
 
+    // The private space locking or unlocking, or coming or going: its apps
+    // show or vanish with it.
+    private val profileReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) = requestRefresh(immediate = true)
+    }
+
+    init {
+        // There is no private space before Android 15.
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            registerProfileReceiver()
+        }
+    }
+
+    @androidx.annotation.RequiresApi(android.os.Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    private fun registerProfileReceiver() {
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_PROFILE_AVAILABLE)
+            addAction(Intent.ACTION_PROFILE_UNAVAILABLE)
+            addAction(Intent.ACTION_PROFILE_ADDED)
+            addAction(Intent.ACTION_PROFILE_REMOVED)
+        }
+        androidx.core.content.ContextCompat.registerReceiver(
+            getApplication(), profileReceiver, filter, androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+    }
+
+    fun privateSpace(): PrivateSpace? = state.value.privateSpace
+
+    fun setPrivateSpaceLocked(locked: Boolean) = viewModelScope.launch(Dispatchers.Default) {
+        catalog.setPrivateSpaceLocked(locked)
+        // The broadcast follows; this covers a refused request too.
+        requestRefresh(immediate = true)
+    }
+
+    fun isPrivateSerial(userSerial: Long): Boolean = state.value.privateSpace?.userSerial == userSerial
+
     override fun onCleared() {
+        runCatching { getApplication<Application>().unregisterReceiver(profileReceiver) }
         catalog.unregisterAppChangeListener(appChangeListener)
         super.onCleared()
     }
@@ -394,6 +439,7 @@ class LauncherViewModel(
         val stale = iconsStale
         iconsStale = false
         val apps = catalog.listLaunchableApps()
+        privateSpaceFlow.value = catalog.privateSpace()
         appsFlow.value = apps
         // Pre-warm off the main thread so binds become cache hits; the
         // render lock keeps this safe alongside main-thread misses.
@@ -1133,19 +1179,29 @@ class LauncherViewModel(
     // ship several entries and users hide them individually.
     fun hiddenKey(app: LaunchableApp): String = "${app.userSerial}/${app.packageName}/${app.className}"
 
+    // Every list but the private space's own tab and search leaves its apps
+    // out: they can't go home, into folders or onto gestures, which would
+    // still show or open them once the space is locked.
     fun visibleApps(): List<LaunchableApp> {
         val hidden = state.value.prefs.hiddenApps
-        return sortedApps(withOverrides(state.value.apps.filterNot { hiddenKey(it) in hidden }))
+        return sortedApps(withOverrides(state.value.apps.filterNot { it.privateSpace || hiddenKey(it) in hidden }))
     }
 
-    // The apps search matches: the drawer's, plus the hidden ones when the
-    // user wants them found.
+    // Listed only while the space is unlocked (AppCatalog).
+    fun privateApps(): List<LaunchableApp> {
+        val hidden = state.value.prefs.hiddenApps
+        return sortedApps(withOverrides(state.value.apps.filter { it.privateSpace && hiddenKey(it) !in hidden }))
+    }
+
+    // The apps search matches: the drawer's and the unlocked private
+    // space's, plus the hidden ones when the user wants them found.
     fun searchableApps(): List<LaunchableApp> =
-        if (state.value.prefs.searchHiddenApps) appsForPicking() else visibleApps()
+        (if (state.value.prefs.searchHiddenApps) appsForPicking() else visibleApps()) + privateApps()
 
     // Every app, hidden ones too, under the names the user gave them: what a
     // gesture or icon swipe can open.
-    fun appsForPicking(): List<LaunchableApp> = sortedApps(withOverrides(state.value.apps))
+    fun appsForPicking(): List<LaunchableApp> =
+        sortedApps(withOverrides(state.value.apps.filterNot { it.privateSpace }))
 
     private fun withOverrides(apps: List<LaunchableApp>): List<LaunchableApp> {
         val overrides = state.value.model.appOverrides
@@ -1250,7 +1306,7 @@ class LauncherViewModel(
 
     fun workApps(): List<LaunchableApp> = visibleApps().filter { it.userSerial != 0L }
 
-    fun hasWorkApps(): Boolean = state.value.apps.any { it.userSerial != 0L }
+    fun hasWorkApps(): Boolean = state.value.apps.any { it.userSerial != 0L && !it.privateSpace }
 
     fun drawerGroups(): List<DrawerGroup> =
         state.value.prefs.drawerGroups.mapNotNull(DrawerGroup::decode)
@@ -1414,7 +1470,7 @@ class LauncherViewModel(
         val generated = withContext(Dispatchers.Default) {
             val hidden = state.value.prefs.hiddenApps
             // Fresh enumeration: the install hook fires before appsFlow updates.
-            val apps = catalog.listLaunchableApps().filterNot { hiddenKey(it) in hidden }
+            val apps = catalog.listLaunchableApps().filterNot { it.privateSpace || hiddenKey(it) in hidden }
             // Apps the user already placed in a folder group stay theirs.
             val claimed = drawerGroups()
                 .filter { it.type == DrawerGroupType.FOLDER && !it.smart }

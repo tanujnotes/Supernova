@@ -215,6 +215,55 @@
             app:tabTextAppearance="@style/TextAppearance.Supernova.DrawerTab"
             app:tabTextColor="@color/textSecondary" />
 
+        <!-- The private space tab's controls; DrawerController shows it
+             while that tab is selected. -->
+        <LinearLayout
+            android:id="@+id/drawerPrivateBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:minHeight="48dp"
+            android:orientation="horizontal"
+            android:paddingStart="20dp"
+            android:paddingEnd="8dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/drawerPrivateStatus"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@color/textSecondary"
+                android:textSize="14sp" />
+
+            <ImageButton
+                android:id="@+id/drawerPrivateInstall"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/private_space_install"
+                android:src="@drawable/ic_menu_add"
+                app:tint="@color/textPrimary" />
+
+            <ImageButton
+                android:id="@+id/drawerPrivateSettings"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/private_space_settings"
+                android:src="@drawable/ic_action_settings"
+                app:tint="@color/textPrimary" />
+
+            <ImageButton
+                android:id="@+id/drawerPrivateLock"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/private_space_lock"
+                android:src="@drawable/ic_action_lock"
+                app:tint="@color/textPrimary" />
+        </LinearLayout>
+
         <!-- Activated custom cards (all conditions met) sit above the list;
              DrawerController fills and hides this. -->
         <LinearLayout
