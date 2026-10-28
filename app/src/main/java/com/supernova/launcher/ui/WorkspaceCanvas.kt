@@ -6,6 +6,7 @@ import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 // An icon's left (or top) edge along one side of the canvas: its centre at
@@ -27,6 +28,15 @@ internal fun widgetSize(span: Float, count: Int, extent: Int, inset: Int): Int =
 // One of the `count` whole-pixel cells across `extent`.
 internal fun cellSize(extent: Int, count: Int): Int = max(1, extent / max(1, count))
 
+// How far an icon shrinks to fit its cell: 1 at its own size, less where the
+// cell is narrower or shorter than the `needW` x `needH` it takes there. A
+// dense grid's cells are smaller than an icon, and icons in neighbouring
+// cells drew over each other.
+internal fun iconFitScale(cellW: Int, cellH: Int, needW: Int, needH: Int): Float {
+    if (min(cellW, cellH) <= 0 || min(needW, needH) <= 0) return 1f
+    return minOf(1f, cellW / needW.toFloat(), cellH / needH.toFloat())
+}
+
 // A workspace page's canvas. Items are placed against the canvas's size at
 // every layout rather than the one it had at bind. The canvas can change size
 // after the page binds - on a cold start the page binds before the canvas has
@@ -37,8 +47,10 @@ internal fun cellSize(extent: Int, count: Int): Int = max(1, extent / max(1, cou
 //
 // Icons carry a normalized centre (IconParams) and are laid out on it here,
 // at least a cell wide: an icon owns its cell, so its label runs the
-// cell's width before it ellipsizes, not just the icon's. An icon bigger
-// than its cell keeps its own width. Widgets carry their cells
+// cell's width before it ellipsizes, not just the icon's. An icon that needs
+// more room than its cell shrinks into it (IconFit), as the cell's size is
+// only known here: a cold start binds the page before the canvas has one.
+// Widgets carry their cells
 // (WidgetParams), which become their margins and size at every measure, and
 // so does the resize frame around one, with no inset.
 //
@@ -50,10 +62,22 @@ class WorkspaceCanvas @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : FrameLayout(context, attrs) {
 
-    // `cols` is the grid's column count, which sets the cell width an icon
-    // widens to; 0 leaves it at its own.
-    class IconParams(val centerX: Float, val centerY: Float, val cols: Int = 0) :
-        FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+    // An icon's room at its own size, `needW` x `needH`, and how it shrinks
+    // its parts (icon, label, padding) to a scale of that.
+    class IconFit(val needW: Int, val needH: Int, val apply: (scale: Float) -> Unit)
+
+    // `cols` x `rows` is the grid, which sets the cell an icon widens to and,
+    // with a `fit`, shrinks into; 0 leaves it at its own size.
+    class IconParams(
+        val centerX: Float,
+        val centerY: Float,
+        val cols: Int = 0,
+        val rows: Int = 0,
+        val fit: IconFit? = null
+    ) : FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT) {
+        // The scale the icon was last shrunk to.
+        var fitScale = 1f
+    }
 
     // `spanX` x `spanY` cells of the `cols` x `rows` grid from (`cellX`,
     // `cellY`), inset on every side. Floats so the resize frame can slide
@@ -84,6 +108,7 @@ class WorkspaceCanvas @JvmOverloads constructor(
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val width = MeasureSpec.getSize(widthMeasureSpec)
         val height = MeasureSpec.getSize(heightMeasureSpec)
+        fitIcons(width, height)
         for (i in 0 until childCount) {
             val params = getChildAt(i).layoutParams as? WidgetParams ?: continue
             params.leftMargin = widgetOrigin(params.cellX, params.cols, width, params.inset)
@@ -102,6 +127,21 @@ class WorkspaceCanvas @JvmOverloads constructor(
                 MeasureSpec.makeMeasureSpec(cell, MeasureSpec.EXACTLY),
                 getChildMeasureSpec(heightMeasureSpec, paddingTop + paddingBottom, params.height)
             )
+        }
+    }
+
+    // Before the children are measured, so they are measured as they will
+    // draw. Nothing while the canvas has no size yet.
+    private fun fitIcons(width: Int, height: Int) {
+        if (width <= 0 || height <= 0) return
+        for (i in 0 until childCount) {
+            val params = getChildAt(i).layoutParams as? IconParams ?: continue
+            val fit = params.fit ?: continue
+            if (params.cols <= 0 || params.rows <= 0) continue
+            val scale = iconFitScale(cellSize(width, params.cols), cellSize(height, params.rows), fit.needW, fit.needH)
+            if (scale == params.fitScale) continue
+            params.fitScale = scale
+            fit.apply(scale)
         }
     }
 

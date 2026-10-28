@@ -506,7 +506,8 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
                         // the canvas resizes after this bind.
                         val centerX = item.workspaceX ?: ((item.cellX + 0.5f) / max(1, cols))
                         val centerY = item.workspaceY ?: ((item.cellY + 0.5f) / max(1, rows))
-                        canvas.addView(child, WorkspaceCanvas.IconParams(centerX, centerY, cols))
+                        val fit = child.getTag(R.id.tag_icon_fit) as? WorkspaceCanvas.IconFit
+                        canvas.addView(child, WorkspaceCanvas.IconParams(centerX, centerY, cols, rows, fit))
                     }
                 }
             }

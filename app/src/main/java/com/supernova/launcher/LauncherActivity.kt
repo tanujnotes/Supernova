@@ -2091,6 +2091,29 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // big icon's item may be larger than its cell.
     override fun desktopIconBoxPx(prefs: LauncherPrefs): Int = (dp(ICON_BASE_DP) * prefs.iconScale).toInt()
 
+    // The room a desktop icon takes at its own size: its box inside the
+    // item's padding, over a line of label when labels show. A cell smaller
+    // than that shrinks the icon into it (WorkspaceCanvas.IconFit).
+    private var desktopNeedPrefs: LauncherPrefs? = null
+    private var desktopNeed = android.util.Size(0, 0)
+    override fun desktopIconNeedPx(prefs: LauncherPrefs): android.util.Size {
+        if (prefs !== desktopNeedPrefs) {
+            val box = desktopIconBoxPx(prefs) + dp(ICON_ITEM_PADDING_DP) * 2
+            val label = if (prefs.showLabels) {
+                val probe = android.widget.TextView(this)
+                LabelStyler.apply(
+                    probe, prefs, onWallpaper = true, context = com.supernova.launcher.ui.LabelContext.DESKTOP
+                )
+                probe.lineHeight
+            } else {
+                0
+            }
+            desktopNeed = android.util.Size(box, box + label)
+            desktopNeedPrefs = prefs
+        }
+        return desktopNeed
+    }
+
     // Dock visibility, background, scrims, the desktop search bar, and the
     // workspace/indicator insets that depend on them; guarded so repeat
     // emissions don't rebuild drawables.
@@ -4174,6 +4197,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             else com.supernova.launcher.ui.LabelContext.DESKTOP
         )
         iconBinding.label.visibility = if (labelVisible) View.VISIBLE else View.GONE
+        if (!inDock) iconBinding.root.setTag(R.id.tag_icon_fit, desktopIconFit(iconBinding, prefs))
         // Announce what the icon actually is; the label may be hidden.
         iconBinding.root.contentDescription = when (item.itemType) {
             ItemType.FOLDER -> getString(R.string.folder_desc, displayLabel)
@@ -4216,6 +4240,26 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         }
 
         return iconBinding.root
+    }
+
+    // How a desktop icon shrinks into a cell smaller than it needs, which the
+    // page's canvas decides: icon, label and padding by the same scale, and
+    // the label on one line, so icons in a dense grid stay clear of their
+    // neighbours. Scale 1 puts it back as bound.
+    private fun desktopIconFit(iconBinding: ItemIconBinding, prefs: LauncherPrefs): WorkspaceCanvas.IconFit {
+        val box = desktopIconBoxPx(prefs)
+        val textPx = iconBinding.label.textSize
+        val lines = iconBinding.label.maxLines
+        val pad = iconBinding.root.paddingTop
+        val need = desktopIconNeedPx(prefs)
+        return WorkspaceCanvas.IconFit(need.width, need.height) { scale ->
+            val size = (box * scale).roundToInt()
+            iconBinding.icon.updateLayoutParams { width = size; height = size }
+            iconBinding.label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, textPx * scale)
+            iconBinding.label.maxLines = if (scale < 1f) 1 else lines
+            val padding = (pad * scale).roundToInt()
+            iconBinding.root.setPadding(padding, padding, padding, padding)
+        }
     }
 
     // Per-icon swipe: a short vertical flick on the icon runs its bound app
@@ -5105,6 +5149,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // height, and a drop's settle works out where a desktop item's icon
         // will sit from them.
         private const val ICON_BASE_DP = 48
+        // item_icon's padding, all round.
+        private const val ICON_ITEM_PADDING_DP = 4
         private const val DOCK_ITEM_PADDING_H_DP = 2
         private const val DOCK_ITEM_PADDING_V_DP = 4
         private const val DOCK_SLOT_PADDING_V_DP = 2

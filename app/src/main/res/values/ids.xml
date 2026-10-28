@@ -16,4 +16,7 @@
     <item name="tag_page" type="id" />
     <!-- View tag: the dock rank a dock slot stands for. -->
     <item name="tag_dock_rank" type="id" />
+    <!-- View tag: a desktop icon's WorkspaceCanvas.IconFit, how it shrinks
+         into a cell too small for it. -->
+    <item name="tag_icon_fit" type="id" />
 </resources>
