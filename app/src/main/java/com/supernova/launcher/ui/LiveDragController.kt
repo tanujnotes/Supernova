@@ -89,8 +89,9 @@ class LiveDragController(
 
         fun installedApp(packageName: String, userSerial: Long): LaunchableApp?
         fun removeItemWithUndo(item: LauncherItem)
-        // A drag is over, its picture landed or gone.
-        fun onDragFinished()
+        // A drag is over, its picture landed or gone. sourcePage: the
+        // desktop page the dragged item came from, if it came from one.
+        fun onDragFinished(sourcePage: Int?)
 
         // The hover's reorder preview and the drop itself.
         fun hoverTargetRect(
@@ -184,6 +185,9 @@ class LiveDragController(
     private var pendingDragStartX = Float.NaN
     private var pendingDragStartY = Float.NaN
     private var dragSourceView: View? = null
+    // The desktop page the dragged item was picked up from: emptied by the
+    // drag, it goes even while in view.
+    private var dragSourcePage: Int? = null
     private var dragFromDrawer = false
     // The window an armed press, or the live drag it became, takes its
     // touches from when that isn't this activity's: a drawer folder's card
@@ -471,6 +475,8 @@ class LiveDragController(
         dragLayer.cancel()
         val prefs = viewModel.state.value.prefs
         dragSourceView = anchor
+        dragSourcePage = (payload as? DragPayload.ExistingItem)?.itemId?.let(::itemById)
+            ?.takeIf { it.container == ContainerType.WORKSPACE }?.page
         dragFromDrawer = payload.isNew
         dragWindow = window
         activeDragPayload = payload
@@ -1093,9 +1099,11 @@ class LiveDragController(
 
     private fun finishDrag(accepted: Boolean, flewBack: Boolean = false) {
         val dragged = activeDragPayload != null
+        val sourcePage = dragSourcePage
+        dragSourcePage = null
         onDragEnded(accepted, flewBack)
         revealSettled()
-        if (dragged) host.onDragFinished()
+        if (dragged) host.onDragFinished(sourcePage)
     }
 
     // The settled item's rebound view (workspace child or dock slot child)

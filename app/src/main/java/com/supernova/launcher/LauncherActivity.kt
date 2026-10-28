@@ -3243,6 +3243,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             // after the drag's end would bring the frame back around nothing.
             widgets.onWidgetItemRemoved(item)
             viewModel.removeItem(item.id)
+            removeEmptyPages(emptied = item.desktopPage())
             return
         }
         // Capture before removal: the exact item plus folder members, so undo
@@ -3253,7 +3254,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             emptyList()
         }
         viewModel.removeItem(item.id)
-        if (!viewModel.state.value.prefs.undoRemove) return
+        if (!viewModel.state.value.prefs.undoRemove) {
+            removeEmptyPages(emptied = item.desktopPage())
+            return
+        }
         val snackbar = Snackbar
             .make(binding.root, R.string.item_removed, UNDO_DURATION_MS)
             .setAction(R.string.undo) { viewModel.restoreItems(listOf(item) + members) }
@@ -3264,7 +3268,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
                 if (undoSnackbar !== transientBottomBar) return
                 undoSnackbar = null
-                if (event != DISMISS_EVENT_ACTION) removeEmptyPages()
+                if (event != DISMISS_EVENT_ACTION) removeEmptyPages(emptied = item.desktopPage())
             }
         })
         undoSnackbar = snackbar
@@ -3273,21 +3277,31 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
     // Posted: a drag can end inside the pickup of the next one (its settle cut
     // short), and that drag is under way by the time this runs.
-    override fun onDragFinished() {
-        binding.root.post { removeEmptyPages() }
+    override fun onDragFinished(sourcePage: Int?) {
+        binding.root.post { removeEmptyPages(emptied = sourcePage) }
     }
+
+    private fun LauncherItem.desktopPage(): Int? = page.takeIf { container == ContainerType.WORKSPACE }
 
     // Remove empty pages: every page left with nothing on it goes, but the
     // home page and the one in view - so a page being filled (edit mode's
     // "+", a widget's setup screen) is never taken from under it. Runs when
     // a drag ends, when the pager comes to rest and when an Undo times out;
     // not while anything is still moving items or pages about.
-    private fun removeEmptyPages() {
+    //
+    // emptied: a page the user just emptied (its last item removed or
+    // dragged away). That one goes even while in view - it is not a page
+    // being filled - and the pager steps back onto the page before it.
+    private fun removeEmptyPages(emptied: Int? = null) {
         if (!emptyPagesRemovable()) return
         val inView = workspaceAdapter.realPage(binding.workspacePager.currentItem)
         val count = workspaceAdapter.realPageCount
-        viewModel.removeEmptyPages(setOf(inView)) { removed ->
-            followRemovedPages(count - removed.size, inView - removed.count { it < inView })
+        val keep = if (emptied == inView) emptySet() else setOf(inView)
+        viewModel.removeEmptyPages(keep) { removed ->
+            val remaining = count - removed.size
+            val shifted = inView - removed.count { it < inView }
+            val page = if (inView in removed) shifted - 1 else shifted
+            followRemovedPages(remaining, page.coerceIn(0, remaining - 1))
         }
     }
 
