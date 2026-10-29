@@ -2869,6 +2869,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // drag leaves for the home screen: the drawer, the search window, and the
     // feed that search was opened over - the item lands on a home page.
     override fun closeItemSources() {
+        // A folder card is a window of its own: a shortcut dragged out of a
+        // member's menu left it standing over the home screen. Not the card
+        // a drag is carried by, which closes with the drop.
+        activeFolderPopup?.takeUnless { drag.ownsGestureIn(it) }?.dismiss()
         hideDrawer()
         if (::search.isInitialized && search.isOpen) search.hide()
         if (::feed.isInitialized && feed.isOpen) feed.close()
@@ -3896,7 +3900,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 showDrawerGroupChecklist(group, groupName)
             },
             onDismiss = {
-                memberMenu?.dismiss()
+                // A menu a shortcut is being dragged out of carries the rest
+                // of that gesture, and closes with its drop.
+                memberMenu?.takeUnless { drag.ownsGestureIn(it.window) }?.dismiss()
                 memberMenu = null
                 // Closed under a held app or its drag (a home press, Back, a
                 // rotation): the rest of that gesture would only ever have
