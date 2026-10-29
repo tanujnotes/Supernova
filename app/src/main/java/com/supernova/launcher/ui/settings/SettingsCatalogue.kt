@@ -530,7 +530,7 @@ object SettingsCatalogue {
                     step = 5,
                     get = { (it.dockIconScale * 100f).roundToInt() },
                     set = { viewModel.setDockIconScale(it / 100f) },
-                    display = { context.getString(R.string.icon_scale_value, it / 100f) },
+                    display = { context.getString(R.string.opacity_percent, it) },
                     preview = { p, v -> p.copy(dockIconScale = v / 100f) },
                     visibleIf = { it.dockEnabled && !it.dockMatchDesktop }
                 ),
@@ -691,7 +691,7 @@ object SettingsCatalogue {
                     step = 5,
                     get = { (it.drawerIconScale * 100f).roundToInt() },
                     set = { viewModel.setDrawerIconScale(it / 100f) },
-                    display = { context.getString(R.string.icon_scale_value, it / 100f) },
+                    display = { context.getString(R.string.opacity_percent, it) },
                     preview = { p, v -> p.copy(drawerIconScale = v / 100f) },
                     visibleIf = { !it.drawerMatchDesktop }
                 ),
@@ -1236,7 +1236,7 @@ object SettingsCatalogue {
                     step = 5,
                     get = { (it.folderIconScale * 100f).roundToInt() },
                     set = { viewModel.setFolderIconScale(it / 100f) },
-                    display = { context.getString(R.string.icon_scale_value, it / 100f) },
+                    display = { context.getString(R.string.opacity_percent, it) },
                     visibleIf = { !it.folderMatchDesktop }
                 ),
                 SettingItem.Toggle(

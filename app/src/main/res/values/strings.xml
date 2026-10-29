@@ -68,7 +68,6 @@
     <string name="grid_rows">Rows</string>
     <string name="grid_cols">Columns</string>
     <string name="dock_count">Dock slots</string>
-    <string name="icon_scale_value">%1$.2fx</string>
     <string name="show_labels">Show icon labels</string>
     <string name="wallpaper_scroll">Scroll wallpaper with pages</string>
     <string name="subgrid">Subgrid positioning (half cells)</string>
