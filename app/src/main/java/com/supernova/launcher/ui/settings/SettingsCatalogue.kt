@@ -1486,6 +1486,12 @@ object SettingsCatalogue {
                     onClick = actions.editPopupRows
                 ),
                 SettingItem.Toggle(
+                    R.string.popup_action_icons,
+                    get = { it.popupActionIcons },
+                    set = { viewModel.setPopupActionIcons(it) },
+                    subtitle = R.string.popup_action_icons_summary
+                ),
+                SettingItem.Toggle(
                     R.string.popup_notifications,
                     get = { it.popupNotifications },
                     set = { viewModel.setPopupNotifications(it) }

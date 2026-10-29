@@ -111,6 +111,10 @@ class SupernovaPopupMenu(
     groupShortcuts: Boolean = false
 ) {
 
+    // popupActionIcons: addRow's rows go into rows of icons instead. Set
+    // before any row is added.
+    var actionIcons: Boolean = false
+
     private val surfaceColor = surface.surface
     private val grouped = groupShortcuts && style.canGroup
 
@@ -261,8 +265,54 @@ class SupernovaPopupMenu(
 
     fun addRow(label: CharSequence, @DrawableRes icon: Int, onClick: () -> Unit) {
         beginGroup(Group.MAIN)
-        content.addView(buildRow(label, iconView(icon, context.dp(20)), sub = false, onClick))
+        if (actionIcons) {
+            addActionIcon(label, icon, onClick)
+        } else {
+            content.addView(buildRow(label, iconView(icon, context.dp(20)), sub = false, onClick))
+        }
         rowCount++
+    }
+
+    // The icon row a menu's actions go into with popupActionIcons on. Past
+    // ACTION_ICONS_PER_ROW they wrap onto another.
+    private var actionStrip: LinearLayout? = null
+
+    // An action as an icon alone: its name is its tooltip (held) and what a
+    // screen reader says.
+    private fun addActionIcon(label: CharSequence, @DrawableRes icon: Int, onClick: () -> Unit) {
+        val strip = actionStrip?.takeIf { it.childCount < ACTION_ICONS_PER_ROW } ?: LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(context.dp(8), context.dp(2), context.dp(8), context.dp(2))
+            if (style == PopupMenuStyle.PILLS) {
+                background = GradientDrawable().apply {
+                    setColor(surfaceColor)
+                    cornerRadius = context.dp(24).toFloat()
+                }
+                elevation = ELEVATION_DP * density
+            }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            content.addView(this)
+            actionStrip = this
+        }
+        val button = ImageView(context).apply {
+            setImageResource(icon)
+            imageTintList = ColorStateList.valueOf(textColor)
+            val pad = context.dp(ACTION_ICON_PAD_DP)
+            setPadding(pad, pad, pad, pad)
+            foreground = rippleDrawable()
+            contentDescription = label
+            androidx.appcompat.widget.TooltipCompat.setTooltipText(this, label)
+            setOnClickListener {
+                dismiss()
+                onClick()
+            }
+            layoutParams = LinearLayout.LayoutParams(context.dp(ACTION_ICON_DP), context.dp(ACTION_ICON_DP))
+        }
+        strip.addView(button)
     }
 
     // App shortcuts render with their own badged icon, untinted. A held
@@ -542,5 +592,9 @@ class SupernovaPopupMenu(
         // gutter is transparent and may hang off the screen.
         private const val ELEVATION_DP = 8
         private const val SHADOW_PAD_DP = 22
+        // The action icons: a 48dp touch target round a 20dp glyph, five a row.
+        private const val ACTION_ICON_DP = 48
+        private const val ACTION_ICON_PAD_DP = 14
+        private const val ACTION_ICONS_PER_ROW = 5
     }
 }

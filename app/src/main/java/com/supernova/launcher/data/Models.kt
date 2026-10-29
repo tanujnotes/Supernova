@@ -420,6 +420,9 @@ data class LauncherPrefs(
     // "Visually group shortcuts": the shortcut and notification rows
     // stand apart from the menu as tiles of their own.
     val popupGroupShortcuts: Boolean = false,
+    // The menu's own actions (Remove, Widgets, App info...) as one row of
+    // icons, named by their tooltips, instead of a labelled row each.
+    val popupActionIcons: Boolean = false,
     // Long-press menu layout (ui/PopupMenuStyle name): BLOCK/PILLS/ANDROID12.
     val popupStyle: String = "BLOCK",
     // Optional popup rows (ui/SupernovaPopupMenu PopupRows tokens, comma

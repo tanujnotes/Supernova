@@ -343,6 +343,8 @@
     <string name="transition_fade">Fade</string>
     <string name="popup_card_bg">Group shortcuts in a card</string>
     <string name="popup_group_shortcuts">Visually group shortcuts</string>
+    <string name="popup_action_icons">Actions as icons</string>
+    <string name="popup_action_icons_summary">Remove, Widgets, App info and the rest in one row of icons; hold one for its name</string>
     <string name="popup_group_shortcuts_summary">Shortcuts and notifications sit apart from the menu, one tile each</string>
     <string name="popup_style">Long-press menu style</string>
     <string name="popup_style_block">Block</string>

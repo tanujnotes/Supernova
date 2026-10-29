@@ -175,6 +175,7 @@ object StoreKeys {
     val popupNotifications: Preferences.Key<Boolean> = booleanPreferencesKey("popup_notifications")
     val popupCardBg: Preferences.Key<Boolean> = booleanPreferencesKey("popup_card_bg")
     val popupGroupShortcuts: Preferences.Key<Boolean> = booleanPreferencesKey("popup_group_shortcuts")
+    val popupActionIcons: Preferences.Key<Boolean> = booleanPreferencesKey("popup_action_icons")
     val popupStyle: Preferences.Key<String> = stringPreferencesKey("popup_style")
     val popupItemsHome: Preferences.Key<String> = stringPreferencesKey("popup_items_home")
     val popupItemsDrawer: Preferences.Key<String> = stringPreferencesKey("popup_items_drawer")

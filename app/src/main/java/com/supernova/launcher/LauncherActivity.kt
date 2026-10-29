@@ -2801,13 +2801,16 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         com.supernova.launcher.ui.theme.Styles.resolve(this, viewModel.state.value.prefs)
             .of(com.supernova.launcher.ui.theme.SurfaceId.POPUP)
 
-    private fun newItemPopup(): SupernovaPopupMenu {
+    // forItem: an app's, folder's or widget's own menu, whose actions can be
+    // a row of icons (popupActionIcons); the smaller menus keep their labels.
+    private fun newItemPopup(forItem: Boolean = false): SupernovaPopupMenu {
         val menu = SupernovaPopupMenu(
             this, popupSurface(), Animations.enabled(viewModel.state.value.prefs),
             cardBackground = viewModel.state.value.prefs.popupCardBg,
             style = com.supernova.launcher.ui.PopupMenuStyle.fromName(viewModel.state.value.prefs.popupStyle),
             groupShortcuts = viewModel.state.value.prefs.popupGroupShortcuts
         )
+        menu.actionIcons = forItem && viewModel.state.value.prefs.popupActionIcons
         // Same dismiss contract PopupMenu had; the armed-drag interplay
         // (activeItemPopup dismissal in routeItemGesture) relies on it.
         menu.setOnDismissListener { if (drag.activeItemPopup === menu) drag.activeItemPopup = null }
@@ -2942,7 +2945,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         app: LaunchableApp,
         source: android.widget.PopupWindow? = null
     ): SupernovaPopupMenu {
-        val menu = newItemPopup()
+        val menu = newItemPopup(forItem = true)
         addNotificationRows(menu, app.packageName, app.userSerial)
         val extras = PopupRows.decode(
             viewModel.state.value.prefs.popupItemsDrawer, PopupRows.drawerDefaults
@@ -3167,7 +3170,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
     private fun showWorkspaceItemMenu(anchor: View, item: LauncherItem): SupernovaPopupMenu {
         val locked = desktopLocked
-        val menu = newItemPopup()
+        val menu = newItemPopup(forItem = true)
         if (item.itemType == ItemType.APP || item.itemType == ItemType.SHORTCUT) {
             addNotificationRows(menu, item.packageName, item.userSerial)
         }

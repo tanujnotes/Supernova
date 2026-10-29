@@ -178,6 +178,7 @@ class LauncherPreferences(private val context: Context) {
             target[StoreKeys.popupNotifications] = prefs.popupNotifications
             target[StoreKeys.popupCardBg] = prefs.popupCardBg
             target[StoreKeys.popupGroupShortcuts] = prefs.popupGroupShortcuts
+            target[StoreKeys.popupActionIcons] = prefs.popupActionIcons
             target[StoreKeys.popupStyle] = prefs.popupStyle
             target[StoreKeys.popupItemsHome] = prefs.popupItemsHome
             target[StoreKeys.popupItemsDrawer] = prefs.popupItemsDrawer
@@ -386,6 +387,7 @@ class LauncherPreferences(private val context: Context) {
             popupNotifications = values[StoreKeys.popupNotifications] ?: true,
             popupCardBg = values[StoreKeys.popupCardBg] ?: true,
             popupGroupShortcuts = values[StoreKeys.popupGroupShortcuts] ?: false,
+            popupActionIcons = values[StoreKeys.popupActionIcons] ?: false,
             popupStyle = values[StoreKeys.popupStyle] ?: "BLOCK",
             popupItemsHome = values[StoreKeys.popupItemsHome].orEmpty(),
             popupItemsDrawer = values[StoreKeys.popupItemsDrawer].orEmpty(),
@@ -802,6 +804,7 @@ class LauncherPreferences(private val context: Context) {
     suspend fun setPopupCardBg(value: Boolean) = put(StoreKeys.popupCardBg, value)
 
     suspend fun setPopupGroupShortcuts(value: Boolean) = put(StoreKeys.popupGroupShortcuts, value)
+    suspend fun setPopupActionIcons(value: Boolean) = put(StoreKeys.popupActionIcons, value)
 
     suspend fun setPopupStyle(value: String) = put(StoreKeys.popupStyle, value)
 

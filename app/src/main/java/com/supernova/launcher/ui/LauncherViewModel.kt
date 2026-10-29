@@ -1046,6 +1046,8 @@ class LauncherViewModel(
 
     fun setPopupGroupShortcuts(value: Boolean) = persist { preferences.setPopupGroupShortcuts(value) }
 
+    fun setPopupActionIcons(value: Boolean) = persist { preferences.setPopupActionIcons(value) }
+
     fun setPopupStyle(value: String) = persist { preferences.setPopupStyle(value) }
 
     fun setPopupItemsHome(value: String) = persist { preferences.setPopupItemsHome(value) }
