@@ -710,6 +710,7 @@
     <!-- Phase 6: popup menu -->
     <string name="popup_menu_rows">Popup menu items</string>
     <string name="popup_notifications">Notifications in popup</string>
+    <string name="popup_row_store">Show in store</string>
     <string name="popup_row_close_app">Close app</string>
     <string name="popup_row_relaunch">Relaunch</string>
     <string name="popup_row_save_apk">Save APK</string>

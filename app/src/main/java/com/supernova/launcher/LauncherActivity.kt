@@ -2810,8 +2810,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // The configurable extra rows (popupItemsHome/popupItemsDrawer). HIDE is
     // added by the drawer menu itself so it keeps its historical position.
     private fun addExtraRows(menu: SupernovaPopupMenu, extras: Set<PopupExtraRow>, app: LaunchableApp) {
+        // Opens the app's market:// page, which any installed store can
+        // take, so the row names no store.
         if (PopupExtraRow.PLAY_STORE in extras) {
-            menu.addRow(getString(R.string.chip_play_store), R.drawable.ic_play_store) {
+            menu.addRow(getString(R.string.popup_row_store), R.drawable.ic_play_store) {
                 openPlayStore(app.packageName)
             }
         }

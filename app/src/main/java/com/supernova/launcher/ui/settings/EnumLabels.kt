@@ -123,7 +123,7 @@ object EnumLabels {
     fun of(row: PopupExtraRow): Int = when (row) {
         PopupExtraRow.HIDE -> R.string.hide_app
         PopupExtraRow.UNINSTALL -> R.string.uninstall
-        PopupExtraRow.PLAY_STORE -> R.string.chip_play_store
+        PopupExtraRow.PLAY_STORE -> R.string.popup_row_store
         PopupExtraRow.CLOSE_APP -> R.string.popup_row_close_app
         PopupExtraRow.RELAUNCH -> R.string.popup_row_relaunch
         PopupExtraRow.SAVE_APK -> R.string.popup_row_save_apk
