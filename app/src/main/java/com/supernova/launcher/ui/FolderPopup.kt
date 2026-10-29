@@ -44,6 +44,8 @@ class FolderPopup(private val context: Context) {
         // folderShowName pref: hides the title row, its menu button too. The
         // folder's long-press menu still has what that menu held.
         showTitle: Boolean = true,
+        // folderShowCount pref: the number of apps beside the name.
+        showCount: Boolean = false,
         // folderShadow pref: the card's own elevation, not the window's - the
         // popup background is transparent, so the layout's 8dp is the shadow
         // anyone actually sees. Matches the menus; the window fills the screen,
@@ -150,6 +152,19 @@ class FolderPopup(private val context: Context) {
 
         binding.folderGrid.adapter = adapter
         adapter.submit(ordered)
+        if (showTitle && showCount) {
+            // Kept to the folder's contents as apps leave or are added.
+            fun showCount() {
+                binding.folderCount.text = java.text.NumberFormat.getIntegerInstance().format(adapter.itemCount)
+            }
+            binding.folderCount.visibility = View.VISIBLE
+            showCount()
+            adapter.registerAdapterDataObserver(
+                object : androidx.recyclerview.widget.RecyclerView.AdapterDataObserver() {
+                    override fun onChanged() = showCount()
+                }
+            )
+        }
 
         if (onMenu != null && showTitle) {
             binding.folderEditButton.visibility = View.VISIBLE

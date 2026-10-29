@@ -349,6 +349,7 @@
     <string name="popup_style_pills">Pills</string>
     <string name="popup_style_android12">Android 12</string>
     <string name="folder_show_name">Show folder name</string>
+    <string name="folder_show_count">Show app count</string>
     <string name="folder_window_radius">Window corner radius</string>
     <string name="placement_hidden">Hidden</string>
     <string name="drawer_bar_filled">Filled background</string>

@@ -305,6 +305,8 @@ data class LauncherPrefs(
     val folderMatchDesktop: Boolean = false,
     // Title text in the open folder window (the edit button stays).
     val folderShowName: Boolean = true,
+    // The folder window's app count, between its name and its menu button.
+    val folderShowCount: Boolean = false,
     // WINDOW = anchored popup card; IMMERSIVE = full-screen folder (FolderMode).
     val folderMode: String = "WINDOW",
     // Drop shadow under the folder card. Off flattens it onto the wallpaper,

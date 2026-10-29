@@ -129,6 +129,7 @@ object StoreKeys {
     val folderIconScale: Preferences.Key<Float> = floatPreferencesKey("folder_icon_scale")
     val folderMatchDesktop: Preferences.Key<Boolean> = booleanPreferencesKey("folder_match_desktop")
     val folderShowName: Preferences.Key<Boolean> = booleanPreferencesKey("folder_show_name")
+    val folderShowCount: Preferences.Key<Boolean> = booleanPreferencesKey("folder_show_count")
     val folderMode: Preferences.Key<String> = stringPreferencesKey("folder_mode")
     val folderScroll: Preferences.Key<String> = stringPreferencesKey("folder_scroll")
     val folderIconShape: Preferences.Key<String> = stringPreferencesKey("folder_icon_shape")

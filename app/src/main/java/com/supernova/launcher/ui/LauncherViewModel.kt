@@ -958,6 +958,8 @@ class LauncherViewModel(
 
     fun setFolderShowName(value: Boolean) = persist { preferences.setFolderShowName(value) }
 
+    fun setFolderShowCount(value: Boolean) = persist { preferences.setFolderShowCount(value) }
+
     fun setFolderMode(value: String) = persist { preferences.setFolderMode(value) }
 
     fun setFolderScroll(value: String) = persist { preferences.setFolderScroll(value) }

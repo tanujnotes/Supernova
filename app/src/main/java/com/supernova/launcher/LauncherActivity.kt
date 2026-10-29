@@ -3571,6 +3571,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             cornerCuts = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
                 .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).cornerCuts,
             showTitle = prefs.folderShowName,
+            showCount = prefs.folderShowCount,
             shadow = prefs.folderShadow,
             animate = Animations.enabled(prefs),
             speed = Animations.factor(prefs),
@@ -3831,6 +3832,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             cornerCuts = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
                 .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).cornerCuts,
             showTitle = prefs.folderShowName,
+            showCount = prefs.folderShowCount,
             shadow = prefs.folderShadow,
             animate = Animations.enabled(prefs),
             speed = Animations.factor(prefs),

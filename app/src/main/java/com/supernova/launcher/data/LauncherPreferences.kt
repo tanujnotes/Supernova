@@ -130,6 +130,7 @@ class LauncherPreferences(private val context: Context) {
             target[StoreKeys.folderIconScale] = prefs.folderIconScale.coerceIn(0.7f, 1.6f)
             target[StoreKeys.folderMatchDesktop] = prefs.folderMatchDesktop
             target[StoreKeys.folderShowName] = prefs.folderShowName
+            target[StoreKeys.folderShowCount] = prefs.folderShowCount
             target[StoreKeys.folderMode] = prefs.folderMode
             target[StoreKeys.folderScroll] = prefs.folderScroll
             target[StoreKeys.folderIconShape] = prefs.folderIconShape
@@ -337,6 +338,7 @@ class LauncherPreferences(private val context: Context) {
             folderIconScale = (values[StoreKeys.folderIconScale] ?: 1f).coerceIn(0.7f, 1.6f),
             folderMatchDesktop = values[StoreKeys.folderMatchDesktop] ?: false,
             folderShowName = values[StoreKeys.folderShowName] ?: true,
+            folderShowCount = values[StoreKeys.folderShowCount] ?: false,
             folderMode = values[StoreKeys.folderMode] ?: "WINDOW",
             folderScroll = values[StoreKeys.folderScroll] ?: "HORIZONTAL",
             folderIconShape = values[StoreKeys.folderIconShape].orEmpty(),
@@ -706,6 +708,7 @@ class LauncherPreferences(private val context: Context) {
     suspend fun setFolderMatchDesktop(value: Boolean) = put(StoreKeys.folderMatchDesktop, value)
 
     suspend fun setFolderShowName(value: Boolean) = put(StoreKeys.folderShowName, value)
+    suspend fun setFolderShowCount(value: Boolean) = put(StoreKeys.folderShowCount, value)
 
     suspend fun setFolderMode(value: String) = put(StoreKeys.folderMode, value)
 

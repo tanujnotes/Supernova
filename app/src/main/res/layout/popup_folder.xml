@@ -45,6 +45,17 @@
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
+            <!-- The number of apps, when the setting asks for it. -->
+            <TextView
+                android:id="@+id/folderCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="4dp"
+                android:paddingTop="6dp"
+                android:textColor="@color/textSecondary"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
             <ImageView
                 android:id="@+id/folderEditButton"
                 android:layout_width="wrap_content"

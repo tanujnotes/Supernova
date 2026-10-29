@@ -1263,6 +1263,13 @@ object SettingsCatalogue {
                     get = { it.folderShowName },
                     set = { viewModel.setFolderShowName(it) }
                 ),
+                // It sits in the name's row, which goes with the name.
+                SettingItem.Toggle(
+                    R.string.folder_show_count,
+                    get = { it.folderShowCount },
+                    set = { viewModel.setFolderShowCount(it) },
+                    visibleIf = { it.folderShowName }
+                ),
                 SettingItem.Slider(
                     R.string.folder_window_radius,
                     min = 0, max = 32,
