@@ -2788,12 +2788,13 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 }
             }
         }
-        item.iconBase64?.takeIf { it.isNotEmpty() }?.let { data ->
-            com.supernova.launcher.data.GalleryIconCodec.decode(data)?.let { bmp ->
-                return catalog.renderThemedDrawable(android.graphics.drawable.BitmapDrawable(resources, bmp))
-            }
-        }
-        return null
+        val stored = item.iconBase64?.takeIf { it.isNotEmpty() }
+            ?.let { com.supernova.launcher.data.GalleryIconCodec.decode(it) } ?: return null
+        // An app shortcut's picture (a Fossify contact's photo) is drawn
+        // across the shape the same way every time; through glass it came
+        // out whole, small or half cleared, depending on the photo.
+        val picture = if (item.shortcutId != null) catalog.renderShortcutPicture(stored) else null
+        return picture ?: catalog.renderThemedDrawable(android.graphics.drawable.BitmapDrawable(resources, stored))
     }
 
     // The resolved POPUP surface styles every SupernovaPopupMenu.

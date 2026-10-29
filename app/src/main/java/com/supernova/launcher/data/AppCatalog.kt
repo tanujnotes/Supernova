@@ -515,6 +515,12 @@ class AppCatalog(
         runCatching { iconRenderer.render(source, null, iconShape, customShapeSpec) }.getOrNull()
     }
 
+    // An app shortcut's own picture (a contact's photo) across the icon
+    // shape; null when it isn't one that fills its frame.
+    fun renderShortcutPicture(picture: android.graphics.Bitmap): Drawable? = synchronized(renderLock) {
+        runCatching { iconRenderer.renderPicture(picture, iconShape, customShapeSpec) }.getOrNull()
+    }
+
     fun launch(
         app: LaunchableApp,
         sourceBounds: android.graphics.Rect? = null,
