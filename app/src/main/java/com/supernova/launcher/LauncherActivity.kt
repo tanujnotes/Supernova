@@ -2842,7 +2842,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             }
         }
         if (PopupExtraRow.CLOSE_APP in extras) {
-            menu.addRow(getString(R.string.popup_row_close_app), R.drawable.ic_menu_remove) {
+            menu.addRow(getString(R.string.popup_row_close_app), R.drawable.ic_menu_close_app) {
                 closeApp(app.packageName)
             }
         }
@@ -3180,7 +3180,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 // Remove, Select apps, Sort, Edit. The icon is changed in
                 // Edit, as an app's is.
                 if (!locked) {
-                    menu.addRow(getString(R.string.remove), R.drawable.ic_menu_remove) {
+                    menu.addRow(getString(R.string.remove), R.drawable.ic_menu_remove_item) {
                         removeItemWithUndo(item)
                     }
                     menu.addRow(getString(R.string.select_apps), R.drawable.ic_menu_select_apps) {
@@ -3230,7 +3230,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                             viewModel.restackItem(item.id, toFront = false)
                         }
                     }
-                    menu.addRow(getString(R.string.remove), R.drawable.ic_menu_remove) {
+                    menu.addRow(getString(R.string.remove), R.drawable.ic_menu_remove_item) {
                         removeItemWithUndo(item)
                     }
                 }
@@ -3252,7 +3252,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 // configurable (swipe gestures, label, icon) lives in Edit; the
                 // per-context "extra" rows are opt-in through settings.
                 if (!locked) {
-                    menu.addRow(getString(R.string.remove), R.drawable.ic_menu_remove) {
+                    menu.addRow(getString(R.string.remove), R.drawable.ic_menu_remove_item) {
                         removeItemWithUndo(item)
                     }
                 }
