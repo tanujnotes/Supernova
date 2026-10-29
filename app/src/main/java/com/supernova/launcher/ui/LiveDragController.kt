@@ -367,7 +367,10 @@ class LiveDragController(
                         // No picture to lift (an icon not found in the
                         // view): the menu stays, as after a lift.
                         if (beginLiveDrag(anchor, payload, ev, window)) {
-                            activeItemPopup?.dismiss()
+                            // Not a menu the drag came out of: its window
+                            // carries the rest of the gesture, and closes
+                            // with the drop (releaseDragWindow).
+                            activeItemPopup?.takeIf { it.window !== window }?.dismiss()
                             activeItemPopup = null
                         } else {
                             activeItemPopup?.makeModal()
@@ -403,6 +406,12 @@ class LiveDragController(
         dragWindow = null
         window.dismiss()
     }
+
+    // Whether a gesture in this window is the engine's: an item armed in it,
+    // or a drag lifted out of it. A menu's own window hands its touches over
+    // only then, so taps on its rows stay its own.
+    fun ownsGestureIn(window: android.widget.PopupWindow): Boolean =
+        (pendingDrag != null && pendingDragWindow === window) || (dragLayer.isDragging && dragWindow === window)
 
     // Menu first: show the menu now (non-touch-modal - see the popup), arm
     // the gesture, and let dispatchTouchEvent start the real drag only when

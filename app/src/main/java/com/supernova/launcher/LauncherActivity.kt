@@ -2994,7 +2994,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         shortcutsFor(app.packageName, app.userSerial).take(4).forEach { shortcut ->
             menu.addShortcut(
                 shortcut.shortLabel ?: shortcut.longLabel ?: shortcut.id,
-                shortcutIcon(shortcut)
+                shortcutIcon(shortcut),
+                onLongPress = shortcutDrag(menu, app.packageName, shortcut, app.userSerial).takeUnless { homeClosed }
             ) {
                 if (homeClosed) {
                     launchShortcut(app.packageName, shortcut.id, app.userSerial, anchor)
@@ -3078,6 +3079,36 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) { promptRenameDrawerGroup(group) }
         menu.show(anchor, menuTouchX)
         return menu
+    }
+
+    // A shortcut held in an item's menu drags out of it onto the home screen
+    // or the dock, as one from search does. The menu's window carries the rest
+    // of that gesture, so it hands its touches to the drag engine while the
+    // drag is the engine's; the menu stays the active one until the drag
+    // starts, and then hides and closes with the drop. Private space
+    // shortcuts stay in the menu: on the home screen they would show while
+    // the space is locked. The interceptor only hands a drag to the engine;
+    // a tap still reaches the row as a click.
+    @android.annotation.SuppressLint("ClickableViewAccessibility")
+    private fun shortcutDrag(
+        menu: SupernovaPopupMenu,
+        packageName: String,
+        shortcut: ShortcutInfo,
+        userSerial: Long
+    ): ((View) -> Unit)? {
+        if (viewModel.isPrivateSerial(userSerial)) return null
+        val window = menu.window
+        window.setTouchInterceptor { _, ev ->
+            drag.ownsGestureIn(window) && drag.routeGesture(ev, window)
+        }
+        return { row ->
+            val label = (shortcut.shortLabel ?: shortcut.longLabel ?: shortcut.id).toString()
+            val payload = DragPayload.DrawerShortcut(
+                packageName, shortcut.id, userSerial, label, shortcutIcon(shortcut)
+            )
+            drag.arm(row, payload, window = window, menu = null)
+            drag.activeItemPopup = menu
+        }
     }
 
     private fun promptRenameDrawerGroup(group: DrawerGroup) {
@@ -3252,7 +3283,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     shortcutsFor(pkg, item.userSerial).take(4).forEach { shortcut ->
                         menu.addShortcut(
                             shortcut.shortLabel ?: shortcut.longLabel ?: shortcut.id,
-                            shortcutIcon(shortcut)
+                            shortcutIcon(shortcut),
+                            onLongPress = shortcutDrag(menu, pkg, shortcut, item.userSerial).takeUnless { locked }
                         ) { launchShortcut(pkg, shortcut.id, item.userSerial) }
                     }
                 }

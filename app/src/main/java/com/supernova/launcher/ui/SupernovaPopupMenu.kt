@@ -265,16 +265,36 @@ class SupernovaPopupMenu(
         rowCount++
     }
 
-    // App shortcuts render with their own badged icon, untinted.
-    fun addShortcut(label: CharSequence, icon: Drawable?, onClick: () -> Unit) {
+    // App shortcuts render with their own badged icon, untinted. A held
+    // shortcut can be dragged out onto the home screen: onLongPress arms that
+    // with the row, and this menu's own window (window) carries the gesture.
+    fun addShortcut(
+        label: CharSequence,
+        icon: Drawable?,
+        onLongPress: ((View) -> Unit)? = null,
+        onClick: () -> Unit
+    ) {
         beginGroup(Group.SHORTCUT)
         val image = ImageView(context).apply {
             icon?.let(::setImageDrawable)
             layoutParams = LinearLayout.LayoutParams(context.dp(24), context.dp(24)).apply { marginEnd = context.dp(14) }
         }
-        addGroupRow(buildRow(label, image, sub = false, onClick), shortcutCard ?: content)
+        val row = buildRow(label, image, sub = false, onClick)
+        if (onLongPress != null) {
+            row.setOnLongClickListener { view ->
+                view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                onLongPress(view)
+                true
+            }
+        }
+        addGroupRow(row, shortcutCard ?: content)
         rowCount++
     }
+
+    // The menu's window, for a drag taken out of it: its touches can be handed
+    // to the drag engine (setTouchInterceptor), and the engine keeps it open,
+    // hidden, until the drop.
+    val window: PopupWindow get() = popup
 
     // The tile group rows are going into while a grouped shortcut or
     // notification group is open; null otherwise.
