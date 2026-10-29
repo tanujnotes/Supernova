@@ -1722,6 +1722,9 @@ object SettingsCatalogue {
                 })
             ),
             SettingItem.Header(R.string.style_group_surfaces),
+            SettingItem.StyleTarget(
+                R.string.settings_section_home, SurfaceId.HOME, { actions.openStylePicker(SurfaceId.HOME) }
+            ),
             SettingItem.StyleTarget(R.string.settings_section_drawer, SurfaceId.DRAWER, { actions.openStylePicker(SurfaceId.DRAWER) }),
             SettingItem.StyleTarget(R.string.settings_section_dock, SurfaceId.DOCK, { actions.openStylePicker(SurfaceId.DOCK) }),
             SettingItem.StyleTarget(R.string.settings_section_folders, SurfaceId.FOLDER, { actions.openStylePicker(SurfaceId.FOLDER) }),

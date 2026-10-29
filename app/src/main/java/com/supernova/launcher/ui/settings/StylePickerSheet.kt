@@ -43,7 +43,7 @@ object StylePickerSheet {
     private enum class Slot { SURFACE, TEXT, ACCENT }
 
     private val OPACITY_SURFACES = setOf(
-        SurfaceId.DRAWER, SurfaceId.DOCK, SurfaceId.FOLDER, SurfaceId.SEARCH_BAR
+        SurfaceId.DRAWER, SurfaceId.DOCK, SurfaceId.FOLDER, SurfaceId.SEARCH_BAR, SurfaceId.HOME
     )
 
     fun show(context: Context, viewModel: LauncherViewModel, surfaceId: SurfaceId) {
@@ -133,6 +133,13 @@ object StylePickerSheet {
             persist()
             renderStrip()
             renderSwatches()
+            // The home background is transparent by default, and a color picked
+            // without an opacity is drawn solid: the slider shows which.
+            if (surfaceId == SurfaceId.HOME && style.alpha == null) {
+                val shown = if (style.surface.isDefault) 0 else FULL_OPACITY
+                binding.opacitySeek.progress = shown
+                binding.opacityValue.text = context.getString(R.string.opacity_percent, shown)
+            }
         }
 
         renderSwatches = {
@@ -321,6 +328,14 @@ object StylePickerSheet {
             renderStrip()
         }
 
+        if (surfaceId == SurfaceId.HOME) {
+            // A background behind the icons: a color and how much of the
+            // wallpaper it hides, and nothing that needs text or corners.
+            listOf(
+                binding.slotGroup, binding.stripText, binding.stripAccent, binding.contrastRow,
+                binding.radiusDown.parent as android.view.View, binding.cornerShapeRow
+            ).forEach { it.visibility = android.view.View.GONE }
+        }
         renderCuts()
         renderRadius()
         renderSlotButtons()
@@ -334,4 +349,5 @@ object StylePickerSheet {
     private const val RADIUS_START = 16
     private const val RADIUS_STEP = 4
     private const val RADIUS_MAX = 32
+    private const val FULL_OPACITY = 100
 }

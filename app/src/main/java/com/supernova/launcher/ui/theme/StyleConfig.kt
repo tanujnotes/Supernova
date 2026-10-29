@@ -7,7 +7,9 @@ import kotlinx.serialization.json.Json
 // ahead of their consumers (phases 4 and 6) so backups written then decode
 // now and vice versa.
 @Serializable
-enum class SurfaceId { DRAWER, DOCK, FOLDER, POPUP, SEARCH_BAR, SETTINGS }
+// HOME is the home screen's own background: a color laid over the wallpaper,
+// transparent unless one is picked.
+enum class SurfaceId { DRAWER, DOCK, FOLDER, POPUP, SEARCH_BAR, SETTINGS, HOME }
 
 // Tonal-palette roles, matching Material's accent1/neutral1/neutral2 ramps.
 @Serializable

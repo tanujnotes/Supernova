@@ -2330,6 +2330,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         indicatorParams.rightMargin = systemInsets.right
         binding.pageIndicator.layoutParams = indicatorParams
 
+        // The Home surface: a color over the wallpaper, under everything on the
+        // home screen. Transparent until one is picked, so the wallpaper shows.
+        binding.root.setBackgroundColor(
+            com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
+                .of(com.supernova.launcher.ui.theme.SurfaceId.HOME).surface
+        )
         val resolvedDock = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
             .of(com.supernova.launcher.ui.theme.SurfaceId.DOCK)
         binding.dockBar.background = when (DockBgStyle.fromName(prefs.dockBgStyle)) {

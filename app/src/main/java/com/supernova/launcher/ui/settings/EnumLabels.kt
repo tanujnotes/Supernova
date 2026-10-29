@@ -332,6 +332,7 @@ object EnumLabels {
         SurfaceId.POPUP -> R.string.style_popup
         SurfaceId.SEARCH_BAR -> R.string.style_search_bar
         SurfaceId.SETTINGS -> R.string.settings
+        SurfaceId.HOME -> R.string.settings_section_home
     }
 
     @StringRes

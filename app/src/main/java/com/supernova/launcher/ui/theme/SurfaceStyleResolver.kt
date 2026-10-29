@@ -133,6 +133,9 @@ object Styles {
                 ),
                 SurfaceId.SETTINGS to resolved(
                     SurfaceId.SETTINGS, context.getColor(R.color.background), themeText, null
+                ),
+                SurfaceId.HOME to resolved(
+                    SurfaceId.HOME, android.graphics.Color.TRANSPARENT, onWallpaper, null
                 )
             )
         )
