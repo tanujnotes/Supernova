@@ -533,9 +533,9 @@ class SearchController(
                 icon = folderIcon(com.supernova.launcher.search.FolderSearchProvider.Hit(null, group.name, group.name))
             )
         }
-        val allApps = viewModel.visibleApps()
-            .filterNot { viewModel.hiddenKey(it) in inFolders }
-            .sortedBy { it.label.lowercase() }
+        val allApps = com.supernova.launcher.data.LabelOrder.sorted(
+            viewModel.visibleApps().filterNot { viewModel.hiddenKey(it) in inFolders }
+        ) { it.label }
         val surface = overlaySurface ?: return
         styleSurface(surface)
         surface.adapter.submitZeroState(shortcuts, frequent, allApps, folders)

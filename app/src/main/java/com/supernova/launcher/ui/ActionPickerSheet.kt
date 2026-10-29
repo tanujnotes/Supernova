@@ -117,7 +117,7 @@ class ActionPickerSheet private constructor(
     }
 
     private fun appRows(): List<Row> =
-        viewModel.appsForPicking().sortedBy { it.label.lowercase() }.map { app ->
+        com.supernova.launcher.data.LabelOrder.sorted(viewModel.appsForPicking()) { it.label }.map { app ->
             Row(viewModel.appCatalog().iconFor(app), app.label) { pickAppOrShortcut(app) }
         }
 
@@ -150,7 +150,7 @@ class ActionPickerSheet private constructor(
             .filter { it.activityInfo.exported && it.activityInfo.packageName != context.packageName }
         return screens
             .map { info -> info to runCatching { info.loadLabel(pm).toString() }.getOrDefault(info.activityInfo.name) }
-            .sortedBy { (_, label) -> label.lowercase() }
+            .let { labelled -> com.supernova.launcher.data.LabelOrder.sorted(labelled) { (_, label) -> label } }
             .map { (info, label) ->
                 val component = ComponentName(info.activityInfo.packageName, info.activityInfo.name)
                 Row(runCatching { info.loadIcon(pm) }.getOrNull(), label) {

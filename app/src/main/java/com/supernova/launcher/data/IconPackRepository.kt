@@ -62,7 +62,7 @@ class IconPackRepository(private val context: Context) {
                     IconPack(pkg, pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString())
                 }.getOrNull()
             }
-            .sortedBy { it.label.lowercase() }
+            .let { packs -> LabelOrder.sorted(packs) { it.label } }
     }
 
     // Parse the loaded pack again, for one updated in place.

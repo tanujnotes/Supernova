@@ -108,7 +108,7 @@ object WidgetPickerGroups {
                     spanX = spans.first,
                     spanY = spans.second
                 )
-            }.sortedBy { it.label.lowercase() }
+            }.sortedWith(com.supernova.launcher.data.LabelOrder.by { it.label })
 
             val shortcuts = shortcutsByPackage[packageName].orEmpty().map { resolve ->
                 val activity = resolve.activityInfo
@@ -118,10 +118,10 @@ object WidgetPickerGroups {
                     icon = runCatching { resolve.loadIcon(pm) }.getOrNull() ?: icon,
                     target = ShortcutTarget.Create(activity.packageName, activity.name)
                 )
-            }.sortedBy { it.label.lowercase() }
+            }.sortedWith(com.supernova.launcher.data.LabelOrder.by { it.label })
 
             WidgetPickerGroup(packageName, appLabel, icon, widgets, shortcuts)
-        }.sortedBy { it.label.lowercase() }
+        }.sortedWith(com.supernova.launcher.data.LabelOrder.by { it.label })
     }
 
     // The launcher's own row, listed first: every launcher action plus the Activities picker, as shortcuts.

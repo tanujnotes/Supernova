@@ -3531,7 +3531,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 when {
                     remaining.isEmpty() -> popup?.dismiss()
                     viewModel.state.value.prefs.folderSortAz ->
-                        folderAdapter?.submit(remaining.sortedBy { it.label.lowercase() })
+                        folderAdapter?.submit(com.supernova.launcher.data.LabelOrder.sorted(remaining) { it.label })
                     else -> folderAdapter?.submit(remaining)
                 }
             }
@@ -4924,7 +4924,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // Any exported activity as an icon. Pick an app, then one of its activities;
     // the launch intent is stored as an intentUri and the icon is snapshotted.
     private fun showActivitiesPicker() {
-        val apps = viewModel.visibleApps().sortedBy { it.label.lowercase() }
+        val apps = com.supernova.launcher.data.LabelOrder.sorted(viewModel.visibleApps()) { it.label }
         if (apps.isEmpty()) return
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.add_category_activities)
@@ -4942,7 +4942,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 .activities.orEmpty()
                 .filter { it.exported && it.isEnabled }
         }.getOrDefault(emptyList())
-            .sortedBy { it.loadLabel(pm).toString().lowercase() }
+            .let { found -> com.supernova.launcher.data.LabelOrder.sorted(found) { it.loadLabel(pm) } }
 
         if (activities.isEmpty()) {
             Toast.makeText(this, R.string.no_activities, Toast.LENGTH_SHORT).show()

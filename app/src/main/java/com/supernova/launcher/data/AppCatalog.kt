@@ -100,7 +100,7 @@ class AppCatalog(
                     privateSpace = isPrivate
                 )
             }
-        }.sortedBy { it.label.lowercase() }
+        }.let { apps -> LabelOrder.sorted(apps) { it.label } }
         activityInfoByKey = infoCache
         return apps
     }

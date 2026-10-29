@@ -8,16 +8,22 @@ internal object FastScrollMath {
     // its first item.
     data class Section(val label: String, val position: Int)
 
-    // `initials` is the list's name-sorted run as (position, first character
-    // of the lower-cased label), in list order. Each letter starts a section
-    // where it first appears; digits and symbols share "#".
-    fun sections(initials: List<Pair<Int, Char>>): List<Section> {
+    // `labels` is the list's name-sorted run as (position, the name's
+    // letter: LabelSections), in list order. Each letter starts a section
+    // where it first appears.
+    fun sections(labels: List<Pair<Int, String>>): List<Section> {
         val sections = mutableListOf<Section>()
-        for ((position, initial) in initials) {
-            val label = if (initial.isLetter()) initial.uppercaseChar().toString() else "#"
+        for ((position, label) in labels) {
             if (sections.lastOrNull()?.label != label) sections += Section(label, position)
         }
         return sections
+    }
+
+    // A name's letter where the alphabet has none for it: its first letter
+    // as it is, and "#" for a digit or a symbol.
+    fun plainLabel(name: String): String {
+        val initial = name.trimStart().firstOrNull() ?: return "#"
+        return if (initial.isLetter()) initial.uppercaseChar().toString() else "#"
     }
 
     // The letter for the list at `position`: the section the item is in.

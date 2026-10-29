@@ -122,7 +122,7 @@ class FolderPopup(private val context: Context) {
         // Window folders cap at ~60% of the screen so long folders scroll;
         // immersive gets most of the height.
         val maxGridHeight = (metrics.heightPixels * if (immersive) 0.72f else 0.6f).toInt()
-        val ordered = if (sortAz) members.sortedBy { it.label.lowercase() } else members
+        val ordered = if (sortAz) com.supernova.launcher.data.LabelOrder.sorted(members) { it.label } else members
         adapter.cellWidthPx = gridWidth / columns
 
         when (scroll) {

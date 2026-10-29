@@ -9,7 +9,7 @@ object FolderSort {
         val ranks = current.items
             .filter { it.container == ContainerType.FOLDER && it.folderId == folderId }
             .sortedBy { it.rank }
-            .sortedBy { it.label.lowercase() }
+            .let { members -> LabelOrder.sorted(members) { it.label } }
             .mapIndexed { index, item -> item.id to index }
             .toMap()
         if (current.items.all { item -> ranks[item.id]?.let { it == item.rank } ?: true }) return current

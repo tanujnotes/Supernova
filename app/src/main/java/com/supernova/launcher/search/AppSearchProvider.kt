@@ -23,7 +23,7 @@ class AppSearchProvider(
             .sortedWith(
                 compareBy<Pair<LaunchableApp, AppMatcher.Match>> { it.second.tier }
                     .thenByDescending { counts[countKey(it.first)] ?: 0 }
-                    .thenBy { it.first.label.lowercase() }
+                    .then(com.supernova.launcher.data.LabelOrder.by { it.first.label })
             )
             .take(MAX_RESULTS)
             .map { (app, match) -> SearchResult.App(app, match.ranges) }

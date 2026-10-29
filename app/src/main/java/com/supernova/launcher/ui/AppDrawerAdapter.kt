@@ -38,6 +38,7 @@ class AppDrawerAdapter(
     ) {
         val key: String = "folder/${group.name}"
         val lowerLabel: String = group.name.lowercase()
+        val section: String by lazy { LabelSections.of(group.name) }
     }
 
     init {
@@ -47,6 +48,7 @@ class AppDrawerAdapter(
     private class Entry(val app: LaunchableApp) {
         val key: String = "${app.userSerial}/${app.packageName}/${app.className}"
         val lowerLabel: String = app.label.lowercase()
+        val section: String by lazy { LabelSections.of(app.label) }
     }
 
     private val stableIds = mutableMapOf<String, Long>()
@@ -246,8 +248,14 @@ class AppDrawerAdapter(
         if (order == Order.UNSORTED) return emptyList()
         val initials = displayItems.withIndex()
             .filter { (_, item) -> item is Entry || (item is FolderEntry && !foldersFirst) }
-            .map { (index, item) -> index to (labelOf(item).firstOrNull() ?: ' ') }
+            .map { (index, item) -> index to sectionOf(item) }
         return FastScrollMath.sections(initials)
+    }
+
+    private fun sectionOf(item: Any): String = when (item) {
+        is Entry -> item.section
+        is FolderEntry -> item.section
+        else -> "#"
     }
 
     private fun labelOf(item: Any): String = when (item) {
@@ -474,20 +482,18 @@ class AppDrawerAdapter(
         private const val HEADER_KEY = "list-header"
         private const val WEB_ROW_ID = -2L
 
-        // Folders merged in among the apps by name, in the list's direction.
-        // The folders come in the groups' own order (the one Move up/down
-        // sets), so they are sorted here; a single sweep then interleaves
-        // them.
+        // Folders merged in among the apps by name, in the list's direction
+        // and the apps' own alphabet (LabelOrder). The folders come in the
+        // groups' own order (the one Move up/down sets), so they are sorted
+        // here; a single sweep then interleaves them.
         fun <T> mergeByLabel(apps: List<T>, folders: List<T>, descending: Boolean, label: (T) -> String): List<T> {
-            val sortedFolders = if (descending) folders.sortedByDescending(label) else folders.sortedBy(label)
+            val byName = com.supernova.launcher.data.LabelOrder.by(label = label)
+            val order = if (descending) byName.reversed() else byName
+            val sortedFolders = folders.sortedWith(order)
             val merged = ArrayList<T>(apps.size + folders.size)
             var folderIndex = 0
             apps.forEach { app ->
-                val appLabel = label(app)
-                while (folderIndex < sortedFolders.size && label(sortedFolders[folderIndex]).let {
-                        if (descending) it >= appLabel else it <= appLabel
-                    }
-                ) {
+                while (folderIndex < sortedFolders.size && order.compare(sortedFolders[folderIndex], app) <= 0) {
                     merged.add(sortedFolders[folderIndex++])
                 }
                 merged.add(app)
