@@ -1392,13 +1392,16 @@ class SettingsActivity : AppCompatActivity() {
             )
         }
 
-        dialogBinding.shapeRow.setOnClickListener {
+        dialogBinding.shapeRow.setOnClickListener { row ->
+            // Opened over the row's value, at its end, in the dialog's window.
+            val value = dialogBinding.shapeValue
+            val valueX = IntArray(2).also(value::getLocationInWindow)[0] + value.width / 2f
             val shapes = IconShape.entries.filter { it != IconShape.SYSTEM }
             val names = listOf("") + shapes.map { it.name }
-            val labels = (listOf(getString(R.string.folder_shape_match_icons)) +
-                shapes.map { getString(EnumLabels.of(it)) }).toTypedArray()
+            val labels = listOf<CharSequence>(getString(R.string.folder_shape_match_icons)) +
+                shapes.map { getString(EnumLabels.of(it)) }
             val current = names.indexOf(shapeName).coerceAtLeast(0)
-            showChoice(R.string.folder_icon_shape, labels, current) { which ->
+            showChoice(getString(R.string.folder_icon_shape), labels, current, inDialog = row to valueX) { which ->
                 shapeName = names[which]
                 refresh()
             }
@@ -1955,9 +1958,13 @@ class SettingsActivity : AppCompatActivity() {
         title: CharSequence?,
         labels: List<CharSequence>,
         selected: Int,
+        // A row inside a dialog, and where it was pressed in the dialog's
+        // window: hung off the settings row under the dialog, the menu opened
+        // behind it.
+        inDialog: Pair<View, Float>? = null,
         onPick: (Int) -> Unit
     ) {
-        val anchor = menuAnchor?.takeIf { it.isAttachedToWindow && it.isShown }
+        val anchor = inDialog?.first ?: menuAnchor?.takeIf { it.isAttachedToWindow && it.isShown }
         if (anchor == null) {
             // The title earns its place only here: a menu hanging off a row
             // is already labelled by the row.
@@ -1985,7 +1992,7 @@ class SettingsActivity : AppCompatActivity() {
         }
         ChoiceMenu.show(
             anchor = anchor,
-            touchX = menuTouchX,
+            touchX = inDialog?.second ?: menuTouchX,
             surface = surface,
             labels = labels,
             selected = selected,
@@ -2004,21 +2011,21 @@ class SettingsActivity : AppCompatActivity() {
         labels: List<CharSequence>,
         selected: Int,
         onPick: (Int) -> Unit
-    ) = showChoice(getString(title), labels, selected, onPick)
+    ) = showChoice(getString(title), labels, selected, onPick = onPick)
 
     private fun showChoice(
         @androidx.annotation.StringRes title: Int,
         labels: Array<String>,
         selected: Int,
         onPick: (Int) -> Unit
-    ) = showChoice(getString(title), labels.toList(), selected, onPick)
+    ) = showChoice(getString(title), labels.toList(), selected, onPick = onPick)
 
     private fun showChoice(
         title: CharSequence,
         labels: Array<String>,
         selected: Int,
         onPick: (Int) -> Unit
-    ) = showChoice(title, labels.toList(), selected, onPick)
+    ) = showChoice(title, labels.toList(), selected, onPick = onPick)
 
     private fun showIconPackPicker() {
         lifecycleScope.launch {
