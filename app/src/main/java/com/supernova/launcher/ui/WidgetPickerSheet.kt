@@ -38,9 +38,14 @@ object WidgetPickerSheet {
         val dialog = BottomSheetDialog(activity)
         dialog.setContentView(binding.root)
         // Drawer surface on the sheet, and the dialog's nav bar painted to
-        // match so the sheet appears to run under it.
-        val surface = com.supernova.launcher.ui.theme.Styles.resolve(activity, prefs)
-            .of(com.supernova.launcher.ui.theme.SurfaceId.DRAWER).surface
+        // match so the sheet appears to run under it. Opaque, whatever the
+        // drawer's transparency: the home screen showing through made the
+        // list unreadable.
+        val surface = androidx.core.graphics.ColorUtils.setAlphaComponent(
+            com.supernova.launcher.ui.theme.Styles.resolve(activity, prefs)
+                .of(com.supernova.launcher.ui.theme.SurfaceId.DRAWER).surface,
+            OPAQUE
+        )
         (binding.root.background?.mutate() as? android.graphics.drawable.GradientDrawable)?.setColor(surface)
         dialog.window?.let { window ->
             // Contrast scrim control is Android 10+; Android 9 keeps its default.
@@ -88,4 +93,6 @@ object WidgetPickerSheet {
 
         dialog.show()
     }
+
+    private const val OPAQUE = 0xFF
 }

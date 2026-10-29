@@ -194,9 +194,14 @@ class HomeEditController(
 
         // The sheet wears the drawer surface color, and the nav bar takes the
         // same color so the sheet reads as running under it; the window's
-        // normal nav color comes back on exit.
-        val surface = com.supernova.launcher.ui.theme.Styles.resolve(activity, prefs)
-            .of(com.supernova.launcher.ui.theme.SurfaceId.DRAWER).surface
+        // normal nav color comes back on exit. Opaque, whatever the drawer's
+        // transparency: the home screen showing through the list made it
+        // unreadable.
+        val surface = androidx.core.graphics.ColorUtils.setAlphaComponent(
+            com.supernova.launcher.ui.theme.Styles.resolve(activity, prefs)
+                .of(com.supernova.launcher.ui.theme.SurfaceId.DRAWER).surface,
+            OPAQUE
+        )
         (binding.editWidgetSheet.background?.mutate() as? android.graphics.drawable.GradientDrawable)
             ?.setColor(surface)
         // Contrast scrim control is Android 10+; Android 9 keeps its default.
@@ -268,5 +273,6 @@ class HomeEditController(
         const val MAX_SCALE = 0.84f
         const val PEEK_FRACTION = 0.22f
         const val ZOOM_MS = 220L
+        const val OPAQUE = 0xFF
     }
 }
