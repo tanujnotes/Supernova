@@ -419,6 +419,7 @@
     <string name="section_feed_subtitle">The page beside home and its cards</string>
     <string name="section_folders_subtitle">Window, background and icon</string>
     <string name="section_icons_subtitle">Shape, packs, labels and badges</string>
+    <string name="section_style_subtitle">Theme, colors and surfaces</string>
     <string name="section_gestures_subtitle">Swipes, taps, pinch and home button</string>
     <string name="section_backup_subtitle">Back up, restore or reset</string>
     <string name="advanced">Advanced</string>

@@ -818,6 +818,18 @@ class SettingsActivity : AppCompatActivity() {
                     if (index == groups.lastIndex) unplaced else emptyList()
                 if (members.isEmpty()) return@forEachIndexed
                 add(SettingItem.Header(label))
+                // The Style tab is reachable from the list too: it was looked
+                // for here, among the other sections, and taken for gone.
+                if (label == R.string.settings_group_customize) {
+                    add(
+                        SettingItem.SectionLink(
+                            R.string.style_tab,
+                            icon = R.drawable.ic_tab_style,
+                            subtitle = { getString(R.string.section_style_subtitle) },
+                            onClick = { selectTab(Tab.STYLE) }
+                        )
+                    )
+                }
                 members.forEach { add(sectionLink(it)) }
             }
         }
