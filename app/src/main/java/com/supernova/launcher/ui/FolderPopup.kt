@@ -41,7 +41,8 @@ class FolderPopup(private val context: Context) {
         // built-in 24dp round corners.
         cornerRadiiDp: FloatArray? = null,
         cornerCuts: List<com.supernova.launcher.data.CornerCut>? = null,
-        // folderShowName pref: hides the title text, keeping the edit button.
+        // folderShowName pref: hides the title row, its menu button too. The
+        // folder's long-press menu still has what that menu held.
         showTitle: Boolean = true,
         // folderShadow pref: the card's own elevation, not the window's - the
         // popup background is transparent, so the layout's 8dp is the shadow
@@ -150,7 +151,7 @@ class FolderPopup(private val context: Context) {
         binding.folderGrid.adapter = adapter
         adapter.submit(ordered)
 
-        if (onMenu != null) {
+        if (onMenu != null && showTitle) {
             binding.folderEditButton.visibility = View.VISIBLE
             binding.folderEditButton.setOnClickListener { onMenu(it) }
         }
