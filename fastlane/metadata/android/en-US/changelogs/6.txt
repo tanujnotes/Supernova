@@ -1,0 +1,9 @@
+Private space support, folders in the dock, and fixes for many of your reports.
+
+- Folders: Select apps, Sort, app count and reshaped custom icons
+- Drag app shortcuts from the popup onto home
+- Wallpapers from any file, and a plain color behind the home screen
+- Widgets move and resize in half cells; grids up to 24x24
+- Popup actions can show as a row of icons
+- Fixed a crash when apps pin shortcuts
+- Fixed widgets with infinite scroll and swipes on dock pages
