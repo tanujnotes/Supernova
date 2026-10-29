@@ -48,6 +48,7 @@ class HomeGestureDetector(
     // swipe-down alone. Cleared on every down.
     private var suppressUp = false
     private var suppressDown = false
+    private var suppressSideways = false
     // True between the second tap of a double-tap and its lift, which the
     // double-tap path owns.
     private var doubleTapActive = false
@@ -151,6 +152,7 @@ class HomeGestureDetector(
                 swipeDownY = event.y
                 suppressUp = false
                 suppressDown = false
+                suppressSideways = false
                 // Belt and braces: the double-tap's own lift clears this, but
                 // a stream that ends without one must not arm the next.
                 doubleTapActive = false
@@ -230,9 +232,11 @@ class HomeGestureDetector(
     // An icon with its own swipe action in this direction claims the lift.
     // Called from the icon's touch listener as the press lands, which is after
     // this detector has seen the same down and cleared the flags.
-    fun suppressSwipe(up: Boolean, down: Boolean) {
+    // A paged dock claims the sideways lift the same way, for its own pages.
+    fun suppressSwipe(up: Boolean, down: Boolean, sideways: Boolean = false) {
         if (up) suppressUp = true
         if (down) suppressDown = true
+        if (sideways) suppressSideways = true
     }
 
     private fun fireSwipeIfAny(event: MotionEvent) {
@@ -249,6 +253,7 @@ class HomeGestureDetector(
         ) ?: return
         if (gesture == Gesture.SWIPE_UP && suppressUp) return
         if (gesture == Gesture.SWIPE_DOWN && suppressDown) return
+        if ((gesture == Gesture.SWIPE_LEFT || gesture == Gesture.SWIPE_RIGHT) && suppressSideways) return
         onGesture(gesture)
     }
 

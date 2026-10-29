@@ -1061,16 +1061,23 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         return y >= binding.workspacePager.top && y < dockTop && x >= 0f
     }
 
+    private fun onDockTouchDown(ev: MotionEvent) {
+        val inDock = ev.y >= binding.dockBar.top && ev.y <= binding.dockBar.bottom
+        // A flick across a paged dock turns its page; the home swipe
+        // left/right bindings fired on the same lift and opened their apps
+        // instead. The detector saw this down first and cleared its claims,
+        // so this one stands for the gesture.
+        if (inDock) gestureDetector.suppressSwipe(up = false, down = false, sideways = true)
+        dockTouchDownX = if (inDock) ev.x else Float.NaN
+        dockTouchDownY = ev.y
+        dockTouchDownAt = ev.eventTime
+    }
+
     private fun trackDockSwipe(ev: MotionEvent) {
         val prefs = viewModel.state.value.prefs
         if (!prefs.dockEnabled || prefs.dockPages <= 1) return
         when (ev.actionMasked) {
-            MotionEvent.ACTION_DOWN -> {
-                val inDock = ev.y >= binding.dockBar.top && ev.y <= binding.dockBar.bottom
-                dockTouchDownX = if (inDock) ev.x else Float.NaN
-                dockTouchDownY = ev.y
-                dockTouchDownAt = ev.eventTime
-            }
+            MotionEvent.ACTION_DOWN -> onDockTouchDown(ev)
             MotionEvent.ACTION_UP -> {
                 if (dockTouchDownX.isNaN()) return
                 val dx = ev.x - dockTouchDownX
