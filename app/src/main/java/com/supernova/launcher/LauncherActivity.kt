@@ -401,6 +401,14 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         }
     }
 
+    // A wallpaper image from any folder: the system file picker reaches
+    // every storage provider and file manager, where the photo picker shows
+    // only the media library.
+    private val pickWallpaperFileLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) cropAndSetWallpaper(uri)
+        }
+
     private val importBackupLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@registerForActivityResult
         lifecycleScope.launch {
@@ -4271,6 +4279,46 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         }
     }
 
+    // Wallpapers: the installed wallpaper apps, or an image from any folder.
+    private fun showWallpaperSources() {
+        val sources = arrayOf(getString(R.string.wallpaper_apps), getString(R.string.wallpaper_from_files))
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.home_action_wallpaper)
+            .setItems(sources) { _, which ->
+                if (which == 0) {
+                    runCatching { startActivity(Intent(Intent.ACTION_SET_WALLPAPER)) }
+                } else {
+                    runCatching { pickWallpaperFileLauncher.launch(arrayOf("image/*")) }
+                        .onFailure { Toast.makeText(this, R.string.launch_failed, Toast.LENGTH_SHORT).show() }
+                }
+            }
+            .show()
+    }
+
+    // A crop-and-set screen for the picked image, which sets it without the
+    // launcher holding SET_WALLPAPER: the system's own where there is one, as
+    // another launcher can take the action too. WallpaperManager's
+    // getCropAndSetWallpaperIntent finds none on One UI. Where there is no
+    // cropper at all, the apps that "Set as" an image take it.
+    private fun cropAndSetWallpaper(uri: android.net.Uri) {
+        val crop = Intent(android.app.WallpaperManager.ACTION_CROP_AND_SET_WALLPAPER)
+            .setDataAndType(uri, "image/*")
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        val cropper = packageManager.queryIntentActivities(crop, 0)
+            .sortedByDescending { it.activityInfo.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM != 0 }
+            .firstOrNull()?.activityInfo
+        val started = cropper != null && runCatching {
+            startActivity(crop.setClassName(cropper.packageName, cropper.name))
+        }.isSuccess
+        if (started) return
+        val setAs = Intent(Intent.ACTION_ATTACH_DATA)
+            .setDataAndType(uri, "image/*")
+            .putExtra("mimeType", "image/*")
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        runCatching { startActivity(Intent.createChooser(setAs, getString(R.string.home_action_wallpaper))) }
+            .onFailure { Toast.makeText(this, R.string.launch_failed, Toast.LENGTH_SHORT).show() }
+    }
+
     // Per-icon swipe: a short vertical flick on the icon runs its bound app
     // (up and down independently), while taps and long-presses keep working
     // through the normal listeners.
@@ -4429,9 +4477,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     workspaceAdapter.realPage(binding.workspacePager.currentItem)
                 override fun defaultPage(): Int = viewModel.state.value.model.defaultPage
                 override fun setDefaultPage(page: Int) = viewModel.setDefaultPage(page)
-                override fun openWallpapers() {
-                    runCatching { startActivity(Intent(Intent.ACTION_SET_WALLPAPER)) }
-                }
+                override fun openWallpapers() = showWallpaperSources()
                 override fun openSettings() {
                     startActivity(Intent(this@LauncherActivity, SettingsActivity::class.java))
                 }

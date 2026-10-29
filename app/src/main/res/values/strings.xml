@@ -34,6 +34,8 @@
     <string name="pin_widget_title">Add “%1$s” widget to Home?</string>
     <string name="widget_picker_empty">No widgets available</string>
     <string name="home_action_wallpaper">Wallpapers</string>
+    <string name="wallpaper_apps">Wallpaper apps</string>
+    <string name="wallpaper_from_files">Image from files</string>
     <string name="home_action_settings">Settings</string>
     <plurals name="widget_count">
         <item quantity="one">%1$d widget</item>
