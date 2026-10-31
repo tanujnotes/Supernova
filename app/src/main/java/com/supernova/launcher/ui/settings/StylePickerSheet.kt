@@ -299,6 +299,8 @@ object StylePickerSheet {
             binding.radiusValue.text = radius?.let {
                 context.getString(R.string.padding_dp_value, it)
             } ?: context.getString(R.string.option_default)
+            binding.radiusDefault.visibility =
+                if (radius == null) android.view.View.GONE else android.view.View.VISIBLE
         }
         // All four corners move together for now; per-corner editing comes
         // later, which is why four values are stored.
@@ -329,6 +331,15 @@ object StylePickerSheet {
             val current = CornerCut.fromName(style.cornerCuts?.firstOrNull())
             val id = cutButtons.first { it.second == current }.first.id
             if (binding.cutGroup.checkedButtonId != id) binding.cutGroup.check(id)
+        }
+
+        binding.radiusDefault.setOnClickListener {
+            radius = null
+            style = style.copy(cornerRadii = null, cornerCuts = null)
+            persist()
+            renderRadius()
+            renderCuts()
+            renderStrip()
         }
 
         binding.cutGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->

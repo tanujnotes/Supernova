@@ -202,6 +202,14 @@
                 android:textColor="@color/textPrimary"
                 android:textSize="15sp" />
 
+            <Button
+                android:id="@+id/radiusDefault"
+                style="@style/Widget.Supernova.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/option_default"
+                android:visibility="gone" />
+
             <ImageButton
                 android:id="@+id/radiusDown"
                 android:layout_width="40dp"
