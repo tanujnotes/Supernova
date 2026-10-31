@@ -105,7 +105,7 @@ class ActionPickerSheet private constructor(
             val label = context.getString(EnumLabels.of(action))
             // The same shaped tile the action gets as a home icon.
             val tile = AppCompatResources.getDrawable(context, ActionIcons.of(action))
-                ?.let { viewModel.appCatalog().renderThemedDrawable(it) ?: it }
+                ?.let { viewModel.appCatalog().renderActionTile(it) }
             Row(tile, label) {
                 if (action == GestureAction.JUMP_TO_PAGE) {
                     pickPage { index, pageLabel -> picked(ActionPick.Page(index, pageLabel)) }

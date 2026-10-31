@@ -2055,12 +2055,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             "${item.id}:${item.rank}:${item.label}:${item.packageName}/${item.className}" +
                 // The swipes decide the icon's touch handling and its mark.
                 ":${item.swipeAction}:${item.swipeActionDown}:${item.swipeToOpen}" +
+                FolderIconDrawable.customIconKey(item) +
                 // A folder's icon is drawn from its members, which are not
                 // dock items themselves, or from its own custom icon.
                 if (item.itemType == ItemType.FOLDER) {
                     viewModel.folderMembers(item.id)
-                        .joinToString(",", "[", "]") { "${it.id}:${it.packageName}/${it.className}" } +
-                        FolderIconDrawable.customIconKey(item)
+                        .joinToString(",", "[", "]") { "${it.id}:${it.packageName}/${it.className}" }
                 } else {
                     ""
                 }
@@ -2799,8 +2799,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         val catalog = viewModel.appCatalog()
         item.intentUri?.let { uri ->
             com.supernova.launcher.gesture.ActionShortcut.decode(uri)?.let { binding ->
+                customFolderIcon(item.iconBase64, item.customIconPack, item.customIconName, item.iconRaw)
+                    ?.let { return it }
                 getDrawable(com.supernova.launcher.ui.ActionIcons.of(binding.action))?.let {
-                    return catalog.renderThemedDrawable(it)
+                    return catalog.renderActionTile(it)
                 }
             }
         }
@@ -3316,6 +3318,14 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // Edit for a placed workspace item: the app-level fields (label, icon)
     // plus per-item swipe gestures, so the popup menu stays minimal.
     private fun showItemEditSheet(item: LauncherItem, allowSwipe: Boolean) {
+        // A launcher action has a name and an icon of its own, as a folder has.
+        if (com.supernova.launcher.gesture.ActionShortcut.decode(item.intentUri) != null) {
+            com.supernova.launcher.ui.FolderEditSheet.show(
+                this, lifecycleScope, viewModel, item, ::pickPhoto,
+                onEditSwipe = { down, onPicked -> showSwipeActionPicker(item, down) { onPicked(it) } }
+            )
+            return
+        }
         val app = item.toLaunchableApp()
         // Anything but an app icon edits its own label, not its app's.
         val itemLabel = if (item.itemType == ItemType.APP) {
@@ -3571,19 +3581,18 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     if (!locked) {
                         menu.addRow(getString(R.string.remove), R.drawable.ic_menu_remove_item) {
                             val before = viewModel.state.value.model
-                            // The move a drag onto that free cell makes, so a
-                            // folder left with one app gives way to it here
-                            // too.
-                            viewModel.moveItemToWorkspace(member.id, page, free.first, free.second, mergeFolders = false)
+                            // The folder's last app takes the folder with it.
+                            val last = viewModel.folderMembers(folder.id).size <= 1
+                            removeItemWithUndo(if (last) folder else member)
                             applied(before)
                         }
                     }
-                    // The folder's own order, which an A-Z folder doesn't show.
-                    if (!sortAz) {
-                        menu.addRow(getString(R.string.move_up), R.drawable.ic_menu_swipe) {
-                            val before = viewModel.state.value.model
-                            viewModel.reorderFolderMember(folder.id, member.id, -1)
-                            applied(before)
+                    member.packageName?.let { pkg ->
+                        if (member.itemType == ItemType.APP && !locked) {
+                            menu.addRow(getString(R.string.widgets_row), R.drawable.ic_menu_widgets) {
+                                popup?.dismiss()
+                                widgets.showPickerFor(pkg)
+                            }
                         }
                         menu.addRow(getString(R.string.app_info), R.drawable.ic_menu_info) {
                             viewModel.appCatalog().openAppInfo(pkg, member.className, member.userSerial)

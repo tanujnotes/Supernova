@@ -218,7 +218,7 @@ class HomeEditController(
             val (cellWidth, cellHeight) = host.cellSizePx()
             val (cols, rows) = host.grid()
             val groups = withContext(Dispatchers.Default) {
-                listOf(WidgetPickerGroups.launcherGroup(activity)) +
+                listOf(WidgetPickerGroups.launcherGroup(activity, viewModel.appCatalog()::renderActionTile)) +
                     WidgetPickerGroups.build(activity, cellWidth, cellHeight, cols, rows)
             }
             if (isOpen) adapter.submit(groups, expandAll = false)

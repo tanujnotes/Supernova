@@ -314,12 +314,13 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
                 "${it.id}:${it.cellX},${it.cellY},${it.spanX},${it.spanY},${it.halfCells}," +
                     "${it.workspaceX},${it.workspaceY},${it.label}," +
                     "${it.swipeAction},${it.swipeActionDown},${it.swipeToOpen},${it.widgetPadding}" +
+                    FolderIconDrawable.customIconKey(it) +
                     // A folder's icon is drawn from its members, which live
                     // in the FOLDER container: an app dropped in from the
                     // dock or the drawer changes nothing else on this page,
                     // and the icon stayed a member short without this.
                     if (it.itemType == ItemType.FOLDER) {
-                        folderSignature(state, it.id) + FolderIconDrawable.customIconKey(it)
+                        folderSignature(state, it.id)
                     } else {
                         ""
                     }

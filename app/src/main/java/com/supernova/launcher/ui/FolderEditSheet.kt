@@ -7,6 +7,7 @@ import android.widget.Toast
 import com.supernova.launcher.R
 import com.supernova.launcher.data.DrawerGroup
 import com.supernova.launcher.data.GalleryIconCodec
+import com.supernova.launcher.data.ItemType
 import com.supernova.launcher.data.LauncherItem
 import com.supernova.launcher.databinding.SheetAppEditBinding
 import kotlinx.coroutines.CoroutineScope
@@ -14,7 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-// A placed folder's Edit sheet, the edit dialog for folders: name, icon
+// A placed folder's Edit sheet (a launcher action's too): name, icon
 // (and Reshape, for a custom one), Swipe to open folder, and the swipe up and
 // down actions. It is the app Edit sheet's layout with the app-only rows
 // hidden. Name, icon and Reshape commit with Save, like the app sheet's
@@ -50,6 +51,7 @@ object FolderEditSheet {
         binding.editLabel.setText(originalName)
         hideAppRows(binding)
         bindIconRows(context, scope, viewModel, binding, icon, pickPhoto)
+        val isFolder = folder.itemType == ItemType.FOLDER
 
         // Read live, so a re-open shows what a just-committed pick left.
         fun live(): LauncherItem? = viewModel.state.value.model.items.firstOrNull { it.id == folder.id }
@@ -68,7 +70,7 @@ object FolderEditSheet {
         // A locked desktop keeps the name and icon editable but hides the
         // swipe rows, as an app's Edit does.
         val swipeRows = if (viewModel.state.value.prefs.desktopLocked) View.GONE else View.VISIBLE
-        binding.swipeToOpenRow.visibility = swipeRows
+        binding.swipeToOpenRow.visibility = if (isFolder) swipeRows else View.GONE
         binding.swipeUpRow.visibility = swipeRows
         binding.swipeDownRow.visibility = swipeRows
         binding.swipeToOpenSwitch.isChecked = swipeToOpen
@@ -88,7 +90,9 @@ object FolderEditSheet {
 
         binding.saveButton.setOnClickListener {
             val typed = binding.editLabel.text?.toString().orEmpty().trim()
-            if (typed.isNotEmpty() && typed != originalName) viewModel.renameFolder(folder.id, typed)
+            if (typed.isNotEmpty() && typed != originalName) {
+                if (isFolder) viewModel.renameFolder(folder.id, typed) else viewModel.renameShortcut(folder.id, typed)
+            }
             if (icon.pack != originalPack || icon.name != originalIcon || icon.photo != originalPhoto) {
                 if (icon.photo != null) {
                     viewModel.setFolderIcon(folder.id, null, null, icon.photo)

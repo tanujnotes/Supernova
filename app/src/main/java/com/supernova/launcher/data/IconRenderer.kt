@@ -143,6 +143,21 @@ class IconRenderer(context: Context) {
         }
     }
 
+    // A launcher action's tile, full-bleed and square as drawn: cut to the
+    // chosen shape, or the platform's mask with System, as an adaptive icon
+    // is. Glass and Reshape legacy have no plate of it to replace.
+    fun renderTile(tile: Drawable, shape: IconShape, customShape: CustomShapeSpec?): Drawable {
+        val size = iconSizePx
+        val mask = shape.pathFor(size.toFloat(), customShape)
+            ?: glassPainter.systemMask(AdaptiveIconDrawable(Color.BLACK.toDrawable(), null), size)
+        val bitmap = createBitmap(size, size)
+        Canvas(bitmap).withClip(mask) {
+            tile.setBounds(0, 0, size, size)
+            tile.draw(this)
+        }
+        return if (shadow) withShadow(bitmap) else bitmap.toDrawable(resources)
+    }
+
     // The icon onto the canvas: a pack's back, the source - as glass, shaped
     // or plain - then the pack's mask and upon. The glass pane's outline
     // when it drew one.

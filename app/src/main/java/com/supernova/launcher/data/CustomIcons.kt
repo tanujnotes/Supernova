@@ -1,11 +1,13 @@
 package com.supernova.launcher.data
 
+import com.supernova.launcher.gesture.ActionShortcut
+
 // "Reset custom icons": every icon the user changed one app or folder
 // at a time goes back to what the global icon settings draw. For an app that
 // is the pack icon or photo, and the shape and style picked for it; for a
 // folder, its pack icon or photo. Names, hidden labels and swipe actions are
 // not icons and stay. A shortcut's own iconBase64 is the only icon it has,
-// not a custom one, so only folders lose theirs.
+// not a custom one, so only folders and launcher actions lose theirs.
 object CustomIcons {
 
     data class Count(val apps: Int, val folders: Int) {
@@ -40,6 +42,6 @@ object CustomIcons {
     )
 
     private fun LauncherItem.hasCustomIcon(): Boolean =
-        itemType == ItemType.FOLDER &&
+        (itemType == ItemType.FOLDER || ActionShortcut.decode(intentUri) != null) &&
             (customIconPack != null || customIconName != null || !iconBase64.isNullOrEmpty())
 }

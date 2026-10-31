@@ -752,7 +752,7 @@ class LauncherRepository(private val context: Context) {
     suspend fun setFolderIconRaw(folderId: String, raw: Boolean) {
         mutate { current ->
             current.copy(items = current.items.map { item ->
-                if (item.id == folderId && item.itemType == ItemType.FOLDER) item.copy(iconRaw = raw) else item
+                if (item.id == folderId) item.copy(iconRaw = raw) else item
             })
         }
     }
@@ -760,7 +760,7 @@ class LauncherRepository(private val context: Context) {
     suspend fun setFolderIcon(folderId: String, pack: String?, drawableName: String?, base64: String? = null) {
         mutate { current ->
             current.copy(items = current.items.map { item ->
-                if (item.id == folderId && item.itemType == ItemType.FOLDER) {
+                if (item.id == folderId) {
                     item.copy(customIconPack = pack, customIconName = drawableName, iconBase64 = base64)
                 } else {
                     item

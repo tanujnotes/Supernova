@@ -658,7 +658,8 @@ class WidgetController(
         val (cellWidth, cellHeight) = host.currentCellSizePx()
         WidgetPickerSheet.show(
             activity, cellWidth, cellHeight, prefs.gridCols, prefs.gridRows,
-            prefs = prefs, onPicked = { info -> onWidgetPickedForCard(info, cardId) }
+            prefs = prefs, onPicked = { info -> onWidgetPickedForCard(info, cardId) },
+            renderTile = viewModel.appCatalog()::renderActionTile
         )
     }
 
