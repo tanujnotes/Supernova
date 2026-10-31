@@ -1425,6 +1425,7 @@ class DrawerController(
 
         // Field styling (C7): filled pill vs outline, radius, start icon.
         val resolvedForBar = Styles.resolve(context, prefs).of(SurfaceId.DRAWER)
+        val resolvedField = Styles.resolve(context, prefs).of(SurfaceId.DRAWER_SEARCH_BAR)
         val density = context.resources.displayMetrics.density
         searchPill.cornerRadius =
             (searchConfig.radius ?: DrawerSearchBarConfig.MAX_RADIUS).coerceIn(0, DrawerSearchBarConfig.MAX_RADIUS) * density
@@ -1435,27 +1436,26 @@ class DrawerController(
             GlassPillDrawable(glass, searchPill.cornerRadius)
         }
         if (searchConfig.filled) {
-            searchPill.setColor((0x24 shl 24) or (resolvedForBar.text and 0xFFFFFF))
+            searchPill.setColor(resolvedField.surface)
             searchPill.setStroke(0, android.graphics.Color.TRANSPARENT)
         } else {
             searchPill.setColor(android.graphics.Color.TRANSPARENT)
             searchPill.setStroke(
                 (2 * density).toInt(),
-                (0x5A shl 24) or (resolvedForBar.text and 0xFFFFFF)
+                (0x5A shl 24) or (resolvedField.text and 0xFFFFFF)
             )
         }
         // The magnifier on the left is fixed, in the drawer's text colour.
         binding.drawerSearchIcon.visibility = View.VISIBLE
         binding.drawerSearchIcon.setImageResource(R.drawable.ic_search)
-        binding.drawerSearchIcon.imageTintList = android.content.res.ColorStateList.valueOf(resolvedForBar.text)
-        // The field sits on the drawer surface, not on a Material card, so its
-        // own text has to follow the resolved drawer palette.
-        binding.drawerSearch.setTextColor(resolvedForBar.text)
-        binding.drawerSearchGhost.setTextColor((0x80 shl 24) or (resolvedForBar.text and 0xFFFFFF))
+        binding.drawerSearchIcon.imageTintList = android.content.res.ColorStateList.valueOf(resolvedField.text)
+        // The field isn't on a Material card, so its text follows its own style.
+        binding.drawerSearch.setTextColor(resolvedField.text)
+        binding.drawerSearchGhost.setTextColor((0x80 shl 24) or (resolvedField.text and 0xFFFFFF))
         binding.drawerSearchGhost.typeface = binding.drawerSearch.typeface
-        binding.drawerSearch.setHintTextColor((0x8A shl 24) or (resolvedForBar.text and 0xFFFFFF))
+        binding.drawerSearch.setHintTextColor((0x8A shl 24) or (resolvedField.text and 0xFFFFFF))
         binding.drawerSearch.highlightColor =
-            (0x40 shl 24) or (resolvedForBar.accent and 0xFFFFFF)
+            (0x40 shl 24) or (resolvedField.accent and 0xFFFFFF)
 
         // The group tabs follow the drawer palette too. The Tab type: a
         // short bar under the label (Classic) or a pill behind it (Bubble).
@@ -1500,7 +1500,7 @@ class DrawerController(
                         DrawerActionButton.SETTINGS -> R.drawable.ic_tab_settings
                     }
                 )
-                imageTintList = android.content.res.ColorStateList.valueOf(resolvedForBar.text)
+                imageTintList = android.content.res.ColorStateList.valueOf(resolvedField.text)
                 background = null
                 // An ImageButton centres its icon at its own 24dp; fit it to
                 // the magnifier's 20dp box instead, so both ends match.

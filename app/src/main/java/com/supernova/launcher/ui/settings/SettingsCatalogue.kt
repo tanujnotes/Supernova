@@ -1735,7 +1735,14 @@ object SettingsCatalogue {
             SettingItem.StyleTarget(R.string.settings_section_dock, SurfaceId.DOCK, { actions.openStylePicker(SurfaceId.DOCK) }),
             SettingItem.StyleTarget(R.string.settings_section_folders, SurfaceId.FOLDER, { actions.openStylePicker(SurfaceId.FOLDER) }),
             SettingItem.StyleTarget(R.string.style_popup, SurfaceId.POPUP, { actions.openStylePicker(SurfaceId.POPUP) }),
-            SettingItem.StyleTarget(R.string.style_search_bar, SurfaceId.SEARCH_BAR, { actions.openStylePicker(SurfaceId.SEARCH_BAR) }),
+            SettingItem.StyleTarget(
+                R.string.desktop_search_bar, SurfaceId.SEARCH_BAR,
+                { actions.openStylePicker(SurfaceId.SEARCH_BAR) }
+            ),
+            SettingItem.StyleTarget(
+                R.string.drawer_search_bar, SurfaceId.DRAWER_SEARCH_BAR,
+                { actions.openStylePicker(SurfaceId.DRAWER_SEARCH_BAR) }
+            ),
             SettingItem.StyleTarget(R.string.settings, SurfaceId.SETTINGS, { actions.openStylePicker(SurfaceId.SETTINGS) })
         )
     )

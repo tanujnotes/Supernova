@@ -330,7 +330,8 @@ object EnumLabels {
         SurfaceId.DOCK -> R.string.settings_section_dock
         SurfaceId.FOLDER -> R.string.settings_section_folders
         SurfaceId.POPUP -> R.string.style_popup
-        SurfaceId.SEARCH_BAR -> R.string.style_search_bar
+        SurfaceId.SEARCH_BAR -> R.string.desktop_search_bar
+        SurfaceId.DRAWER_SEARCH_BAR -> R.string.drawer_search_bar
         SurfaceId.SETTINGS -> R.string.settings
         SurfaceId.HOME -> R.string.settings_section_home
     }

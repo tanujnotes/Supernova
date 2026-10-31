@@ -54,6 +54,7 @@ object Styles {
     private var cachedPalette: TonalPalette? = null
 
     const val DOCK_BASE_RGB = 0x1A2230
+    private const val DRAWER_FIELD_ALPHA = 0x24
 
     @Synchronized
     fun resolve(context: Context, prefs: LauncherPrefs): ResolvedStyles {
@@ -78,7 +79,8 @@ object Styles {
             defaultSurface: Int,
             defaultText: Int,
             // null keeps defaultSurface's own alpha channel.
-            defaultAlpha: Float?
+            defaultAlpha: Float?,
+            defaultAccent: Int = accent
         ): ResolvedSurface {
             val style = config.styleFor(id)
             val surfaceBase = colorFor(style.surface, palette) ?: defaultSurface
@@ -93,7 +95,7 @@ object Styles {
                 text = Contrast.ensure(
                     colorFor(style.text, palette) ?: defaultText, surfaceBase, style.minContrast
                 ),
-                accent = colorFor(style.accent, palette) ?: accent,
+                accent = colorFor(style.accent, palette) ?: defaultAccent,
                 cornerRadiiDp = style.cornerRadii?.let { radii ->
                     FloatArray(4) { radii.getOrElse(it) { 0f } }
                 },
@@ -114,10 +116,16 @@ object Styles {
             prefs.folderBgColor, themeSurface
         )
 
+        val drawer = resolved(SurfaceId.DRAWER, drawerLegacy, themeText, prefs.drawerBgOpacity)
+
         val styles = ResolvedStyles(
             mapOf(
-                SurfaceId.DRAWER to resolved(
-                    SurfaceId.DRAWER, drawerLegacy, themeText, prefs.drawerBgOpacity
+                SurfaceId.DRAWER to drawer,
+                // Unstyled, the drawer's field is a tint of the drawer's text.
+                SurfaceId.DRAWER_SEARCH_BAR to resolved(
+                    SurfaceId.DRAWER_SEARCH_BAR,
+                    (DRAWER_FIELD_ALPHA shl 24) or (drawer.text and 0x00FFFFFF),
+                    drawer.text, null, drawer.accent
                 ),
                 SurfaceId.DOCK to resolved(
                     SurfaceId.DOCK, (0xFF shl 24) or DOCK_BASE_RGB, onWallpaper, prefs.dockBgOpacity

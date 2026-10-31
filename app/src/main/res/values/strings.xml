@@ -556,7 +556,7 @@
     <string name="palette_seed_hint">Hex color, e.g. 3366FF</string>
     <string name="palette_seed_invalid">Not a valid hex color</string>
     <string name="style_popup">Popup menu</string>
-    <string name="style_search_bar">Search bar</string>
+    <string name="style_bar_glass_note">Glass takes the place of the surface color. It\'s set on the bar\'s own page.</string>
     <string name="style_slot_surface">Background</string>
     <string name="style_slot_text">Text</string>
     <string name="style_slot_accent">Accent</string>
