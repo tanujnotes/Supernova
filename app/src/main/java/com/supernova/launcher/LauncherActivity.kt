@@ -3651,6 +3651,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         adapter.decorateIcon = { icon, member ->
             withBadge(icon, member.packageName, member.className, member.userSerial)
         }
+        adapter.shortcutIcon = { member -> member.takeIf { it.itemType == ItemType.SHORTCUT }?.let(::intentItemIcon) }
         folderAdapter = adapter
 
         animateWallpaperZoom(1f)
@@ -4072,11 +4073,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             // The dense styles (3x3, dense ring) show up to nine members.
             .take(9)
             .mapNotNull { member ->
-                member.packageName?.let { pkg ->
-                    member.className?.let { cls ->
-                        viewModel.appCatalog().iconFor(LaunchableApp(pkg, cls, member.label, member.userSerial))
+                member.takeIf { it.itemType == ItemType.SHORTCUT }?.let(::intentItemIcon)
+                    ?: member.packageName?.let { pkg ->
+                        member.className?.let { cls ->
+                            viewModel.appCatalog().iconFor(LaunchableApp(pkg, cls, member.label, member.userSerial))
+                        }
                     }
-                }
             }
         return composedFolderIcon(memberIcons)
     }
@@ -5141,7 +5143,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         }
         viewModel.addShortcutToWorkspace(
             LaunchableApp(packageName, className.orEmpty(), label, userSerial),
-            shortcutId, label, page, free.first, free.second, iconBase64 = iconBase64
+            shortcutId, label, page, free.first, free.second, iconBase64 = iconBase64, mergeFolders = false
         )
     }
 
