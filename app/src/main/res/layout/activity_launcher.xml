@@ -340,7 +340,7 @@
         </FrameLayout>
     </LinearLayout>
 
-    <!-- Drag drop targets (Remove / App info / Uninstall). Kept VISIBLE at
+    <!-- Drag drop targets (Remove or Cancel / App info / Uninstall). Kept VISIBLE at
          alpha 0 so its zones are offered ACTION_DRAG_STARTED when a drag
          begins (GONE views never receive DragEvents); the activity fades it
          in only once real drag movement is confirmed. Elevation puts it over

@@ -29,6 +29,10 @@ class FolderMemberAdapter(
     // drawer; set before the first bind.
     var decorateIcon: (Drawable?, LauncherItem) -> Drawable? = { icon, _ -> icon }
 
+    // A member shortcut's own stored picture, as the home screen draws it;
+    // null falls back to its app's icon. Set before the first bind.
+    var shortcutIcon: (LauncherItem) -> Drawable? = { null }
+
     // Tile width in px, set by FolderPopup from the grid width and column
     // count. A fixed width (not match_parent) keeps horizontal paging at
     // `columns` tiles per page; 0 falls back to match_parent.
@@ -83,7 +87,7 @@ class FolderMemberAdapter(
                 item.className?.let { cls -> LaunchableApp(pkg, cls, item.label, item.userSerial) }
             }
             binding.icon.setImageDrawable(
-                app?.let { decorateIcon(appCatalog.iconFor(it), item) }
+                (shortcutIcon(item) ?: app?.let { appCatalog.iconFor(it) })?.let { decorateIcon(it, item) }
                     ?: binding.root.context.getDrawable(com.supernova.launcher.R.drawable.ic_folder)
             )
             binding.root.setOnClickListener { onClick(item) }

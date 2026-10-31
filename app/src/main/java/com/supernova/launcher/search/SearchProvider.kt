@@ -49,6 +49,17 @@ sealed class SearchResult {
 
     data class Web(val query: String, val provider: WebProvider) : SearchResult()
     data class ProviderChips(val query: String) : SearchResult()
+
+    companion object {
+        // What Enter opens: the first row the results list shows that one tap
+        // opens, in the list's own order. A calculation only copies, and a
+        // card's actions are its own.
+        fun firstOpenable(results: List<SearchResult>): SearchResult? =
+            results.firstOrNull { it is App }
+                ?: results.firstOrNull { it is Folder }
+                ?: results.firstOrNull { it is Shortcut }
+                ?: results.firstOrNull { it is Contact }
+    }
 }
 
 class MathSearchProvider : SearchProvider {

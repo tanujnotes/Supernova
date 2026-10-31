@@ -108,7 +108,7 @@ object WidgetPickerGroups {
                     spanX = spans.first,
                     spanY = spans.second
                 )
-            }.sortedBy { it.label.lowercase() }
+            }.sortedWith(com.supernova.launcher.data.LabelOrder.by { it.label })
 
             val shortcuts = shortcutsByPackage[packageName].orEmpty().map { resolve ->
                 val activity = resolve.activityInfo
@@ -118,19 +118,19 @@ object WidgetPickerGroups {
                     icon = runCatching { resolve.loadIcon(pm) }.getOrNull() ?: icon,
                     target = ShortcutTarget.Create(activity.packageName, activity.name)
                 )
-            }.sortedBy { it.label.lowercase() }
+            }.sortedWith(com.supernova.launcher.data.LabelOrder.by { it.label })
 
             WidgetPickerGroup(packageName, appLabel, icon, widgets, shortcuts)
-        }.sortedBy { it.label.lowercase() }
+        }.sortedWith(com.supernova.launcher.data.LabelOrder.by { it.label })
     }
 
     // The launcher's own row, listed first: every launcher action plus the Activities picker, as shortcuts.
-    fun launcherGroup(context: Context): WidgetPickerGroup {
+    fun launcherGroup(context: Context, renderTile: (Drawable) -> Drawable): WidgetPickerGroup {
         val actions = ActionShortcut.choices.map { action ->
             WidgetPickerEntry.Shortcut(
                 packageName = context.packageName,
                 label = context.getString(EnumLabels.of(action)),
-                icon = context.getDrawable(ActionIcons.of(action)),
+                icon = context.getDrawable(ActionIcons.of(action))?.let(renderTile),
                 target = ShortcutTarget.Action(action)
             )
         }
@@ -143,7 +143,7 @@ object WidgetPickerGroups {
         return WidgetPickerGroup(
             packageName = context.packageName,
             label = context.getString(R.string.app_name),
-            icon = context.getDrawable(R.drawable.ic_supernova),
+            icon = context.getDrawable(R.drawable.ic_supernova)?.let(renderTile),
             widgets = emptyList(),
             shortcuts = actions + activities
         )

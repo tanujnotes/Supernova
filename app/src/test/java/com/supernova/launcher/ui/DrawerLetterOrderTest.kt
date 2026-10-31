@@ -27,4 +27,12 @@ class DrawerLetterOrderTest {
         assertEquals(listOf("bhim", "work"), merge(listOf("bhim"), listOf("work"), false))
         assertEquals(listOf("bhim", "apps"), merge(listOf("bhim"), listOf("apps"), true))
     }
+
+    // An umlaut folder goes in with its plain letter, where the apps sorted
+    // in the same alphabet put it, not after the last app.
+    @Test
+    fun anUmlautFolderMergesWithItsLetter() {
+        val merged = merge(listOf("maps", "uber", "zoom"), listOf("öffentlich"), false)
+        assertEquals(listOf("maps", "öffentlich", "uber", "zoom"), merged)
+    }
 }

@@ -451,19 +451,33 @@ class SearchController(
         return (metrics.widthPixels / (72 * metrics.density)).toInt().coerceIn(3, 8)
     }
 
-    // Enter launches the top app match when there is one, else falls through
-    // to a web search - the drawer's enter-to-launch feel, extended.
+    // Enter opens the first result, else falls through to a web search - the
+    // drawer's enter-to-launch feel, extended.
     private fun onSearchAction(surface: Surface) {
         val query = surface.input.text?.toString().orEmpty().trim()
         if (query.isEmpty()) return
-        val firstApp = surface.lastResults.firstOrNull { it is SearchResult.App } as? SearchResult.App
-        if (firstApp != null) {
-            onLaunchApp(null, firstApp.app)
-            surface.afterLaunch()
-        } else {
-            val provider = WebProvider.fromName(viewModel.state.value.prefs.searchWebProvider)
-            onOpenUri(provider.searchUrl(query))
-            surface.dismiss()
+        when (val first = SearchResult.firstOpenable(surface.lastResults)) {
+            is SearchResult.App -> {
+                onLaunchApp(null, first.app)
+                surface.afterLaunch()
+            }
+            is SearchResult.Folder -> {
+                onOpenFolder(first)
+                surface.dismiss()
+            }
+            is SearchResult.Shortcut -> {
+                onLaunchShortcut(null, first)
+                surface.afterLaunch()
+            }
+            is SearchResult.Contact -> {
+                openContact(first)
+                surface.dismiss()
+            }
+            else -> {
+                val provider = WebProvider.fromName(viewModel.state.value.prefs.searchWebProvider)
+                onOpenUri(provider.searchUrl(query))
+                surface.dismiss()
+            }
         }
     }
 
@@ -500,6 +514,10 @@ class SearchController(
             onOpenUri(chip.url(query))
             surface.dismiss()
         },
+        onWeb = { web ->
+            onOpenUri(web.provider.searchUrl(web.query))
+            surface.dismiss()
+        },
         onCopyCalculation = ::copyToClipboard,
         onFrequentApp = { view, app ->
             onLaunchApp(view, app)
@@ -533,9 +551,9 @@ class SearchController(
                 icon = folderIcon(com.supernova.launcher.search.FolderSearchProvider.Hit(null, group.name, group.name))
             )
         }
-        val allApps = viewModel.visibleApps()
-            .filterNot { viewModel.hiddenKey(it) in inFolders }
-            .sortedBy { it.label.lowercase() }
+        val allApps = com.supernova.launcher.data.LabelOrder.sorted(
+            viewModel.visibleApps().filterNot { viewModel.hiddenKey(it) in inFolders }
+        ) { it.label }
         val surface = overlaySurface ?: return
         styleSurface(surface)
         surface.adapter.submitZeroState(shortcuts, frequent, allApps, folders)
@@ -558,6 +576,7 @@ class SearchController(
     private fun applyStyle(ui: ViewSearchOverlayBinding) {
         val prefs = viewModel.state.value.prefs
         val key = listOf(
+            prefs.searchBarConfig,
             prefs.styleConfig, prefs.paletteSource, prefs.paletteSeed, prefs.accentColor,
             prefs.labelSize, prefs.labelColor, prefs.labelFont, prefs.searchWindowMode
         )
@@ -591,9 +610,7 @@ class SearchController(
             ui.root.setBackgroundColor(resolved.surface)
             ui.root.clipToOutline = false
         }
-        ui.searchPill.background = com.supernova.launcher.ui.theme.SurfaceShapes.background(
-            bar.surface, null, null, binding.root.dp(24f)
-        )
+        ui.searchPill.background = windowBarBackground(prefs, bar)
         ui.searchInput.setTextColor(bar.text)
         ui.searchInput.setHintTextColor((0x99 shl 24) or (bar.text and 0xFFFFFF))
         ui.searchGhost.setTextColor((0x80 shl 24) or (bar.text and 0xFFFFFF))
@@ -604,6 +621,29 @@ class SearchController(
         overlaySurface?.let { surface ->
             surface.appliedStyle = null
             styleSurface(surface)
+        }
+    }
+
+    // The window's bar is the home bar opened up: the same glass or fill,
+    // radius, opacity and outline.
+    private fun windowBarBackground(
+        prefs: com.supernova.launcher.data.LauncherPrefs,
+        bar: com.supernova.launcher.ui.theme.ResolvedSurface
+    ): android.graphics.drawable.Drawable {
+        val config = SearchBarConfig.decode(prefs.searchBarConfig).desktop
+        val radius = binding.root.dp(config.radius.coerceIn(0, DesktopSearchBarConfig.MAX_RADIUS).toFloat())
+        val alpha = (config.alpha.coerceIn(0f, 1f) * OPAQUE).toInt()
+        val glass = com.supernova.launcher.data.IconGlass.fromName(config.glass)
+        if (glass != com.supernova.launcher.data.IconGlass.OFF) {
+            return GlassPillDrawable(glass, radius).also { it.alpha = alpha }
+        }
+        return android.graphics.drawable.GradientDrawable().apply {
+            cornerRadius = radius
+            if (config.wireframe) {
+                setStroke(binding.root.dp(2f).toInt(), (alpha shl 24) or (bar.text and 0xFFFFFF))
+            } else {
+                setColor((alpha shl 24) or (bar.surface and 0xFFFFFF))
+            }
         }
     }
 
@@ -623,6 +663,7 @@ class SearchController(
 
 
     private companion object {
+        const val OPAQUE = 255
         const val TOP_HIT_MIN_CHARS = 3
         const val TOP_HIT_MAX_SHORTCUTS = 6
     }

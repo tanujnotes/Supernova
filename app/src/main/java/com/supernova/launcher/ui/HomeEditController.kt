@@ -41,6 +41,7 @@ class HomeEditController(
         fun pickShortcut(target: ShortcutTarget)
         fun cellSizePx(): Pair<Int, Int>
         fun grid(): Pair<Int, Int>
+        fun cancelPageDrag()
 
         // The add-page slot past the last page: shown for the length of edit
         // mode; onAddPage while the pager sits on it. addPageFromSlot asks
@@ -218,7 +219,7 @@ class HomeEditController(
             val (cellWidth, cellHeight) = host.cellSizePx()
             val (cols, rows) = host.grid()
             val groups = withContext(Dispatchers.Default) {
-                listOf(WidgetPickerGroups.launcherGroup(activity)) +
+                listOf(WidgetPickerGroups.launcherGroup(activity, viewModel.appCatalog()::renderActionTile)) +
                     WidgetPickerGroups.build(activity, cellWidth, cellHeight, cols, rows)
             }
             if (isOpen) adapter.submit(groups, expandAll = false)
@@ -228,6 +229,7 @@ class HomeEditController(
     fun exit() {
         if (!isOpen) return
         isOpen = false
+        host.cancelPageDrag()
         overlay?.root?.visibility = View.GONE
         host.setAddPageSlot(false)
         val prefs = viewModel.state.value.prefs

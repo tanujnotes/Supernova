@@ -314,12 +314,13 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
                 "${it.id}:${it.cellX},${it.cellY},${it.spanX},${it.spanY},${it.halfCells}," +
                     "${it.workspaceX},${it.workspaceY},${it.label}," +
                     "${it.swipeAction},${it.swipeActionDown},${it.swipeToOpen},${it.widgetPadding}" +
+                    FolderIconDrawable.customIconKey(it) +
                     // A folder's icon is drawn from its members, which live
                     // in the FOLDER container: an app dropped in from the
                     // dock or the drawer changes nothing else on this page,
                     // and the icon stayed a member short without this.
                     if (it.itemType == ItemType.FOLDER) {
-                        folderSignature(state, it.id) + FolderIconDrawable.customIconKey(it)
+                        folderSignature(state, it.id)
                     } else {
                         ""
                     }
@@ -334,6 +335,11 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
             // and nothing in the prefs announces it.
             "${host.landscape()}|" +
             "${prefs.folderPreviewStyle}|${prefs.badgeColor},${prefs.badgePosition},${prefs.badgeScale}|" +
+            // Folder icon appearance: the dock's signature takes every pref,
+            // and without these a page kept its old plates until a restart.
+            "${prefs.folderIconShape},${prefs.folderIconOutline},${prefs.folderClipToBg}," +
+            "${prefs.folderMatchWindowColor},${prefs.folderPrioritizeFirst},${prefs.folderBgColor}," +
+            "${prefs.styleConfig}|" +
             "${prefs.badgeTextColor},${prefs.badgeCornerRadius},${prefs.badgeOutline}|" +
             // The rest of the badge settings belong here too. They were
             // missing, and the only thing that applied them was the badge

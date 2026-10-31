@@ -118,4 +118,21 @@ class DrawerGroupCodecTest {
         val unchosen = DrawerGroup("Tools", emptySet(), 2, DrawerGroupType.FOLDER)
         assertEquals("Tools||2|FOLDER|", unchosen.encode())
     }
+
+    @Test
+    fun customIconRoundTrips() {
+        val photo = DrawerGroup("A", setOf("k"), 1, DrawerGroupType.FOLDER, iconBase64 = "aGk+/w==", iconRaw = true)
+        assertEquals(photo, DrawerGroup.decode(photo.encode()))
+        val pack = photo.copy(
+            keepInMain = true, iconBase64 = null, iconPack = "com.pack", iconName = "star", iconRaw = false
+        )
+        assertEquals(pack, DrawerGroup.decode(pack.encode()))
+    }
+
+    @Test
+    fun noIconKeepsTheOldFormat() {
+        val group = DrawerGroup("A", setOf("k"), 1, DrawerGroupType.FOLDER)
+        assertEquals("A|k|1|FOLDER|", group.encode())
+        assertEquals("A|k|1|FOLDER||keep", group.copy(keepInMain = true).encode())
+    }
 }

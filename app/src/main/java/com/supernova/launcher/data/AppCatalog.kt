@@ -100,7 +100,7 @@ class AppCatalog(
                     privateSpace = isPrivate
                 )
             }
-        }.sortedBy { it.label.lowercase() }
+        }.let { apps -> LabelOrder.sorted(apps) { it.label } }
         activityInfoByKey = infoCache
         return apps
     }
@@ -513,6 +513,16 @@ class AppCatalog(
     // and snapshotted activity/shortcut icons match every other icon's shape.
     fun renderThemedDrawable(source: Drawable): Drawable? = synchronized(renderLock) {
         runCatching { iconRenderer.render(source, null, iconShape, customShapeSpec) }.getOrNull()
+    }
+
+    fun renderActionTile(tile: Drawable): Drawable = synchronized(renderLock) {
+        runCatching { iconRenderer.renderTile(tile, iconShape, customShapeSpec) }.getOrDefault(tile)
+    }
+
+    // An app shortcut's own picture (a contact's photo) across the icon
+    // shape; null when it isn't one that fills its frame.
+    fun renderShortcutPicture(picture: android.graphics.Bitmap): Drawable? = synchronized(renderLock) {
+        runCatching { iconRenderer.renderPicture(picture, iconShape, customShapeSpec) }.getOrNull()
     }
 
     fun launch(

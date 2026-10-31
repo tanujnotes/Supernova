@@ -9,7 +9,7 @@ import org.junit.Test
 class FastScrollMathTest {
 
     private fun initials(vararg labels: String, from: Int = 0) =
-        labels.mapIndexed { index, label -> (from + index) to label.first() }
+        labels.mapIndexed { index, label -> (from + index) to FastScrollMath.plainLabel(label) }
 
     @Test
     fun eachLetterStartsWhereItFirstAppears() {

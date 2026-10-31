@@ -123,7 +123,11 @@ class PinRequestActivity : AppCompatActivity() {
                             cellY = placement.cellY,
                             cols = placement.cols,
                             rows = placement.rows,
-                            iconBase64 = icon64
+                            iconBase64 = icon64,
+                            // The cell is free by the items' real positions. A
+                            // merge goes by stored cells, stale on a free-form
+                            // icon, and folded the new icon into a folder.
+                            mergeFolders = false
                         )
                         finish()
                     }
@@ -238,6 +242,8 @@ class PinRequestActivity : AppCompatActivity() {
 
     // Span-aware free area, searching the default page first and then the
     // rest; the repository relocates again as a backstop if things moved.
+    // With every page full a new page takes it: the request is already
+    // accepted, and the repository drops an item that has no room.
     private suspend fun findPlacement(spanX: Int, spanY: Int): Placement {
         val model = repository.modelFlow.first()
         val prefs = preferences.flow.first()
@@ -250,7 +256,9 @@ class PinRequestActivity : AppCompatActivity() {
                 return Placement(page, cell.first, cell.second, prefs.gridCols, prefs.gridRows)
             }
         }
-        return Placement(defaultPage, 0, 0, prefs.gridCols, prefs.gridRows)
+        repository.addPage()
+        val newPage = (repository.modelFlow.first().pageCount - 1).coerceAtLeast(0)
+        return Placement(newPage, 0, 0, prefs.gridCols, prefs.gridRows)
     }
 
     private companion object {

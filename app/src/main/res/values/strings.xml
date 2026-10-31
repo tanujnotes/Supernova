@@ -68,7 +68,6 @@
     <string name="grid_rows">Rows</string>
     <string name="grid_cols">Columns</string>
     <string name="dock_count">Dock slots</string>
-    <string name="icon_scale_value">%1$.2fx</string>
     <string name="show_labels">Show icon labels</string>
     <string name="wallpaper_scroll">Scroll wallpaper with pages</string>
     <string name="subgrid">Subgrid positioning (half cells)</string>
@@ -165,6 +164,7 @@
     <string name="delete_group">Delete group</string>
     <string name="edit_group_apps">Choose apps</string>
     <string name="hide_app">Hide from drawer</string>
+    <string name="unhide_app">Unhide</string>
     <string name="set_swipe_up_action">Set swipe up action</string>
     <string name="swipe_none">None</string>
     <string name="swipe_up_title">Swipe up</string>
@@ -174,6 +174,7 @@
     <string name="open_folder">Open folder</string>
     <string name="set_swipe_down_action">Set swipe down action</string>
     <string name="choose_photo">Choose photo</string>
+    <string name="photo_from_gallery">Gallery</string>
     <string name="photo_load_failed">Couldn\'t load that image</string>
     <string name="done">Done</string>
     <string name="icon_pack_system">System default</string>
@@ -555,7 +556,7 @@
     <string name="palette_seed_hint">Hex color, e.g. 3366FF</string>
     <string name="palette_seed_invalid">Not a valid hex color</string>
     <string name="style_popup">Popup menu</string>
-    <string name="style_search_bar">Search bar</string>
+    <string name="style_bar_glass_note">Glass takes the place of the surface color. It\'s set on the bar\'s own page.</string>
     <string name="style_slot_surface">Background</string>
     <string name="style_slot_text">Text</string>
     <string name="style_slot_accent">Accent</string>

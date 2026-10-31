@@ -1363,13 +1363,14 @@ class LiveDragController(
         val prefs = viewModel.state.value.prefs
         if (!prefs.dropTargets) return
         val payload = activeDragPayload ?: return
-        // An unplaced widget can't be removed, inspected or uninstalled.
-        if (payload is DragPayload.NewWidget) return
         val app = dragPayloadApp(payload)
-        // Nor can a drawer folder: the bar would fade in empty.
-        if (app == null && payload !is DragPayload.ExistingItem) return
-        binding.dropRemove.visibility =
-            if (payload is DragPayload.ExistingItem) View.VISIBLE else View.GONE
+        // What isn't on the home screen yet has nothing to remove: the same
+        // zone drops it, and nothing comes of the drag.
+        val placed = payload is DragPayload.ExistingItem
+        binding.dropRemove.setText(if (placed) R.string.remove else R.string.cancel)
+        binding.dropRemove.setCompoundDrawablesWithIntrinsicBounds(
+            0, if (placed) R.drawable.ic_menu_remove_item else R.drawable.ic_menu_remove, 0, 0
+        )
         binding.dropAppInfo.visibility = if (app != null) View.VISIBLE else View.GONE
         binding.dropUninstall.visibility =
             if (app != null && isUninstallable(app.packageName)) View.VISIBLE else View.GONE

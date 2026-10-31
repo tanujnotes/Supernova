@@ -258,7 +258,7 @@ class SettingsPreviewView @JvmOverloads constructor(
     // The drawer's search field as the drawer draws it (DrawerController's
     // field styling), on a strip of the drawer's surface.
     private fun buildDrawerField(prefs: LauncherPrefs) {
-        val surface = Styles.resolve(context, prefs).of(SurfaceId.DRAWER)
+        val surface = Styles.resolve(context, prefs).of(SurfaceId.DRAWER_SEARCH_BAR)
         searchBarSurface = surface
         setBackgroundColor(surface.surface)
         val pill = GradientDrawable()
@@ -326,7 +326,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         drawerFieldPill?.apply {
             cornerRadius = (config.radius ?: max).coerceIn(0, max) * density
             if (config.filled) {
-                setColor((DRAWER_FILL_ALPHA shl 24) or (surface.text and 0xFFFFFF))
+                setColor(surface.surface)
                 setStroke(0, android.graphics.Color.TRANSPARENT)
             } else {
                 setColor(android.graphics.Color.TRANSPARENT)
@@ -918,7 +918,6 @@ class SettingsPreviewView @JvmOverloads constructor(
         const val DRAWER_ICON_GAP_DP = 12
         const val DRAWER_HINT_SP = 16f
         const val DRAWER_HINT_ALPHA = 0x8A
-        const val DRAWER_FILL_ALPHA = 0x24
         const val DRAWER_STROKE_ALPHA = 0x5A
         const val DRAWER_BUTTON_DP = 36
         const val DRAWER_BUTTON_PAD_DP = 8

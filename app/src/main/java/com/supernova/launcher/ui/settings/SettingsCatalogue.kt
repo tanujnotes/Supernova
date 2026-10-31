@@ -530,7 +530,7 @@ object SettingsCatalogue {
                     step = 5,
                     get = { (it.dockIconScale * 100f).roundToInt() },
                     set = { viewModel.setDockIconScale(it / 100f) },
-                    display = { context.getString(R.string.icon_scale_value, it / 100f) },
+                    display = { context.getString(R.string.opacity_percent, it) },
                     preview = { p, v -> p.copy(dockIconScale = v / 100f) },
                     visibleIf = { it.dockEnabled && !it.dockMatchDesktop }
                 ),
@@ -691,7 +691,7 @@ object SettingsCatalogue {
                     step = 5,
                     get = { (it.drawerIconScale * 100f).roundToInt() },
                     set = { viewModel.setDrawerIconScale(it / 100f) },
-                    display = { context.getString(R.string.icon_scale_value, it / 100f) },
+                    display = { context.getString(R.string.opacity_percent, it) },
                     preview = { p, v -> p.copy(drawerIconScale = v / 100f) },
                     visibleIf = { !it.drawerMatchDesktop }
                 ),
@@ -1236,7 +1236,7 @@ object SettingsCatalogue {
                     step = 5,
                     get = { (it.folderIconScale * 100f).roundToInt() },
                     set = { viewModel.setFolderIconScale(it / 100f) },
-                    display = { context.getString(R.string.icon_scale_value, it / 100f) },
+                    display = { context.getString(R.string.opacity_percent, it) },
                     visibleIf = { !it.folderMatchDesktop }
                 ),
                 SettingItem.Toggle(
@@ -1735,7 +1735,14 @@ object SettingsCatalogue {
             SettingItem.StyleTarget(R.string.settings_section_dock, SurfaceId.DOCK, { actions.openStylePicker(SurfaceId.DOCK) }),
             SettingItem.StyleTarget(R.string.settings_section_folders, SurfaceId.FOLDER, { actions.openStylePicker(SurfaceId.FOLDER) }),
             SettingItem.StyleTarget(R.string.style_popup, SurfaceId.POPUP, { actions.openStylePicker(SurfaceId.POPUP) }),
-            SettingItem.StyleTarget(R.string.style_search_bar, SurfaceId.SEARCH_BAR, { actions.openStylePicker(SurfaceId.SEARCH_BAR) }),
+            SettingItem.StyleTarget(
+                R.string.desktop_search_bar, SurfaceId.SEARCH_BAR,
+                { actions.openStylePicker(SurfaceId.SEARCH_BAR) }
+            ),
+            SettingItem.StyleTarget(
+                R.string.drawer_search_bar, SurfaceId.DRAWER_SEARCH_BAR,
+                { actions.openStylePicker(SurfaceId.DRAWER_SEARCH_BAR) }
+            ),
             SettingItem.StyleTarget(R.string.settings, SurfaceId.SETTINGS, { actions.openStylePicker(SurfaceId.SETTINGS) })
         )
     )

@@ -23,7 +23,7 @@ object IconExporter {
         val launcherApps = context.getSystemService(LauncherApps::class.java)
         val density = context.resources.displayMetrics.densityDpi
         val activities = launcherApps.getActivityList(null, Process.myUserHandle())
-            .sortedBy { it.label.toString().lowercase() }
+            .let { activities -> LabelOrder.sorted(activities) { it.label } }
         val taken = mutableSetOf<String>()
         val filter = StringBuilder("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n")
         var written = 0

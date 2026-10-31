@@ -1774,7 +1774,7 @@ class SettingsActivity : AppCompatActivity() {
 
     // "Maps, Rapido, Uber", the line under a group; "Empty" for none.
     private fun groupSummary(group: DrawerGroup, labelsByKey: Map<String, String>): String {
-        val names = group.members.mapNotNull { labelsByKey[it] }.sortedBy { it.lowercase() }
+        val names = com.supernova.launcher.data.LabelOrder.sorted(group.members.mapNotNull { labelsByKey[it] }) { it }
         if (names.isEmpty()) return getString(R.string.group_empty)
         val shown = names.take(GROUP_SUMMARY_NAMES).joinToString(", ")
         return if (names.size > GROUP_SUMMARY_NAMES) "$shown, …" else shown

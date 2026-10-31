@@ -43,6 +43,7 @@ class SearchResultsAdapter(
         val onContactCall: (String) -> Unit,
         val onContactMessage: (String) -> Unit,
         val onChip: (SearchChip, String) -> Unit,
+        val onWeb: (SearchResult.Web) -> Unit,
         val onCopyCalculation: (String) -> Unit,
         val onFrequentApp: (View, LaunchableApp) -> Unit,
         val onFolder: (SearchResult.Folder) -> Unit,
@@ -179,8 +180,13 @@ class SearchResultsAdapter(
             .mapTo(rows) { Row.Result(it) }
         results.filterIsInstance<SearchResult.Contact>().mapTo(rows) { Row.Result(it) }
         // Every query ends with the providers; the web engine leads them.
-        rows.add(Row.Header(R.string.search_with))
-        rows.add(Row.ProviderIcons(query))
+        // With every provider off it's the web engine alone, as a plain row.
+        if (SearchMarks.hasProviders(prefs)) {
+            rows.add(Row.Header(R.string.search_with))
+            rows.add(Row.ProviderIcons(query))
+        } else {
+            results.filterIsInstance<SearchResult.Web>().mapTo(rows) { Row.Result(it) }
+        }
         notifyRowsChanged()
     }
 
@@ -269,7 +275,8 @@ class SearchResultsAdapter(
                 is SearchResult.Contact -> (holder as RowHolder).bindContact(result)
                 is SearchResult.Folder -> (holder as RowHolder).bindFolder(result)
                 is SearchResult.Card -> (holder as CardHolder).bind(result)
-                is SearchResult.App, is SearchResult.Web, is SearchResult.ProviderChips -> Unit
+                is SearchResult.Web -> (holder as RowHolder).bindWeb(result)
+                is SearchResult.App, is SearchResult.ProviderChips -> Unit
             }
         }
     }
@@ -515,6 +522,15 @@ class SearchResultsAdapter(
             }
             val size = (40 * context.resources.displayMetrics.density).toInt()
             (binding.root as ViewGroup).addView(button, ViewGroup.LayoutParams(size, size))
+        }
+
+        fun bindWeb(web: SearchResult.Web) {
+            reset()
+            binding.resultIcon.setImageResource(R.drawable.ic_search)
+            tintIcon()
+            binding.resultLabel.text =
+                binding.root.context.getString(R.string.search_web_for, web.provider.displayName, web.query)
+            binding.root.setOnClickListener { callbacks.onWeb(web) }
         }
 
         fun bindFolder(folder: SearchResult.Folder) {

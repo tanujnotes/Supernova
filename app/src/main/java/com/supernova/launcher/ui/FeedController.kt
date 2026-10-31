@@ -170,6 +170,12 @@ class FeedController(
         }
     }
 
+    // The search window opened from the feed's bar is see-through wherever the
+    // drawer's surface or the bar's glass is, and the page must not show in it.
+    fun setBehindSearch(behind: Boolean) {
+        ui?.root?.alpha = if (behind) 0f else 1f
+    }
+
     fun close() {
         if (!isOpen && !dragging) return
         isOpen = false

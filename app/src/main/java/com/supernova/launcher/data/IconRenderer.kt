@@ -13,6 +13,7 @@ import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import androidx.core.graphics.createBitmap
+import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.withClip
 import androidx.core.graphics.withTranslation
 import kotlin.math.roundToInt
@@ -97,6 +98,66 @@ class IconRenderer(context: Context) {
         return if (shadow) withShadow(flat, glassMask) else BitmapDrawable(resources, flat)
     }
 
+    // A picture an app made for its shortcut (a contact's photo) that fills
+    // its frame: drawn whole across the icon's shape - the chosen one, or
+    // the platform's mask with System - enlarged only as far as a round
+    // picture needs to cover it. Glass and Reshape legacy's resizing and
+    // plate read each photo differently (one filled the icon, the next sat
+    // small on a pane, another lost its background to glass), so they leave
+    // it alone, as they do a picked picture. With System and Reshape legacy
+    // Off it is drawn as it is, like any legacy icon then. Null for one that
+    // doesn't fill its frame (a glyph), which is drawn as a legacy icon.
+    fun renderPicture(picture: Bitmap, shape: IconShape, customShape: CustomShapeSpec?): Drawable? {
+        val side = picture.width
+        // One that isn't square stays clear here, so it is no picture.
+        val pixels = IntArray(side * side)
+        if (side == picture.height) picture.getPixels(pixels, 0, side, 0, 0, side, side)
+        val box = PictureFrame.frame(pixels, side) ?: return null
+        val size = iconSizePx
+        val shapePath = shape.pathFor(size.toFloat(), customShape)
+        return if (shapePath == null && reshapeLegacy == ReshapeLegacy.OFF) {
+            render(picture.toDrawable(resources), glass = IconGlass.OFF)
+        } else {
+            val mask = shapePath
+                ?: glassPainter.systemMask(AdaptiveIconDrawable(Color.BLACK.toDrawable(), null), size)
+            val cover = if (PictureFrame.square(pixels, side, box)) {
+                1f
+            } else {
+                PictureFrame.reach(maskPixels(mask, size), size)
+            }
+            val left = box[BakedBacking.LEFT]
+            val top = box[BakedBacking.TOP]
+            val right = box[BakedBacking.RIGHT]
+            val bottom = box[BakedBacking.BOTTOM]
+            val scale = size * cover / maxOf(right - left + 1, bottom - top + 1)
+            val offsetX = size / 2f - (left + right + 1) / 2f * scale
+            val offsetY = size / 2f - (top + bottom + 1) / 2f * scale
+            val bitmap = createBitmap(size, size)
+            Canvas(bitmap).withClip(mask) {
+                withTranslation(offsetX, offsetY) {
+                    scale(scale, scale)
+                    drawBitmap(picture, 0f, 0f, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
+                }
+            }
+            if (shadow) withShadow(bitmap) else bitmap.toDrawable(resources)
+        }
+    }
+
+    // A launcher action's tile, full-bleed and square as drawn: cut to the
+    // chosen shape, or the platform's mask with System, as an adaptive icon
+    // is. Glass and Reshape legacy have no plate of it to replace.
+    fun renderTile(tile: Drawable, shape: IconShape, customShape: CustomShapeSpec?): Drawable {
+        val size = iconSizePx
+        val mask = shape.pathFor(size.toFloat(), customShape)
+            ?: glassPainter.systemMask(AdaptiveIconDrawable(Color.BLACK.toDrawable(), null), size)
+        val bitmap = createBitmap(size, size)
+        Canvas(bitmap).withClip(mask) {
+            tile.setBounds(0, 0, size, size)
+            tile.draw(this)
+        }
+        return if (shadow) withShadow(bitmap) else bitmap.toDrawable(resources)
+    }
+
     // The icon onto the canvas: a pack's back, the source - as glass, shaped
     // or plain - then the pack's mask and upon. The glass pane's outline
     // when it drew one.
@@ -172,17 +233,8 @@ class IconRenderer(context: Context) {
     // platform's mask, or for a legacy icon the rounded plate Reshape legacy
     // icons would give it.
     private fun glassShape(source: Drawable, shapePath: Path?): Path =
-        shapePath ?: (source as? AdaptiveIconDrawable)?.let { glassPainter.systemMask(it, iconSizePx) } ?: platePath()
-
-    private fun platePath(): Path {
-        val radius = iconSizePx * PLATE_RADIUS_FRACTION
-        return Path().apply {
-            addRoundRect(
-                RectF(0f, 0f, iconSizePx.toFloat(), iconSizePx.toFloat()),
-                radius, radius, Path.Direction.CW
-            )
-        }
-    }
+        shapePath ?: (source as? AdaptiveIconDrawable)?.let { glassPainter.systemMask(it, iconSizePx) }
+            ?: platePath(iconSizePx, PLATE_RADIUS_FRACTION)
 
     // Stamps a blurred alpha silhouette under the icon: ~30% black, 2dp blur,
     // nudged 1dp down. Runs once per render, inside the cache, not per bind.
@@ -343,5 +395,23 @@ class IconRenderer(context: Context) {
         private const val SHADOW_BLUR_DP = 2f
         private const val SHADOW_OFFSET_Y_DP = 1f
         private const val SHADOW_COLOR = 0x4D000000
+    }
+}
+
+// A mask drawn solid at the icon size, read back.
+private fun maskPixels(mask: Path, size: Int): IntArray {
+    val bitmap = createBitmap(size, size)
+    Canvas(bitmap).drawPath(mask, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.BLACK })
+    val pixels = IntArray(size * size)
+    bitmap.getPixels(pixels, 0, size, 0, 0, size, size)
+    bitmap.recycle()
+    return pixels
+}
+
+// The rounded plate Reshape legacy icons sit on, as an outline.
+private fun platePath(size: Int, radiusFraction: Float): Path {
+    val radius = size * radiusFraction
+    return Path().apply {
+        addRoundRect(RectF(0f, 0f, size.toFloat(), size.toFloat()), radius, radius, Path.Direction.CW)
     }
 }

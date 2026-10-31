@@ -22,6 +22,7 @@ import com.supernova.launcher.data.DrawerGroupType
 import com.supernova.launcher.data.IconPack
 import com.supernova.launcher.data.IconShape
 import com.supernova.launcher.data.ItemType
+import com.supernova.launcher.data.LabelOrder
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.data.LauncherItem
 import com.supernova.launcher.data.LauncherPreferences
@@ -545,7 +546,7 @@ class LauncherViewModel(
     fun folderFirstMember(folderId: String): LauncherItem? {
         val members = folderMembers(folderId)
         return if (state.value.prefs.folderSortAz) {
-            members.minByOrNull { it.label.lowercase() }
+            members.minWithOrNull(LabelOrder.by { it.label })
         } else {
             members.firstOrNull()
         }
@@ -1265,9 +1266,37 @@ class LauncherViewModel(
 
     fun setFolderIconRaw(folderId: String, raw: Boolean) = persist { repository.setFolderIconRaw(folderId, raw) }
 
-    fun customIcons(): CustomIcons.Count = CustomIcons.count(state.value.model)
+    fun customIcons(): CustomIcons.Count {
+        val count = CustomIcons.count(state.value.model)
+        return count.copy(folders = count.folders + drawerGroups().count { it.hasCustomIcon })
+    }
 
-    fun resetCustomIcons() = persist { repository.resetCustomIcons() }
+    fun resetCustomIcons() = persist {
+        repository.resetCustomIcons()
+        preferences.updateDrawerGroups { groups ->
+            groups.map {
+                if (!it.hasCustomIcon) return@map it
+                it.copy(iconPack = null, iconName = null, iconBase64 = null, iconRaw = false)
+            }
+        }
+    }
+
+    // As a rename does, a custom icon makes a smart folder the user's, or the
+    // next regeneration would drop it.
+    fun setGroupIcon(name: String, icon: DrawerGroup) = persist {
+        preferences.updateDrawerGroups { groups ->
+            groups.map {
+                if (it.name == name) {
+                    it.copy(
+                        smart = false, iconPack = icon.iconPack, iconName = icon.iconName,
+                        iconBase64 = icon.iconBase64, iconRaw = icon.iconRaw
+                    )
+                } else {
+                    it
+                }
+            }
+        }
+    }
 
     suspend fun packDrawableNames(packPackage: String): List<String> =
         withContext(Dispatchers.Default) { catalog.listPackDrawables(packPackage) }
@@ -1282,17 +1311,14 @@ class LauncherViewModel(
             DrawerSort.INSTALL_DATE -> apps.sortedByDescending { it.installTime }
             DrawerSort.MOST_USED -> apps.sortedWith(
                 compareByDescending<LaunchableApp> { launchCounts[hiddenKey(it)] ?: 0 }
-                    .thenBy { it.label.lowercase() }
+                    .then(LabelOrder.by { it.label })
             )
         }
 
-    // Each label lowered once, not once per comparison: this runs on the
-    // main thread for every list the drawer builds.
-    private fun byLabel(apps: List<LaunchableApp>, descending: Boolean): List<LaunchableApp> {
-        val keyed = apps.map { it.label.lowercase() to it }
-        val sorted = if (descending) keyed.sortedByDescending { it.first } else keyed.sortedBy { it.first }
-        return sorted.map { it.second }
-    }
+    // In the device language's alphabet (LabelOrder), each label keyed
+    // once: this runs on the main thread for every list the drawer builds.
+    private fun byLabel(apps: List<LaunchableApp>, descending: Boolean): List<LaunchableApp> =
+        LabelOrder.sorted(apps, descending) { it.label }
 
     // The row over the app list: the apps opened most recently. Until
     // there is any recency to go on, the most-launched stand in.
@@ -1318,7 +1344,7 @@ class LauncherViewModel(
 
     fun drawerGroups(): List<DrawerGroup> =
         state.value.prefs.drawerGroups.mapNotNull(DrawerGroup::decode)
-            .sortedWith(compareBy({ it.order }, { it.name.lowercase() }))
+            .sortedWith(compareBy<DrawerGroup> { it.order }.then(LabelOrder.by { it.name }))
 
     // TAB groups drive the tab bar; FOLDER groups render as drawer folders.
     fun drawerTabGroups(): List<DrawerGroup> =
@@ -1404,7 +1430,8 @@ class LauncherViewModel(
     fun moveGroup(name: String, delta: Int) {
         viewModelScope.launch {
             preferences.updateDrawerGroups { stored ->
-                val groups = stored.sortedWith(compareBy({ it.order }, { it.name.lowercase() })).toMutableList()
+                val groups = stored.sortedWith(compareBy<DrawerGroup> { it.order }.then(LabelOrder.by { it.name }))
+                    .toMutableList()
                 val index = groups.indexOfFirst { it.name == name }
                 val target = if (index < 0) null else generateSequence(index + delta) { it + delta }
                     .takeWhile { it in groups.indices }

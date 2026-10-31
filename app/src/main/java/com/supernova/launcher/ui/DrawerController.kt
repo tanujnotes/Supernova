@@ -42,7 +42,7 @@ class DrawerController(
     private val onGlobalSearch: () -> Unit,
     // FOLDER-type groups: icon composition and tap handling live in the
     // activity, which owns FolderPopup and the icon pipeline.
-    private val buildFolderIcon: (List<LaunchableApp>) -> Drawable,
+    private val buildFolderIcon: (DrawerGroup, List<LaunchableApp>) -> Drawable,
     // A drawer folder's badge (its members' summed count), applied at bind
     // so a count moving needs no new composition.
     private val decorateFolderIcon: (Drawable, List<LaunchableApp>) -> Drawable = { icon, _ -> icon },
@@ -145,8 +145,11 @@ class DrawerController(
     private var searchFieldVisible = true
     private var searchGlobalOnTap = false
     // BOTTOM placement: the IME would cover the field (the window never
-    // resizes), so an inset listener lifts the row above the keyboard.
+    // resizes), so while it is up the row goes to the top of the sheet and
+    // the rest moves down under it, as at TOP. Moved by translation: taking
+    // the row out of the sheet would take the focus, and the keyboard, too.
     private var searchAtBottom = false
+    private var searchRowLifted = false
 
     // A horizontal fling on the list switches to the neighbouring group tab
     // (not for the paged grid, which uses horizontal scroll for its pages).
@@ -330,22 +333,40 @@ class DrawerController(
             if (!searchingExternally && paged) View.VISIBLE else View.GONE
     }
 
+    private fun liftSearchRow() {
+        val keyboardUp = imeVisible ||
+            (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R && binding.drawerSearch.hasFocus())
+        val lifted = searchAtBottom && keyboardUp
+        if (lifted == searchRowLifted) return
+        searchRowLifted = lifted
+        applyInsetPadding()
+    }
+
+    private fun positionSearchRow() {
+        val row = binding.drawerSearchRow
+        row.translationY = if (searchRowLifted) (barInsets.top - row.top).toFloat() else 0f
+    }
+
     private fun applyInsetPadding() {
-        binding.drawerSheet.setPadding(barInsets.left, barInsets.top, barInsets.right, 0)
-        binding.drawerSearchResults.setPadding(0, 0, 0, context.dp(18) + barInsets.bottom)
+        // A row resting at the bottom takes the navigation bar's inset itself.
+        val rowOnNavBar = searchAtBottom && !searchRowLifted
+        val listInset = if (rowOnNavBar) 0 else barInsets.bottom
+        val liftedRow = if (searchRowLifted) context.dp(SEARCH_ROW_HEIGHT_DP) else 0
+        binding.drawerSheet.setPadding(barInsets.left, barInsets.top + liftedRow, barInsets.right, 0)
+        binding.drawerSearchResults.setPadding(0, 0, 0, context.dp(18) + listInset)
         // clipToPadding is false, so the list scrolls under the navigation bar
         // and comes to rest above it.
-        binding.drawerRecycler.setPadding(0, 0, 0, context.dp(18) + barInsets.bottom)
+        binding.drawerRecycler.setPadding(0, 0, 0, context.dp(18) + listInset)
         // A page doesn't scroll, so the paged style keeps its pages where the
         // list comes to rest, and cuts them to fit there (syncPages).
-        binding.drawerPager.setPadding(0, 0, 0, context.dp(18) + barInsets.bottom)
-        binding.drawerFastScroller.setPadding(0, context.dp(12), 0, context.dp(12) + barInsets.bottom)
+        binding.drawerPager.setPadding(0, 0, 0, context.dp(18) + listInset)
+        binding.drawerFastScroller.setPadding(0, context.dp(12), 0, context.dp(12) + listInset)
         // A 44dp field, on the line the old 52dp one was centred on.
         binding.drawerSearchRow.setPadding(
             context.dp(16),
             context.dp(16),
             context.dp(16),
-            context.dp(10) + if (searchAtBottom) barInsets.bottom else 0
+            context.dp(10) + if (rowOnNavBar) barInsets.bottom else 0
         )
         val tabsAtBottom = binding.drawerSheet.indexOfChild(binding.drawerTabs) ==
             binding.drawerSheet.childCount - 1
@@ -421,9 +442,15 @@ class DrawerController(
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.drawerSearchRow) { row, insets ->
             val ime = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom
             imeVisible = ime > 0
-            row.translationY = if (searchAtBottom && ime > 0) -ime.toFloat() else 0f
+            liftSearchRow()
             insets
         }
+        // ime() insets only report from API 30 on, so a focused field stands
+        // in for them below that.
+        binding.drawerSearch.setOnFocusChangeListener { _, _ -> liftSearchRow() }
+        binding.drawerSheet.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> positionSearchRow() }
+        // The lifted row is drawn in the padding that makes room for it.
+        binding.drawerSheet.clipToPadding = false
         binding.drawerSearchResults.addOnScrollListener(newScrollKeyboardHider())
         binding.drawerSearch.doAfterTextChanged { text ->
             if (suppressFilterEvents) return@doAfterTextChanged
@@ -547,14 +574,15 @@ class DrawerController(
         get() = binding.drawerSheet.visibility == View.VISIBLE &&
             behavior.state != BottomSheetBehavior.STATE_HIDDEN
 
-    fun open(focusSearch: Boolean = true) {
+    // forSearch: opened to type in (the home bar), keyboard setting or not.
+    fun open(forSearch: Boolean = false) {
         val prefs = viewModel.state.value.prefs
         prepareContent(prefs)
         if (isPulling) return
         if (!isVisible) {
             // Focus (and the keyboard it may bring) waits for the settle:
             // the IME coming up mid-slide stalls the sheet's last pixels.
-            val settled = { focusOnOpen(prefs, focusSearch) }
+            val settled = { focusOnOpen(prefs, forSearch) }
             when (transition) {
                 DrawerTransition.SLIDE_UP -> slideIn(prefs, settled)
                 DrawerTransition.ZOOM, DrawerTransition.FADE -> revealInPlace(prefs, settled)
@@ -595,23 +623,22 @@ class DrawerController(
         }
     }
 
-    // The IME halves a paged drawer's screen, so only auto-focus on
-    // vertically scrolling styles - unless the user explicitly asked for the
-    // keyboard. A hidden or global-on-tap field never takes focus.
+    // The field takes focus only along with the keyboard: focused without it,
+    // a cursor blinks in a field nobody is typing in. A hidden or global-on-tap
+    // field never takes focus.
     //
     // Landscape overrides even that explicit ask: the window is short enough
     // that the keyboard covers the app list entirely, and the sheet does not
     // resize under it (adjustNothing), so raising it on open means opening a
     // drawer with nothing in it. The field stays focusable - one tap still
     // brings the keyboard up.
-    private fun focusOnOpen(prefs: LauncherPrefs, focusSearch: Boolean) {
-        val autoKeyboard = prefs.drawerAutoKeyboard
-        val wanted = autoKeyboard || (focusSearch && currentStyle != DrawerStyle.PAGED_GRID)
+    private fun focusOnOpen(prefs: LauncherPrefs, forSearch: Boolean) {
+        val wanted = prefs.drawerAutoKeyboard || forSearch
         if (searchFieldVisible && !searchGlobalOnTap && wanted && !isLandscape()) {
             binding.drawerSearch.requestFocus()
             // Post: the IME request needs the sheet's window focus to have
             // settled after the expand.
-            if (autoKeyboard) binding.drawerSearch.post { showKeyboard() }
+            binding.drawerSearch.post { showKeyboard() }
         }
     }
 
@@ -697,7 +724,7 @@ class DrawerController(
             animateProgress(
                 1f, Animations.duration(prefs, SLIDE_MS),
                 android.view.animation.DecelerateInterpolator()
-            ) { focusOnOpen(prefs, focusSearch = true) }
+            ) { focusOnOpen(prefs, forSearch = false) }
             onOpenStateChanged?.invoke(true)
         } else {
             slideOut(prefs)
@@ -992,6 +1019,7 @@ class DrawerController(
         binding.root.context.getSystemService(InputMethodManager::class.java)
             ?.hideSoftInputFromWindow(binding.drawerSearch.windowToken, 0)
         imeVisible = false
+        liftSearchRow()
     }
 
     fun focusSearch() {
@@ -1110,7 +1138,7 @@ class DrawerController(
             if (members.isEmpty()) {
                 null
             } else {
-                AppDrawerAdapter.FolderEntry(group, buildFolderIcon(members), members)
+                AppDrawerAdapter.FolderEntry(group, buildFolderIcon(group, members), members)
             }
         }
         // Unless the folder keeps its apps in the main list too.
@@ -1381,6 +1409,7 @@ class DrawerController(
         val barPlacement = DrawerBarPlacement.fromConfig(searchConfig)
         searchFieldVisible = barPlacement != DrawerBarPlacement.HIDDEN
         searchAtBottom = barPlacement == DrawerBarPlacement.BOTTOM
+        if (!searchAtBottom) searchRowLifted = false
         searchGlobalOnTap = searchConfig.globalOnTap
         binding.drawerSearchField.visibility = if (searchFieldVisible) View.VISIBLE else View.GONE
 
@@ -1396,6 +1425,7 @@ class DrawerController(
 
         // Field styling (C7): filled pill vs outline, radius, start icon.
         val resolvedForBar = Styles.resolve(context, prefs).of(SurfaceId.DRAWER)
+        val resolvedField = Styles.resolve(context, prefs).of(SurfaceId.DRAWER_SEARCH_BAR)
         val density = context.resources.displayMetrics.density
         searchPill.cornerRadius =
             (searchConfig.radius ?: DrawerSearchBarConfig.MAX_RADIUS).coerceIn(0, DrawerSearchBarConfig.MAX_RADIUS) * density
@@ -1406,27 +1436,26 @@ class DrawerController(
             GlassPillDrawable(glass, searchPill.cornerRadius)
         }
         if (searchConfig.filled) {
-            searchPill.setColor((0x24 shl 24) or (resolvedForBar.text and 0xFFFFFF))
+            searchPill.setColor(resolvedField.surface)
             searchPill.setStroke(0, android.graphics.Color.TRANSPARENT)
         } else {
             searchPill.setColor(android.graphics.Color.TRANSPARENT)
             searchPill.setStroke(
                 (2 * density).toInt(),
-                (0x5A shl 24) or (resolvedForBar.text and 0xFFFFFF)
+                (0x5A shl 24) or (resolvedField.text and 0xFFFFFF)
             )
         }
         // The magnifier on the left is fixed, in the drawer's text colour.
         binding.drawerSearchIcon.visibility = View.VISIBLE
         binding.drawerSearchIcon.setImageResource(R.drawable.ic_search)
-        binding.drawerSearchIcon.imageTintList = android.content.res.ColorStateList.valueOf(resolvedForBar.text)
-        // The field sits on the drawer surface, not on a Material card, so its
-        // own text has to follow the resolved drawer palette.
-        binding.drawerSearch.setTextColor(resolvedForBar.text)
-        binding.drawerSearchGhost.setTextColor((0x80 shl 24) or (resolvedForBar.text and 0xFFFFFF))
+        binding.drawerSearchIcon.imageTintList = android.content.res.ColorStateList.valueOf(resolvedField.text)
+        // The field isn't on a Material card, so its text follows its own style.
+        binding.drawerSearch.setTextColor(resolvedField.text)
+        binding.drawerSearchGhost.setTextColor((0x80 shl 24) or (resolvedField.text and 0xFFFFFF))
         binding.drawerSearchGhost.typeface = binding.drawerSearch.typeface
-        binding.drawerSearch.setHintTextColor((0x8A shl 24) or (resolvedForBar.text and 0xFFFFFF))
+        binding.drawerSearch.setHintTextColor((0x8A shl 24) or (resolvedField.text and 0xFFFFFF))
         binding.drawerSearch.highlightColor =
-            (0x40 shl 24) or (resolvedForBar.accent and 0xFFFFFF)
+            (0x40 shl 24) or (resolvedField.accent and 0xFFFFFF)
 
         // The group tabs follow the drawer palette too. The Tab type: a
         // short bar under the label (Classic) or a pill behind it (Bubble).
@@ -1471,7 +1500,7 @@ class DrawerController(
                         DrawerActionButton.SETTINGS -> R.drawable.ic_tab_settings
                     }
                 )
-                imageTintList = android.content.res.ColorStateList.valueOf(resolvedForBar.text)
+                imageTintList = android.content.res.ColorStateList.valueOf(resolvedField.text)
                 background = null
                 // An ImageButton centres its icon at its own 24dp; fit it to
                 // the magnifier's 20dp box instead, so both ends match.
@@ -1784,6 +1813,8 @@ class DrawerController(
         // The search field's end inset alone, and beside its action buttons
         // (36dp, padded), which sit inside it.
         const val FIELD_END_DP = 16
+        // The row at rest away from the navigation bar: 16 + the 48dp field + 10.
+        const val SEARCH_ROW_HEIGHT_DP = 74
         const val FIELD_END_WITH_BUTTONS_DP = 4
         const val ACTION_BUTTON_DP = 36
         const val ACTION_BUTTON_PAD_DP = 8

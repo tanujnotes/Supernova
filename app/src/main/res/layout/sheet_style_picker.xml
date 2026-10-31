@@ -125,6 +125,16 @@
                 android:max="12" />
         </LinearLayout>
 
+        <TextView
+            android:id="@+id/styleGlassNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="@string/style_bar_glass_note"
+            android:textColor="@color/textSecondary"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
         <LinearLayout
             android:id="@+id/swatchRows"
             android:layout_width="match_parent"
@@ -191,6 +201,14 @@
                 android:text="@string/style_corner_radius"
                 android:textColor="@color/textPrimary"
                 android:textSize="15sp" />
+
+            <Button
+                android:id="@+id/radiusDefault"
+                style="@style/Widget.Supernova.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/option_default"
+                android:visibility="gone" />
 
             <ImageButton
                 android:id="@+id/radiusDown"

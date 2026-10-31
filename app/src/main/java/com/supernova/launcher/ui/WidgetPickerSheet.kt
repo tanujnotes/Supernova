@@ -32,7 +32,9 @@ object WidgetPickerSheet {
         // Current prefs, for the drawer surface color the sheet wears.
         prefs: com.supernova.launcher.data.LauncherPrefs,
         onPicked: (AppWidgetProviderInfo) -> Unit,
-        onPickShortcut: ((ShortcutTarget) -> Unit)? = null
+        onPickShortcut: ((ShortcutTarget) -> Unit)? = null,
+        // Shapes the launcher's own action tiles, where the sheet lists them.
+        renderTile: (android.graphics.drawable.Drawable) -> android.graphics.drawable.Drawable = { it }
     ) {
         val binding = SheetWidgetPickerBinding.inflate(LayoutInflater.from(activity))
         val dialog = BottomSheetDialog(activity)
@@ -82,7 +84,7 @@ object WidgetPickerSheet {
                 )
                 // The launcher's own actions are not search widgets either.
                 if (singleApp || filter != null) apps
-                else listOf(WidgetPickerGroups.launcherGroup(activity)) + apps
+                else listOf(WidgetPickerGroups.launcherGroup(activity, renderTile)) + apps
             }
             if (groups.isEmpty()) {
                 binding.widgetPickerEmpty.visibility = View.VISIBLE

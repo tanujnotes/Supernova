@@ -42,9 +42,22 @@ object StylePickerSheet {
 
     private enum class Slot { SURFACE, TEXT, ACCENT }
 
+    // The home bar's opacity is on its own page, with its radius.
     private val OPACITY_SURFACES = setOf(
-        SurfaceId.DRAWER, SurfaceId.DOCK, SurfaceId.FOLDER, SurfaceId.SEARCH_BAR, SurfaceId.HOME
+        SurfaceId.DRAWER, SurfaceId.DOCK, SurfaceId.FOLDER, SurfaceId.DRAWER_SEARCH_BAR, SurfaceId.HOME
     )
+
+    private val BAR_SURFACES = setOf(SurfaceId.SEARCH_BAR, SurfaceId.DRAWER_SEARCH_BAR)
+
+    private fun barGlassOn(surfaceId: SurfaceId, prefs: com.supernova.launcher.data.LauncherPrefs): Boolean {
+        val bars = com.supernova.launcher.ui.SearchBarConfig.decode(prefs.searchBarConfig)
+        val glass = when (surfaceId) {
+            SurfaceId.SEARCH_BAR -> bars.desktop.glass
+            SurfaceId.DRAWER_SEARCH_BAR -> bars.drawer.glass
+            else -> return false
+        }
+        return com.supernova.launcher.data.IconGlass.fromName(glass) != com.supernova.launcher.data.IconGlass.OFF
+    }
 
     fun show(context: Context, viewModel: LauncherViewModel, surfaceId: SurfaceId) {
         val binding = SheetStylePickerBinding.inflate(LayoutInflater.from(context))
@@ -133,10 +146,16 @@ object StylePickerSheet {
             persist()
             renderStrip()
             renderSwatches()
-            // The home background is transparent by default, and a color picked
-            // without an opacity is drawn solid: the slider shows which.
-            if (surfaceId == SurfaceId.HOME && style.alpha == null) {
-                val shown = if (style.surface.isDefault) 0 else FULL_OPACITY
+            // The home background is transparent by default and the drawer's
+            // field a faint tint, and a color picked without an opacity is
+            // drawn solid: the slider shows which.
+            val defaultOpacity = when (surfaceId) {
+                SurfaceId.HOME -> 0
+                SurfaceId.DRAWER_SEARCH_BAR -> DRAWER_FIELD_OPACITY
+                else -> null
+            }
+            if (defaultOpacity != null && style.alpha == null) {
+                val shown = if (style.surface.isDefault) defaultOpacity else FULL_OPACITY
                 binding.opacitySeek.progress = shown
                 binding.opacityValue.text = context.getString(R.string.opacity_percent, shown)
             }
@@ -280,6 +299,8 @@ object StylePickerSheet {
             binding.radiusValue.text = radius?.let {
                 context.getString(R.string.padding_dp_value, it)
             } ?: context.getString(R.string.option_default)
+            binding.radiusDefault.visibility =
+                if (radius == null) android.view.View.GONE else android.view.View.VISIBLE
         }
         // All four corners move together for now; per-corner editing comes
         // later, which is why four values are stored.
@@ -312,6 +333,15 @@ object StylePickerSheet {
             if (binding.cutGroup.checkedButtonId != id) binding.cutGroup.check(id)
         }
 
+        binding.radiusDefault.setOnClickListener {
+            radius = null
+            style = style.copy(cornerRadii = null, cornerCuts = null)
+            persist()
+            renderRadius()
+            renderCuts()
+            renderStrip()
+        }
+
         binding.cutGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (!isChecked) return@addOnButtonCheckedListener
             val cut = cutButtons.first { it.first.id == checkedId }.second
@@ -336,6 +366,15 @@ object StylePickerSheet {
                 binding.radiusDown.parent as android.view.View, binding.cornerShapeRow
             ).forEach { it.visibility = android.view.View.GONE }
         }
+        if (surfaceId in BAR_SURFACES) {
+            // A bar's shape is set on its own page.
+            binding.radiusDown.parent.let { (it as android.view.View).visibility = android.view.View.GONE }
+            binding.cornerShapeRow.visibility = android.view.View.GONE
+            if (barGlassOn(surfaceId, prefs)) {
+                binding.styleGlassNote.visibility = android.view.View.VISIBLE
+                binding.opacityRow.visibility = android.view.View.GONE
+            }
+        }
         renderCuts()
         renderRadius()
         renderSlotButtons()
@@ -350,4 +389,5 @@ object StylePickerSheet {
     private const val RADIUS_STEP = 4
     private const val RADIUS_MAX = 32
     private const val FULL_OPACITY = 100
+    private const val DRAWER_FIELD_OPACITY = 14
 }
