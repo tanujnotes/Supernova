@@ -1312,7 +1312,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             cardBinder = cardBinder(afterLaunch = { search.hide() }),
             drawerColumns = { drawer.columns() },
             // A widget card it showed took the feed card's widget view.
-            onHidden = { if (::feed.isInitialized && feed.isOpen) feed.rebindCards() },
+            onHidden = {
+                if (::feed.isInitialized) {
+                    feed.setBehindSearch(false)
+                    if (feed.isOpen) feed.rebindCards()
+                }
+            },
             // Search's apps, shortcuts and drawer folders are drawer icons
             // too, in the drawer's field or the search window alike.
             onAppLongPress = ::longPressNewApp,
@@ -1373,6 +1378,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             itemDragArmed = { drag.isArmed || drag.isActive },
             host = object : FeedController.Host {
                 override fun onOpenSearch() {
+                    feed.setBehindSearch(true)
                     search.open()
                 }
 
