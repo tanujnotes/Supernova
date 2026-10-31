@@ -163,6 +163,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     private val launchStartMs = SystemClock.elapsedRealtime()
 
     private lateinit var editMode: com.supernova.launcher.ui.HomeEditController
+    private lateinit var pageDrag: com.supernova.launcher.ui.PageDragController
     // Reorder preview ("make space"): while a drag hovers over an
     // occupied spot, the blocking items animate aside after a short pause to
     // show the layout a drop would produce, and animate back if the drag
@@ -481,20 +482,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             override fun currentPage(): Int = viewModel.state.value.currentPage
             override fun defaultPage(): Int = viewModel.state.value.model.defaultPage
             override fun isPageEmpty(page: Int): Boolean = viewModel.workspaceItems(page).isEmpty()
-            override fun pageViewFor(page: Int): View? {
-                val recycler = binding.workspacePager.getChildAt(0)
-                    as? androidx.recyclerview.widget.RecyclerView ?: return null
-                for (index in 0 until recycler.childCount) {
-                    val child = recycler.getChildAt(index)
-                    val position = recycler.getChildAdapterPosition(child)
-                    if (position != androidx.recyclerview.widget.RecyclerView.NO_POSITION &&
-                        workspaceAdapter.realPage(position) == page
-                    ) {
-                        return child
-                    }
-                }
-                return null
-            }
+            override fun pageViewFor(page: Int): View? = attachedPageView(page)
             override fun accentColor(): Int = getColor(R.color.accent)
             override fun jumpToPage(page: Int) {
                 binding.workspacePager.setCurrentItem(workspaceAdapter.centerPosition(page), true)
@@ -876,6 +864,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (::pageDrag.isInitialized && pageDrag.isActive) {
+            pageDrag.onTouch(ev)
+            return true
+        }
         if (::drag.isInitialized && drag.routeGesture(ev, window = null)) return true
         // An active drawer pull owns the stream until the finger lifts; it
         // runs before the visibility gate below, which the pull itself trips.
@@ -4545,8 +4537,36 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // Empty-space long-press: edit mode (zoomed page, home marker,
     // Wallpapers/Settings chips, peeking add sheet).
     override fun onCanvasLongPress() {
-        if (editMode.isOpen) return
+        if (editMode.isOpen) {
+            startPageDrag()
+            return
+        }
         editMode.enter()
+    }
+
+    // A long-press on a page in edit mode: the rest of the stream moves the
+    // page, so the pager and the canvas let it go.
+    private fun startPageDrag() {
+        if (desktopLocked || !pageDrag.start()) return
+        val now = android.os.SystemClock.uptimeMillis()
+        val cancel = MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, 0f, 0f, 0)
+        super.dispatchTouchEvent(cancel)
+        cancel.recycle()
+    }
+
+    // The live view rendering this page, when the pager still has one: with
+    // infinite scroll, the copy nearest the one in view.
+    private fun attachedPageView(page: Int): View? {
+        val recycler = binding.workspacePager.getChildAt(0)
+            as? androidx.recyclerview.widget.RecyclerView ?: return null
+        return (0 until recycler.childCount)
+            .map(recycler::getChildAt)
+            .filter { child ->
+                val position = recycler.getChildAdapterPosition(child)
+                position != androidx.recyclerview.widget.RecyclerView.NO_POSITION &&
+                    workspaceAdapter.realPage(position) == page && !workspaceAdapter.isAddPage(position)
+            }
+            .minByOrNull { kotlin.math.abs(it.left) }
     }
 
     // The add-page slot's "+" (and a pick from the sheet made on the slot):
@@ -4568,6 +4588,27 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     }
 
     private fun setupEditMode() {
+        pageDrag = com.supernova.launcher.ui.PageDragController(
+            binding.root, binding.workspacePager,
+            object : com.supernova.launcher.ui.PageDragController.Host {
+                override fun pageCount(): Int = workspaceAdapter.realPageCount
+                override fun currentPage(): Int = workspaceAdapter.realPage(binding.workspacePager.currentItem)
+                override fun pageView(page: Int): View? = attachedPageView(page)
+                override fun animationMs(baseMs: Long): Long =
+                    Animations.duration(viewModel.state.value.prefs, baseMs)
+                override fun commit(from: Int, to: Int, done: () -> Unit) {
+                    val before = viewModel.state.value.model
+                    viewModel.movePage(from, to)
+                    lifecycleScope.launch {
+                        withTimeoutOrNull(FOLDER_SAVE_WAIT_MS) { viewModel.state.first { it.model !== before } }
+                        binding.workspacePager.setCurrentItem(workspaceAdapter.centerPosition(to), false)
+                        editMode.onPageChanged()
+                        // The moved pages rebind on the next layout pass.
+                        binding.root.postDelayed(done, PAGE_REBIND_WAIT_MS)
+                    }
+                }
+            }
+        )
         editMode = com.supernova.launcher.ui.HomeEditController(
             this, binding, viewModel,
             object : com.supernova.launcher.ui.HomeEditController.Host {
@@ -4589,6 +4630,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 override fun cellSizePx(): Pair<Int, Int> = currentCellSizePx()
                 override fun grid(): Pair<Int, Int> =
                     viewModel.state.value.prefs.let { it.gridCols to it.gridRows }
+                override fun cancelPageDrag() = pageDrag.cancel()
                 override fun setAddPageSlot(show: Boolean) =
                     workspaceAdapter.setAddPageSlot(show, binding.workspacePager)
                 override fun onAddPage(): Boolean =
@@ -5285,6 +5327,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         private const val CIRCLE_FILL_MS = 280L
         // How long a folder member action waits for its change to be saved.
         private const val FOLDER_SAVE_WAIT_MS = 1_000L
+        private const val PAGE_REBIND_WAIT_MS = 100L
 
         // Reorder: how long a drag must hover one spot before items move
         // aside, how fast they slide, and how large the folder-merge centre
