@@ -28,6 +28,10 @@ object SearchMarks {
         SearchChip.GOOGLE -> R.string.chip_google
     }
 
+    // False with every provider unticked: there is no "Search with" to show.
+    fun hasProviders(prefs: LauncherPrefs?): Boolean =
+        SearchChip.decode(prefs?.searchChips.orEmpty()).isNotEmpty()
+
     // The web engine leads, so a web search stays reachable even when Google is
     // not one of the chips.
     fun chipsFor(prefs: LauncherPrefs?): List<SearchChip> {

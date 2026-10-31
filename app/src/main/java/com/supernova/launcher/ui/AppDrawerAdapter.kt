@@ -264,7 +264,8 @@ class AppDrawerAdapter(
         else -> ""
     }
 
-    private fun showWebRow(): Boolean = query.isNotBlank() && displayItems.isEmpty()
+    private fun showWebRow(): Boolean =
+        query.isNotBlank() && displayItems.isEmpty() && SearchMarks.hasProviders(labelPrefs)
 
     // Empty state: "Search with" header + the provider marks, the same answer
     // the global overlay gives.

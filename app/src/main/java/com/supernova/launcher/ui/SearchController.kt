@@ -500,6 +500,10 @@ class SearchController(
             onOpenUri(chip.url(query))
             surface.dismiss()
         },
+        onWeb = { web ->
+            onOpenUri(web.provider.searchUrl(web.query))
+            surface.dismiss()
+        },
         onCopyCalculation = ::copyToClipboard,
         onFrequentApp = { view, app ->
             onLaunchApp(view, app)
