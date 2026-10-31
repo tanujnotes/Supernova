@@ -1658,7 +1658,7 @@ class LauncherViewModel(
 
     private companion object {
         // The icon size settings' top.
-        const val MAX_ICON_RESOLUTION = 1.6f
+        const val MAX_ICON_RESOLUTION = 2f
         // How long a package-callback rescan waits for its burst to settle.
         const val REFRESH_COALESCE_MS = 300L
         // How long the first frame may wait for the startup warm before the

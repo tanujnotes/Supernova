@@ -42,7 +42,7 @@ class IconRenderer(context: Context) {
 
     private val resources = context.resources
     // How much larger than the base icon the biggest icon on screen is
-    // drawn (the icon size settings go to 160%), so a big icon is rendered
+    // drawn (the icon size settings go to 200%), so a big icon is rendered
     // at its own size rather than a 48dp bitmap stretched soft.
     var resolutionScale: Float = 1f
 

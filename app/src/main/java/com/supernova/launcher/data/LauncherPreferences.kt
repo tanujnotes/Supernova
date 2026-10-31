@@ -28,7 +28,7 @@ class LauncherPreferences(private val context: Context) {
             target[StoreKeys.gridRows] = prefs.gridRows.coerceIn(2, GridLimits.DESKTOP_BIG)
             target[StoreKeys.gridCols] = prefs.gridCols.coerceIn(2, GridLimits.DESKTOP_BIG)
             target[StoreKeys.dockCount] = prefs.dockCount.coerceIn(3, GridLimits.DOCK_BIG)
-            target[StoreKeys.iconScale] = prefs.iconScale.coerceIn(0.7f, 1.6f)
+            target[StoreKeys.iconScale] = prefs.iconScale.coerceIn(0.7f, 2f)
             target[StoreKeys.showLabels] = prefs.showLabels
             target[StoreKeys.wallpaperScroll] = prefs.wallpaperScroll
             target[StoreKeys.wallpaperScrollMode] = prefs.wallpaperScrollMode
@@ -59,7 +59,7 @@ class LauncherPreferences(private val context: Context) {
             target[StoreKeys.dockBgBehindNav] = prefs.dockBgBehindNav
             target[StoreKeys.dockBgPadding] = prefs.dockBgPadding
             target[StoreKeys.dockLabels] = prefs.dockLabels
-            target[StoreKeys.dockIconScale] = prefs.dockIconScale.coerceIn(0.7f, 1.6f)
+            target[StoreKeys.dockIconScale] = prefs.dockIconScale.coerceIn(0.7f, 2f)
             target[StoreKeys.widgetOverlap] = prefs.widgetOverlap
             target[StoreKeys.overlapWhenPlacing] = prefs.overlapWhenPlacing
             target[StoreKeys.widgetPadding] = prefs.widgetPadding.coerceIn(0, 24)
@@ -87,7 +87,7 @@ class LauncherPreferences(private val context: Context) {
             target[StoreKeys.drawerFoldersFirst] = prefs.drawerFoldersFirst
             target[StoreKeys.smartFolders] = prefs.smartFolders
             target[StoreKeys.smartFoldersDismissed] = prefs.smartFoldersDismissed
-            target[StoreKeys.drawerIconScale] = prefs.drawerIconScale.coerceIn(0.7f, 1.6f)
+            target[StoreKeys.drawerIconScale] = prefs.drawerIconScale.coerceIn(0.7f, 2f)
             target[StoreKeys.drawerMatchDesktop] = prefs.drawerMatchDesktop
             target[StoreKeys.drawerBgOpacity] = prefs.drawerBgOpacity.coerceIn(0.2f, 1f)
             target[StoreKeys.drawerFastScroller] = prefs.drawerFastScroller
@@ -127,7 +127,7 @@ class LauncherPreferences(private val context: Context) {
             target[StoreKeys.folderColumns] = prefs.folderColumns.coerceIn(0, GridLimits.FOLDER_COLUMNS_BIG)
             target[StoreKeys.folderSortAz] = prefs.folderSortAz
             target[StoreKeys.folderCloseOnLaunch] = prefs.folderCloseOnLaunch
-            target[StoreKeys.folderIconScale] = prefs.folderIconScale.coerceIn(0.7f, 1.6f)
+            target[StoreKeys.folderIconScale] = prefs.folderIconScale.coerceIn(0.7f, 2f)
             target[StoreKeys.folderMatchDesktop] = prefs.folderMatchDesktop
             target[StoreKeys.folderShowName] = prefs.folderShowName
             target[StoreKeys.folderShowCount] = prefs.folderShowCount
@@ -236,7 +236,7 @@ class LauncherPreferences(private val context: Context) {
             gridRows = (values[StoreKeys.gridRows] ?: 6).coerceIn(2, GridLimits.DESKTOP_BIG),
             gridCols = (values[StoreKeys.gridCols] ?: 5).coerceIn(2, GridLimits.DESKTOP_BIG),
             dockCount = (values[StoreKeys.dockCount] ?: 5).coerceIn(3, GridLimits.DOCK_BIG),
-            iconScale = (values[StoreKeys.iconScale] ?: 1f).coerceIn(0.7f, 1.6f),
+            iconScale = (values[StoreKeys.iconScale] ?: 1f).coerceIn(0.7f, 2f),
             showLabels = values[StoreKeys.showLabels] ?: true,
             wallpaperScroll = values[StoreKeys.wallpaperScroll] ?: true,
             wallpaperScrollMode = values[StoreKeys.wallpaperScrollMode].orEmpty(),
@@ -267,7 +267,7 @@ class LauncherPreferences(private val context: Context) {
             dockBgBehindNav = values[StoreKeys.dockBgBehindNav] ?: false,
             dockBgPadding = values[StoreKeys.dockBgPadding] ?: false,
             dockLabels = values[StoreKeys.dockLabels] ?: false,
-            dockIconScale = (values[StoreKeys.dockIconScale] ?: 1f).coerceIn(0.7f, 1.6f),
+            dockIconScale = (values[StoreKeys.dockIconScale] ?: 1f).coerceIn(0.7f, 2f),
             widgetOverlap = values[StoreKeys.widgetOverlap] ?: false,
             overlapWhenPlacing = values[StoreKeys.overlapWhenPlacing] ?: false,
             widgetPadding = (values[StoreKeys.widgetPadding] ?: 0).coerceIn(0, 24),
@@ -295,7 +295,7 @@ class LauncherPreferences(private val context: Context) {
             drawerFoldersFirst = values[StoreKeys.drawerFoldersFirst] ?: true,
             smartFolders = values[StoreKeys.smartFolders] ?: true,
             smartFoldersDismissed = values[StoreKeys.smartFoldersDismissed] ?: emptySet(),
-            drawerIconScale = (values[StoreKeys.drawerIconScale] ?: 1f).coerceIn(0.7f, 1.6f),
+            drawerIconScale = (values[StoreKeys.drawerIconScale] ?: 1f).coerceIn(0.7f, 2f),
             drawerMatchDesktop = values[StoreKeys.drawerMatchDesktop] ?: true,
             drawerBgOpacity = (values[StoreKeys.drawerBgOpacity] ?: 1f).coerceIn(0.2f, 1f),
             drawerFastScroller = values[StoreKeys.drawerFastScroller] ?: true,
@@ -336,7 +336,7 @@ class LauncherPreferences(private val context: Context) {
             folderColumns = (values[StoreKeys.folderColumns] ?: 0).coerceIn(0, GridLimits.FOLDER_COLUMNS_BIG),
             folderSortAz = values[StoreKeys.folderSortAz] ?: false,
             folderCloseOnLaunch = values[StoreKeys.folderCloseOnLaunch] ?: true,
-            folderIconScale = (values[StoreKeys.folderIconScale] ?: 1f).coerceIn(0.7f, 1.6f),
+            folderIconScale = (values[StoreKeys.folderIconScale] ?: 1f).coerceIn(0.7f, 2f),
             folderMatchDesktop = values[StoreKeys.folderMatchDesktop] ?: false,
             folderShowName = values[StoreKeys.folderShowName] ?: true,
             folderShowCount = values[StoreKeys.folderShowCount] ?: false,
@@ -423,7 +423,7 @@ class LauncherPreferences(private val context: Context) {
 
     suspend fun setDockCount(value: Int) = put(StoreKeys.dockCount, value.coerceIn(3, GridLimits.DOCK_BIG))
 
-    suspend fun setIconScale(value: Float) = put(StoreKeys.iconScale, value.coerceIn(0.7f, 1.6f))
+    suspend fun setIconScale(value: Float) = put(StoreKeys.iconScale, value.coerceIn(0.7f, 2f))
 
     suspend fun setShowLabels(value: Boolean) = put(StoreKeys.showLabels, value)
 
@@ -556,7 +556,7 @@ class LauncherPreferences(private val context: Context) {
 
     suspend fun setDockLabels(value: Boolean) = put(StoreKeys.dockLabels, value)
 
-    suspend fun setDockIconScale(value: Float) = put(StoreKeys.dockIconScale, value.coerceIn(0.7f, 1.6f))
+    suspend fun setDockIconScale(value: Float) = put(StoreKeys.dockIconScale, value.coerceIn(0.7f, 2f))
 
     suspend fun setWidgetOverlap(value: Boolean) = put(StoreKeys.widgetOverlap, value)
 
@@ -620,7 +620,7 @@ class LauncherPreferences(private val context: Context) {
         }
     }
 
-    suspend fun setDrawerIconScale(value: Float) = put(StoreKeys.drawerIconScale, value.coerceIn(0.7f, 1.6f))
+    suspend fun setDrawerIconScale(value: Float) = put(StoreKeys.drawerIconScale, value.coerceIn(0.7f, 2f))
 
     suspend fun setDrawerMatchDesktop(value: Boolean) = put(StoreKeys.drawerMatchDesktop, value)
 
@@ -705,7 +705,7 @@ class LauncherPreferences(private val context: Context) {
 
     suspend fun setFolderCloseOnLaunch(value: Boolean) = put(StoreKeys.folderCloseOnLaunch, value)
 
-    suspend fun setFolderIconScale(value: Float) = put(StoreKeys.folderIconScale, value.coerceIn(0.7f, 1.6f))
+    suspend fun setFolderIconScale(value: Float) = put(StoreKeys.folderIconScale, value.coerceIn(0.7f, 2f))
 
     suspend fun setFolderMatchDesktop(value: Boolean) = put(StoreKeys.folderMatchDesktop, value)
 

@@ -55,7 +55,7 @@ class DeviceProfileTest {
             assert(it.gridCols in 2..12) { it }
             assert(it.gridRows in 2..12) { it }
             assert(it.dockCount in 3..7) { it }
-            assert(it.iconScale in 0.7f..1.6f) { it }
+            assert(it.iconScale in 0.7f..2f) { it }
         }
     }
 }

@@ -929,7 +929,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         // The icon box item_icon.xml and item_drawer_app.xml declare, which
         // every surface's icon size scales, and the top of the icon size bars.
         const val ICON_BASE_DP = 48
-        const val MAX_ICON_SCALE = 1.6f
+        const val MAX_ICON_SCALE = 2f
         // A dock item's side padding (LauncherActivity.DOCK_ITEM_PADDING_H_DP).
         const val DOCK_ITEM_PADDING_H_DP = 2
         // Widest grid the preview draws; the columns slider hides the rest.
