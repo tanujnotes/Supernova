@@ -145,8 +145,11 @@ class DrawerController(
     private var searchFieldVisible = true
     private var searchGlobalOnTap = false
     // BOTTOM placement: the IME would cover the field (the window never
-    // resizes), so an inset listener lifts the row above the keyboard.
+    // resizes), so while it is up the row goes to the top of the sheet and
+    // the rest moves down under it, as at TOP. Moved by translation: taking
+    // the row out of the sheet would take the focus, and the keyboard, too.
     private var searchAtBottom = false
+    private var searchRowLifted = false
 
     // A horizontal fling on the list switches to the neighbouring group tab
     // (not for the paged grid, which uses horizontal scroll for its pages).
@@ -330,22 +333,40 @@ class DrawerController(
             if (!searchingExternally && paged) View.VISIBLE else View.GONE
     }
 
+    private fun liftSearchRow() {
+        val keyboardUp = imeVisible ||
+            (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R && binding.drawerSearch.hasFocus())
+        val lifted = searchAtBottom && keyboardUp
+        if (lifted == searchRowLifted) return
+        searchRowLifted = lifted
+        applyInsetPadding()
+    }
+
+    private fun positionSearchRow() {
+        val row = binding.drawerSearchRow
+        row.translationY = if (searchRowLifted) (barInsets.top - row.top).toFloat() else 0f
+    }
+
     private fun applyInsetPadding() {
-        binding.drawerSheet.setPadding(barInsets.left, barInsets.top, barInsets.right, 0)
-        binding.drawerSearchResults.setPadding(0, 0, 0, context.dp(18) + barInsets.bottom)
+        // A row resting at the bottom takes the navigation bar's inset itself.
+        val rowOnNavBar = searchAtBottom && !searchRowLifted
+        val listInset = if (rowOnNavBar) 0 else barInsets.bottom
+        val liftedRow = if (searchRowLifted) context.dp(SEARCH_ROW_HEIGHT_DP) else 0
+        binding.drawerSheet.setPadding(barInsets.left, barInsets.top + liftedRow, barInsets.right, 0)
+        binding.drawerSearchResults.setPadding(0, 0, 0, context.dp(18) + listInset)
         // clipToPadding is false, so the list scrolls under the navigation bar
         // and comes to rest above it.
-        binding.drawerRecycler.setPadding(0, 0, 0, context.dp(18) + barInsets.bottom)
+        binding.drawerRecycler.setPadding(0, 0, 0, context.dp(18) + listInset)
         // A page doesn't scroll, so the paged style keeps its pages where the
         // list comes to rest, and cuts them to fit there (syncPages).
-        binding.drawerPager.setPadding(0, 0, 0, context.dp(18) + barInsets.bottom)
-        binding.drawerFastScroller.setPadding(0, context.dp(12), 0, context.dp(12) + barInsets.bottom)
+        binding.drawerPager.setPadding(0, 0, 0, context.dp(18) + listInset)
+        binding.drawerFastScroller.setPadding(0, context.dp(12), 0, context.dp(12) + listInset)
         // A 44dp field, on the line the old 52dp one was centred on.
         binding.drawerSearchRow.setPadding(
             context.dp(16),
             context.dp(16),
             context.dp(16),
-            context.dp(10) + if (searchAtBottom) barInsets.bottom else 0
+            context.dp(10) + if (rowOnNavBar) barInsets.bottom else 0
         )
         val tabsAtBottom = binding.drawerSheet.indexOfChild(binding.drawerTabs) ==
             binding.drawerSheet.childCount - 1
@@ -421,9 +442,15 @@ class DrawerController(
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.drawerSearchRow) { row, insets ->
             val ime = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom
             imeVisible = ime > 0
-            row.translationY = if (searchAtBottom && ime > 0) -ime.toFloat() else 0f
+            liftSearchRow()
             insets
         }
+        // ime() insets only report from API 30 on, so a focused field stands
+        // in for them below that.
+        binding.drawerSearch.setOnFocusChangeListener { _, _ -> liftSearchRow() }
+        binding.drawerSheet.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> positionSearchRow() }
+        // The lifted row is drawn in the padding that makes room for it.
+        binding.drawerSheet.clipToPadding = false
         binding.drawerSearchResults.addOnScrollListener(newScrollKeyboardHider())
         binding.drawerSearch.doAfterTextChanged { text ->
             if (suppressFilterEvents) return@doAfterTextChanged
@@ -992,6 +1019,7 @@ class DrawerController(
         binding.root.context.getSystemService(InputMethodManager::class.java)
             ?.hideSoftInputFromWindow(binding.drawerSearch.windowToken, 0)
         imeVisible = false
+        liftSearchRow()
     }
 
     fun focusSearch() {
@@ -1381,6 +1409,7 @@ class DrawerController(
         val barPlacement = DrawerBarPlacement.fromConfig(searchConfig)
         searchFieldVisible = barPlacement != DrawerBarPlacement.HIDDEN
         searchAtBottom = barPlacement == DrawerBarPlacement.BOTTOM
+        if (!searchAtBottom) searchRowLifted = false
         searchGlobalOnTap = searchConfig.globalOnTap
         binding.drawerSearchField.visibility = if (searchFieldVisible) View.VISIBLE else View.GONE
 
@@ -1784,6 +1813,8 @@ class DrawerController(
         // The search field's end inset alone, and beside its action buttons
         // (36dp, padded), which sit inside it.
         const val FIELD_END_DP = 16
+        // The row at rest away from the navigation bar: 16 + the 48dp field + 10.
+        const val SEARCH_ROW_HEIGHT_DP = 74
         const val FIELD_END_WITH_BUTTONS_DP = 4
         const val ACTION_BUTTON_DP = 36
         const val ACTION_BUTTON_PAD_DP = 8
