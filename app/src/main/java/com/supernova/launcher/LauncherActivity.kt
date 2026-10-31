@@ -1343,10 +1343,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             dismiss = { hideDrawer() }
         )
         // The home bar opens the drawer, not the search window: the drawer
-        // arrives with its own field focused, so a tap still lands on a
-        // keyboard. The bar's search chip and the gestures still reach the
-        // global overlay.
-        binding.desktopSearchBar.onTap = { openDrawer() }
+        // arrives with its own field focused and the keyboard up, whatever
+        // the drawer's keyboard setting. The bar's search chip and the
+        // gestures still reach the global overlay.
+        binding.desktopSearchBar.onTap = { openDrawer(forSearch = true) }
         binding.desktopSearchBar.onLongPress = { anchor -> showSearchBarMenu(anchor) }
     }
 
@@ -2374,9 +2374,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         )
     }
 
-    private fun openDrawer() {
+    private fun openDrawer(forSearch: Boolean = false) {
         animateWallpaperZoom(1f)
-        drawer.open()
+        drawer.open(forSearch)
     }
 
     // Ramp the wallpaper zoom toward target (0 = normal, 1 = zoomed out).

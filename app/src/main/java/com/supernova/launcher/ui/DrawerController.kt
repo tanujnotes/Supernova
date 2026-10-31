@@ -574,14 +574,15 @@ class DrawerController(
         get() = binding.drawerSheet.visibility == View.VISIBLE &&
             behavior.state != BottomSheetBehavior.STATE_HIDDEN
 
-    fun open(focusSearch: Boolean = true) {
+    // forSearch: opened to type in (the home bar), keyboard setting or not.
+    fun open(forSearch: Boolean = false) {
         val prefs = viewModel.state.value.prefs
         prepareContent(prefs)
         if (isPulling) return
         if (!isVisible) {
             // Focus (and the keyboard it may bring) waits for the settle:
             // the IME coming up mid-slide stalls the sheet's last pixels.
-            val settled = { focusOnOpen(prefs, focusSearch) }
+            val settled = { focusOnOpen(prefs, forSearch) }
             when (transition) {
                 DrawerTransition.SLIDE_UP -> slideIn(prefs, settled)
                 DrawerTransition.ZOOM, DrawerTransition.FADE -> revealInPlace(prefs, settled)
@@ -622,23 +623,22 @@ class DrawerController(
         }
     }
 
-    // The IME halves a paged drawer's screen, so only auto-focus on
-    // vertically scrolling styles - unless the user explicitly asked for the
-    // keyboard. A hidden or global-on-tap field never takes focus.
+    // The field takes focus only along with the keyboard: focused without it,
+    // a cursor blinks in a field nobody is typing in. A hidden or global-on-tap
+    // field never takes focus.
     //
     // Landscape overrides even that explicit ask: the window is short enough
     // that the keyboard covers the app list entirely, and the sheet does not
     // resize under it (adjustNothing), so raising it on open means opening a
     // drawer with nothing in it. The field stays focusable - one tap still
     // brings the keyboard up.
-    private fun focusOnOpen(prefs: LauncherPrefs, focusSearch: Boolean) {
-        val autoKeyboard = prefs.drawerAutoKeyboard
-        val wanted = autoKeyboard || (focusSearch && currentStyle != DrawerStyle.PAGED_GRID)
+    private fun focusOnOpen(prefs: LauncherPrefs, forSearch: Boolean) {
+        val wanted = prefs.drawerAutoKeyboard || forSearch
         if (searchFieldVisible && !searchGlobalOnTap && wanted && !isLandscape()) {
             binding.drawerSearch.requestFocus()
             // Post: the IME request needs the sheet's window focus to have
             // settled after the expand.
-            if (autoKeyboard) binding.drawerSearch.post { showKeyboard() }
+            binding.drawerSearch.post { showKeyboard() }
         }
     }
 
@@ -724,7 +724,7 @@ class DrawerController(
             animateProgress(
                 1f, Animations.duration(prefs, SLIDE_MS),
                 android.view.animation.DecelerateInterpolator()
-            ) { focusOnOpen(prefs, focusSearch = true) }
+            ) { focusOnOpen(prefs, forSearch = false) }
             onOpenStateChanged?.invoke(true)
         } else {
             slideOut(prefs)
