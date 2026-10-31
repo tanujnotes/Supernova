@@ -372,13 +372,33 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             photoPickCallback = null
         }
 
+    // The system file picker reaches every storage provider and file manager,
+    // where the photo picker shows only the media library.
+    private val pickPhotoFileLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            photoPickCallback?.invoke(uri)
+            photoPickCallback = null
+        }
+
     private fun pickPhoto(onPicked: (android.net.Uri?) -> Unit) {
-        photoPickCallback = onPicked
-        pickPhotoLauncher.launch(
-            androidx.activity.result.PickVisualMediaRequest(
-                ActivityResultContracts.PickVisualMedia.ImageOnly
-            )
-        )
+        val sources = arrayOf(getString(R.string.photo_from_gallery), getString(R.string.wallpaper_from_files))
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.choose_photo)
+            .setItems(sources) { _, which ->
+                photoPickCallback = onPicked
+                runCatching {
+                    if (which == 0) {
+                        pickPhotoLauncher.launch(
+                            androidx.activity.result.PickVisualMediaRequest(
+                                ActivityResultContracts.PickVisualMedia.ImageOnly
+                            )
+                        )
+                    } else {
+                        pickPhotoFileLauncher.launch(arrayOf("image/*"))
+                    }
+                }.onFailure { Toast.makeText(this, R.string.launch_failed, Toast.LENGTH_SHORT).show() }
+            }
+            .show()
     }
 
     private val exportBackupLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
