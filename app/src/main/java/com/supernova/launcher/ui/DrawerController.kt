@@ -145,10 +145,14 @@ class DrawerController(
     private var searchFieldVisible = true
     private var searchGlobalOnTap = false
     // BOTTOM placement: the IME would cover the field (the window never
-    // resizes), so while it is up the row goes to the top of the sheet and
-    // the rest moves down under it, as at TOP. Moved by translation: taking
-    // the row out of the sheet would take the focus, and the keyboard, too.
+    // resizes), so while it is up the sheet pads clear of it and the row
+    // rests on the keyboard, with the list ending above the row. Below API 30
+    // the keyboard's height isn't reported, so a focused field goes to the
+    // top of the sheet instead and the rest moves down under it, as at TOP.
+    // Moved by translation: taking the row out of the sheet would take the
+    // focus, and the keyboard, too.
     private var searchAtBottom = false
+    private var keyboardHeight = 0
     private var searchRowLifted = false
 
     // A horizontal fling on the list switches to the neighbouring group tab
@@ -334,9 +338,8 @@ class DrawerController(
     }
 
     private fun liftSearchRow() {
-        val keyboardUp = imeVisible ||
-            (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R && binding.drawerSearch.hasFocus())
-        val lifted = searchAtBottom && keyboardUp
+        val lifted = searchAtBottom && binding.drawerSearch.hasFocus() &&
+            android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R
         if (lifted == searchRowLifted) return
         searchRowLifted = lifted
         applyInsetPadding()
@@ -348,11 +351,14 @@ class DrawerController(
     }
 
     private fun applyInsetPadding() {
-        // A row resting at the bottom takes the navigation bar's inset itself.
-        val rowOnNavBar = searchAtBottom && !searchRowLifted
-        val listInset = if (rowOnNavBar) 0 else barInsets.bottom
+        val rowBelowList = searchAtBottom && !searchRowLifted
+        val keyboardInset = if (rowBelowList) keyboardHeight else 0
+        // A row resting at the bottom takes the navigation bar's inset itself,
+        // unless the keyboard, which covers that bar, is under it.
+        val rowOnNavBar = rowBelowList && keyboardInset == 0
+        val listInset = if (rowBelowList) 0 else barInsets.bottom
         val liftedRow = if (searchRowLifted) context.dp(SEARCH_ROW_HEIGHT_DP) else 0
-        binding.drawerSheet.setPadding(barInsets.left, barInsets.top + liftedRow, barInsets.right, 0)
+        binding.drawerSheet.setPadding(barInsets.left, barInsets.top + liftedRow, barInsets.right, keyboardInset)
         binding.drawerSearchResults.setPadding(0, 0, 0, context.dp(18) + listInset)
         // clipToPadding is false, so the list scrolls under the navigation bar
         // and comes to rest above it.
@@ -442,11 +448,14 @@ class DrawerController(
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.drawerSearchRow) { row, insets ->
             val ime = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom
             imeVisible = ime > 0
-            liftSearchRow()
+            if (ime != keyboardHeight) {
+                keyboardHeight = ime
+                applyInsetPadding()
+            }
             insets
         }
         // ime() insets only report from API 30 on, so a focused field stands
-        // in for them below that.
+        // in for them below that (the lift is a no-op from 30 on).
         binding.drawerSearch.setOnFocusChangeListener { _, _ -> liftSearchRow() }
         binding.drawerSheet.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> positionSearchRow() }
         // The lifted row is drawn in the padding that makes room for it.
@@ -1019,6 +1028,8 @@ class DrawerController(
         binding.root.context.getSystemService(InputMethodManager::class.java)
             ?.hideSoftInputFromWindow(binding.drawerSearch.windowToken, 0)
         imeVisible = false
+        keyboardHeight = 0
+        applyInsetPadding()
         liftSearchRow()
     }
 
