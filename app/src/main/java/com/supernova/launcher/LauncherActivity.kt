@@ -3546,13 +3546,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 val sortAz = viewModel.state.value.prefs.folderSortAz
                 memberMenu?.dismiss()
                 drag.arm(memberView, DragPayload.ExistingItem(member.id), window = popup) {
+                    val locked = desktopLocked
                     val menu = newItemPopup()
-                    menu.addRow(getString(R.string.remove_from_folder), R.drawable.ic_menu_add) {
-                        val page = pageForFolderMembers(folder)
-                        val free = viewModel.firstFreeWorkspaceCell(page)
-                        if (free == null) {
-                            Toast.makeText(this, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
-                        } else {
+                    if (!locked) {
+                        menu.addRow(getString(R.string.remove), R.drawable.ic_menu_remove_item) {
                             val before = viewModel.state.value.model
                             // The move a drag onto that free cell makes, so a
                             // folder left with one app gives way to it here
@@ -3568,10 +3565,43 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                             viewModel.reorderFolderMember(folder.id, member.id, -1)
                             applied(before)
                         }
-                        menu.addRow(getString(R.string.move_down), R.drawable.ic_menu_down) {
-                            val before = viewModel.state.value.model
-                            viewModel.reorderFolderMember(folder.id, member.id, 1)
-                            applied(before)
+                        menu.addRow(getString(R.string.app_info), R.drawable.ic_menu_info) {
+                            viewModel.appCatalog().openAppInfo(pkg, member.className, member.userSerial)
+                        }
+                    }
+                    menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) {
+                        // The folder closes first: as a focusable window it
+                        // would keep the keyboard from the sheet's name field.
+                        popup?.dismiss()
+                        showItemEditSheet(member, allowSwipe = false)
+                    }
+                    if (!locked) {
+                        menu.addRow(getString(R.string.remove_from_folder), R.drawable.ic_menu_add) {
+                            val page = pageForFolderMembers(folder)
+                            val free = viewModel.firstFreeWorkspaceCell(page)
+                            if (free == null) {
+                                Toast.makeText(this, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
+                            } else {
+                                val before = viewModel.state.value.model
+                                // The move a drag onto that free cell makes, so a
+                                // folder left with one app gives way to it here
+                                // too.
+                                viewModel.moveItemToWorkspace(member.id, page, free.first, free.second, mergeFolders = false)
+                                applied(before)
+                            }
+                        }
+                        // The folder's own order, which an A-Z folder doesn't show.
+                        if (!sortAz) {
+                            menu.addRow(getString(R.string.move_up), R.drawable.ic_menu_swipe) {
+                                val before = viewModel.state.value.model
+                                viewModel.reorderFolderMember(folder.id, member.id, -1)
+                                applied(before)
+                            }
+                            menu.addRow(getString(R.string.move_down), R.drawable.ic_menu_down) {
+                                val before = viewModel.state.value.model
+                                viewModel.reorderFolderMember(folder.id, member.id, 1)
+                                applied(before)
+                            }
                         }
                     }
                     menu.show(memberView, menuTouchX)
