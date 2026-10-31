@@ -1,0 +1,9 @@
+Reorder home pages by dragging them, plus search fixes and more of your reports.
+
+- Edit mode: long-press a page to move it
+- Search bar: keyboard on tap, first result on Enter, separate Style targets
+- Folder apps get App info, Edit and Widgets; drawer folders can have an icon
+- Icon photos from any file; action icons follow the icon shape
+- Cancel a drag from the drawer; Unhide from search
+- Names sort in your alphabet
+- Fixed the bottom drawer bar and shortcuts pinned to full grids
