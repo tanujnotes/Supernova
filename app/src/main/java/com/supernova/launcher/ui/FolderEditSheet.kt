@@ -50,7 +50,7 @@ object FolderEditSheet {
         binding.editTitle.text = originalName.ifBlank { context.getString(R.string.folder) }
         binding.editLabel.setText(originalName)
         hideAppRows(binding)
-        bindIconRows(context, scope, viewModel, binding, icon, pickPhoto)
+        bindIconRows(scope, viewModel, binding, icon, pickPhoto)
         val isFolder = folder.itemType == ItemType.FOLDER
 
         // Read live, so a re-open shows what a just-committed pick left.
@@ -128,7 +128,7 @@ object FolderEditSheet {
         binding.swipeToOpenRow.visibility = View.GONE
         binding.swipeUpRow.visibility = View.GONE
         binding.swipeDownRow.visibility = View.GONE
-        bindIconRows(context, scope, viewModel, binding, icon, pickPhoto)
+        bindIconRows(scope, viewModel, binding, icon, pickPhoto)
 
         binding.saveButton.setOnClickListener {
             val typed = binding.editLabel.text?.toString().orEmpty().trim()
@@ -167,13 +167,13 @@ object FolderEditSheet {
     }
 
     private fun bindIconRows(
-        context: Context,
         scope: CoroutineScope,
         viewModel: LauncherViewModel,
         binding: SheetAppEditBinding,
         icon: IconChoice,
         pickPhoto: ((android.net.Uri?) -> Unit) -> Unit
     ) {
+        val context = binding.root.context
         fun renderIcon() {
             binding.iconValue.text = when {
                 icon.photo != null -> context.getString(R.string.choose_photo)

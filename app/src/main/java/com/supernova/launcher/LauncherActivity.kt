@@ -3101,7 +3101,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // order of its own to Sort.
         menu.addRow(getString(R.string.select_apps), R.drawable.ic_menu_select_apps) { showDrawerGroupChecklist(group) }
         menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) {
-            com.supernova.launcher.ui.FolderEditSheet.showDrawerFolder(this, lifecycleScope, viewModel, group, ::pickPhoto)
+            com.supernova.launcher.ui.FolderEditSheet
+                .showDrawerFolder(this, lifecycleScope, viewModel, group, ::pickPhoto)
         }
         menu.show(anchor, menuTouchX)
         return menu
@@ -3316,8 +3317,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 this, lifecycleScope, viewModel, item, ::pickPhoto,
                 onEditSwipe = { down, onPicked -> showSwipeActionPicker(item, down) { onPicked(it) } }
             )
-            return
+        } else {
+            showAppEditSheet(item, allowSwipe)
         }
+    }
+
+    private fun showAppEditSheet(item: LauncherItem, allowSwipe: Boolean) {
         val app = item.toLaunchableApp()
         // Anything but an app icon edits its own label, not its app's.
         val itemLabel = if (item.itemType == ItemType.APP) {
@@ -3523,6 +3528,74 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         }
     }
 
+    // An app in a home folder: its home icon's rows, then the folder's own.
+    private fun folderMemberMenu(
+        folder: LauncherItem,
+        member: LauncherItem,
+        sortAz: Boolean,
+        closeFolder: () -> Unit,
+        applied: (com.supernova.launcher.data.LauncherModel) -> Unit
+    ): SupernovaPopupMenu {
+        val locked = desktopLocked
+        val menu = newItemPopup()
+        if (!locked) {
+            menu.addRow(getString(R.string.remove), R.drawable.ic_menu_remove_item) {
+                val before = viewModel.state.value.model
+                // The folder's last app takes the folder with it.
+                val last = viewModel.folderMembers(folder.id).size <= 1
+                removeItemWithUndo(if (last) folder else member)
+                applied(before)
+            }
+        }
+        member.packageName?.let { pkg ->
+            if (member.itemType == ItemType.APP && !locked) {
+                menu.addRow(getString(R.string.widgets_row), R.drawable.ic_menu_widgets) {
+                    closeFolder()
+                    widgets.showPickerFor(pkg)
+                }
+            }
+            menu.addRow(getString(R.string.app_info), R.drawable.ic_menu_info) {
+                viewModel.appCatalog().openAppInfo(pkg, member.className, member.userSerial)
+            }
+        }
+        menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) {
+            // The folder closes first: as a focusable window it
+            // would keep the keyboard from the sheet's name field.
+            closeFolder()
+            showItemEditSheet(member, allowSwipe = false)
+        }
+        if (!locked) {
+            menu.addRow(getString(R.string.remove_from_folder), R.drawable.ic_menu_add) {
+                val page = pageForFolderMembers(folder)
+                val free = viewModel.firstFreeWorkspaceCell(page)
+                if (free == null) {
+                    Toast.makeText(this, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
+                } else {
+                    val before = viewModel.state.value.model
+                    // The move a drag onto that free cell makes, so a
+                    // folder left with one app gives way to it here
+                    // too.
+                    viewModel.moveItemToWorkspace(member.id, page, free.first, free.second, mergeFolders = false)
+                    applied(before)
+                }
+            }
+            // The folder's own order, which an A-Z folder doesn't show.
+            if (!sortAz) {
+                menu.addRow(getString(R.string.move_up), R.drawable.ic_menu_swipe) {
+                    val before = viewModel.state.value.model
+                    viewModel.reorderFolderMember(folder.id, member.id, -1)
+                    applied(before)
+                }
+                menu.addRow(getString(R.string.move_down), R.drawable.ic_menu_down) {
+                    val before = viewModel.state.value.model
+                    viewModel.reorderFolderMember(folder.id, member.id, 1)
+                    applied(before)
+                }
+            }
+        }
+        return menu
+    }
+
     private fun showFolderPopup(anchor: View, folder: LauncherItem) {
         var folderAdapter: FolderMemberAdapter? = null
         var popup: android.widget.PopupWindow? = null
@@ -3568,65 +3641,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 val sortAz = viewModel.state.value.prefs.folderSortAz
                 memberMenu?.dismiss()
                 drag.arm(memberView, DragPayload.ExistingItem(member.id), window = popup) {
-                    val locked = desktopLocked
-                    val menu = newItemPopup()
-                    if (!locked) {
-                        menu.addRow(getString(R.string.remove), R.drawable.ic_menu_remove_item) {
-                            val before = viewModel.state.value.model
-                            // The folder's last app takes the folder with it.
-                            val last = viewModel.folderMembers(folder.id).size <= 1
-                            removeItemWithUndo(if (last) folder else member)
-                            applied(before)
-                        }
+                    folderMemberMenu(folder, member, sortAz, { popup?.dismiss() }, ::applied).also {
+                        it.show(memberView, menuTouchX)
+                        memberMenu = it
                     }
-                    member.packageName?.let { pkg ->
-                        if (member.itemType == ItemType.APP && !locked) {
-                            menu.addRow(getString(R.string.widgets_row), R.drawable.ic_menu_widgets) {
-                                popup?.dismiss()
-                                widgets.showPickerFor(pkg)
-                            }
-                        }
-                        menu.addRow(getString(R.string.app_info), R.drawable.ic_menu_info) {
-                            viewModel.appCatalog().openAppInfo(pkg, member.className, member.userSerial)
-                        }
-                    }
-                    menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) {
-                        // The folder closes first: as a focusable window it
-                        // would keep the keyboard from the sheet's name field.
-                        popup?.dismiss()
-                        showItemEditSheet(member, allowSwipe = false)
-                    }
-                    if (!locked) {
-                        menu.addRow(getString(R.string.remove_from_folder), R.drawable.ic_menu_add) {
-                            val page = pageForFolderMembers(folder)
-                            val free = viewModel.firstFreeWorkspaceCell(page)
-                            if (free == null) {
-                                Toast.makeText(this, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
-                            } else {
-                                val before = viewModel.state.value.model
-                                // The move a drag onto that free cell makes, so a
-                                // folder left with one app gives way to it here
-                                // too.
-                                viewModel.moveItemToWorkspace(member.id, page, free.first, free.second, mergeFolders = false)
-                                applied(before)
-                            }
-                        }
-                        // The folder's own order, which an A-Z folder doesn't show.
-                        if (!sortAz) {
-                            menu.addRow(getString(R.string.move_up), R.drawable.ic_menu_swipe) {
-                                val before = viewModel.state.value.model
-                                viewModel.reorderFolderMember(folder.id, member.id, -1)
-                                applied(before)
-                            }
-                            menu.addRow(getString(R.string.move_down), R.drawable.ic_menu_down) {
-                                val before = viewModel.state.value.model
-                                viewModel.reorderFolderMember(folder.id, member.id, 1)
-                                applied(before)
-                            }
-                        }
-                    }
-                    menu.show(memberView, menuTouchX)
-                    menu.also { memberMenu = it }
                 }
             }
         )
@@ -4074,14 +4092,15 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         raw: Boolean
     ): android.graphics.drawable.Drawable? {
         val catalog = viewModel.appCatalog()
-        photo?.takeIf { it.isNotEmpty() }?.let { data ->
-            com.supernova.launcher.data.GalleryIconCodec.decode(data)?.let { bmp ->
-                val src = android.graphics.drawable.BitmapDrawable(resources, bmp)
-                return if (raw) src else catalog.renderThemedDrawable(src) ?: src
-            }
+        val picture = photo?.takeIf { it.isNotEmpty() }
+            ?.let { com.supernova.launcher.data.GalleryIconCodec.decode(it) }
+            ?.let { android.graphics.drawable.BitmapDrawable(resources, it) }
+        return when {
+            picture != null -> if (raw) picture else catalog.renderThemedDrawable(picture) ?: picture
+            pack == null || name == null -> null
+            raw -> catalog.packDrawable(pack, name)
+            else -> catalog.renderPackDrawable(pack, name)
         }
-        if (pack == null || name == null) return null
-        return if (raw) catalog.packDrawable(pack, name) else catalog.renderPackDrawable(pack, name)
     }
 
     // The one FolderIconDrawable factory: workspace/dock previews and drawer

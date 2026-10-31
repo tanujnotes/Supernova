@@ -123,7 +123,9 @@ class DrawerGroupCodecTest {
     fun customIconRoundTrips() {
         val photo = DrawerGroup("A", setOf("k"), 1, DrawerGroupType.FOLDER, iconBase64 = "aGk+/w==", iconRaw = true)
         assertEquals(photo, DrawerGroup.decode(photo.encode()))
-        val pack = photo.copy(keepInMain = true, iconBase64 = null, iconPack = "com.pack", iconName = "star", iconRaw = false)
+        val pack = photo.copy(
+            keepInMain = true, iconBase64 = null, iconPack = "com.pack", iconName = "star", iconRaw = false
+        )
         assertEquals(pack, DrawerGroup.decode(pack.encode()))
     }
 

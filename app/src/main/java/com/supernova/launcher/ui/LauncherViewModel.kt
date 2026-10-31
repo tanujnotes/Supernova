@@ -1274,7 +1274,10 @@ class LauncherViewModel(
     fun resetCustomIcons() = persist {
         repository.resetCustomIcons()
         preferences.updateDrawerGroups { groups ->
-            groups.map { if (it.hasCustomIcon) it.copy(iconPack = null, iconName = null, iconBase64 = null, iconRaw = false) else it }
+            groups.map {
+                if (!it.hasCustomIcon) return@map it
+                it.copy(iconPack = null, iconName = null, iconBase64 = null, iconRaw = false)
+            }
         }
     }
 

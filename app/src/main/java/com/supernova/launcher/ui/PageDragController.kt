@@ -60,7 +60,7 @@ class PageDragController(
     private val edgeScroll = object : Runnable {
         override fun run() {
             if (!isActive || settling) return
-            val direction = edgeDirection()
+            val direction = edgeDirection
             if (direction == 0) return
             val min = -from * step
             val max = (count - 1 - from) * step
@@ -91,7 +91,10 @@ class PageDragController(
 
         val strip = FrameLayout(context).apply { clipChildren = false }
         val cover = FrameLayout(context).apply { clipChildren = false }
-        cover.addView(strip, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        cover.addView(
+            strip,
+            FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+        )
         for (page in 0 until count) {
             val picture = picture(page, width, height, scale)
             picture.translationX = slotX(page)
@@ -144,20 +147,21 @@ class PageDragController(
         held?.translationX = left + (rawX - startX)
         held?.translationY = top + (rawY - startY)
         updateTarget()
-        if (edgeDirection() != 0) {
+        if (edgeDirection != 0) {
             parent.removeCallbacks(edgeScroll)
             parent.postOnAnimation(edgeScroll)
         }
     }
 
-    private fun edgeDirection(): Int {
-        val edge = parent.width * EDGE_FRACTION
-        return when {
-            fingerX < edge -> -1
-            fingerX > parent.width - edge -> 1
-            else -> 0
+    private val edgeDirection: Int
+        get() {
+            val edge = parent.width * EDGE_FRACTION
+            return when {
+                fingerX < edge -> -1
+                fingerX > parent.width - edge -> 1
+                else -> 0
+            }
         }
-    }
 
     private fun updateTarget() {
         val offset = (held?.translationX ?: left) - left + scroll
@@ -229,7 +233,7 @@ class PageDragController(
         val source = host.pageView(page)
         if (source == null || source.width <= 0 || source.height <= 0) {
             return TextView(context).apply {
-                text = (page + 1).toString()
+                text = java.text.NumberFormat.getInstance().format(page + 1)
                 gravity = Gravity.CENTER
                 setTextColor(android.graphics.Color.WHITE)
                 textSize = PLACEHOLDER_SP

@@ -143,7 +143,7 @@ object WidgetPickerGroups {
         return WidgetPickerGroup(
             packageName = context.packageName,
             label = context.getString(R.string.app_name),
-            icon = context.getDrawable(R.drawable.ic_supernova),
+            icon = context.getDrawable(R.drawable.ic_supernova)?.let(renderTile),
             widgets = emptyList(),
             shortcuts = actions + activities
         )
