@@ -451,19 +451,33 @@ class SearchController(
         return (metrics.widthPixels / (72 * metrics.density)).toInt().coerceIn(3, 8)
     }
 
-    // Enter launches the top app match when there is one, else falls through
-    // to a web search - the drawer's enter-to-launch feel, extended.
+    // Enter opens the first result, else falls through to a web search - the
+    // drawer's enter-to-launch feel, extended.
     private fun onSearchAction(surface: Surface) {
         val query = surface.input.text?.toString().orEmpty().trim()
         if (query.isEmpty()) return
-        val firstApp = surface.lastResults.firstOrNull { it is SearchResult.App } as? SearchResult.App
-        if (firstApp != null) {
-            onLaunchApp(null, firstApp.app)
-            surface.afterLaunch()
-        } else {
-            val provider = WebProvider.fromName(viewModel.state.value.prefs.searchWebProvider)
-            onOpenUri(provider.searchUrl(query))
-            surface.dismiss()
+        when (val first = SearchResult.firstOpenable(surface.lastResults)) {
+            is SearchResult.App -> {
+                onLaunchApp(null, first.app)
+                surface.afterLaunch()
+            }
+            is SearchResult.Folder -> {
+                onOpenFolder(first)
+                surface.dismiss()
+            }
+            is SearchResult.Shortcut -> {
+                onLaunchShortcut(null, first)
+                surface.afterLaunch()
+            }
+            is SearchResult.Contact -> {
+                openContact(first)
+                surface.dismiss()
+            }
+            else -> {
+                val provider = WebProvider.fromName(viewModel.state.value.prefs.searchWebProvider)
+                onOpenUri(provider.searchUrl(query))
+                surface.dismiss()
+            }
         }
     }
 
