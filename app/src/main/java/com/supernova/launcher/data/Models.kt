@@ -515,21 +515,37 @@ data class DrawerGroup(
     // before the choice existed, which keeps its old behaviour: a folder's
     // apps leave the list, a tab's follow the old global Isolate tabs switch
     // (see LauncherViewModel.leavesMainList).
-    val keepInMain: Boolean? = null
+    val keepInMain: Boolean? = null,
+    // A folder's own icon, as a placed folder has: a pack drawable (both or
+    // neither) or a picked photo, and Reshape off in iconRaw.
+    val iconPack: String? = null,
+    val iconName: String? = null,
+    val iconBase64: String? = null,
+    val iconRaw: Boolean = false
 ) {
+    val hasCustomIcon: Boolean get() = iconName != null || !iconBase64.isNullOrEmpty()
+
 
     // "Name|key1,key2|order|type|smart|keep" - the order segment is absent in
     // pre-v2 entries and decodes as MAX_VALUE, which sorts after explicitly
     // ordered groups. The type (v5) and smart (v5) segments are absent in
     // older entries and decode as TAB/user-created; old builds split('|') and
     // read parts 0..2, so a FOLDER group degrades to a TAB there. The keep
-    // segment is "keep", "move" or absent (null).
+    // segment is "keep", "move" or absent (null). A custom icon adds pack,
+    // name, "raw" and photo after it; none of them can hold a "|".
     fun encode(): String {
         val base = "$name|${members.joinToString(",")}|$order|${type.name}|${if (smart) SMART_MARKER else ""}"
-        return when (keepInMain) {
-            null -> base
-            true -> "$base|$KEEP_MARKER"
-            false -> "$base|$MOVE_MARKER"
+        val keep = when (keepInMain) {
+            null -> ""
+            true -> KEEP_MARKER
+            false -> MOVE_MARKER
+        }
+        return when {
+            hasCustomIcon ->
+                "$base|$keep|${iconPack.orEmpty()}|${iconName.orEmpty()}|" +
+                    "${if (iconRaw) RAW_MARKER else ""}|${iconBase64.orEmpty()}"
+            keepInMain == null -> base
+            else -> "$base|$keep"
         }
     }
 
@@ -538,6 +554,11 @@ data class DrawerGroup(
         private const val KEEP_FIELD = 5
         private const val KEEP_MARKER = "keep"
         private const val MOVE_MARKER = "move"
+        private const val ICON_PACK_FIELD = 6
+        private const val ICON_NAME_FIELD = 7
+        private const val ICON_RAW_FIELD = 8
+        private const val ICON_PHOTO_FIELD = 9
+        private const val RAW_MARKER = "raw"
 
         fun decode(raw: String): DrawerGroup? {
             val parts = raw.split('|')
@@ -554,7 +575,13 @@ data class DrawerGroup(
                 MOVE_MARKER -> false
                 else -> null
             }
-            return DrawerGroup(name, members, order, type, smart, keepInMain)
+            return DrawerGroup(
+                name, members, order, type, smart, keepInMain,
+                iconPack = parts.getOrNull(ICON_PACK_FIELD)?.ifEmpty { null },
+                iconName = parts.getOrNull(ICON_NAME_FIELD)?.ifEmpty { null },
+                iconBase64 = parts.getOrNull(ICON_PHOTO_FIELD)?.ifEmpty { null },
+                iconRaw = parts.getOrNull(ICON_RAW_FIELD) == RAW_MARKER
+            )
         }
     }
 }

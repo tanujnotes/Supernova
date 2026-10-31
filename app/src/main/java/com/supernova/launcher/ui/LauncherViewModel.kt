@@ -1266,9 +1266,34 @@ class LauncherViewModel(
 
     fun setFolderIconRaw(folderId: String, raw: Boolean) = persist { repository.setFolderIconRaw(folderId, raw) }
 
-    fun customIcons(): CustomIcons.Count = CustomIcons.count(state.value.model)
+    fun customIcons(): CustomIcons.Count {
+        val count = CustomIcons.count(state.value.model)
+        return count.copy(folders = count.folders + drawerGroups().count { it.hasCustomIcon })
+    }
 
-    fun resetCustomIcons() = persist { repository.resetCustomIcons() }
+    fun resetCustomIcons() = persist {
+        repository.resetCustomIcons()
+        preferences.updateDrawerGroups { groups ->
+            groups.map { if (it.hasCustomIcon) it.copy(iconPack = null, iconName = null, iconBase64 = null, iconRaw = false) else it }
+        }
+    }
+
+    // As a rename does, a custom icon makes a smart folder the user's, or the
+    // next regeneration would drop it.
+    fun setGroupIcon(name: String, icon: DrawerGroup) = persist {
+        preferences.updateDrawerGroups { groups ->
+            groups.map {
+                if (it.name == name) {
+                    it.copy(
+                        smart = false, iconPack = icon.iconPack, iconName = icon.iconName,
+                        iconBase64 = icon.iconBase64, iconRaw = icon.iconRaw
+                    )
+                } else {
+                    it
+                }
+            }
+        }
+    }
 
     suspend fun packDrawableNames(packPackage: String): List<String> =
         withContext(Dispatchers.Default) { catalog.listPackDrawables(packPackage) }

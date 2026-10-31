@@ -334,6 +334,11 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
             // and nothing in the prefs announces it.
             "${host.landscape()}|" +
             "${prefs.folderPreviewStyle}|${prefs.badgeColor},${prefs.badgePosition},${prefs.badgeScale}|" +
+            // Folder icon appearance: the dock's signature takes every pref,
+            // and without these a page kept its old plates until a restart.
+            "${prefs.folderIconShape},${prefs.folderIconOutline},${prefs.folderClipToBg}," +
+            "${prefs.folderMatchWindowColor},${prefs.folderPrioritizeFirst},${prefs.folderBgColor}," +
+            "${prefs.styleConfig}|" +
             "${prefs.badgeTextColor},${prefs.badgeCornerRadius},${prefs.badgeOutline}|" +
             // The rest of the badge settings belong here too. They were
             // missing, and the only thing that applied them was the badge

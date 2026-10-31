@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import com.supernova.launcher.R
+import com.supernova.launcher.data.DrawerGroup
 import com.supernova.launcher.data.GalleryIconCodec
 import com.supernova.launcher.data.LauncherItem
 import com.supernova.launcher.databinding.SheetAppEditBinding
@@ -42,61 +43,13 @@ object FolderEditSheet {
         val originalPack = folder.customIconPack
         val originalIcon = folder.customIconName
         val originalPhoto = folder.iconBase64
-        var chosenPack = originalPack
-        var chosenIcon = originalIcon
-        var chosenPhoto = originalPhoto
         val originalRaw = folder.iconRaw
-        var chosenRaw = originalRaw
+        val icon = IconChoice(originalPack, originalIcon, originalPhoto, originalRaw)
 
         binding.editTitle.text = originalName.ifBlank { context.getString(R.string.folder) }
         binding.editLabel.setText(originalName)
-        binding.hideLabelRow.visibility = View.GONE
-        binding.shapeRow.visibility = View.GONE
-        binding.variantRow.visibility = View.GONE
-        binding.resetButton.visibility = View.GONE
-
-        fun renderIcon() {
-            binding.iconValue.text = when {
-                chosenPhoto != null -> context.getString(R.string.choose_photo)
-                chosenIcon != null -> chosenIcon
-                else -> context.getString(R.string.option_default)
-            }
-            // The default icon is the folder's own preview: nothing to fit.
-            binding.reshapeRow.visibility =
-                if (chosenPhoto != null || chosenIcon != null) View.VISIBLE else View.GONE
-        }
-        renderIcon()
-        binding.reshapeSwitch.isChecked = !chosenRaw
-        binding.reshapeRow.setOnClickListener { binding.reshapeSwitch.toggle() }
-        binding.reshapeSwitch.setOnCheckedChangeListener { _, checked -> chosenRaw = !checked }
-
-        binding.iconRow.setOnClickListener {
-            IconPickerSheet.show(context, scope, viewModel, allowDefault = true) { pack, name ->
-                chosenPack = pack
-                chosenIcon = name
-                // A pack icon (or a reset to default) replaces any photo.
-                chosenPhoto = null
-                renderIcon()
-            }
-        }
-        binding.photoRow.setOnClickListener {
-            pickPhoto { uri ->
-                if (uri == null) return@pickPhoto
-                scope.launch {
-                    val encoded = withContext(Dispatchers.IO) {
-                        GalleryIconCodec.encode(context.applicationContext, uri)
-                    }
-                    if (encoded == null) {
-                        Toast.makeText(context, R.string.photo_load_failed, Toast.LENGTH_SHORT).show()
-                        return@launch
-                    }
-                    chosenPhoto = encoded
-                    chosenPack = null
-                    chosenIcon = null
-                    renderIcon()
-                }
-            }
-        }
+        hideAppRows(binding)
+        bindIconRows(context, scope, viewModel, binding, icon, pickPhoto)
 
         // Read live, so a re-open shows what a just-committed pick left.
         fun live(): LauncherItem? = viewModel.state.value.model.items.firstOrNull { it.id == folder.id }
@@ -136,20 +89,128 @@ object FolderEditSheet {
         binding.saveButton.setOnClickListener {
             val typed = binding.editLabel.text?.toString().orEmpty().trim()
             if (typed.isNotEmpty() && typed != originalName) viewModel.renameFolder(folder.id, typed)
-            if (chosenPack != originalPack || chosenIcon != originalIcon || chosenPhoto != originalPhoto) {
-                if (chosenPhoto != null) {
-                    viewModel.setFolderIcon(folder.id, null, null, chosenPhoto)
+            if (icon.pack != originalPack || icon.name != originalIcon || icon.photo != originalPhoto) {
+                if (icon.photo != null) {
+                    viewModel.setFolderIcon(folder.id, null, null, icon.photo)
                 } else {
-                    viewModel.setFolderIcon(folder.id, chosenPack, chosenIcon)
+                    viewModel.setFolderIcon(folder.id, icon.pack, icon.name)
                 }
             }
-            // Back on the default icon, a later custom one starts reshaped.
-            val raw = chosenRaw && (chosenPhoto != null || chosenIcon != null)
-            if (raw != originalRaw) viewModel.setFolderIconRaw(folder.id, raw)
+            if (icon.savedRaw != originalRaw) viewModel.setFolderIconRaw(folder.id, icon.savedRaw)
             dialog.dismiss()
         }
 
         dialog.show()
+    }
+
+    // A drawer folder's Edit: its name and icon, the same rows as a placed
+    // folder's. Its apps have no home screen icon to swipe.
+    fun showDrawerFolder(
+        context: Context,
+        scope: CoroutineScope,
+        viewModel: LauncherViewModel,
+        group: DrawerGroup,
+        pickPhoto: ((android.net.Uri?) -> Unit) -> Unit
+    ) {
+        val binding = SheetAppEditBinding.inflate(LayoutInflater.from(context))
+        val dialog = Sheets.open(context)
+        dialog.setContentView(binding.root)
+
+        val icon = IconChoice(group.iconPack, group.iconName, group.iconBase64, group.iconRaw)
+        val original = icon.copy()
+        binding.editTitle.text = group.name
+        binding.editLabel.setText(group.name)
+        hideAppRows(binding)
+        binding.swipeToOpenRow.visibility = View.GONE
+        binding.swipeUpRow.visibility = View.GONE
+        binding.swipeDownRow.visibility = View.GONE
+        bindIconRows(context, scope, viewModel, binding, icon, pickPhoto)
+
+        binding.saveButton.setOnClickListener {
+            val typed = binding.editLabel.text?.toString().orEmpty().trim()
+            val name = if (typed.isEmpty()) group.name else viewModel.renameGroup(group, typed)
+            if (name == null) {
+                Toast.makeText(context, R.string.group_name_taken, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (icon.copy(raw = icon.savedRaw) != original) {
+                viewModel.setGroupIcon(
+                    name,
+                    group.copy(
+                        iconPack = icon.pack, iconName = icon.name, iconBase64 = icon.photo, iconRaw = icon.savedRaw
+                    )
+                )
+            }
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    // What the icon rows hold until Save.
+    private data class IconChoice(var pack: String?, var name: String?, var photo: String?, var raw: Boolean) {
+        val isCustom: Boolean get() = photo != null || name != null
+
+        // Back on the default icon, a later custom one starts reshaped.
+        val savedRaw: Boolean get() = raw && isCustom
+    }
+
+    private fun hideAppRows(binding: SheetAppEditBinding) {
+        binding.hideLabelRow.visibility = View.GONE
+        binding.shapeRow.visibility = View.GONE
+        binding.variantRow.visibility = View.GONE
+        binding.resetButton.visibility = View.GONE
+    }
+
+    private fun bindIconRows(
+        context: Context,
+        scope: CoroutineScope,
+        viewModel: LauncherViewModel,
+        binding: SheetAppEditBinding,
+        icon: IconChoice,
+        pickPhoto: ((android.net.Uri?) -> Unit) -> Unit
+    ) {
+        fun renderIcon() {
+            binding.iconValue.text = when {
+                icon.photo != null -> context.getString(R.string.choose_photo)
+                icon.name != null -> icon.name
+                else -> context.getString(R.string.option_default)
+            }
+            // The default icon is the folder's own preview: nothing to fit.
+            binding.reshapeRow.visibility = if (icon.isCustom) View.VISIBLE else View.GONE
+        }
+        renderIcon()
+        binding.reshapeSwitch.isChecked = !icon.raw
+        binding.reshapeRow.setOnClickListener { binding.reshapeSwitch.toggle() }
+        binding.reshapeSwitch.setOnCheckedChangeListener { _, checked -> icon.raw = !checked }
+
+        binding.iconRow.setOnClickListener {
+            IconPickerSheet.show(context, scope, viewModel, allowDefault = true) { pack, name ->
+                icon.pack = pack
+                icon.name = name
+                // A pack icon (or a reset to default) replaces any photo.
+                icon.photo = null
+                renderIcon()
+            }
+        }
+        binding.photoRow.setOnClickListener {
+            pickPhoto { uri ->
+                if (uri == null) return@pickPhoto
+                scope.launch {
+                    val encoded = withContext(Dispatchers.IO) {
+                        GalleryIconCodec.encode(context.applicationContext, uri)
+                    }
+                    if (encoded == null) {
+                        Toast.makeText(context, R.string.photo_load_failed, Toast.LENGTH_SHORT).show()
+                        return@launch
+                    }
+                    icon.photo = encoded
+                    icon.pack = null
+                    icon.name = null
+                    renderIcon()
+                }
+            }
+        }
     }
 
     private const val DISABLED_ALPHA = 0.5f

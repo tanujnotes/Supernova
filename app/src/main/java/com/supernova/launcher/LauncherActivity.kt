@@ -1214,9 +1214,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 hideDrawer()
                 search.open()
             },
-            buildFolderIcon = { members ->
-                composedFolderIcon(members.mapNotNull { app -> viewModel.appCatalog().iconFor(app) })
-            },
+            buildFolderIcon = ::drawerFolderIcon,
             decorateFolderIcon = ::withFolderBadge,
             onFolderClick = { view, group, members -> showDrawerFolderPopup(view, group, members) },
             onFolderLongPress = ::longPressDrawerFolder,
@@ -1285,9 +1283,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                         ?.let(::folderPreviewDrawable)
                 } ?: hit.groupName?.let { name ->
                     viewModel.drawerFolderGroups().firstOrNull { it.name == name }?.let { group ->
-                        composedFolderIcon(
-                            viewModel.appsInGroup(group).mapNotNull { viewModel.appCatalog().iconFor(it) }
-                        )
+                        drawerFolderIcon(group, viewModel.appsInGroup(group))
                     }
                 }
             },
@@ -3084,7 +3080,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // A drawer folder lists its apps in the drawer's order, so it has no
         // order of its own to Sort.
         menu.addRow(getString(R.string.select_apps), R.drawable.ic_menu_select_apps) { showDrawerGroupChecklist(group) }
-        menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) { promptRenameDrawerGroup(group) }
+        menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) {
+            com.supernova.launcher.ui.FolderEditSheet.showDrawerFolder(this, lifecycleScope, viewModel, group, ::pickPhoto)
+        }
         menu.show(anchor, menuTouchX)
         return menu
     }
@@ -3117,25 +3115,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             drag.arm(row, payload, window = window, menu = null)
             drag.activeItemPopup = menu
         }
-    }
-
-    private fun promptRenameDrawerGroup(group: DrawerGroup) {
-        val input = android.widget.EditText(this).apply {
-            hint = getString(R.string.group_name)
-            setText(group.name)
-            setSelection(group.name.length)
-        }
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.group_rename)
-            .setView(com.supernova.launcher.ui.DialogField.wrap(input))
-            .setPositiveButton(R.string.save) { _, _ ->
-                val name = input.text?.toString().orEmpty().trim()
-                if (name.isNotEmpty() && name != group.name && viewModel.renameGroup(group, name) == null) {
-                    Toast.makeText(this, R.string.group_name_taken, Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
     }
 
     // The long-presses of every new-item surface - the drawer's grid, recent
@@ -4012,23 +3991,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // A custom icon is fitted to the icon shape like any other, unless its
     // Edit has Reshape off: then it is drawn as it is.
     private fun folderPreviewDrawable(folder: LauncherItem): android.graphics.drawable.Drawable {
-        val catalog = viewModel.appCatalog()
-        folder.iconBase64?.takeIf { it.isNotEmpty() }?.let { data ->
-            com.supernova.launcher.data.GalleryIconCodec.decode(data)?.let { bmp ->
-                val src = android.graphics.drawable.BitmapDrawable(resources, bmp)
-                return if (folder.iconRaw) src else catalog.renderThemedDrawable(src) ?: src
-            }
-        }
-        folder.customIconPack?.let { pack ->
-            folder.customIconName?.let { name ->
-                val icon = if (folder.iconRaw) {
-                    catalog.packDrawable(pack, name)
-                } else {
-                    catalog.renderPackDrawable(pack, name)
-                }
-                icon?.let { return it }
-            }
-        }
+        customFolderIcon(folder.iconBase64, folder.customIconPack, folder.customIconName, folder.iconRaw)
+            ?.let { return it }
         val memberIcons = viewModel.folderMembers(folder.id)
             // The dense styles (3x3, dense ring) show up to nine members.
             .take(9)
@@ -4040,6 +4004,27 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 }
             }
         return composedFolderIcon(memberIcons)
+    }
+
+    private fun drawerFolderIcon(group: DrawerGroup, members: List<LaunchableApp>): android.graphics.drawable.Drawable =
+        customFolderIcon(group.iconBase64, group.iconPack, group.iconName, group.iconRaw)
+            ?: composedFolderIcon(members.mapNotNull { app -> viewModel.appCatalog().iconFor(app) })
+
+    private fun customFolderIcon(
+        photo: String?,
+        pack: String?,
+        name: String?,
+        raw: Boolean
+    ): android.graphics.drawable.Drawable? {
+        val catalog = viewModel.appCatalog()
+        photo?.takeIf { it.isNotEmpty() }?.let { data ->
+            com.supernova.launcher.data.GalleryIconCodec.decode(data)?.let { bmp ->
+                val src = android.graphics.drawable.BitmapDrawable(resources, bmp)
+                return if (raw) src else catalog.renderThemedDrawable(src) ?: src
+            }
+        }
+        if (pack == null || name == null) return null
+        return if (raw) catalog.packDrawable(pack, name) else catalog.renderPackDrawable(pack, name)
     }
 
     // The one FolderIconDrawable factory: workspace/dock previews and drawer

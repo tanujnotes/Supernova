@@ -42,7 +42,7 @@ class DrawerController(
     private val onGlobalSearch: () -> Unit,
     // FOLDER-type groups: icon composition and tap handling live in the
     // activity, which owns FolderPopup and the icon pipeline.
-    private val buildFolderIcon: (List<LaunchableApp>) -> Drawable,
+    private val buildFolderIcon: (DrawerGroup, List<LaunchableApp>) -> Drawable,
     // A drawer folder's badge (its members' summed count), applied at bind
     // so a count moving needs no new composition.
     private val decorateFolderIcon: (Drawable, List<LaunchableApp>) -> Drawable = { icon, _ -> icon },
@@ -1110,7 +1110,7 @@ class DrawerController(
             if (members.isEmpty()) {
                 null
             } else {
-                AppDrawerAdapter.FolderEntry(group, buildFolderIcon(members), members)
+                AppDrawerAdapter.FolderEntry(group, buildFolderIcon(group, members), members)
             }
         }
         // Unless the folder keeps its apps in the main list too.
