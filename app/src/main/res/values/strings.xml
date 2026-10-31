@@ -164,6 +164,7 @@
     <string name="delete_group">Delete group</string>
     <string name="edit_group_apps">Choose apps</string>
     <string name="hide_app">Hide from drawer</string>
+    <string name="unhide_app">Unhide</string>
     <string name="set_swipe_up_action">Set swipe up action</string>
     <string name="swipe_none">None</string>
     <string name="swipe_up_title">Swipe up</string>

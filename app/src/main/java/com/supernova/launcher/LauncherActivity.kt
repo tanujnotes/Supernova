@@ -2982,7 +2982,13 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             source?.dismiss()
             AppEditSheet.show(this, lifecycleScope, viewModel, app, ::pickPhoto)
         }
-        if (PopupExtraRow.HIDE in extras) {
+        // A hidden app only gets here through search, whatever the row setting.
+        if (viewModel.isAppHidden(app)) {
+            menu.addRow(getString(R.string.unhide_app), R.drawable.ic_menu_hide) {
+                viewModel.setAppHidden(app, false)
+                source?.dismiss()
+            }
+        } else if (PopupExtraRow.HIDE in extras) {
             menu.addRow(getString(R.string.hide_app), R.drawable.ic_menu_hide) {
                 viewModel.setAppHidden(app, true)
                 source?.dismiss()
