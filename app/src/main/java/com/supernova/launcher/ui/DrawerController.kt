@@ -1134,7 +1134,10 @@ class DrawerController(
         }
         WorkTab -> viewModel.workApps()
         PrivateTab -> viewModel.privateApps()
-        is DrawerGroup -> viewModel.appsInGroup(tab)
+        // The tab holds the group as it was when the bar was built, and picking
+        // its apps doesn't rebuild the bar: read the members from what is stored,
+        // or an app just added leaves All without showing up here.
+        is DrawerGroup -> viewModel.appsInGroup(viewModel.drawerTabGroups().firstOrNull { it.name == tab.name } ?: tab)
         else -> viewModel.visibleApps()
     }
 
