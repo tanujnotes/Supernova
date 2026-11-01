@@ -26,12 +26,12 @@ import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.LauncherRepository
 import com.supernova.launcher.data.WorkspaceGeometry
 import com.supernova.launcher.databinding.ActivityLauncherBinding
-import com.supernova.launcher.widget.SpanBounds
 import com.supernova.launcher.widget.SupernovaWidgetHost
 import com.supernova.launcher.widget.SupernovaWidgetHostView
 import com.supernova.launcher.widget.WidgetResizeFrame
 import com.supernova.launcher.widget.WidgetSizing
 import kotlinx.coroutines.launch
+import kotlin.math.hypot
 
 // Everything that hosts an app widget: the AppWidgetHost and its host views
 // (workspace items, feed cards, the search bar's stand-in), the add flow
@@ -169,8 +169,13 @@ class WidgetController(
     // (beginLiveDrag); every way down goes through dismissResizeFrame.
     var activeResizeFrame: WidgetResizeFrame? = null
         private set
-    // From a press on that frame's handle to its lift. See trackResizeDrag.
+    // From a press on that frame's edge to its lift. See trackResizeDrag.
     private var resizeDragActive = false
+    // A press on the framed widget, until it moves or lifts.
+    private var pressOnFramedWidget = false
+    private var pressStartX = 0f
+    private var pressStartY = 0f
+    private val touchSlop = android.view.ViewConfiguration.get(activity).scaledTouchSlop
     private var hostedSearchWidgetId: Int = 0
 
     private val bindWidgetLauncher = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -213,19 +218,43 @@ class WidgetController(
         }
     }
 
-    // True from a press on the resize frame's handle until its lift. The
-    // frame's own state can't answer in time: the press reaches the trackers
-    // here before super.dispatchTouchEvent hands it to the frame, so the
-    // handle is hit-tested up front. An open feed pane covers the frame, and
-    // a press there is the pane's.
+    // The resize frame's share of a touch, ahead of the swipe trackers. A press
+    // on an edge's band starts the frame's drag, which is the frame's alone, as
+    // a live drag is the drag layer's: true for its whole stream. A press
+    // anywhere else takes the frame down and goes on as it would have, except
+    // on the widget itself, where a tap keeps it up and a move does not. An
+    // open feed pane covers the frame, and a press there is the pane's.
     fun trackResizeDrag(ev: MotionEvent): Boolean {
+        val frame = activeResizeFrame
         when (ev.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                resizeDragActive = !host.feedOpen && activeResizeFrame?.hasHandleAt(ev.rawX, ev.rawY) == true
-            }
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> if (resizeDragActive) {
                 resizeDragActive = false
-                return true
+                pressOnFramedWidget = false
+                if (frame == null || host.feedOpen) return false
+                when {
+                    frame.startDrag(ev.rawX, ev.rawY) -> resizeDragActive = true
+                    frame.contains(ev.rawX, ev.rawY) -> {
+                        pressOnFramedWidget = true
+                        pressStartX = ev.rawX
+                        pressStartY = ev.rawY
+                    }
+                    else -> dismissResizeFrame()
+                }
+            }
+            MotionEvent.ACTION_MOVE ->
+                if (resizeDragActive) {
+                    frame?.dragTo(ev.rawX, ev.rawY)
+                } else if (pressOnFramedWidget && hypot(ev.rawX - pressStartX, ev.rawY - pressStartY) > touchSlop) {
+                    pressOnFramedWidget = false
+                    dismissResizeFrame()
+                }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                pressOnFramedWidget = false
+                if (resizeDragActive) {
+                    resizeDragActive = false
+                    frame?.endDrag()
+                    return true
+                }
             }
         }
         return resizeDragActive
@@ -417,18 +446,6 @@ class WidgetController(
             }
     }
 
-    fun spanBounds(item: LauncherItem): SpanBounds {
-        val prefs = viewModel.state.value.prefs
-        val (cellWidth, cellHeight) = host.currentCellSizePx()
-        val info = item.appWidgetId?.let(appWidgetManager::getAppWidgetInfo)
-        val defaults = info
-            ?.let { WidgetSizing.defaultSpans(activity, it, cellWidth, cellHeight, prefs.gridCols, prefs.gridRows) }
-            ?: WorkspaceGeometry.wholeSpans(WorkspaceGeometry.itemRect(item, prefs.gridCols, prefs.gridRows))
-        return WidgetSizing.spanBounds(
-            info, defaults.first, defaults.second, cellWidth, cellHeight, prefs.gridCols, prefs.gridRows
-        )
-    }
-
     // Overlays a draggable resize frame on top of the widget's host view; the
     // frame snaps to whole cells and commits the span on release. It stays up
     // for the next drag, through the commit's rebind (onPageBound), until a
@@ -472,13 +489,13 @@ class WidgetController(
                 }
             }
         )
-        if (anchorResizeFrame(frame, item, widgetView)) activeResizeFrame = frame
+        if (anchorResizeFrame(frame, widgetView)) activeResizeFrame = frame
     }
 
     // Puts the frame around the widget's host view, on top of its canvas.
-    private fun anchorResizeFrame(frame: WidgetResizeFrame, item: LauncherItem, widgetView: View): Boolean {
+    private fun anchorResizeFrame(frame: WidgetResizeFrame, widgetView: View): Boolean {
         val canvas = widgetView.parent as? ViewGroup ?: return false
-        if (!frame.anchor(widgetView, spanBounds(item))) return false
+        if (!frame.anchor(widgetView)) return false
         if (frame.parent === canvas) {
             // The bind has just added the page's items over it.
             frame.bringToFront()
@@ -500,7 +517,7 @@ class WidgetController(
             it !is WidgetResizeFrame && it.getTag(R.id.tag_item_id) == frame.itemId
         }
         val item = viewModel.state.value.model.items.firstOrNull { it.id == frame.itemId }
-        if (widgetView != null && item != null && anchorResizeFrame(frame, item, widgetView)) return
+        if (widgetView != null && item != null && anchorResizeFrame(frame, widgetView)) return
         if (frame.parent === canvas) dismissResizeFrame()
     }
 

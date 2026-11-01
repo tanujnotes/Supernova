@@ -10,15 +10,6 @@ import android.util.SizeF
 import kotlin.math.ceil
 import kotlin.math.max
 
-data class SpanBounds(
-    val minX: Int,
-    val minY: Int,
-    val maxX: Int,
-    val maxY: Int,
-    val canResizeH: Boolean,
-    val canResizeV: Boolean
-)
-
 object WidgetSizing {
 
     fun defaultSpans(
@@ -39,39 +30,6 @@ object WidgetSizing {
         val spanX = ceilDiv(info.minWidth + padding.left + padding.right, cellWidthPx)
         val spanY = ceilDiv(info.minHeight + padding.top + padding.bottom, cellHeightPx)
         return spanX.coerceIn(1, cols) to spanY.coerceIn(1, rows)
-    }
-
-    fun spanBounds(
-        info: AppWidgetProviderInfo?,
-        defaultSpanX: Int,
-        defaultSpanY: Int,
-        cellWidthPx: Int,
-        cellHeightPx: Int,
-        cols: Int,
-        rows: Int
-    ): SpanBounds {
-        if (info == null) {
-            // Provider gone: degrade to grid-bounded free resize.
-            return SpanBounds(1, 1, cols, rows, canResizeH = true, canResizeV = true)
-        }
-        val canResizeH = info.resizeMode and AppWidgetProviderInfo.RESIZE_HORIZONTAL != 0
-        val canResizeV = info.resizeMode and AppWidgetProviderInfo.RESIZE_VERTICAL != 0
-
-        // minResize* is ignored by the platform when larger than the default size.
-        val minX = ceilDiv(info.minResizeWidth, cellWidthPx).coerceIn(1, defaultSpanX)
-        val minY = ceilDiv(info.minResizeHeight, cellHeightPx).coerceIn(1, defaultSpanY)
-
-        var maxX = cols
-        var maxY = rows
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (info.maxResizeWidth > 0) {
-                maxX = (info.maxResizeWidth / max(1, cellWidthPx)).coerceIn(minX, cols)
-            }
-            if (info.maxResizeHeight > 0) {
-                maxY = (info.maxResizeHeight / max(1, cellHeightPx)).coerceIn(minY, rows)
-            }
-        }
-        return SpanBounds(minX, minY, maxX, maxY, canResizeH, canResizeV)
     }
 
     fun reportSize(hostView: AppWidgetHostView, widthPx: Int, heightPx: Int, density: Float) {

@@ -895,12 +895,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         ) {
             return super.dispatchTouchEvent(ev)
         }
-        // A drag on a widget resize frame's handle is the frame's alone, as a
+        // A drag on a widget resize frame's edge is the frame's alone, as a
         // live drag is the drag layer's: nothing below may read it. On the
         // first page the feed would take a rightward one for its pull, and
         // the drawer pull an upward one, each cancelling the frame a few
         // pixels in; a downward one would fire the swipe-down on the lift.
-        if (widgets.trackResizeDrag(ev)) return super.dispatchTouchEvent(ev)
+        if (widgets.trackResizeDrag(ev)) return true
         if (::feed.isInitialized) {
             when (feed.onTouch(ev)) {
                 // The feed owns the rest of this stream (edge-swipe drag).
@@ -3218,11 +3218,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             }
             ItemType.WIDGET -> {
                 if (!locked) {
-                    val bounds = widgets.spanBounds(item)
-                    if (bounds.canResizeH || bounds.canResizeV) {
-                        menu.addRow(getString(R.string.widget_resize), R.drawable.ic_menu_resize) {
-                            widgets.showResizeFrame(item, anchor)
-                        }
+                    menu.addRow(getString(R.string.widget_resize), R.drawable.ic_menu_resize) {
+                        widgets.showResizeFrame(item, anchor)
                     }
                     menu.addRow(getString(R.string.padding), R.drawable.ic_menu_padding) {
                         widgets.showPaddingDialog(item, anchor)
