@@ -4058,7 +4058,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // A custom icon is fitted to the icon shape like any other, unless its
     // Edit has Reshape off: then it is drawn as it is.
     private fun folderPreviewDrawable(folder: LauncherItem): android.graphics.drawable.Drawable {
-        customFolderIcon(folder.iconBase64, folder.customIconPack, folder.customIconName, folder.iconRaw)
+        customFolderIcon(
+            folder.iconBase64, folder.customIconPack, folder.customIconName, folder.iconRaw, isFolder = true
+        )
             ?.let { return it }
         val memberIcons = viewModel.folderMembers(folder.id)
             // The dense styles (3x3, dense ring) show up to nine members.
@@ -4075,23 +4077,31 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     }
 
     private fun drawerFolderIcon(group: DrawerGroup, members: List<LaunchableApp>): android.graphics.drawable.Drawable =
-        customFolderIcon(group.iconBase64, group.iconPack, group.iconName, group.iconRaw)
+        customFolderIcon(group.iconBase64, group.iconPack, group.iconName, group.iconRaw, isFolder = true)
             ?: composedFolderIcon(members.mapNotNull { app -> viewModel.appCatalog().iconFor(app) })
 
     private fun customFolderIcon(
         photo: String?,
         pack: String?,
         name: String?,
-        raw: Boolean
+        raw: Boolean,
+        isFolder: Boolean = false
     ): android.graphics.drawable.Drawable? {
         val catalog = viewModel.appCatalog()
         val picture = photo?.takeIf { it.isNotEmpty() }
             ?.let { com.supernova.launcher.data.GalleryIconCodec.decode(it) }
         return when {
-            picture != null -> (if (raw) null else catalog.renderPickedPicture(picture))
+            picture != null -> (
+                when {
+                    raw -> null
+                    isFolder -> catalog.renderFolderPicture(picture)
+                    else -> catalog.renderPickedPicture(picture)
+                }
+                )
                 ?: android.graphics.drawable.BitmapDrawable(resources, picture)
             pack == null || name == null -> null
             raw -> catalog.packDrawable(pack, name)
+            isFolder -> catalog.renderFolderPack(pack, name)
             else -> catalog.renderPackDrawable(pack, name)
         }
     }

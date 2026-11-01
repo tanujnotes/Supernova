@@ -14,6 +14,8 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toDrawable
+import androidx.core.graphics.get
+import androidx.core.graphics.scale
 import androidx.core.graphics.withClip
 import androidx.core.graphics.withTranslation
 import kotlin.math.roundToInt
@@ -107,7 +109,14 @@ class IconRenderer(context: Context) {
     // it alone, as they do a picked picture. With System and Reshape legacy
     // Off it is drawn as it is, like any legacy icon then. Null for one that
     // doesn't fill its frame (a glyph), which is drawn as a legacy icon.
-    fun renderPicture(picture: Bitmap, shape: IconShape, customShape: CustomShapeSpec?): Drawable? {
+    // With glass, the pane lies over the picture, tinted with its mean colour,
+    // so the whole picture still shows through.
+    fun renderPicture(
+        picture: Bitmap,
+        shape: IconShape,
+        customShape: CustomShapeSpec?,
+        glass: IconGlass = IconGlass.OFF
+    ): Drawable? {
         val side = picture.width
         // One that isn't square stays clear here, so it is no picture.
         val pixels = IntArray(side * side)
@@ -115,7 +124,7 @@ class IconRenderer(context: Context) {
         val box = PictureFrame.frame(pixels, side) ?: return null
         val size = iconSizePx
         val shapePath = shape.pathFor(size.toFloat(), customShape)
-        return if (shapePath == null && reshapeLegacy == ReshapeLegacy.OFF) {
+        return if (shapePath == null && reshapeLegacy == ReshapeLegacy.OFF && glass == IconGlass.OFF) {
             render(picture.toDrawable(resources), glass = IconGlass.OFF)
         } else {
             val mask = shapePath
@@ -125,8 +134,27 @@ class IconRenderer(context: Context) {
             } else {
                 PictureFrame.reach(maskPixels(mask, size), size)
             }
-            filledMask(picture, box, mask, cover)
+            filledMask(picture, box, mask, cover, glass)
         }
+    }
+
+    // A folder's picked art under the icons' glass: a picture that fills its
+    // frame shows through the pane, and one with a clear background sits on it
+    // at its own size, never enlarged.
+    fun renderFolderArt(source: Drawable, shape: IconShape, customShape: CustomShapeSpec?): Drawable {
+        val size = iconSizePx
+        val picture = createBitmap(size, size)
+        source.setBounds(0, 0, size, size)
+        source.draw(Canvas(picture))
+        renderPicture(picture, shape, customShape, glass)?.let { return it }
+        val mask = shape.pathFor(size.toFloat(), customShape)
+            ?: glassPainter.systemMask(AdaptiveIconDrawable(Color.BLACK.toDrawable(), null), size)
+        val bitmap = createBitmap(size, size)
+        val canvas = Canvas(bitmap)
+        canvas.withClip(mask) { glassPainter.drawPane(this, glass, Color.WHITE, size, size) }
+        glassPainter.drawEdge(canvas, mask, glass, size, size)
+        canvas.drawBitmap(picture, 0f, 0f, null)
+        return if (shadow) withShadow(bitmap, mask) else bitmap.toDrawable(resources)
     }
 
     // An app's own icon, left as it comes. A legacy one that is a tile of its
@@ -157,7 +185,13 @@ class IconRenderer(context: Context) {
     }
 
     // The picture's box drawn across the mask, enlarged by cover.
-    private fun filledMask(picture: Bitmap, box: IntArray, mask: Path, cover: Float): Drawable {
+    private fun filledMask(
+        picture: Bitmap,
+        box: IntArray,
+        mask: Path,
+        cover: Float,
+        glass: IconGlass = IconGlass.OFF
+    ): Drawable {
         val size = iconSizePx
         val left = box[BakedBacking.LEFT]
         val top = box[BakedBacking.TOP]
@@ -172,7 +206,12 @@ class IconRenderer(context: Context) {
                 scale(scale, scale)
                 drawBitmap(picture, 0f, 0f, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
             }
+            if (glass != IconGlass.OFF) {
+                val tint = picture.scale(1, 1)[0, 0]
+                glassPainter.drawPane(this, glass, tint or Color.BLACK, size, size)
+            }
         }
+        if (glass != IconGlass.OFF) glassPainter.drawEdge(Canvas(bitmap), mask, glass, size, size)
         return if (shadow) withShadow(bitmap) else bitmap.toDrawable(resources)
     }
 

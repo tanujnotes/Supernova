@@ -525,8 +525,24 @@ class AppCatalog(
 
     fun renderActionTile(tile: Drawable): Drawable = renderThemedDrawable(tile) ?: tile
 
-    // A picture picked for a folder or a launcher action, as one picked for an
-    // app is drawn.
+    // Art picked for a folder, under the icons' glass when that is on.
+    fun renderFolderPicture(picture: android.graphics.Bitmap): Drawable? = synchronized(renderLock) {
+        runCatching {
+            if (iconRenderer.glass == IconGlass.OFF) {
+                pickedPicture(picture, iconShape)
+            } else {
+                iconRenderer.renderFolderArt(picture.toDrawable(context.resources), iconShape, customShapeSpec)
+            }
+        }.getOrNull()
+    }
+
+    fun renderFolderPack(packPackage: String, drawableName: String): Drawable? = synchronized(renderLock) {
+        if (iconRenderer.glass == IconGlass.OFF) return renderPackDrawable(packPackage, drawableName)
+        val source = packDrawable(packPackage, drawableName) ?: return null
+        runCatching { iconRenderer.renderFolderArt(source, iconShape, customShapeSpec) }.getOrNull()
+    }
+
+    // A picture picked for a launcher action, as one picked for an app is drawn.
     fun renderPickedPicture(picture: android.graphics.Bitmap): Drawable? = synchronized(renderLock) {
         runCatching { pickedPicture(picture, iconShape) }.getOrNull()
     }
