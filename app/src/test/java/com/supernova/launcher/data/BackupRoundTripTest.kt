@@ -317,5 +317,6 @@ class BackupRoundTripTest {
         assertEquals("a/.C", cleared.items[1].widgetProvider)
         assertEquals(null, cleared.feedCards[0].appWidgetId)
         assertEquals("a/.D", cleared.feedCards[0].widgetProvider)
+        assertEquals(2, RestoredWidgets.needingRebind(cleared))
     }
 }

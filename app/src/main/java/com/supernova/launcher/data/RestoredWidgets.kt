@@ -6,6 +6,11 @@ package com.supernova.launcher.data
 // new id to.
 internal object RestoredWidgets {
 
+    // What the import's message counts: widgets and widget cards with no id.
+    fun needingRebind(model: LauncherModel): Int =
+        model.items.count { it.itemType == ItemType.WIDGET && it.appWidgetId == null } +
+            model.feedCards.count { it.widgetProvider != null && it.appWidgetId == null }
+
     fun withStaleCleared(
         model: LauncherModel,
         widgetBound: (appWidgetId: Int, provider: String?) -> Boolean

@@ -41,6 +41,8 @@ class WidgetResizeFrame(
     private val onCommit: (cellX: Int, cellY: Int, spanX: Int, spanY: Int) -> Unit
 ) : View(context) {
 
+    enum class Press { EDGE, WIDGET, OUTSIDE }
+
     var cellX: Int = 0
         private set
     var cellY: Int = 0
@@ -69,6 +71,7 @@ class WidgetResizeFrame(
     private var dragTop = false
     private var dragBottom = false
     private val dragging get() = dragLeft || dragRight || dragTop || dragBottom
+    private var dragScale = 1f
     private var dragStartX = 0f
     private var dragStartY = 0f
     private var startCellX = 0
@@ -111,22 +114,35 @@ class WidgetResizeFrame(
         return true
     }
 
-    // Whether a press at this screen point is on the widget, away from its
-    // edges or not. Not shown also covers a frame left on a page the pager
-    // has let go.
-    fun contains(rawX: Float, rawY: Float): Boolean {
-        if (!isShown) return false
+    // What a press at this screen point is on, starting the drag if that is an
+    // edge's band. Not shown also covers a frame left on a page the pager has
+    // let go. Measured in the frame's own pixels: edit mode scales the page
+    // down, and the band stays the same size on screen.
+    fun press(rawX: Float, rawY: Float): Press {
+        if (!isShown) return Press.OUTSIDE
         getLocationOnScreen(screenLocation)
-        val x = rawX - screenLocation[0]
-        val y = rawY - screenLocation[1]
-        return x >= 0f && y >= 0f && x < width && y < height
+        dragScale = screenScale()
+        val x = (rawX - screenLocation[0]) / dragScale
+        val y = (rawY - screenLocation[1]) / dragScale
+        val band = grabBand / dragScale
+        val inBand = within(x, width, band) && within(y, height, band)
+        val edgeX = if (inBand) edgeOf(x, width, band) else 0
+        val edgeY = if (inBand) edgeOf(y, height, band) else 0
+        dragLeft = edgeX < 0
+        dragRight = edgeX > 0
+        dragTop = edgeY < 0
+        dragBottom = edgeY > 0
+        if (dragging) beginDrag(rawX, rawY)
+        return when {
+            dragging -> Press.EDGE
+            within(x, width, 0f) && within(y, height, 0f) -> Press.WIDGET
+            else -> Press.OUTSIDE
+        }
     }
 
-    // Starts a drag if a press at this screen point is on an edge's band.
-    fun startDrag(rawX: Float, rawY: Float): Boolean {
-        val canvas = parent as? View
-        val cells = layoutParams as? WorkspaceCanvas.WidgetParams
-        if (canvas == null || cells == null || !takeEdgesAt(rawX, rawY)) return false
+    private fun beginDrag(rawX: Float, rawY: Float) {
+        val canvas = parent as? View ?: return
+        val cells = layoutParams as? WorkspaceCanvas.WidgetParams ?: return
         dragStartX = rawX
         dragStartY = rawY
         startCellX = cellX
@@ -136,26 +152,21 @@ class WidgetResizeFrame(
         cellWidthPx = (cellSize(canvas.width, cells.cols) / units).coerceAtLeast(1)
         cellHeightPx = (cellSize(canvas.height, cells.rows) / units).coerceAtLeast(1)
         room = roomProvider(cellX, cellY, spanX, spanY)
-        return true
     }
 
-    // Sets which edges a press here moves; true when it moves any.
-    private fun takeEdgesAt(rawX: Float, rawY: Float): Boolean {
-        getLocationOnScreen(screenLocation)
-        val x = rawX - screenLocation[0]
-        val y = rawY - screenLocation[1]
-        val near = isShown && x >= -grabBand && x <= width + grabBand
-        val inBand = near && y >= -grabBand && y <= height + grabBand
-        // On a widget narrower than two bands, the nearer edge.
-        dragLeft = inBand && x < grabBand && x <= width - x
-        dragRight = inBand && x > width - grabBand && !dragLeft
-        dragTop = inBand && y < grabBand && y <= height - y
-        dragBottom = inBand && y > height - grabBand && !dragTop
-        return dragging
+    // How much the views above it scale this frame on screen.
+    private fun screenScale(): Float {
+        var scale = 1f
+        var view: View? = this
+        while (view != null) {
+            scale *= view.scaleX
+            view = view.parent as? View
+        }
+        return scale
     }
 
     fun dragTo(rawX: Float, rawY: Float) {
-        if (dragging) applyDrag(rawX - dragStartX, rawY - dragStartY)
+        if (dragging) applyDrag((rawX - dragStartX) / dragScale, (rawY - dragStartY) / dragScale)
     }
 
     fun endDrag() {
@@ -268,4 +279,14 @@ class WidgetResizeFrame(
         private const val OUTLINE_COLOR = 0xCCFFFFFF.toInt()
         private const val HANDLE_COLOR = 0xFFFFFFFF.toInt()
     }
+}
+
+private fun within(position: Float, size: Int, margin: Float) = position >= -margin && position <= size + margin
+
+// Which edge's band a position along one axis is in: -1 the start, 1 the end,
+// 0 neither. On a widget narrower than two bands, the nearer edge.
+private fun edgeOf(position: Float, size: Int, band: Float): Int = when {
+    position < band && position <= size - position -> -1
+    position > size - band -> 1
+    else -> 0
 }

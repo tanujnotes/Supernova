@@ -881,6 +881,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             }
             return true
         }
+        // Edit mode offers Resize too: a drag on that frame's edge is the frame's,
+        // unless the press is on what edit mode puts over the page.
+        val framedInEditMode = ::editMode.isInitialized && editMode.isOpen && !editMode.pressOnChrome(ev)
+        if (framedInEditMode && widgets.trackResizeDrag(ev, keepOnPress = true)) return true
         // isVisible, not isExpanded: the sheet leaves EXPANDED the moment a
         // closing swipe starts, and the still-observing gesture detector
         // would read that swipe as the home swipe-down binding.

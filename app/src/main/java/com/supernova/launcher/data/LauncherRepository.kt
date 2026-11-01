@@ -885,7 +885,7 @@ class LauncherRepository(private val context: Context) {
         return ImportResult(
             restored = validated.items.size,
             droppedMissingApps = missing.size,
-            widgetsNeedingRebind = validated.items.count { it.itemType == ItemType.WIDGET && it.appWidgetId == null }
+            widgetsNeedingRebind = RestoredWidgets.needingRebind(validated)
         )
     }
 

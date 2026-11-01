@@ -233,15 +233,17 @@ class WidgetController(
     // on an edge's band starts the frame's drag, which is the frame's alone, as
     // a live drag is the drag layer's: true for its whole stream. A press
     // anywhere else takes the frame down and goes on as it would have, except
-    // on the widget itself, where a tap keeps it up and a move does not. An
-    // open feed pane covers the frame, and a press there is the pane's.
-    fun trackResizeDrag(ev: MotionEvent): Boolean {
+    // on the widget itself, where a tap keeps it up and a move does not. In
+    // edit mode that press keeps it up too (keepOnPress): a tap would otherwise
+    // close the frame and edit mode together. An open feed pane covers the
+    // frame, and a press there is the pane's.
+    fun trackResizeDrag(ev: MotionEvent, keepOnPress: Boolean = false): Boolean {
         val frame = activeResizeFrame
         when (ev.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 resizeDragActive = false
                 pressOnFramedWidget = false
-                if (frame != null && !host.feedOpen) onFramePress(frame, ev)
+                if (frame != null && !host.feedOpen) onFramePress(frame, ev, keepOnPress)
             }
             MotionEvent.ACTION_MOVE ->
                 if (resizeDragActive) {
@@ -261,15 +263,15 @@ class WidgetController(
         return resizeDragActive
     }
 
-    private fun onFramePress(frame: WidgetResizeFrame, ev: MotionEvent) {
-        when {
-            frame.startDrag(ev.rawX, ev.rawY) -> resizeDragActive = true
-            frame.contains(ev.rawX, ev.rawY) -> {
+    private fun onFramePress(frame: WidgetResizeFrame, ev: MotionEvent, keepOnPress: Boolean) {
+        when (frame.press(ev.rawX, ev.rawY)) {
+            WidgetResizeFrame.Press.EDGE -> resizeDragActive = true
+            WidgetResizeFrame.Press.WIDGET -> {
                 pressOnFramedWidget = true
                 pressStartX = ev.rawX
                 pressStartY = ev.rawY
             }
-            else -> dismissResizeFrame()
+            WidgetResizeFrame.Press.OUTSIDE -> if (!keepOnPress) dismissResizeFrame()
         }
     }
 
