@@ -21,7 +21,7 @@
 
 ### Developer
 * X/Twitter [@tanujnotes](https://x.com/tanujnotes)
-* Website [tanujnotes.com](tanujnotes.github.io)
+* Website [tanujnotes.com](https://tanujnotes.github.io)
 
 
 
