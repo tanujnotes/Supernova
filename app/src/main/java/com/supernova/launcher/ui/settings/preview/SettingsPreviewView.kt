@@ -508,7 +508,6 @@ class SettingsPreviewView @JvmOverloads constructor(
         val background = com.supernova.launcher.ui.theme.SurfaceShapes.background(
             resolved.surface,
             radiiPx,
-            resolved.cornerCuts,
             (style.cornerRadii?.firstOrNull() ?: DEFAULT_FOLDER_RADIUS_DP) * density
         )
         folderCardBg = background
@@ -588,7 +587,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         val panel = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             background = com.supernova.launcher.ui.theme.SurfaceShapes.background(
-                resolved.surface, null, null, if (windowMode) 24f * density else 0f
+                resolved.surface, null, if (windowMode) 24f * density else 0f
             )
             val pad = dp(12)
             setPadding(pad, pad, pad, pad)
@@ -879,7 +878,6 @@ class SettingsPreviewView @JvmOverloads constructor(
         val drawable = com.supernova.launcher.ui.theme.SurfaceShapes.background(
             resolved.surface,
             resolved.cornerRadiiDp?.let { dpArr -> FloatArray(4) { dpArr[it] * density } },
-            resolved.cornerCuts,
             defaultRadius
         )
         surfaceBg = drawable

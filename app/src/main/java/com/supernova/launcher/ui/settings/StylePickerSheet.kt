@@ -12,7 +12,6 @@ import android.widget.SeekBar
 import android.widget.TextView
 import com.supernova.launcher.R
 import com.supernova.launcher.databinding.SheetStylePickerBinding
-import com.supernova.launcher.data.CornerCut
 import com.supernova.launcher.ui.dp
 import com.supernova.launcher.ui.theme.SurfaceShapes
 import com.supernova.launcher.ui.LauncherViewModel
@@ -28,7 +27,7 @@ import com.supernova.launcher.ui.theme.ThemeEngine
 import com.supernova.launcher.ui.theme.ToneRamp
 
 // Per-surface style editor: Surface/Text/Accent color slots picked from the
-// active tonal palette or fixed swatches, plus opacity and corner radius.
+// active tonal palette or fixed swatches, plus opacity.
 // Every change persists through prefs.styleConfig immediately; the strip at
 // the top re-resolves from a prefs copy so it always shows the real result.
 object StylePickerSheet {
@@ -108,7 +107,6 @@ object StylePickerSheet {
             binding.stripSurface.background = SurfaceShapes.background(
                 resolved.surface,
                 resolved.cornerRadiiDp?.let { dpArr -> FloatArray(4) { dpArr[it] * density } },
-                resolved.cornerCuts,
                 context.dp(14).toFloat()
             )
             binding.stripText.setTextColor(resolved.text)
@@ -294,89 +292,19 @@ object StylePickerSheet {
             binding.opacityRow.visibility = android.view.View.GONE
         }
 
-        var radius: Int? = style.cornerRadii?.firstOrNull()?.toInt()
-        fun renderRadius() {
-            binding.radiusValue.text = radius?.let {
-                context.getString(R.string.padding_dp_value, it)
-            } ?: context.getString(R.string.option_default)
-            binding.radiusDefault.visibility =
-                if (radius == null) android.view.View.GONE else android.view.View.VISIBLE
-        }
-        // All four corners move together for now; per-corner editing comes
-        // later, which is why four values are stored.
-        fun setRadius(value: Int) {
-            radius = value
-            style = style.copy(cornerRadii = List(4) { value.toFloat() })
-            persist()
-            renderRadius()
-            renderStrip()
-        }
-        binding.radiusDown.setOnClickListener {
-            setRadius(((radius ?: RADIUS_START) - RADIUS_STEP).coerceIn(0, RADIUS_MAX))
-        }
-        binding.radiusUp.setOnClickListener {
-            setRadius(((radius ?: (RADIUS_START - RADIUS_STEP)) + RADIUS_STEP).coerceIn(0, RADIUS_MAX))
-        }
-
-        // Corner shape (C1): one cut style applied to all four corners, like
-        // the uniform radius above. Picking a cut with no radius set gives the
-        // radius its starting value so the change is visible.
-        val cutButtons = listOf(
-            binding.cutRound to CornerCut.ROUND,
-            binding.cutSquircle to CornerCut.SQUIRCLE,
-            binding.cutCut to CornerCut.CUT
-        )
-
-        fun renderCuts() {
-            val current = CornerCut.fromName(style.cornerCuts?.firstOrNull())
-            val id = cutButtons.first { it.second == current }.first.id
-            if (binding.cutGroup.checkedButtonId != id) binding.cutGroup.check(id)
-        }
-
-        binding.radiusDefault.setOnClickListener {
-            radius = null
-            style = style.copy(cornerRadii = null, cornerCuts = null)
-            persist()
-            renderRadius()
-            renderCuts()
-            renderStrip()
-        }
-
-        binding.cutGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
-            if (!isChecked) return@addOnButtonCheckedListener
-            val cut = cutButtons.first { it.first.id == checkedId }.second
-            if (cut == CornerCut.fromName(style.cornerCuts?.firstOrNull())) return@addOnButtonCheckedListener
-            style = style.copy(
-                cornerCuts = if (cut == CornerCut.ROUND) null else List(4) { cut.name }
-            )
-            if (radius == null && cut != CornerCut.ROUND) {
-                radius = RADIUS_START
-                style = style.copy(cornerRadii = List(4) { RADIUS_START.toFloat() })
-                renderRadius()
-            }
-            persist()
-            renderStrip()
-        }
-
         if (surfaceId == SurfaceId.HOME) {
             // A background behind the icons: a color and how much of the
-            // wallpaper it hides, and nothing that needs text or corners.
+            // wallpaper it hides, and nothing that needs text.
             listOf(
-                binding.slotGroup, binding.stripText, binding.stripAccent, binding.contrastRow,
-                binding.radiusDown.parent as android.view.View, binding.cornerShapeRow
+                binding.slotGroup, binding.stripText, binding.stripAccent, binding.contrastRow
             ).forEach { it.visibility = android.view.View.GONE }
         }
         if (surfaceId in BAR_SURFACES) {
-            // A bar's shape is set on its own page.
-            binding.radiusDown.parent.let { (it as android.view.View).visibility = android.view.View.GONE }
-            binding.cornerShapeRow.visibility = android.view.View.GONE
             if (barGlassOn(surfaceId, prefs)) {
                 binding.styleGlassNote.visibility = android.view.View.VISIBLE
                 binding.opacityRow.visibility = android.view.View.GONE
             }
         }
-        renderCuts()
-        renderRadius()
         renderSlotButtons()
         renderSwatches()
         renderContrast()
@@ -385,9 +313,6 @@ object StylePickerSheet {
     }
 
     private const val CONTRAST_STEP = 5
-    private const val RADIUS_START = 16
-    private const val RADIUS_STEP = 4
-    private const val RADIUS_MAX = 32
     private const val FULL_OPACITY = 100
     private const val DRAWER_FIELD_OPACITY = 14
 }

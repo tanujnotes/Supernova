@@ -135,8 +135,7 @@ class SupernovaPopupMenu(
                 setPadding(0, context.dp(if (style == PopupMenuStyle.ANDROID12) 10 else 8), 0, context.dp(if (style == PopupMenuStyle.ANDROID12) 10 else 8))
                 background = com.supernova.launcher.ui.theme.SurfaceShapes.background(
                     surface.surface,
-                    surface.cornerRadiiDp?.let { dpArr -> FloatArray(4) { dpArr[it] * density } },
-                    surface.cornerCuts,
+                    null,
                     context.dp(if (style == PopupMenuStyle.ANDROID12) 28 else 20).toFloat()
                 )
                 clipToOutline = true

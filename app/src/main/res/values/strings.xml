@@ -333,7 +333,6 @@
     <string name="corner_round">Round</string>
     <string name="corner_squircle">Squircle</string>
     <string name="corner_cut">Cut</string>
-    <string name="style_corner_shape">Corner shape</string>
     <string name="dock_bg_behind_nav">Draw behind navigation bar</string>
     <string name="dock_bg_padding">Inset background from edges</string>
     <string name="folder_shadow">Folder window shadow</string>

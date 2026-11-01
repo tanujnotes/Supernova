@@ -603,7 +603,7 @@ class SearchController(
         }
         if (windowMode) {
             ui.root.background = com.supernova.launcher.ui.theme.SurfaceShapes.background(
-                resolved.surface, null, null, binding.root.dp(24f)
+                resolved.surface, null, binding.root.dp(24f)
             )
             ui.root.clipToOutline = true
         } else {

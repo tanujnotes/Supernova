@@ -13,9 +13,7 @@ class ResolvedSurface(
     val accent: Int,
     // [topLeft, topRight, bottomRight, bottomLeft] in dp, or null for the
     // surface's built-in shape.
-    val cornerRadiiDp: FloatArray?,
-    // Per-corner cut styles, same order; null = all round.
-    val cornerCuts: List<com.supernova.launcher.data.CornerCut>? = null
+    val cornerRadiiDp: FloatArray?
 )
 
 class ResolvedStyles(private val surfaces: Map<SurfaceId, ResolvedSurface>) {
@@ -96,11 +94,10 @@ object Styles {
                     colorFor(style.text, palette) ?: defaultText, surfaceBase, style.minContrast
                 ),
                 accent = colorFor(style.accent, palette) ?: defaultAccent,
-                cornerRadiiDp = style.cornerRadii?.let { radii ->
+                // Only the folder window has a radius, on the Folders page. One
+                // an older Style tab stored for another surface goes unread.
+                cornerRadiiDp = style.cornerRadii?.takeIf { id == SurfaceId.FOLDER }?.let { radii ->
                     FloatArray(4) { radii.getOrElse(it) { 0f } }
-                },
-                cornerCuts = style.cornerCuts?.let { cuts ->
-                    List(4) { com.supernova.launcher.data.CornerCut.fromName(cuts.getOrNull(it)) }
                 }
             )
         }

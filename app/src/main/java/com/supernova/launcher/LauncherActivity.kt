@@ -2372,17 +2372,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         defaultRadius: Float,
         squareBottom: Boolean = false
     ): android.graphics.drawable.Drawable {
-        val density = resources.displayMetrics.density
-        // Behind-nav squares the bottom corners of the default shape; radii
-        // the user set through the style picker are respected as-is.
-        val radii = resolved.cornerRadiiDp?.let { dpArr -> FloatArray(4) { dpArr[it] * density } }
-            ?: if (squareBottom) floatArrayOf(defaultRadius, defaultRadius, 0f, 0f) else null
-        return com.supernova.launcher.ui.theme.SurfaceShapes.background(
-            resolved.surface,
-            radii,
-            resolved.cornerCuts,
-            defaultRadius
-        )
+        // Behind-nav squares the bottom corners of the default shape.
+        val radii = if (squareBottom) floatArrayOf(defaultRadius, defaultRadius, 0f, 0f) else null
+        return com.supernova.launcher.ui.theme.SurfaceShapes.background(resolved.surface, radii, defaultRadius)
     }
 
     private fun openDrawer(forSearch: Boolean = false) {
@@ -3677,8 +3669,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).surface,
             cornerRadiiDp = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
                 .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).cornerRadiiDp,
-            cornerCuts = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
-                .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).cornerCuts,
             showTitle = prefs.folderShowName,
             showCount = prefs.folderShowCount,
             shadow = prefs.folderShadow,
@@ -3910,8 +3900,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).surface,
             cornerRadiiDp = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
                 .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).cornerRadiiDp,
-            cornerCuts = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
-                .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).cornerCuts,
             showTitle = prefs.folderShowName,
             showCount = prefs.folderShowCount,
             shadow = prefs.folderShadow,

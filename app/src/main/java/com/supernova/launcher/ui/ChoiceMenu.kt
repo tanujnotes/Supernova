@@ -97,8 +97,7 @@ object ChoiceMenu {
             setPadding(0, context.dp(LIST_PADDING_DP), 0, context.dp(LIST_PADDING_DP))
             background = SurfaceShapes.background(
                 surface.surface,
-                surface.cornerRadiiDp?.let { radii -> FloatArray(4) { radii[it] * density } },
-                surface.cornerCuts,
+                null,
                 context.dp(CORNER_DP).toFloat()
             )
             clipToOutline = true

@@ -37,16 +37,13 @@ data class SurfaceStyle(
     // Corner radii in dp, [topLeft, topRight, bottomRight, bottomLeft];
     // null = the surface's built-in shape.
     val cornerRadii: List<Float>? = null,
-    // Per-corner cut styles (CornerCut names, same order); null = all ROUND.
-    // Only meaningful alongside cornerRadii.
-    val cornerCuts: List<String>? = null,
     // Minimum contrast: the least tone gap (Contrast) the text keeps
     // from the surface, shading itself to hold it; null = off.
     val minContrast: Int? = null
 ) {
     fun isEmpty(): Boolean =
         surface.isDefault && text.isDefault && accent.isDefault &&
-            alpha == null && cornerRadii == null && cornerCuts == null && minContrast == null
+            alpha == null && cornerRadii == null && minContrast == null
 }
 
 // The whole per-surface style document, persisted as one JSON pref

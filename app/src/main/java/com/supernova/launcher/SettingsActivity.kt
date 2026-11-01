@@ -1985,7 +1985,7 @@ class SettingsActivity : AppCompatActivity() {
         val popup = Styles.resolve(this, viewModel.state.value.prefs).of(SurfaceId.POPUP)
         val surface = if (popup.surface == getColor(R.color.surface)) {
             com.supernova.launcher.ui.theme.ResolvedSurface(
-                getColor(R.color.raised), popup.text, popup.accent, popup.cornerRadiiDp, popup.cornerCuts
+                getColor(R.color.raised), popup.text, popup.accent, popup.cornerRadiiDp
             )
         } else {
             popup
