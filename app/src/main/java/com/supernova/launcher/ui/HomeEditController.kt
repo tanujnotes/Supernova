@@ -230,6 +230,13 @@ class HomeEditController(
         if (!isOpen) return
         isOpen = false
         host.cancelPageDrag()
+        // The search field would keep the window's focus on the home screen,
+        // and the keyboard would come back with it on every return home.
+        if (binding.editWidgetSearch.hasFocus()) {
+            activity.getSystemService(android.view.inputmethod.InputMethodManager::class.java)
+                ?.hideSoftInputFromWindow(binding.editWidgetSearch.windowToken, 0)
+            binding.editWidgetSearch.clearFocus()
+        }
         overlay?.root?.visibility = View.GONE
         host.setAddPageSlot(false)
         val prefs = viewModel.state.value.prefs
