@@ -23,7 +23,15 @@
 * X/Twitter [@tanujnotes](https://x.com/tanujnotes)
 * Website [tanujnotes.com](https://tanujnotes.github.io)
 
-
-
 ##
 *Xiaomi and a few other brands don't allow navigation gestures with third-party launchers. To fix that, you can try our free and [open-source](https://github.com/tanujnotes/Ogesture) app called [Ogesture](https://play.google.com/store/apps/details?id=com.ogesture).*
+
+##
+
+<a href="https://www.star-history.com/?repos=tanujnotes%2Fsupernova&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=tanujnotes/supernova&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=tanujnotes/supernova&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=tanujnotes/supernova&type=date&legend=top-left" />
+ </picture>
+</a>
