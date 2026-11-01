@@ -522,9 +522,7 @@ class AppCatalog(
         runCatching { iconRenderer.render(source, null, iconShape, customShapeSpec) }.getOrNull()
     }
 
-    fun renderActionTile(tile: Drawable): Drawable = synchronized(renderLock) {
-        runCatching { iconRenderer.renderTile(tile, iconShape, customShapeSpec) }.getOrDefault(tile)
-    }
+    fun renderActionTile(tile: Drawable): Drawable = renderThemedDrawable(tile) ?: tile
 
     // An app shortcut's own picture (a contact's photo) across the icon
     // shape; null when it isn't one that fills its frame.

@@ -137,13 +137,13 @@ object WidgetPickerGroups {
         val activities = WidgetPickerEntry.Shortcut(
             packageName = context.packageName,
             label = context.getString(R.string.add_category_activities),
-            icon = context.getDrawable(R.drawable.ic_action_drawer),
+            icon = context.getDrawable(R.drawable.ic_action_drawer)?.let(renderTile),
             target = ShortcutTarget.Activities
         )
         return WidgetPickerGroup(
             packageName = context.packageName,
             label = context.getString(R.string.app_name),
-            icon = context.getDrawable(R.drawable.ic_supernova)?.let(renderTile),
+            icon = context.getDrawable(R.mipmap.ic_launcher)?.let(renderTile),
             widgets = emptyList(),
             shortcuts = actions + activities
         )

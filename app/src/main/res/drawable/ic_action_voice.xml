@@ -1,10 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Launcher-action icon tile. Generated - see the generator in git history. -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp" android:height="108dp"
-    android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#455A64" android:pathData="M0,0h108v108h-108z" />
-    <group android:scaleX="2.5" android:scaleY="2.5" android:translateX="24.0" android:translateY="24.0">
-        <path android:fillColor="#FFFFFFFF" android:pathData="M12,14c1.66,0 3,-1.34 3,-3V5c0,-1.66 -1.34,-3 -3,-3S9,3.34 9,5v6c0,1.66 1.34,3 3,3zM17,11c0,2.76 -2.24,5 -5,5s-5,-2.24 -5,-5H5c0,3.53 2.61,6.43 6,6.92V21h2v-3.08c3.39,-0.49 6,-3.39 6,-6.92h-2z" />
-    </group>
-</vector>
+<!-- Launcher-action icon, built as Supernova's own icons are: the icon paper
+     behind a glyph split like the logo's spark, the whole glyph painted blue
+     and its top half laid over it in red. An adaptive icon, so it takes the
+     icon shape, glass and shadow as any other does. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <background android:drawable="@color/launcherIconBackground" />
+    <foreground>
+        <aapt:attr name="android:drawable">
+            <vector
+                android:width="108dp"
+                android:height="108dp"
+                android:viewportWidth="108"
+                android:viewportHeight="108">
+                <group
+                    android:scaleX="2.25"
+                    android:scaleY="2.25"
+                    android:translateX="27"
+                    android:translateY="27">
+                    <path
+                        android:fillColor="#3F72AF"
+                        android:pathData="M12,14c1.66,0 3,-1.34 3,-3V5c0,-1.66 -1.34,-3 -3,-3S9,3.34 9,5v6c0,1.66 1.34,3 3,3zM17,11c0,2.76 -2.24,5 -5,5s-5,-2.24 -5,-5H5c0,3.53 2.61,6.43 6,6.92V21h2v-3.08c3.39,-0.49 6,-3.39 6,-6.92h-2z" />
+                    <group>
+                        <clip-path android:pathData="M0,0H24V12H0Z" />
+                        <path
+                            android:fillColor="#D4574B"
+                            android:pathData="M12,14c1.66,0 3,-1.34 3,-3V5c0,-1.66 -1.34,-3 -3,-3S9,3.34 9,5v6c0,1.66 1.34,3 3,3zM17,11c0,2.76 -2.24,5 -5,5s-5,-2.24 -5,-5H5c0,3.53 2.61,6.43 6,6.92V21h2v-3.08c3.39,-0.49 6,-3.39 6,-6.92h-2z" />
+                    </group>
+                </group>
+            </vector>
+        </aapt:attr>
+    </foreground>
+</adaptive-icon>
