@@ -21,15 +21,17 @@ internal object PictureFrame {
             width >= size * SPAN && height >= size * SPAN && discSolid(pixels, size, box)
         }
 
-    // The box round a legacy icon that is a tile of its own, solid and about
-    // square, with the clear margin those icons were drawn with (a square at
-    // Equate's 84% of its canvas). Null for a glyph or an object, however big.
+    // The box round a legacy icon that is a square tile of its own, solid up
+    // to its rounded corners, with the clear margin those icons were drawn with
+    // (Equate's is 84% of its canvas). Null for a glyph, a disc or an outline of
+    // its own, like a shield or a hexagon, however big.
     fun tile(pixels: IntArray, size: Int): IntArray? =
         BakedBacking.contentBounds(pixels, size)?.takeIf { box ->
             val width = box[BakedBacking.RIGHT] - box[BakedBacking.LEFT] + 1
             val height = box[BakedBacking.BOTTOM] - box[BakedBacking.TOP] + 1
             maxOf(width, height) * TILE_ASPECT <= minOf(width, height) &&
-                minOf(width, height) >= size * TILE_SPAN && discSolid(pixels, size, box)
+                minOf(width, height) >= size * TILE_SPAN && discSolid(pixels, size, box) &&
+                cornersSolid(pixels, size, box, TILE_CORNER_INSET)
         }
 
     // Whether the disc inside the box is solid, but for a speck.
@@ -54,14 +56,37 @@ internal object PictureFrame {
 
     // Whether the box's corners are solid too: a square picture covers any
     // shape as it is, a round one doesn't.
-    fun square(pixels: IntArray, size: Int, box: IntArray): Boolean {
-        val inset = (size * CORNER_INSET).toInt()
+    fun square(pixels: IntArray, size: Int, box: IntArray): Boolean =
+        cornersSolid(pixels, size, box, CORNER_INSET)
+
+    private fun cornersSolid(pixels: IntArray, size: Int, box: IntArray, share: Float): Boolean {
+        val inset = (size * share).toInt()
         val left = box[BakedBacking.LEFT] + inset
         val top = box[BakedBacking.TOP] + inset
         val right = box[BakedBacking.RIGHT] - inset
         val bottom = box[BakedBacking.BOTTOM] - inset
         return listOf(left to top, right to top, left to bottom, right to bottom)
             .all { (x, y) -> alpha(pixels[y * size + x]) >= SOLID_ALPHA }
+    }
+
+    // How far the box's solid pixels reach from its centre, in half its longer
+    // side: 1 for a disc, about 1.41 for a square. What a mask's reach compares
+    // with to size a tile whose corners are rounded.
+    fun boxReach(pixels: IntArray, size: Int, box: IntArray): Float {
+        val centreX = (box[BakedBacking.LEFT] + box[BakedBacking.RIGHT]) / 2f
+        val centreY = (box[BakedBacking.TOP] + box[BakedBacking.BOTTOM]) / 2f
+        val half = maxOf(
+            box[BakedBacking.RIGHT] - box[BakedBacking.LEFT] + 1,
+            box[BakedBacking.BOTTOM] - box[BakedBacking.TOP] + 1
+        ) / 2f
+        var farthest = 0f
+        for (index in pixels.indices) {
+            if (alpha(pixels[index]) < SOLID_ALPHA) continue
+            val dx = index % size - centreX
+            val dy = index / size - centreY
+            farthest = maxOf(farthest, dx * dx + dy * dy)
+        }
+        return sqrt(farthest) / half
     }
 
     // How far a round picture filling the icon must be enlarged to cover a
@@ -86,6 +111,9 @@ internal object PictureFrame {
     // least this share of its longer.
     private const val TILE_SPAN = 0.75f
     private const val TILE_ASPECT = 0.9f
+    // How far in from its corners, as a share of the icon, a tile is solid:
+    // room for rounding, not for a disc's or a hexagon's missing corners.
+    private const val TILE_CORNER_INSET = 0.08f
     // This share of the disc inside its box must be solid.
     private const val SOLID_SHARE = 0.97f
     private const val SOLID_ALPHA = 128

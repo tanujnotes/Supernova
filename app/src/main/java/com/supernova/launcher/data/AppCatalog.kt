@@ -201,6 +201,8 @@ class AppCatalog(
             // A pack's own art or a picked picture is finished as it is:
             // glass leaves it alone.
             var finishedArt = false
+            // The app's own icon, left as it comes: no pack, no pick in Edit.
+            var ownIcon = false
             if (custom != null) {
                 source = custom
                 decoration = null
@@ -225,12 +227,17 @@ class AppCatalog(
                     ?: return null
                 decoration = if (themed == null && mono == null) iconPacks.decoration(packComponent) else null
                 finishedArt = themed != null
+                ownIcon = themed == null && mono == null && decoration == null
             }
 
             // ORIGINAL is the app's own icon, glass and all left off.
             val glass = if (variant == "ORIGINAL" || finishedArt) IconGlass.OFF else iconRenderer.glass
             val rendered = runCatching {
-                iconRenderer.render(source, decoration, effectiveShape, customShapeSpec, glass)
+                if (ownIcon) {
+                    iconRenderer.renderOwnIcon(source, effectiveShape, customShapeSpec, glass)
+                } else {
+                    iconRenderer.render(source, decoration, effectiveShape, customShapeSpec, glass)
+                }
             }.getOrNull() ?: return null
             dominantColorOf(IconRenderer.bitmapOf(rendered))?.let { dominantColors[cacheKey] = it }
             val icon = runCatching { pm.getUserBadgedIcon(rendered, user) }.getOrNull() ?: return null

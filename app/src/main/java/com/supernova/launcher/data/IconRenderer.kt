@@ -87,10 +87,6 @@ class IconRenderer(context: Context) {
         val isRawLegacy = shapePath == null &&
             decoration?.back == null && source !is AdaptiveIconDrawable
         val shouldNormalize = reshapeLegacy != ReshapeLegacy.OFF && isRawLegacy
-        // A legacy icon that is a tile of its own takes the system shape at
-        // full size, as an adaptive icon does; rescaling it as a glyph left it
-        // smaller than the icons around it.
-        if (shouldNormalize && glass == IconGlass.OFF) legacyTile(source)?.let { return it }
         // The pane's outline, when there is one: the shadow keeps clear of it.
         val glassMask = drawSource(canvas, source, decoration, shapePath, glass)
 
@@ -124,8 +120,23 @@ class IconRenderer(context: Context) {
         } else {
             val mask = shapePath
                 ?: glassPainter.systemMask(AdaptiveIconDrawable(Color.BLACK.toDrawable(), null), size)
-            filledMask(picture, pixels, side, box, mask)
+            val cover = if (PictureFrame.square(pixels, side, box)) {
+                1f
+            } else {
+                PictureFrame.reach(maskPixels(mask, size), size)
+            }
+            filledMask(picture, box, mask, cover)
         }
+    }
+
+    // An app's own icon, left as it comes. A legacy one that is a tile of its
+    // own takes the system shape at full size, as an adaptive icon does;
+    // rescaling it as a glyph left it smaller than the icons around it. A pack's
+    // art, a picked picture and the Original variant don't come here.
+    fun renderOwnIcon(source: Drawable, shape: IconShape, customShape: CustomShapeSpec?, glass: IconGlass): Drawable {
+        val fillsShape = source !is AdaptiveIconDrawable && reshapeLegacy != ReshapeLegacy.OFF &&
+            glass == IconGlass.OFF && shape.pathFor(iconSizePx.toFloat(), customShape) == null
+        return (if (fillsShape) legacyTile(source) else null) ?: render(source, null, shape, customShape, glass)
     }
 
     // The tile of a legacy icon cut to the system shape; null for one with no
@@ -139,18 +150,15 @@ class IconRenderer(context: Context) {
         picture.getPixels(pixels, 0, size, 0, 0, size, size)
         val box = PictureFrame.tile(pixels, size) ?: return null
         val mask = glassPainter.systemMask(AdaptiveIconDrawable(Color.BLACK.toDrawable(), null), size)
-        return filledMask(picture, pixels, size, box, mask)
+        // Only as far as its own corners need to reach the mask's, so the art
+        // on a rounder tile isn't cropped more than it has to be.
+        val cover = PictureFrame.reach(maskPixels(mask, size), size) / PictureFrame.boxReach(pixels, size, box)
+        return filledMask(picture, box, mask, cover.coerceAtLeast(1f))
     }
 
-    // The picture's box drawn across the mask, enlarged only as far as a round
-    // one needs to cover it.
-    private fun filledMask(picture: Bitmap, pixels: IntArray, side: Int, box: IntArray, mask: Path): Drawable {
+    // The picture's box drawn across the mask, enlarged by cover.
+    private fun filledMask(picture: Bitmap, box: IntArray, mask: Path, cover: Float): Drawable {
         val size = iconSizePx
-        val cover = if (PictureFrame.square(pixels, side, box)) {
-            1f
-        } else {
-            PictureFrame.reach(maskPixels(mask, size), size)
-        }
         val left = box[BakedBacking.LEFT]
         val top = box[BakedBacking.TOP]
         val right = box[BakedBacking.RIGHT]
