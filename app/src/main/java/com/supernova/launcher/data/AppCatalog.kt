@@ -17,6 +17,7 @@ import android.os.UserHandle
 import android.os.UserManager
 import android.provider.Settings
 import android.util.LruCache
+import androidx.core.graphics.drawable.toDrawable
 
 sealed interface AppChange {
     data class Removed(val packageName: String, val userSerial: Long) : AppChange
@@ -233,10 +234,10 @@ class AppCatalog(
             // ORIGINAL is the app's own icon, glass and all left off.
             val glass = if (variant == "ORIGINAL" || finishedArt) IconGlass.OFF else iconRenderer.glass
             val rendered = runCatching {
-                if (ownIcon) {
-                    iconRenderer.renderOwnIcon(source, effectiveShape, customShapeSpec, glass)
-                } else {
-                    iconRenderer.render(source, decoration, effectiveShape, customShapeSpec, glass)
+                when {
+                    gallery != null -> pickedPicture(gallery.bitmap, effectiveShape)
+                    ownIcon -> iconRenderer.renderOwnIcon(source, effectiveShape, customShapeSpec, glass)
+                    else -> iconRenderer.render(source, decoration, effectiveShape, customShapeSpec, glass)
                 }
             }.getOrNull() ?: return null
             dominantColorOf(IconRenderer.bitmapOf(rendered))?.let { dominantColors[cacheKey] = it }
@@ -523,6 +524,20 @@ class AppCatalog(
     }
 
     fun renderActionTile(tile: Drawable): Drawable = renderThemedDrawable(tile) ?: tile
+
+    // A picture picked for a folder or a launcher action, as one picked for an
+    // app is drawn.
+    fun renderPickedPicture(picture: android.graphics.Bitmap): Drawable? = synchronized(renderLock) {
+        runCatching { pickedPicture(picture, iconShape) }.getOrNull()
+    }
+
+    // A picked picture is finished as it is: drawn across the icon shape when
+    // it fills its frame, whatever its pixels are, and without glass either way.
+    // One with a clear background goes through the shape pipeline like a pack's art.
+    private fun pickedPicture(picture: android.graphics.Bitmap, shape: IconShape): Drawable =
+        iconRenderer.renderPicture(picture, shape, customShapeSpec) ?: iconRenderer.render(
+            picture.toDrawable(context.resources), null, shape, customShapeSpec, IconGlass.OFF
+        )
 
     // An app shortcut's own picture (a contact's photo) across the icon
     // shape; null when it isn't one that fills its frame.

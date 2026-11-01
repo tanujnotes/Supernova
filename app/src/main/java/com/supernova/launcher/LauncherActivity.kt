@@ -4087,9 +4087,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         val catalog = viewModel.appCatalog()
         val picture = photo?.takeIf { it.isNotEmpty() }
             ?.let { com.supernova.launcher.data.GalleryIconCodec.decode(it) }
-            ?.let { android.graphics.drawable.BitmapDrawable(resources, it) }
         return when {
-            picture != null -> if (raw) picture else catalog.renderThemedDrawable(picture) ?: picture
+            picture != null -> (if (raw) null else catalog.renderPickedPicture(picture))
+                ?: android.graphics.drawable.BitmapDrawable(resources, picture)
             pack == null || name == null -> null
             raw -> catalog.packDrawable(pack, name)
             else -> catalog.renderPackDrawable(pack, name)
