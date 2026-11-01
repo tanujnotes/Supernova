@@ -50,6 +50,32 @@ class PictureFrameTest {
     }
 
     @Test
+    fun aLegacySquareWithAMarginIsATile() {
+        val margin = size / 12
+        val icon = picture { x, y -> x in margin until size - margin && y in margin until size - margin }
+        assertNull(PictureFrame.frame(icon, size))
+        val box = PictureFrame.tile(icon, size)
+        assertNotNull(box)
+        assertTrue(PictureFrame.square(icon, size, box!!))
+    }
+
+    @Test
+    fun aSmallGlyphIsNoTile() {
+        assertNull(PictureFrame.tile(picture { x, y -> inDisc(x, y, size / 3f) }, size))
+    }
+
+    @Test
+    fun aWideBarIsNoTile() {
+        assertNull(PictureFrame.tile(picture { _, y -> y in size / 6 until size - size / 3 }, size))
+    }
+
+    @Test
+    fun aHollowFrameIsNoTile() {
+        val frame = picture { x, y -> !inDisc(x, y, size / 3f) && x in 4 until size - 4 && y in 4 until size - 4 }
+        assertNull(PictureFrame.tile(frame, size))
+    }
+
+    @Test
     fun aCircleMaskNeedsNoEnlarging() {
         assertEquals(1f, PictureFrame.reach(picture { x, y -> inDisc(x, y, size / 2f) }, size), 0.02f)
     }

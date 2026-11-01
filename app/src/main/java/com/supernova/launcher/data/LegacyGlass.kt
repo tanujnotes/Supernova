@@ -29,10 +29,14 @@ internal class LegacyGlass(private val painter: GlassPainter) {
         val pixels = IntArray(size * size)
         art.getPixels(pixels, 0, size, 0, 0, size, size)
         art.recycle()
+        val original = pixels.copyOf()
         val cleared = BakedBacking.clear(pixels, size)
+        // A flood that ran through soft-edged art (Equate's bevelled letters)
+        // leaves an empty pane: the picture stays whole instead.
+        val whole = cleared != null && BakedBacking.clearedAway(original, pixels)
         canvas.withClip(mask) {
             painter.drawPane(this, glass, cleared?.color ?: Color.WHITE, size, size)
-            drawPixels(this, pixels, size)
+            drawPixels(this, if (whole) original else pixels, size)
         }
     }
 

@@ -87,6 +87,10 @@ class IconRenderer(context: Context) {
         val isRawLegacy = shapePath == null &&
             decoration?.back == null && source !is AdaptiveIconDrawable
         val shouldNormalize = reshapeLegacy != ReshapeLegacy.OFF && isRawLegacy
+        // A legacy icon that is a tile of its own takes the system shape at
+        // full size, as an adaptive icon does; rescaling it as a glyph left it
+        // smaller than the icons around it.
+        if (shouldNormalize && glass == IconGlass.OFF) legacyTile(source)?.let { return it }
         // The pane's outline, when there is one: the shadow keeps clear of it.
         val glassMask = drawSource(canvas, source, decoration, shapePath, glass)
 
@@ -120,27 +124,48 @@ class IconRenderer(context: Context) {
         } else {
             val mask = shapePath
                 ?: glassPainter.systemMask(AdaptiveIconDrawable(Color.BLACK.toDrawable(), null), size)
-            val cover = if (PictureFrame.square(pixels, side, box)) {
-                1f
-            } else {
-                PictureFrame.reach(maskPixels(mask, size), size)
-            }
-            val left = box[BakedBacking.LEFT]
-            val top = box[BakedBacking.TOP]
-            val right = box[BakedBacking.RIGHT]
-            val bottom = box[BakedBacking.BOTTOM]
-            val scale = size * cover / maxOf(right - left + 1, bottom - top + 1)
-            val offsetX = size / 2f - (left + right + 1) / 2f * scale
-            val offsetY = size / 2f - (top + bottom + 1) / 2f * scale
-            val bitmap = createBitmap(size, size)
-            Canvas(bitmap).withClip(mask) {
-                withTranslation(offsetX, offsetY) {
-                    scale(scale, scale)
-                    drawBitmap(picture, 0f, 0f, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
-                }
-            }
-            if (shadow) withShadow(bitmap) else bitmap.toDrawable(resources)
+            filledMask(picture, pixels, side, box, mask)
         }
+    }
+
+    // The tile of a legacy icon cut to the system shape; null for one with no
+    // tile, which stays a legacy icon.
+    private fun legacyTile(source: Drawable): Drawable? {
+        val size = iconSizePx
+        val picture = createBitmap(size, size)
+        source.setBounds(0, 0, size, size)
+        source.draw(Canvas(picture))
+        val pixels = IntArray(size * size)
+        picture.getPixels(pixels, 0, size, 0, 0, size, size)
+        val box = PictureFrame.tile(pixels, size) ?: return null
+        val mask = glassPainter.systemMask(AdaptiveIconDrawable(Color.BLACK.toDrawable(), null), size)
+        return filledMask(picture, pixels, size, box, mask)
+    }
+
+    // The picture's box drawn across the mask, enlarged only as far as a round
+    // one needs to cover it.
+    private fun filledMask(picture: Bitmap, pixels: IntArray, side: Int, box: IntArray, mask: Path): Drawable {
+        val size = iconSizePx
+        val cover = if (PictureFrame.square(pixels, side, box)) {
+            1f
+        } else {
+            PictureFrame.reach(maskPixels(mask, size), size)
+        }
+        val left = box[BakedBacking.LEFT]
+        val top = box[BakedBacking.TOP]
+        val right = box[BakedBacking.RIGHT]
+        val bottom = box[BakedBacking.BOTTOM]
+        val scale = size * cover / maxOf(right - left + 1, bottom - top + 1)
+        val offsetX = size / 2f - (left + right + 1) / 2f * scale
+        val offsetY = size / 2f - (top + bottom + 1) / 2f * scale
+        val bitmap = createBitmap(size, size)
+        Canvas(bitmap).withClip(mask) {
+            withTranslation(offsetX, offsetY) {
+                scale(scale, scale)
+                drawBitmap(picture, 0f, 0f, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
+            }
+        }
+        return if (shadow) withShadow(bitmap) else bitmap.toDrawable(resources)
     }
 
     // A launcher action's tile, full-bleed and square as drawn: cut to the

@@ -265,4 +265,13 @@ class BakedBackingTest {
         BakedBacking.clearTexture(pixels, green)
         assertArrayEquals(intArrayOf(0, red, 0, 0), pixels)
     }
+
+    @Test
+    fun aPictureLeftWithSpecksWasClearedAway() {
+        val whole = IntArray(1000) { 0xFF336699.toInt() }
+        val specks = IntArray(1000) { if (it < 10) 0xFF000000.toInt() else 0 }
+        val logo = IntArray(1000) { if (it < 100) 0xFF000000.toInt() else 0 }
+        assertTrue(BakedBacking.clearedAway(whole, specks))
+        assertFalse(BakedBacking.clearedAway(whole, logo))
+    }
 }

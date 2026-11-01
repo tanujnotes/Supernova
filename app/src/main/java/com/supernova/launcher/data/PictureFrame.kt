@@ -21,6 +21,17 @@ internal object PictureFrame {
             width >= size * SPAN && height >= size * SPAN && discSolid(pixels, size, box)
         }
 
+    // The box round a legacy icon that is a tile of its own, solid and about
+    // square, with the clear margin those icons were drawn with (a square at
+    // Equate's 84% of its canvas). Null for a glyph or an object, however big.
+    fun tile(pixels: IntArray, size: Int): IntArray? =
+        BakedBacking.contentBounds(pixels, size)?.takeIf { box ->
+            val width = box[BakedBacking.RIGHT] - box[BakedBacking.LEFT] + 1
+            val height = box[BakedBacking.BOTTOM] - box[BakedBacking.TOP] + 1
+            maxOf(width, height) * TILE_ASPECT <= minOf(width, height) &&
+                minOf(width, height) >= size * TILE_SPAN && discSolid(pixels, size, box)
+        }
+
     // Whether the disc inside the box is solid, but for a speck.
     private fun discSolid(pixels: IntArray, size: Int, box: IntArray): Boolean {
         val centreX = (box[BakedBacking.LEFT] + box[BakedBacking.RIGHT]) / 2f
@@ -71,6 +82,10 @@ internal object PictureFrame {
 
     // A picture reaching this share of each side fills its frame.
     private const val SPAN = 0.9f
+    // A tile reaches this share of each side, and its shorter side is at
+    // least this share of its longer.
+    private const val TILE_SPAN = 0.75f
+    private const val TILE_ASPECT = 0.9f
     // This share of the disc inside its box must be solid.
     private const val SOLID_SHARE = 0.97f
     private const val SOLID_ALPHA = 128
