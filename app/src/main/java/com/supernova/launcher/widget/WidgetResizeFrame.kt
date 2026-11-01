@@ -95,19 +95,19 @@ class WidgetResizeFrame(
         this.widgetView = widgetView
         if (dragging) {
             placeWidget()
-            return true
+        } else {
+            cellX = (cells.cellX * units).roundToInt()
+            cellY = (cells.cellY * units).roundToInt()
+            spanX = (cells.spanX * units).roundToInt()
+            spanY = (cells.spanY * units).roundToInt()
+            layoutParams = WorkspaceCanvas.WidgetParams(0, 0, 1, 1, cells.cols, cells.rows, 0).apply {
+                this.cellX = this@WidgetResizeFrame.cellX / units.toFloat()
+                this.cellY = this@WidgetResizeFrame.cellY / units.toFloat()
+                this.spanX = this@WidgetResizeFrame.spanX / units.toFloat()
+                this.spanY = this@WidgetResizeFrame.spanY / units.toFloat()
+            }
+            invalidate()
         }
-        cellX = (cells.cellX * units).roundToInt()
-        cellY = (cells.cellY * units).roundToInt()
-        spanX = (cells.spanX * units).roundToInt()
-        spanY = (cells.spanY * units).roundToInt()
-        layoutParams = WorkspaceCanvas.WidgetParams(0, 0, 1, 1, cells.cols, cells.rows, 0).apply {
-            this.cellX = this@WidgetResizeFrame.cellX / units.toFloat()
-            this.cellY = this@WidgetResizeFrame.cellY / units.toFloat()
-            this.spanX = this@WidgetResizeFrame.spanX / units.toFloat()
-            this.spanY = this@WidgetResizeFrame.spanY / units.toFloat()
-        }
-        invalidate()
         return true
     }
 
@@ -124,19 +124,9 @@ class WidgetResizeFrame(
 
     // Starts a drag if a press at this screen point is on an edge's band.
     fun startDrag(rawX: Float, rawY: Float): Boolean {
-        val canvas = parent as? View ?: return false
-        val cells = layoutParams as? WorkspaceCanvas.WidgetParams ?: return false
-        if (!isShown) return false
-        getLocationOnScreen(screenLocation)
-        val x = rawX - screenLocation[0]
-        val y = rawY - screenLocation[1]
-        if (x < -grabBand || y < -grabBand || x > width + grabBand || y > height + grabBand) return false
-        // On a widget narrower than two bands, the nearer edge.
-        dragLeft = x < grabBand && x <= width - x
-        dragRight = x > width - grabBand && !dragLeft
-        dragTop = y < grabBand && y <= height - y
-        dragBottom = y > height - grabBand && !dragTop
-        if (!dragging) return false
+        val canvas = parent as? View
+        val cells = layoutParams as? WorkspaceCanvas.WidgetParams
+        if (canvas == null || cells == null || !takeEdgesAt(rawX, rawY)) return false
         dragStartX = rawX
         dragStartY = rawY
         startCellX = cellX
@@ -147,6 +137,21 @@ class WidgetResizeFrame(
         cellHeightPx = (cellSize(canvas.height, cells.rows) / units).coerceAtLeast(1)
         room = roomProvider(cellX, cellY, spanX, spanY)
         return true
+    }
+
+    // Sets which edges a press here moves; true when it moves any.
+    private fun takeEdgesAt(rawX: Float, rawY: Float): Boolean {
+        getLocationOnScreen(screenLocation)
+        val x = rawX - screenLocation[0]
+        val y = rawY - screenLocation[1]
+        val near = isShown && x >= -grabBand && x <= width + grabBand
+        val inBand = near && y >= -grabBand && y <= height + grabBand
+        // On a widget narrower than two bands, the nearer edge.
+        dragLeft = inBand && x < grabBand && x <= width - x
+        dragRight = inBand && x > width - grabBand && !dragLeft
+        dragTop = inBand && y < grabBand && y <= height - y
+        dragBottom = inBand && y > height - grabBand && !dragTop
+        return dragging
     }
 
     fun dragTo(rawX: Float, rawY: Float) {

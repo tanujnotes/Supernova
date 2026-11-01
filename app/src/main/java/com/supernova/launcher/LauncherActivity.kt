@@ -1763,6 +1763,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     // The stateIn placeholder would paint an empty workspace
                     // for one frame before the real layout decodes.
                     if (!state.loaded) return@collect
+                    widgets.rebindRestoredWidgets(state.model)
                     ThemeEngine.applyMode(this@LauncherActivity, state.prefs)
                     if (state.prefs.accentColor != appliedAccent) {
                         appliedAccent = state.prefs.accentColor

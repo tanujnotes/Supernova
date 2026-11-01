@@ -761,6 +761,8 @@ class LauncherViewModel(
             listOfNotNull(searchBarWidget.takeIf { it != 0 })).toSet()
     }
 
+    fun setWidgetId(itemId: String, appWidgetId: Int) = persist { repository.setWidgetId(itemId, appWidgetId) }
+
     fun resizeWidget(itemId: String, rect: WorkspaceGeometry.CellRect, onRefused: () -> Unit = {}) {
         val prefs = state.value.prefs
         viewModelScope.launch {
@@ -1639,7 +1641,19 @@ class LauncherViewModel(
     // Off the main thread: the decode, an install check per item and the
     // snapshot write are no work for it.
     suspend fun importBackup(raw: String): LauncherRepository.ImportResult = withContext(Dispatchers.IO) {
-        repository.importBackup(raw, preferences.snapshot()) { pkg, userSerial -> catalog.isInstalled(pkg, userSerial) }
+        val manager = android.appwidget.AppWidgetManager.getInstance(getApplication())
+        val hostIds = com.supernova.launcher.widget.SupernovaWidgetHost(
+            getApplication(), com.supernova.launcher.widget.SupernovaWidgetHost.HOST_ID
+        ).appWidgetIds.toSet()
+        repository.importBackup(
+            raw,
+            preferences.snapshot(),
+            isInstalled = { pkg, userSerial -> catalog.isInstalled(pkg, userSerial) },
+            widgetBound = { id, provider ->
+                id in hostIds && provider != null &&
+                    manager.getAppWidgetInfo(id)?.provider?.flattenToString() == provider
+            }
+        )
     }
 
     // Null when the page has no free area of the requested size.

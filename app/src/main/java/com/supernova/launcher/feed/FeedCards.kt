@@ -18,8 +18,8 @@ data class FeedCard(
     val name: String = "",
     val featuredType: String? = null,
     val featuredTarget: String? = null,
-    // Host id of a WIDGET featured card. Nulled on backup import (host ids
-    // never survive a restore) exactly like LauncherItem.appWidgetId.
+    // Host id of a WIDGET featured card. Nulled on backup import unless still
+    // bound here, exactly like LauncherItem.appWidgetId.
     val appWidgetId: Int? = null,
     val widgetProvider: String? = null,
     val actions: List<CardAction> = emptyList(),

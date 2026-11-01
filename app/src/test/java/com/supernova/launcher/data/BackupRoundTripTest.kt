@@ -299,4 +299,23 @@ class BackupRoundTripTest {
         assertEquals(prefs.gestureBindings, target[StoreKeys.gestureBindings])
         assertEquals(prefs.drawerGroups, target[StoreKeys.drawerGroups])
     }
+
+    @Test
+    fun aWidgetKeepsItsIdOnlyWhileItIsStillBoundToItsProvider() {
+        val model = LauncherModel(
+            items = listOf(
+                LauncherItem(id = "live", itemType = ItemType.WIDGET, appWidgetId = 7, widgetProvider = "a/.B"),
+                LauncherItem(id = "stale", itemType = ItemType.WIDGET, appWidgetId = 8, widgetProvider = "a/.C")
+            ),
+            feedCards = listOf(
+                com.supernova.launcher.feed.FeedCard(id = "card", appWidgetId = 9, widgetProvider = "a/.D")
+            )
+        )
+        val cleared = RestoredWidgets.withStaleCleared(model) { id, provider -> id == 7 && provider == "a/.B" }
+        assertEquals(7, cleared.items[0].appWidgetId)
+        assertEquals(null, cleared.items[1].appWidgetId)
+        assertEquals("a/.C", cleared.items[1].widgetProvider)
+        assertEquals(null, cleared.feedCards[0].appWidgetId)
+        assertEquals("a/.D", cleared.feedCards[0].widgetProvider)
+    }
 }

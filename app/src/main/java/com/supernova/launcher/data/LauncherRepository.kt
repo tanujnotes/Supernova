@@ -373,7 +373,7 @@ class LauncherRepository(private val context: Context) {
     // way.
     suspend fun applyFolderChecklist(folderId: String, added: List<LaunchableApp>, removedIds: Set<String>) {
         mutate { current ->
-            withFolderChecklist(current, folderId, added.map { app -> app to id() }, removedIds)
+            FolderChecklist.applied(current, folderId, added.map { app -> app to id() }, removedIds)
         }
     }
 
@@ -759,6 +759,17 @@ class LauncherRepository(private val context: Context) {
 
     // Sets a bound widget as a card's featured content. The old host id (if
     // any) is freed by the caller before this runs.
+    // A widget restored without a live id has one again.
+    suspend fun setWidgetId(itemId: String, appWidgetId: Int) {
+        mutate { current ->
+            current.copy(
+                items = current.items.map {
+                    if (it.id == itemId && it.itemType == ItemType.WIDGET) it.copy(appWidgetId = appWidgetId) else it
+                }
+            )
+        }
+    }
+
     suspend fun setCardWidget(cardId: String, appWidgetId: Int, provider: String) {
         mutate { current ->
             current.copy(feedCards = current.feedCards.map { card ->
@@ -831,13 +842,15 @@ class LauncherRepository(private val context: Context) {
     suspend fun importBackup(
         raw: String,
         currentPrefs: LauncherPrefs,
-        isInstalled: (packageName: String, userSerial: Long) -> Boolean
+        isInstalled: (packageName: String, userSerial: Long) -> Boolean,
+        // Whether this id is still bound here, to this provider: a backup of
+        // this same install, with its widget still up.
+        widgetBound: (appWidgetId: Int, provider: String?) -> Boolean
     ): ImportResult {
         val payload = json.decodeFromString<BackupPayload>(raw)
         val migrated = ModelMigrations.migrate(payload.model)
 
-        // Apps that vanished since the backup would render as dead icons, and
-        // widget ids never survive a restore - the host must re-bind them.
+        // Apps that vanished since the backup would render as dead icons.
         val missing = migrated.items.filter { item ->
             (item.itemType == ItemType.APP || item.itemType == ItemType.SHORTCUT) &&
                 item.packageName?.let { !isInstalled(it, item.userSerial) } ?: false
@@ -848,18 +861,15 @@ class LauncherRepository(private val context: Context) {
             folder.itemType == ItemType.FOLDER && kept.none { it.folderId == folder.id }
         }.map { it.id }.toSet()
 
-        val validated = migrated.copy(
-            items = kept
-                .filterNot { it.id in emptyFolders }
-                // Stale ids belong to the old install's host; clear them so the
-                // workspace shows a placeholder instead of someone else's widget.
-                .map { if (it.itemType == ItemType.WIDGET) it.copy(appWidgetId = null) else it },
-            // Feed card widget ids die with the old host exactly like item
-            // widget ids; the provider component survives for a future rebind.
-            feedCards = migrated.feedCards.map {
-                if (it.appWidgetId != null) it.copy(appWidgetId = null) else it
-            }
+        val validated = RestoredWidgets.withStaleCleared(
+            migrated.copy(items = kept.filterNot { it.id in emptyFolders }),
+            widgetBound
         )
+        val restoredPrefs = if (widgetBound(payload.prefs.searchBarWidgetId, payload.prefs.searchBarWidgetProvider)) {
+            payload.prefs
+        } else {
+            payload.prefs.copy(searchBarWidgetId = 0, searchBarWidgetProvider = "")
+        }
 
         // What is being replaced stays recoverable from Automatic backups, as
         // Reset's does: without that snapshot, no import. Written under the
@@ -868,15 +878,14 @@ class LauncherRepository(private val context: Context) {
         lock.withLock {
             context.supernovaStore.edit { prefs ->
                 prefs[StoreKeys.model] = json.encodeToString(validated)
-                LauncherPreferences.writeAll(prefs, payload.prefs)
+                LauncherPreferences.writeAll(prefs, restoredPrefs)
             }
         }
 
         return ImportResult(
             restored = validated.items.size,
             droppedMissingApps = missing.size,
-            widgetsNeedingRebind = validated.items.count { it.itemType == ItemType.WIDGET } +
-                migrated.feedCards.count { it.appWidgetId != null }
+            widgetsNeedingRebind = validated.items.count { it.itemType == ItemType.WIDGET && it.appWidgetId == null }
         )
     }
 
@@ -1391,33 +1400,6 @@ class LauncherRepository(private val context: Context) {
                     }
                 }
             )
-        }
-
-        // applyFolderChecklist's model change, pure for tests; each added app
-        // comes with its new item's id.
-        internal fun withFolderChecklist(
-            current: LauncherModel,
-            folderId: String,
-            added: List<Pair<LaunchableApp, String>>,
-            removedIds: Set<String>
-        ): LauncherModel {
-            if (current.items.none { it.id == folderId && it.itemType == ItemType.FOLDER }) return current
-            val kept = current.items.filterNot { it.folderId == folderId && it.id in removedIds }
-            val firstRank = (kept.filter { it.folderId == folderId }.maxOfOrNull { it.rank } ?: -1) + 1
-            val newItems = added.mapIndexed { index, (app, newId) ->
-                LauncherItem(
-                    id = newId,
-                    itemType = ItemType.APP,
-                    container = ContainerType.FOLDER,
-                    folderId = folderId,
-                    rank = firstRank + index,
-                    label = app.label,
-                    packageName = app.packageName,
-                    className = app.className,
-                    userSerial = app.userSerial
-                )
-            }
-            return withSparseFolderDissolved(current.copy(items = kept + newItems), folderId)
         }
 
         private const val AUTO_BACKUP_KEEP = 5

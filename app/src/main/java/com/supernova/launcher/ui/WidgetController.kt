@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
 import android.content.ComponentName
 import android.content.Intent
+import android.graphics.Color
 import android.graphics.Rect
 import android.os.Build
 import android.util.SizeF
@@ -14,6 +15,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -21,7 +23,10 @@ import androidx.core.view.children
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.supernova.launcher.R
+import com.supernova.launcher.data.ItemType
 import com.supernova.launcher.data.LauncherItem
+import com.supernova.launcher.data.LauncherModel
+import com.supernova.launcher.feed.FeaturedType
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.LauncherRepository
 import com.supernova.launcher.data.WorkspaceGeometry
@@ -115,8 +120,8 @@ class WidgetController(
         }
     }
 
-    // A pending widget is bound for one of two destinations: a workspace cell
-    // or a custom feed card.
+    // A pending widget is bound for one of these destinations: a workspace
+    // cell, a custom feed card, the search bar, or a restored widget's own item.
     sealed interface Target {
         data class Workspace(
             val page: Int,
@@ -127,6 +132,8 @@ class WidgetController(
             val displace: List<WorkspaceGeometry.ReorderMove> = emptyList()
         ) : Target
         data class Card(val cardId: String) : Target
+        // A widget restored without a live id, on its placeholder's tap.
+        data class Restored(val itemId: String) : Target
         // Replace: the widget stands in for the desktop search bar.
         data object SearchBar : Target
     }
@@ -169,6 +176,10 @@ class WidgetController(
     // (beginLiveDrag); every way down goes through dismissResizeFrame.
     var activeResizeFrame: WidgetResizeFrame? = null
         private set
+    // Items and cards rebindRestoredWidgets has seen, and the ids it allocated.
+    private val rebindsTried = HashSet<String>()
+    private val reboundIds = HashSet<Int>()
+
     // From a press on that frame's edge to its lift. See trackResizeDrag.
     private var resizeDragActive = false
     // A press on the framed widget, until it moves or lifts.
@@ -209,7 +220,7 @@ class WidgetController(
         activity.lifecycleScope.launch {
             val referenced = viewModel.persistedWidgetIds() ?: return@launch
             appWidgetHost.appWidgetIds
-                .filter { it !in referenced && it != pendingWidget?.widgetId }
+                .filter { it !in referenced && it != pendingWidget?.widgetId && it !in reboundIds }
                 .forEach {
                     appWidgetHost.deleteAppWidgetId(it)
                     widgetHostViews.remove(it)
@@ -230,16 +241,7 @@ class WidgetController(
             MotionEvent.ACTION_DOWN -> {
                 resizeDragActive = false
                 pressOnFramedWidget = false
-                if (frame == null || host.feedOpen) return false
-                when {
-                    frame.startDrag(ev.rawX, ev.rawY) -> resizeDragActive = true
-                    frame.contains(ev.rawX, ev.rawY) -> {
-                        pressOnFramedWidget = true
-                        pressStartX = ev.rawX
-                        pressStartY = ev.rawY
-                    }
-                    else -> dismissResizeFrame()
-                }
+                if (frame != null && !host.feedOpen) onFramePress(frame, ev)
             }
             MotionEvent.ACTION_MOVE ->
                 if (resizeDragActive) {
@@ -250,14 +252,25 @@ class WidgetController(
                 }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 pressOnFramedWidget = false
-                if (resizeDragActive) {
-                    resizeDragActive = false
-                    frame?.endDrag()
-                    return true
-                }
+                val ended = resizeDragActive
+                resizeDragActive = false
+                if (ended) frame?.endDrag()
+                return ended
             }
         }
         return resizeDragActive
+    }
+
+    private fun onFramePress(frame: WidgetResizeFrame, ev: MotionEvent) {
+        when {
+            frame.startDrag(ev.rawX, ev.rawY) -> resizeDragActive = true
+            frame.contains(ev.rawX, ev.rawY) -> {
+                pressOnFramedWidget = true
+                pressStartX = ev.rawX
+                pressStartY = ev.rawY
+            }
+            else -> dismissResizeFrame()
+        }
     }
 
     // True while the widget under the finger is handling this gesture itself.
@@ -494,8 +507,8 @@ class WidgetController(
 
     // Puts the frame around the widget's host view, on top of its canvas.
     private fun anchorResizeFrame(frame: WidgetResizeFrame, widgetView: View): Boolean {
-        val canvas = widgetView.parent as? ViewGroup ?: return false
-        if (!frame.anchor(widgetView)) return false
+        val canvas = widgetView.parent as? ViewGroup
+        if (canvas == null || !frame.anchor(widgetView)) return false
         if (frame.parent === canvas) {
             // The bind has just added the page's items over it.
             frame.bringToFront()
@@ -598,14 +611,72 @@ class WidgetController(
         }
     }
 
+    // A widget with no live id: its name, and if its provider is installed, a
+    // tap to bind it again through the normal add flow, which asks for the
+    // bind permission and runs the widget's own setup where it needs them.
     private fun fallbackWidgetView(item: LauncherItem): View {
-        return View(activity).apply {
+        val info = installedProvider(item.widgetProvider)
+        return TextView(activity).apply {
             setBackgroundResource(R.drawable.bg_widget_fallback)
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            val padding = activity.dp(FALLBACK_PADDING_DP)
+            setPadding(padding, padding, padding, padding)
+            text = if (info != null) {
+                activity.getString(R.string.widget_finish_setup, item.label)
+            } else {
+                item.label
+            }
+            info?.let { provider ->
+                setOnClickListener { bind(provider, Target.Restored(item.id)) }
+            }
             setOnLongClickListener { v ->
                 host.onWidgetLongPress(v, item)
                 true
             }
         }
+    }
+
+    private fun installedProvider(provider: String?): AppWidgetProviderInfo? {
+        val component = provider?.let(ComponentName::unflattenFromString) ?: return null
+        return runCatching { appWidgetManager.getInstalledProviders() }.getOrNull()
+            ?.firstOrNull { it.provider == component }
+    }
+
+    // Widgets and cards a restore left without a live id get a new one where
+    // that takes no asking: the bind permission held, no setup screen needed.
+    // The rest wait on their placeholder's tap. Once per item a session, as a
+    // refused bind stays refused.
+    fun rebindRestoredWidgets(model: LauncherModel) {
+        model.items
+            .filter { it.itemType == ItemType.WIDGET && it.appWidgetId == null }
+            .forEach { item ->
+                rebindSilently(item.id, item.widgetProvider) { viewModel.setWidgetId(item.id, it) }
+            }
+        model.feedCards
+            .filter { FeaturedType.fromName(it.featuredType) == FeaturedType.WIDGET && it.appWidgetId == null }
+            .forEach { card ->
+                val provider = card.widgetProvider.orEmpty()
+                rebindSilently(card.id, provider) { viewModel.setCardWidget(card.id, it, provider) }
+            }
+    }
+
+    private fun needsSetup(info: AppWidgetProviderInfo): Boolean {
+        val optional = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            info.widgetFeatures and AppWidgetProviderInfo.WIDGET_FEATURE_CONFIGURATION_OPTIONAL != 0
+        return info.configure != null && !optional
+    }
+
+    private fun rebindSilently(key: String, provider: String?, onBound: (Int) -> Unit) {
+        val info = if (rebindsTried.add(key)) installedProvider(provider) else null
+        if (info == null || needsSetup(info)) return
+        val widgetId = appWidgetHost.allocateAppWidgetId()
+        // Not swept away before the model has it.
+        reboundIds += widgetId
+        val bound = runCatching {
+            appWidgetManager.bindAppWidgetIdIfAllowed(widgetId, info.profile, info.provider, null)
+        }.getOrDefault(false)
+        if (bound) onBound(widgetId) else appWidgetHost.deleteAppWidgetId(widgetId)
     }
 
 
@@ -764,6 +835,7 @@ class WidgetController(
                     displace = target.displace
                 )
             }
+            is Target.Restored -> viewModel.setWidgetId(target.itemId, pending.widgetId)
             is Target.Card -> {
                 viewModel.setCardWidget(
                     target.cardId, pending.widgetId, info.provider?.flattenToString().orEmpty()
@@ -801,5 +873,6 @@ class WidgetController(
         private const val RESIZE_SNAP_MS = 120L
         // The dim behind the padding dialog, which previews on the home screen.
         private const val PREVIEW_DIALOG_DIM = 0.15f
+        private const val FALLBACK_PADDING_DP = 8
     }
 }

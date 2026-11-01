@@ -140,13 +140,13 @@ class FolderDissolveTest {
 
     @Test
     fun selectAppsWithNoneLeftTakesTheFolderAway() {
-        val done = LauncherRepository.withFolderChecklist(checklistFolder, "f", emptyList(), setOf("a", "b", "c"))
+        val done = FolderChecklist.applied(checklistFolder, "f", emptyList(), setOf("a", "b", "c"))
         assertTrue(done.items.isEmpty())
     }
 
     @Test
     fun selectAppsWithOneLeftLeavesThatApp() {
-        val done = LauncherRepository.withFolderChecklist(checklistFolder, "f", emptyList(), setOf("a", "c"))
+        val done = FolderChecklist.applied(checklistFolder, "f", emptyList(), setOf("a", "c"))
         val last = done.items.single()
         assertEquals("b", last.id)
         assertEquals(ContainerType.WORKSPACE, last.container)
@@ -157,7 +157,7 @@ class FolderDissolveTest {
 
     @Test
     fun selectAppsAddsBeforeItDissolves() {
-        val done = LauncherRepository.withFolderChecklist(
+        val done = FolderChecklist.applied(
             checklistFolder, "f", listOf(newApp to "n"), setOf("a", "b", "c")
         )
         assertEquals("n", done.items.single().id)
@@ -166,7 +166,7 @@ class FolderDissolveTest {
 
     @Test
     fun selectAppsKeepsAFolderOfTwoAndRanksNewAppsLast() {
-        val done = LauncherRepository.withFolderChecklist(checklistFolder, "f", listOf(newApp to "n"), setOf("a", "b"))
+        val done = FolderChecklist.applied(checklistFolder, "f", listOf(newApp to "n"), setOf("a", "b"))
         assertEquals(listOf("f", "c", "n"), done.items.map { it.id })
         assertEquals(3, done.item("n").rank)
     }
