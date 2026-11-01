@@ -3796,20 +3796,17 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 if (newName.isNotBlank() && newName != folder.label) {
                     viewModel.renameFolder(folder.id, newName)
                 }
-                lifecycleScope.launch {
-                    apps.forEachIndexed { index, app ->
-                        val member = memberByKey[keyOf(app.packageName, app.className, app.userSerial)]
-                        when {
-                            checked[index] && member == null ->
-                                viewModel.addAppToFolder(app, folder.id)
-                            !checked[index] && member != null -> {
-                                removeFolderMemberToFreeCell(member, pageForFolderMembers(folder))
-                                // Let the model settle so the next free-cell
-                                // lookup doesn't reuse the same cell.
-                                delay(120)
-                            }
-                        }
+                val added = ArrayList<LaunchableApp>()
+                val removed = HashSet<String>()
+                apps.forEachIndexed { index, app ->
+                    val member = memberByKey[keyOf(app.packageName, app.className, app.userSerial)]
+                    when {
+                        checked[index] && member == null -> added += app
+                        !checked[index] && member != null -> removed += member.id
                     }
+                }
+                if (added.isNotEmpty() || removed.isNotEmpty()) {
+                    viewModel.applyFolderChecklist(folder.id, added, removed)
                 }
             }
             .setNegativeButton(R.string.cancel, null)
@@ -3852,19 +3849,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             folder.page
         }
         return page.coerceIn(0, lastPage)
-    }
-
-    private fun removeFolderMemberToFreeCell(member: LauncherItem, preferredPage: Int) {
-        val pageCount = viewModel.state.value.model.pageCount
-        val pages = listOf(preferredPage) + (0 until pageCount).filter { it != preferredPage }
-        for (page in pages) {
-            val free = viewModel.firstFreeWorkspaceCell(page) ?: continue
-            viewModel.removeFolderMember(member.id, page, free.first, free.second)
-            return
-        }
-        // No page has room: drop the copy entirely rather than losing it in
-        // an occupied cell.
-        viewModel.removeItem(member.id)
     }
 
     // Drawer folders (FOLDER-type groups): the same popup chrome fed from

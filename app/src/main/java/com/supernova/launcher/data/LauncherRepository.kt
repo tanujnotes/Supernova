@@ -368,28 +368,12 @@ class LauncherRepository(private val context: Context) {
         }
     }
 
-    // Folder checklist additions: a brand-new item created directly inside the
-    // folder (a drawer copy), not moved from anywhere.
-    suspend fun addAppToFolder(app: LaunchableApp, folderId: String) {
+    // Select apps' result, in one change: the ticked apps come in as new items
+    // (drawer copies), the unticked ones go, and a folder left too small gives
+    // way.
+    suspend fun applyFolderChecklist(folderId: String, added: List<LaunchableApp>, removedIds: Set<String>) {
         mutate { current ->
-            if (current.items.none { it.id == folderId && it.itemType == ItemType.FOLDER }) {
-                return@mutate current
-            }
-            val nextRank = (current.items.filter { it.folderId == folderId }
-                .maxOfOrNull { it.rank } ?: -1) + 1
-            current.copy(
-                items = current.items + LauncherItem(
-                    id = id(),
-                    itemType = ItemType.APP,
-                    container = ContainerType.FOLDER,
-                    folderId = folderId,
-                    rank = nextRank,
-                    label = app.label,
-                    packageName = app.packageName,
-                    className = app.className,
-                    userSerial = app.userSerial
-                )
-            )
+            withFolderChecklist(current, folderId, added.map { app -> app to id() }, removedIds)
         }
     }
 
@@ -437,29 +421,6 @@ class LauncherRepository(private val context: Context) {
     // dockSlots: the dock's slots over all its pages (count x pages).
     suspend fun restoreItems(items: List<LauncherItem>, cols: Int, rows: Int, dockSlots: Int) {
         mutate { current -> restored(current, items, cols, rows, dockSlots) }
-    }
-
-    suspend fun removeFolderMember(memberId: String, page: Int, cellX: Int, cellY: Int) {
-        mutate { current ->
-            current.copy(
-                items = current.items.map {
-                    if (it.id == memberId) {
-                        it.copy(
-                            container = ContainerType.WORKSPACE,
-                            page = page,
-                            cellX = cellX,
-                            cellY = cellY,
-                            workspaceX = null,
-                            workspaceY = null,
-                            folderId = null,
-                            rank = 0
-                        )
-                    } else {
-                        it
-                    }
-                }
-            )
-        }
     }
 
     suspend fun reorderFolderMember(folderId: String, memberId: String, direction: Int) {
@@ -1430,6 +1391,33 @@ class LauncherRepository(private val context: Context) {
                     }
                 }
             )
+        }
+
+        // applyFolderChecklist's model change, pure for tests; each added app
+        // comes with its new item's id.
+        internal fun withFolderChecklist(
+            current: LauncherModel,
+            folderId: String,
+            added: List<Pair<LaunchableApp, String>>,
+            removedIds: Set<String>
+        ): LauncherModel {
+            if (current.items.none { it.id == folderId && it.itemType == ItemType.FOLDER }) return current
+            val kept = current.items.filterNot { it.folderId == folderId && it.id in removedIds }
+            val firstRank = (kept.filter { it.folderId == folderId }.maxOfOrNull { it.rank } ?: -1) + 1
+            val newItems = added.mapIndexed { index, (app, newId) ->
+                LauncherItem(
+                    id = newId,
+                    itemType = ItemType.APP,
+                    container = ContainerType.FOLDER,
+                    folderId = folderId,
+                    rank = firstRank + index,
+                    label = app.label,
+                    packageName = app.packageName,
+                    className = app.className,
+                    userSerial = app.userSerial
+                )
+            }
+            return withSparseFolderDissolved(current.copy(items = kept + newItems), folderId)
         }
 
         private const val AUTO_BACKUP_KEEP = 5

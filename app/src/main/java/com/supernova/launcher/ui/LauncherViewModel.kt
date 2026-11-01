@@ -714,13 +714,12 @@ class LauncherViewModel(
 
     fun moveIntoFolder(itemId: String, folderId: String) = persist { repository.moveItemIntoFolder(itemId, folderId) }
 
-    fun addAppToFolder(app: LaunchableApp, folderId: String) = persist { repository.addAppToFolder(app, folderId) }
+    fun applyFolderChecklist(folderId: String, added: List<LaunchableApp>, removedIds: Set<String>) =
+        persist { repository.applyFolderChecklist(folderId, added, removedIds) }
 
     fun removeItem(itemId: String) = persist { repository.removeItem(itemId) }
 
     fun renameFolder(folderId: String, name: String) = persist { repository.renameFolder(folderId, name) }
-
-    fun removeFolderMember(memberId: String, page: Int, cellX: Int, cellY: Int) = persist { repository.removeFolderMember(memberId, page, cellX, cellY) }
 
     fun reorderFolderMember(folderId: String, memberId: String, direction: Int) = persist { repository.reorderFolderMember(folderId, memberId, direction) }
 
