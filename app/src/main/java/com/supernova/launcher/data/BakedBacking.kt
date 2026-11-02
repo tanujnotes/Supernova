@@ -51,6 +51,10 @@ internal object BakedBacking {
     // Less backing than this share of the picture is no tile at all (busy
     // art all the way to the edge), and the picture is left whole.
     private const val MIN_SHARE = 0.15f
+    // A logo smaller than this share of the picture is taken for leftovers.
+    private const val MIN_LOGO_SHARE = 0.02f
+    // How far a channel of the cleared pixels may stray from the backing colour.
+    private const val MAX_DRIFT = 120
     // How many pixels deep into the logo the outline is unmixed.
     private const val FRINGE_DEPTH = 2
     // Unmixed below this opacity, a pixel is all backing and goes; from
@@ -123,6 +127,21 @@ internal object BakedBacking {
         }
         return if (right < 0) null else intArrayOf(left, top, right, bottom)
     }
+
+    // Whether clearing left next to nothing of a picture's solid pixels: no
+    // logo on a tile, only what got past the flood.
+    fun clearedAway(original: IntArray, cleared: IntArray): Boolean =
+        cleared.count { alpha(it) >= SEED_ALPHA } < original.count { alpha(it) >= SEED_ALPHA } * MIN_LOGO_SHARE
+
+    // Whether the flood wandered far from the colour it started on: past a
+    // tile's own shading, down a gradient and into the art.
+    fun ranFar(original: IntArray, cleared: Cleared): Boolean =
+        original.indices.any { index ->
+            cleared.taken[index] && alpha(original[index]) >= SEED_ALPHA &&
+                SHIFTS.any { shift ->
+                    kotlin.math.abs(channel(original[index], shift) - channel(cleared.backing, shift)) > MAX_DRIFT
+                }
+        }
 
     // Whether a cleared backing reaches every side of a box, within slack
     // pixels: a tile does, a free-standing object's body doesn't.

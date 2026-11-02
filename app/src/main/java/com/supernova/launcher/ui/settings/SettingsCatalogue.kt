@@ -259,7 +259,7 @@ object SettingsCatalogue {
                 // follow both unless they are given their own.
                 SettingItem.Slider(
                     R.string.icon_size,
-                    min = 70, max = 160,
+                    min = 70, max = 200,
                     step = 5,
                     get = { (it.iconScale * 100f).roundToInt() },
                     set = { viewModel.setIconScale(it / 100f) },
@@ -526,7 +526,7 @@ object SettingsCatalogue {
                 ),
                 SettingItem.Slider(
                     R.string.dock_icon_scale,
-                    min = 70, max = 160,
+                    min = 70, max = 200,
                     step = 5,
                     get = { (it.dockIconScale * 100f).roundToInt() },
                     set = { viewModel.setDockIconScale(it / 100f) },
@@ -687,7 +687,7 @@ object SettingsCatalogue {
                 ),
                 SettingItem.Slider(
                     R.string.drawer_icon_scale,
-                    min = 70, max = 160,
+                    min = 70, max = 200,
                     step = 5,
                     get = { (it.drawerIconScale * 100f).roundToInt() },
                     set = { viewModel.setDrawerIconScale(it / 100f) },
@@ -1232,7 +1232,7 @@ object SettingsCatalogue {
                 ),
                 SettingItem.Slider(
                     R.string.folder_icon_scale,
-                    min = 70, max = 160,
+                    min = 70, max = 200,
                     step = 5,
                     get = { (it.folderIconScale * 100f).roundToInt() },
                     set = { viewModel.setFolderIconScale(it / 100f) },

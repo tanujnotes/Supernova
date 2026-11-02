@@ -714,13 +714,12 @@ class LauncherViewModel(
 
     fun moveIntoFolder(itemId: String, folderId: String) = persist { repository.moveItemIntoFolder(itemId, folderId) }
 
-    fun addAppToFolder(app: LaunchableApp, folderId: String) = persist { repository.addAppToFolder(app, folderId) }
+    fun applyFolderChecklist(folderId: String, added: List<LaunchableApp>, removedIds: Set<String>) =
+        persist { repository.applyFolderChecklist(folderId, added, removedIds) }
 
     fun removeItem(itemId: String) = persist { repository.removeItem(itemId) }
 
     fun renameFolder(folderId: String, name: String) = persist { repository.renameFolder(folderId, name) }
-
-    fun removeFolderMember(memberId: String, page: Int, cellX: Int, cellY: Int) = persist { repository.removeFolderMember(memberId, page, cellX, cellY) }
 
     fun reorderFolderMember(folderId: String, memberId: String, direction: Int) = persist { repository.reorderFolderMember(folderId, memberId, direction) }
 
@@ -761,6 +760,8 @@ class LauncherViewModel(
             model.feedCards.mapNotNull { it.appWidgetId } +
             listOfNotNull(searchBarWidget.takeIf { it != 0 })).toSet()
     }
+
+    fun setWidgetId(itemId: String, appWidgetId: Int) = persist { repository.setWidgetId(itemId, appWidgetId) }
 
     fun resizeWidget(itemId: String, rect: WorkspaceGeometry.CellRect, onRefused: () -> Unit = {}) {
         val prefs = state.value.prefs
@@ -1640,7 +1641,19 @@ class LauncherViewModel(
     // Off the main thread: the decode, an install check per item and the
     // snapshot write are no work for it.
     suspend fun importBackup(raw: String): LauncherRepository.ImportResult = withContext(Dispatchers.IO) {
-        repository.importBackup(raw, preferences.snapshot()) { pkg, userSerial -> catalog.isInstalled(pkg, userSerial) }
+        val manager = android.appwidget.AppWidgetManager.getInstance(getApplication())
+        val hostIds = com.supernova.launcher.widget.SupernovaWidgetHost(
+            getApplication(), com.supernova.launcher.widget.SupernovaWidgetHost.HOST_ID
+        ).appWidgetIds.toSet()
+        repository.importBackup(
+            raw,
+            preferences.snapshot(),
+            isInstalled = { pkg, userSerial -> catalog.isInstalled(pkg, userSerial) },
+            widgetBound = { id, provider ->
+                id in hostIds && provider != null &&
+                    manager.getAppWidgetInfo(id)?.provider?.flattenToString() == provider
+            }
+        )
     }
 
     // Null when the page has no free area of the requested size.
@@ -1658,7 +1671,7 @@ class LauncherViewModel(
 
     private companion object {
         // The icon size settings' top.
-        const val MAX_ICON_RESOLUTION = 1.6f
+        const val MAX_ICON_RESOLUTION = 2f
         // How long a package-callback rescan waits for its burst to settle.
         const val REFRESH_COALESCE_MS = 300L
         // How long the first frame may wait for the startup warm before the

@@ -77,7 +77,7 @@
                 android:layout_weight="1"
                 android:stepSize="5"
                 android:valueFrom="70"
-                android:valueTo="160"
+                android:valueTo="200"
                 app:haloRadius="0dp"
                 app:labelBehavior="gone"
                 app:thumbColor="?attr/colorPrimary"

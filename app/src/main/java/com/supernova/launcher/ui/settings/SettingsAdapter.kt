@@ -483,7 +483,6 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             binding.styleStrip.background = com.supernova.launcher.ui.theme.SurfaceShapes.background(
                 resolved.surface,
                 resolved.cornerRadiiDp?.let { dpArr -> FloatArray(4) { dpArr[it] * density } },
-                resolved.cornerCuts,
                 12f * density
             )
             binding.styleStripText.setTextColor(resolved.text)

@@ -14,6 +14,8 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toDrawable
+import androidx.core.graphics.get
+import androidx.core.graphics.scale
 import androidx.core.graphics.withClip
 import androidx.core.graphics.withTranslation
 import kotlin.math.roundToInt
@@ -42,7 +44,7 @@ class IconRenderer(context: Context) {
 
     private val resources = context.resources
     // How much larger than the base icon the biggest icon on screen is
-    // drawn (the icon size settings go to 160%), so a big icon is rendered
+    // drawn (the icon size settings go to 200%), so a big icon is rendered
     // at its own size rather than a 48dp bitmap stretched soft.
     var resolutionScale: Float = 1f
 
@@ -107,7 +109,14 @@ class IconRenderer(context: Context) {
     // it alone, as they do a picked picture. With System and Reshape legacy
     // Off it is drawn as it is, like any legacy icon then. Null for one that
     // doesn't fill its frame (a glyph), which is drawn as a legacy icon.
-    fun renderPicture(picture: Bitmap, shape: IconShape, customShape: CustomShapeSpec?): Drawable? {
+    // With glass, the pane lies over the picture, tinted with its mean colour,
+    // so the whole picture still shows through.
+    fun renderPicture(
+        picture: Bitmap,
+        shape: IconShape,
+        customShape: CustomShapeSpec?,
+        glass: IconGlass = IconGlass.OFF
+    ): Drawable? {
         val side = picture.width
         // One that isn't square stays clear here, so it is no picture.
         val pixels = IntArray(side * side)
@@ -115,7 +124,7 @@ class IconRenderer(context: Context) {
         val box = PictureFrame.frame(pixels, side) ?: return null
         val size = iconSizePx
         val shapePath = shape.pathFor(size.toFloat(), customShape)
-        return if (shapePath == null && reshapeLegacy == ReshapeLegacy.OFF) {
+        return if (shapePath == null && reshapeLegacy == ReshapeLegacy.OFF && glass == IconGlass.OFF) {
             render(picture.toDrawable(resources), glass = IconGlass.OFF)
         } else {
             val mask = shapePath
@@ -125,36 +134,84 @@ class IconRenderer(context: Context) {
             } else {
                 PictureFrame.reach(maskPixels(mask, size), size)
             }
-            val left = box[BakedBacking.LEFT]
-            val top = box[BakedBacking.TOP]
-            val right = box[BakedBacking.RIGHT]
-            val bottom = box[BakedBacking.BOTTOM]
-            val scale = size * cover / maxOf(right - left + 1, bottom - top + 1)
-            val offsetX = size / 2f - (left + right + 1) / 2f * scale
-            val offsetY = size / 2f - (top + bottom + 1) / 2f * scale
-            val bitmap = createBitmap(size, size)
-            Canvas(bitmap).withClip(mask) {
-                withTranslation(offsetX, offsetY) {
-                    scale(scale, scale)
-                    drawBitmap(picture, 0f, 0f, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
-                }
-            }
-            if (shadow) withShadow(bitmap) else bitmap.toDrawable(resources)
+            filledMask(picture, box, mask, cover, glass)
         }
     }
 
-    // A launcher action's tile, full-bleed and square as drawn: cut to the
-    // chosen shape, or the platform's mask with System, as an adaptive icon
-    // is. Glass and Reshape legacy have no plate of it to replace.
-    fun renderTile(tile: Drawable, shape: IconShape, customShape: CustomShapeSpec?): Drawable {
+    // A folder's picked art under the icons' glass: a picture that fills its
+    // frame shows through the pane, and one with a clear background sits on it
+    // at its own size, never enlarged.
+    fun renderFolderArt(source: Drawable, shape: IconShape, customShape: CustomShapeSpec?): Drawable {
         val size = iconSizePx
+        val picture = createBitmap(size, size)
+        source.setBounds(0, 0, size, size)
+        source.draw(Canvas(picture))
+        renderPicture(picture, shape, customShape, glass)?.let { return it }
         val mask = shape.pathFor(size.toFloat(), customShape)
             ?: glassPainter.systemMask(AdaptiveIconDrawable(Color.BLACK.toDrawable(), null), size)
         val bitmap = createBitmap(size, size)
+        val canvas = Canvas(bitmap)
+        canvas.withClip(mask) { glassPainter.drawPane(this, glass, Color.WHITE, size, size) }
+        glassPainter.drawEdge(canvas, mask, glass, size, size)
+        canvas.drawBitmap(picture, 0f, 0f, null)
+        return if (shadow) withShadow(bitmap, mask) else bitmap.toDrawable(resources)
+    }
+
+    // An app's own icon, left as it comes. A legacy one that is a tile of its
+    // own takes the system shape at full size, as an adaptive icon does;
+    // rescaling it as a glyph left it smaller than the icons around it. A pack's
+    // art, a picked picture and the Original variant don't come here.
+    fun renderOwnIcon(source: Drawable, shape: IconShape, customShape: CustomShapeSpec?, glass: IconGlass): Drawable {
+        val fillsShape = source !is AdaptiveIconDrawable && reshapeLegacy != ReshapeLegacy.OFF &&
+            glass == IconGlass.OFF && shape.pathFor(iconSizePx.toFloat(), customShape) == null
+        return (if (fillsShape) legacyTile(source) else null) ?: render(source, null, shape, customShape, glass)
+    }
+
+    // The tile of a legacy icon cut to the system shape; null for one with no
+    // tile, which stays a legacy icon.
+    private fun legacyTile(source: Drawable): Drawable? {
+        val size = iconSizePx
+        val picture = createBitmap(size, size)
+        source.setBounds(0, 0, size, size)
+        source.draw(Canvas(picture))
+        val pixels = IntArray(size * size)
+        picture.getPixels(pixels, 0, size, 0, 0, size, size)
+        val box = PictureFrame.tile(pixels, size) ?: return null
+        val mask = glassPainter.systemMask(AdaptiveIconDrawable(Color.BLACK.toDrawable(), null), size)
+        // Only as far as its own corners need to reach the mask's, so the art
+        // on a rounder tile isn't cropped more than it has to be.
+        val cover = PictureFrame.reach(maskPixels(mask, size), size) / PictureFrame.boxReach(pixels, size, box)
+        return filledMask(picture, box, mask, cover.coerceAtLeast(1f))
+    }
+
+    // The picture's box drawn across the mask, enlarged by cover.
+    private fun filledMask(
+        picture: Bitmap,
+        box: IntArray,
+        mask: Path,
+        cover: Float,
+        glass: IconGlass = IconGlass.OFF
+    ): Drawable {
+        val size = iconSizePx
+        val left = box[BakedBacking.LEFT]
+        val top = box[BakedBacking.TOP]
+        val right = box[BakedBacking.RIGHT]
+        val bottom = box[BakedBacking.BOTTOM]
+        val scale = size * cover / maxOf(right - left + 1, bottom - top + 1)
+        val offsetX = size / 2f - (left + right + 1) / 2f * scale
+        val offsetY = size / 2f - (top + bottom + 1) / 2f * scale
+        val bitmap = createBitmap(size, size)
         Canvas(bitmap).withClip(mask) {
-            tile.setBounds(0, 0, size, size)
-            tile.draw(this)
+            withTranslation(offsetX, offsetY) {
+                scale(scale, scale)
+                drawBitmap(picture, 0f, 0f, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
+            }
+            if (glass != IconGlass.OFF) {
+                val tint = picture.scale(1, 1)[0, 0]
+                glassPainter.drawPane(this, glass, tint or Color.BLACK, size, size)
+            }
         }
+        if (glass != IconGlass.OFF) glassPainter.drawEdge(Canvas(bitmap), mask, glass, size, size)
         return if (shadow) withShadow(bitmap) else bitmap.toDrawable(resources)
     }
 

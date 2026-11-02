@@ -46,6 +46,7 @@
     <string name="widget_add_interrupted">Widget setup was interrupted, please try again</string>
     <string name="widget_configure_failed">Couldn\'t open widget settings</string>
     <string name="widget_provider_missing">Widget is no longer available</string>
+    <string name="widget_finish_setup">%1$s\nTap to finish setup</string>
     <string name="export_backup">Export Backup</string>
     <string name="import_backup">Import Backup</string>
     <string name="backup_exported">Backup exported</string>
@@ -58,8 +59,8 @@
         <item quantity="other">, skipped %1$d missing apps</item>
     </plurals>
     <plurals name="backup_widgets_rebind">
-        <item quantity="one">, %1$d widget needs re-adding</item>
-        <item quantity="other">, %1$d widgets need re-adding</item>
+        <item quantity="one">, %1$d widget may need setting up again</item>
+        <item quantity="other">, %1$d widgets may need setting up again</item>
     </plurals>
     <string name="backup_export_failed">Export failed: %1$s</string>
     <string name="backup_import_failed">Import failed: %1$s</string>
@@ -332,7 +333,6 @@
     <string name="corner_round">Round</string>
     <string name="corner_squircle">Squircle</string>
     <string name="corner_cut">Cut</string>
-    <string name="style_corner_shape">Corner shape</string>
     <string name="dock_bg_behind_nav">Draw behind navigation bar</string>
     <string name="dock_bg_padding">Inset background from edges</string>
     <string name="folder_shadow">Folder window shadow</string>

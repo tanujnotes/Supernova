@@ -265,4 +265,50 @@ class BakedBackingTest {
         BakedBacking.clearTexture(pixels, green)
         assertArrayEquals(intArrayOf(0, red, 0, 0), pixels)
     }
+
+    @Test
+    fun aPictureLeftWithSpecksWasClearedAway() {
+        val whole = IntArray(1000) { 0xFF336699.toInt() }
+        val specks = IntArray(1000) { if (it < 10) 0xFF000000.toInt() else 0 }
+        val logo = IntArray(1000) { if (it < 100) 0xFF000000.toInt() else 0 }
+        assertTrue(BakedBacking.clearedAway(whole, specks))
+        assertFalse(BakedBacking.clearedAway(whole, logo))
+    }
+
+    private fun rgb(red: Int, green: Int, blue: Int) = (0xFF shl 24) or (red shl 16) or (green shl 8) or blue
+
+    // A vertical gradient tile, light at the top and dark at the bottom, with a
+    // dark bar whose edges fade softly into the gradient.
+    private fun softGradientTile(size: Int, top: IntArray, bottom: IntArray): IntArray =
+        IntArray(size * size) { index ->
+            val y = index / size
+            val x = index % size
+            val base = IntArray(3) { top[it] + (bottom[it] - top[it]) * y / (size - 1) }
+            val edge = minOf(x - size / 4, 3 * size / 4 - x, y - size / 4, 3 * size / 4 - y)
+            val ink = (edge + 8).coerceIn(0, 16) / 16f
+            val mixed = IntArray(3) { (base[it] * (1f - ink) + 0x2B * ink).toInt() }
+            rgb(mixed[0], mixed[1], mixed[2])
+        }
+
+    @Test
+    fun aFloodDownASteepGradientRanFar() {
+        val original = softGradientTile(96, intArrayOf(0x86, 0xDA, 0x4E), intArrayOf(0x3C, 0x55, 0x2B))
+        val cleared = BakedBacking.clear(original.copyOf(), 96)
+        assertNotNull(cleared)
+        assertTrue(BakedBacking.ranFar(original, cleared!!))
+    }
+
+    @Test
+    fun aTilesOwnShadingIsNotRunningFar() {
+        val original = image(
+            "BBBBB",
+            "BRRRB",
+            "BRRRB",
+            "BRRRB",
+            "BBBBB"
+        )
+        val cleared = BakedBacking.clear(original.copyOf(), 5)
+        assertNotNull(cleared)
+        assertFalse(BakedBacking.ranFar(original, cleared!!))
+    }
 }

@@ -40,7 +40,6 @@ class FolderPopup(private val context: Context) {
         // Style-engine radii/cuts for the card, in dp; null keeps bg_folder's
         // built-in 24dp round corners.
         cornerRadiiDp: FloatArray? = null,
-        cornerCuts: List<com.supernova.launcher.data.CornerCut>? = null,
         // folderShowName pref: hides the title row, its menu button too. The
         // folder's long-press menu still has what that menu held.
         showTitle: Boolean = true,
@@ -74,7 +73,6 @@ class FolderPopup(private val context: Context) {
             binding.folderCard.background = com.supernova.launcher.ui.theme.SurfaceShapes.background(
                 surfaceColor ?: context.getColor(com.supernova.launcher.R.color.drawerBackground),
                 FloatArray(4) { cornerRadiiDp[it] * density },
-                cornerCuts,
                 context.dp(24).toFloat()
             )
         } else {

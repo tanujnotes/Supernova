@@ -17,6 +17,7 @@ import android.os.UserHandle
 import android.os.UserManager
 import android.provider.Settings
 import android.util.LruCache
+import androidx.core.graphics.drawable.toDrawable
 
 sealed interface AppChange {
     data class Removed(val packageName: String, val userSerial: Long) : AppChange
@@ -201,6 +202,8 @@ class AppCatalog(
             // A pack's own art or a picked picture is finished as it is:
             // glass leaves it alone.
             var finishedArt = false
+            // The app's own icon, left as it comes: no pack, no pick in Edit.
+            var ownIcon = false
             if (custom != null) {
                 source = custom
                 decoration = null
@@ -225,12 +228,17 @@ class AppCatalog(
                     ?: return null
                 decoration = if (themed == null && mono == null) iconPacks.decoration(packComponent) else null
                 finishedArt = themed != null
+                ownIcon = themed == null && mono == null && decoration == null
             }
 
             // ORIGINAL is the app's own icon, glass and all left off.
             val glass = if (variant == "ORIGINAL" || finishedArt) IconGlass.OFF else iconRenderer.glass
             val rendered = runCatching {
-                iconRenderer.render(source, decoration, effectiveShape, customShapeSpec, glass)
+                when {
+                    gallery != null -> pickedPicture(gallery.bitmap, effectiveShape)
+                    ownIcon -> iconRenderer.renderOwnIcon(source, effectiveShape, customShapeSpec, glass)
+                    else -> iconRenderer.render(source, decoration, effectiveShape, customShapeSpec, glass)
+                }
             }.getOrNull() ?: return null
             dominantColorOf(IconRenderer.bitmapOf(rendered))?.let { dominantColors[cacheKey] = it }
             val icon = runCatching { pm.getUserBadgedIcon(rendered, user) }.getOrNull() ?: return null
@@ -515,9 +523,37 @@ class AppCatalog(
         runCatching { iconRenderer.render(source, null, iconShape, customShapeSpec) }.getOrNull()
     }
 
-    fun renderActionTile(tile: Drawable): Drawable = synchronized(renderLock) {
-        runCatching { iconRenderer.renderTile(tile, iconShape, customShapeSpec) }.getOrDefault(tile)
+    fun renderActionTile(tile: Drawable): Drawable = renderThemedDrawable(tile) ?: tile
+
+    // Art picked for a folder, under the icons' glass when that is on.
+    fun renderFolderPicture(picture: android.graphics.Bitmap): Drawable? = synchronized(renderLock) {
+        runCatching {
+            if (iconRenderer.glass == IconGlass.OFF) {
+                pickedPicture(picture, iconShape)
+            } else {
+                iconRenderer.renderFolderArt(picture.toDrawable(context.resources), iconShape, customShapeSpec)
+            }
+        }.getOrNull()
     }
+
+    fun renderFolderPack(packPackage: String, drawableName: String): Drawable? = synchronized(renderLock) {
+        if (iconRenderer.glass == IconGlass.OFF) return renderPackDrawable(packPackage, drawableName)
+        val source = packDrawable(packPackage, drawableName) ?: return null
+        runCatching { iconRenderer.renderFolderArt(source, iconShape, customShapeSpec) }.getOrNull()
+    }
+
+    // A picture picked for a launcher action, as one picked for an app is drawn.
+    fun renderPickedPicture(picture: android.graphics.Bitmap): Drawable? = synchronized(renderLock) {
+        runCatching { pickedPicture(picture, iconShape) }.getOrNull()
+    }
+
+    // A picked picture is finished as it is: drawn across the icon shape when
+    // it fills its frame, whatever its pixels are, and without glass either way.
+    // One with a clear background goes through the shape pipeline like a pack's art.
+    private fun pickedPicture(picture: android.graphics.Bitmap, shape: IconShape): Drawable =
+        iconRenderer.renderPicture(picture, shape, customShapeSpec) ?: iconRenderer.render(
+            picture.toDrawable(context.resources), null, shape, customShapeSpec, IconGlass.OFF
+        )
 
     // An app shortcut's own picture (a contact's photo) across the icon
     // shape; null when it isn't one that fills its frame.

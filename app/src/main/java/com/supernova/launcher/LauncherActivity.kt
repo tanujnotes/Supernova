@@ -881,6 +881,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             }
             return true
         }
+        // Edit mode offers Resize too: a drag on that frame's edge is the frame's,
+        // unless the press is on what edit mode puts over the page.
+        val framedInEditMode = ::editMode.isInitialized && editMode.isOpen && !editMode.pressOnChrome(ev)
+        if (framedInEditMode && widgets.trackResizeDrag(ev, keepOnPress = true)) return true
         // isVisible, not isExpanded: the sheet leaves EXPANDED the moment a
         // closing swipe starts, and the still-observing gesture detector
         // would read that swipe as the home swipe-down binding.
@@ -895,12 +899,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         ) {
             return super.dispatchTouchEvent(ev)
         }
-        // A drag on a widget resize frame's handle is the frame's alone, as a
+        // A drag on a widget resize frame's edge is the frame's alone, as a
         // live drag is the drag layer's: nothing below may read it. On the
         // first page the feed would take a rightward one for its pull, and
         // the drawer pull an upward one, each cancelling the frame a few
         // pixels in; a downward one would fire the swipe-down on the lift.
-        if (widgets.trackResizeDrag(ev)) return super.dispatchTouchEvent(ev)
+        if (widgets.trackResizeDrag(ev)) return true
         if (::feed.isInitialized) {
             when (feed.onTouch(ev)) {
                 // The feed owns the rest of this stream (edge-swipe drag).
@@ -1763,6 +1767,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     // The stateIn placeholder would paint an empty workspace
                     // for one frame before the real layout decodes.
                     if (!state.loaded) return@collect
+                    widgets.rebindRestoredWidgets(state.model)
                     ThemeEngine.applyMode(this@LauncherActivity, state.prefs)
                     if (state.prefs.accentColor != appliedAccent) {
                         appliedAccent = state.prefs.accentColor
@@ -2367,17 +2372,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         defaultRadius: Float,
         squareBottom: Boolean = false
     ): android.graphics.drawable.Drawable {
-        val density = resources.displayMetrics.density
-        // Behind-nav squares the bottom corners of the default shape; radii
-        // the user set through the style picker are respected as-is.
-        val radii = resolved.cornerRadiiDp?.let { dpArr -> FloatArray(4) { dpArr[it] * density } }
-            ?: if (squareBottom) floatArrayOf(defaultRadius, defaultRadius, 0f, 0f) else null
-        return com.supernova.launcher.ui.theme.SurfaceShapes.background(
-            resolved.surface,
-            radii,
-            resolved.cornerCuts,
-            defaultRadius
-        )
+        // Behind-nav squares the bottom corners of the default shape.
+        val radii = if (squareBottom) floatArrayOf(defaultRadius, defaultRadius, 0f, 0f) else null
+        return com.supernova.launcher.ui.theme.SurfaceShapes.background(resolved.surface, radii, defaultRadius)
     }
 
     private fun openDrawer(forSearch: Boolean = false) {
@@ -3218,11 +3215,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             }
             ItemType.WIDGET -> {
                 if (!locked) {
-                    val bounds = widgets.spanBounds(item)
-                    if (bounds.canResizeH || bounds.canResizeV) {
-                        menu.addRow(getString(R.string.widget_resize), R.drawable.ic_menu_resize) {
-                            widgets.showResizeFrame(item, anchor)
-                        }
+                    menu.addRow(getString(R.string.widget_resize), R.drawable.ic_menu_resize) {
+                        widgets.showResizeFrame(item, anchor)
                     }
                     menu.addRow(getString(R.string.padding), R.drawable.ic_menu_padding) {
                         widgets.showPaddingDialog(item, anchor)
@@ -3675,8 +3669,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).surface,
             cornerRadiiDp = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
                 .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).cornerRadiiDp,
-            cornerCuts = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
-                .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).cornerCuts,
             showTitle = prefs.folderShowName,
             showCount = prefs.folderShowCount,
             shadow = prefs.folderShadow,
@@ -3751,19 +3743,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             .map { keyOf(it.packageName, it.className, it.userSerial) in memberByKey }
             .toBooleanArray()
 
-        val rowAdapter = object : android.widget.ArrayAdapter<LaunchableApp>(this, R.layout.row_folder_check, apps) {
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val row = convertView ?: layoutInflater.inflate(R.layout.row_folder_check, parent, false)
-                val app = apps[position]
-                row.findViewById<android.widget.ImageView>(R.id.folderCheckIcon)
-                    .setImageDrawable(viewModel.appCatalog().iconFor(app))
-                row.findViewById<android.widget.CheckedTextView>(R.id.folderCheckLabel).apply {
-                    text = app.label
-                    isChecked = checked[position]
-                }
-                return row
-            }
-        }
+        val checklist = com.supernova.launcher.ui.AppChecklist(this, apps, checked, viewModel.appCatalog()::iconFor) {}
 
         // Static title with a pencil at the end; tapping it swaps in the
         // rename field (committed on Done) and summons the keyboard.
@@ -3800,36 +3780,27 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
         val dialog = MaterialAlertDialogBuilder(this)
             .setCustomTitle(titleWrap)
-            // Null click listener: taps must toggle, not dismiss - the real
-            // handler goes on the list view below.
-            .setAdapter(rowAdapter, null)
+            .setView(checklist.view)
             .setPositiveButton(R.string.done) { _, _ ->
                 val newName = titleInput.text?.toString()?.trim().orEmpty()
                 if (newName.isNotBlank() && newName != folder.label) {
                     viewModel.renameFolder(folder.id, newName)
                 }
-                lifecycleScope.launch {
-                    apps.forEachIndexed { index, app ->
-                        val member = memberByKey[keyOf(app.packageName, app.className, app.userSerial)]
-                        when {
-                            checked[index] && member == null ->
-                                viewModel.addAppToFolder(app, folder.id)
-                            !checked[index] && member != null -> {
-                                removeFolderMemberToFreeCell(member, pageForFolderMembers(folder))
-                                // Let the model settle so the next free-cell
-                                // lookup doesn't reuse the same cell.
-                                delay(120)
-                            }
-                        }
+                val added = ArrayList<LaunchableApp>()
+                val removed = HashSet<String>()
+                apps.forEachIndexed { index, app ->
+                    val member = memberByKey[keyOf(app.packageName, app.className, app.userSerial)]
+                    when {
+                        checked[index] && member == null -> added += app
+                        !checked[index] && member != null -> removed += member.id
                     }
+                }
+                if (added.isNotEmpty() || removed.isNotEmpty()) {
+                    viewModel.applyFolderChecklist(folder.id, added, removed)
                 }
             }
             .setNegativeButton(R.string.cancel, null)
             .create()
-        dialog.listView.setOnItemClickListener { _, _, position, _ ->
-            checked[position] = !checked[position]
-            rowAdapter.notifyDataSetChanged()
-        }
         dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         editTitleButton.setOnClickListener {
             titleText.visibility = View.GONE
@@ -3864,19 +3835,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             folder.page
         }
         return page.coerceIn(0, lastPage)
-    }
-
-    private fun removeFolderMemberToFreeCell(member: LauncherItem, preferredPage: Int) {
-        val pageCount = viewModel.state.value.model.pageCount
-        val pages = listOf(preferredPage) + (0 until pageCount).filter { it != preferredPage }
-        for (page in pages) {
-            val free = viewModel.firstFreeWorkspaceCell(page) ?: continue
-            viewModel.removeFolderMember(member.id, page, free.first, free.second)
-            return
-        }
-        // No page has room: drop the copy entirely rather than losing it in
-        // an occupied cell.
-        viewModel.removeItem(member.id)
     }
 
     // Drawer folders (FOLDER-type groups): the same popup chrome fed from
@@ -3936,8 +3894,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).surface,
             cornerRadiiDp = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
                 .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).cornerRadiiDp,
-            cornerCuts = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
-                .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).cornerCuts,
             showTitle = prefs.folderShowName,
             showCount = prefs.folderShowCount,
             shadow = prefs.folderShadow,
@@ -3989,14 +3945,17 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         if (apps.isEmpty()) return
         val checked = apps.map { viewModel.isInGroup(it, group) }.toBooleanArray()
         val target = group.copy(name = name)
-        MaterialAlertDialogBuilder(this)
+        // Applied to the stored group as each tick lands, so successive checks compose.
+        val checklist = com.supernova.launcher.ui.AppChecklist(this, apps, checked, viewModel.appCatalog()::iconFor) {
+            viewModel.setGroupMembership(target, apps[it], checked[it])
+        }
+        val dialog = MaterialAlertDialogBuilder(this)
             .setTitle(name)
-            .setMultiChoiceItems(apps.map { it.label }.toTypedArray(), checked) { _, which, isChecked ->
-                // Applied to the stored group, so successive checks compose.
-                viewModel.setGroupMembership(target, apps[which], isChecked)
-            }
+            .setView(checklist.view)
             .setPositiveButton(R.string.done, null)
-            .show()
+            .create()
+        dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        dialog.show()
     }
 
     private fun withBadge(
@@ -4073,7 +4032,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // A custom icon is fitted to the icon shape like any other, unless its
     // Edit has Reshape off: then it is drawn as it is.
     private fun folderPreviewDrawable(folder: LauncherItem): android.graphics.drawable.Drawable {
-        customFolderIcon(folder.iconBase64, folder.customIconPack, folder.customIconName, folder.iconRaw)
+        customFolderIcon(
+            folder.iconBase64, folder.customIconPack, folder.customIconName, folder.iconRaw, isFolder = true
+        )
             ?.let { return it }
         val memberIcons = viewModel.folderMembers(folder.id)
             // The dense styles (3x3, dense ring) show up to nine members.
@@ -4090,23 +4051,31 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     }
 
     private fun drawerFolderIcon(group: DrawerGroup, members: List<LaunchableApp>): android.graphics.drawable.Drawable =
-        customFolderIcon(group.iconBase64, group.iconPack, group.iconName, group.iconRaw)
+        customFolderIcon(group.iconBase64, group.iconPack, group.iconName, group.iconRaw, isFolder = true)
             ?: composedFolderIcon(members.mapNotNull { app -> viewModel.appCatalog().iconFor(app) })
 
     private fun customFolderIcon(
         photo: String?,
         pack: String?,
         name: String?,
-        raw: Boolean
+        raw: Boolean,
+        isFolder: Boolean = false
     ): android.graphics.drawable.Drawable? {
         val catalog = viewModel.appCatalog()
         val picture = photo?.takeIf { it.isNotEmpty() }
             ?.let { com.supernova.launcher.data.GalleryIconCodec.decode(it) }
-            ?.let { android.graphics.drawable.BitmapDrawable(resources, it) }
         return when {
-            picture != null -> if (raw) picture else catalog.renderThemedDrawable(picture) ?: picture
+            picture != null -> (
+                when {
+                    raw -> null
+                    isFolder -> catalog.renderFolderPicture(picture)
+                    else -> catalog.renderPickedPicture(picture)
+                }
+                )
+                ?: android.graphics.drawable.BitmapDrawable(resources, picture)
             pack == null || name == null -> null
             raw -> catalog.packDrawable(pack, name)
+            isFolder -> catalog.renderFolderPack(pack, name)
             else -> catalog.renderPackDrawable(pack, name)
         }
     }

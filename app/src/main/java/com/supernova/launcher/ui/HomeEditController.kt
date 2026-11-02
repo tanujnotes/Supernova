@@ -82,6 +82,7 @@ class HomeEditController(
     // paints the bar with the sheet's own surface), so only its list pads out.
     // The overlay's marker takes the status bar inset when edit mode opens.
     private var barInsets: androidx.core.graphics.Insets = androidx.core.graphics.Insets.NONE
+    private val chromeRect = android.graphics.Rect()
 
     init {
         ViewCompat.setOnApplyWindowInsetsListener(binding.editWidgetSheet) { view, insets ->
@@ -230,6 +231,13 @@ class HomeEditController(
         if (!isOpen) return
         isOpen = false
         host.cancelPageDrag()
+        // The search field would keep the window's focus on the home screen,
+        // and the keyboard would come back with it on every return home.
+        if (binding.editWidgetSearch.hasFocus()) {
+            activity.getSystemService(android.view.inputmethod.InputMethodManager::class.java)
+                ?.hideSoftInputFromWindow(binding.editWidgetSearch.windowToken, 0)
+            binding.editWidgetSearch.clearFocus()
+        }
         overlay?.root?.visibility = View.GONE
         host.setAddPageSlot(false)
         val prefs = viewModel.state.value.prefs
@@ -249,6 +257,19 @@ class HomeEditController(
         }
         if (behavior.state != BottomSheetBehavior.STATE_HIDDEN) {
             behavior.state = BottomSheetBehavior.STATE_HIDDEN
+        }
+    }
+
+    // Whether a touch is the press of a gesture on the marker, the chips or the
+    // sheet, rather than on the page under them.
+    fun pressOnChrome(ev: android.view.MotionEvent): Boolean {
+        if (ev.actionMasked != android.view.MotionEvent.ACTION_DOWN) return false
+        val chrome = listOfNotNull(
+            binding.editWidgetSheet, overlay?.editChips, overlay?.editHomeMarker, overlay?.editRemovePage
+        )
+        return chrome.any { view ->
+            view.isShown && view.getGlobalVisibleRect(chromeRect) &&
+                chromeRect.contains(ev.rawX.toInt(), ev.rawY.toInt())
         }
     }
 

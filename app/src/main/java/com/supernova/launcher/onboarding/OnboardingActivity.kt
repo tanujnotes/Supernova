@@ -647,7 +647,7 @@ class OnboardingActivity : AppCompatActivity() {
 
         // The Home screen settings' icon size slider.
         private const val SIZE_MIN = 70
-        private const val SIZE_MAX = 160
+        private const val SIZE_MAX = 200
         private const val SIZE_STEP = 5
 
         // Sample icons: flat cyan, white, green and magenta, drawn a

@@ -125,4 +125,49 @@ class FolderDissolveTest {
         assertEquals("f", moved.item("d").folderId)
         assertEquals("f", moved.item("b").folderId)
     }
+
+    private val checklistFolder = LauncherModel(
+        items = listOf(
+            pageFolder,
+            app("a", ContainerType.FOLDER, rank = 0, folder = "f"),
+            app("b", ContainerType.FOLDER, rank = 1, folder = "f"),
+            app("c", ContainerType.FOLDER, rank = 2, folder = "f")
+        ),
+        pageCount = 2
+    )
+
+    private val newApp = LaunchableApp("p.new", "c.new", "New", 0L)
+
+    @Test
+    fun selectAppsWithNoneLeftTakesTheFolderAway() {
+        val done = FolderChecklist.applied(checklistFolder, "f", emptyList(), setOf("a", "b", "c"))
+        assertTrue(done.items.isEmpty())
+    }
+
+    @Test
+    fun selectAppsWithOneLeftLeavesThatApp() {
+        val done = FolderChecklist.applied(checklistFolder, "f", emptyList(), setOf("a", "c"))
+        val last = done.items.single()
+        assertEquals("b", last.id)
+        assertEquals(ContainerType.WORKSPACE, last.container)
+        assertEquals(2, last.cellX)
+        assertEquals(3, last.cellY)
+        assertNull(last.folderId)
+    }
+
+    @Test
+    fun selectAppsAddsBeforeItDissolves() {
+        val done = FolderChecklist.applied(
+            checklistFolder, "f", listOf(newApp to "n"), setOf("a", "b", "c")
+        )
+        assertEquals("n", done.items.single().id)
+        assertEquals("p.new", done.items.single().packageName)
+    }
+
+    @Test
+    fun selectAppsKeepsAFolderOfTwoAndRanksNewAppsLast() {
+        val done = FolderChecklist.applied(checklistFolder, "f", listOf(newApp to "n"), setOf("a", "b"))
+        assertEquals(listOf("f", "c", "n"), done.items.map { it.id })
+        assertEquals(3, done.item("n").rank)
+    }
 }

@@ -57,8 +57,7 @@ class StyleEngineTest {
                 SurfaceId.DRAWER to SurfaceStyle(
                     surface = ColorSpec(role = PaletteRole.NEUTRAL, tone = 20),
                     alpha = 0.85f,
-                    cornerRadii = listOf(24f, 24f, 0f, 0f),
-                    cornerCuts = listOf("SQUIRCLE", "SQUIRCLE", "ROUND", "CUT")
+                    cornerRadii = listOf(24f, 24f, 0f, 0f)
                 ),
                 SurfaceId.DOCK to SurfaceStyle(surface = ColorSpec(fixed = "#80112233")),
                 SurfaceId.POPUP to SurfaceStyle(minContrast = 40)
