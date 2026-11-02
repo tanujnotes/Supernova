@@ -3743,7 +3743,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             .map { keyOf(it.packageName, it.className, it.userSerial) in memberByKey }
             .toBooleanArray()
 
-        val rowAdapter = appCheckAdapter(apps, checked)
+        val checklist = com.supernova.launcher.ui.AppChecklist(this, apps, checked, viewModel.appCatalog()::iconFor) {}
 
         // Static title with a pencil at the end; tapping it swaps in the
         // rename field (committed on Done) and summons the keyboard.
@@ -3780,9 +3780,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
         val dialog = MaterialAlertDialogBuilder(this)
             .setCustomTitle(titleWrap)
-            // Null click listener: taps must toggle, not dismiss - the real
-            // handler goes on the list view below.
-            .setAdapter(rowAdapter, null)
+            .setView(checklist.view)
             .setPositiveButton(R.string.done) { _, _ ->
                 val newName = titleInput.text?.toString()?.trim().orEmpty()
                 if (newName.isNotBlank() && newName != folder.label) {
@@ -3803,10 +3801,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             }
             .setNegativeButton(R.string.cancel, null)
             .create()
-        dialog.listView.setOnItemClickListener { _, _, position, _ ->
-            checked[position] = !checked[position]
-            rowAdapter.notifyDataSetChanged()
-        }
         dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         editTitleButton.setOnClickListener {
             titleText.visibility = View.GONE
@@ -3951,38 +3945,18 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         if (apps.isEmpty()) return
         val checked = apps.map { viewModel.isInGroup(it, group) }.toBooleanArray()
         val target = group.copy(name = name)
-        val rowAdapter = appCheckAdapter(apps, checked)
+        // Applied to the stored group as each tick lands, so successive checks compose.
+        val checklist = com.supernova.launcher.ui.AppChecklist(this, apps, checked, viewModel.appCatalog()::iconFor) {
+            viewModel.setGroupMembership(target, apps[it], checked[it])
+        }
         val dialog = MaterialAlertDialogBuilder(this)
             .setTitle(name)
-            // Null click listener: taps must toggle, not dismiss - the real
-            // handler goes on the list view below.
-            .setAdapter(rowAdapter, null)
+            .setView(checklist.view)
             .setPositiveButton(R.string.done, null)
             .create()
-        dialog.listView.setOnItemClickListener { _, _, position, _ ->
-            checked[position] = !checked[position]
-            rowAdapter.notifyDataSetChanged()
-            // Applied to the stored group, so successive checks compose.
-            viewModel.setGroupMembership(target, apps[position], checked[position])
-        }
+        dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         dialog.show()
     }
-
-    // The checklist rows of Select apps, for home, dock and drawer folders.
-    private fun appCheckAdapter(apps: List<LaunchableApp>, checked: BooleanArray) =
-        object : android.widget.ArrayAdapter<LaunchableApp>(this, R.layout.row_folder_check, apps) {
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val row = convertView ?: layoutInflater.inflate(R.layout.row_folder_check, parent, false)
-                val app = apps[position]
-                row.findViewById<android.widget.ImageView>(R.id.folderCheckIcon)
-                    .setImageDrawable(viewModel.appCatalog().iconFor(app))
-                row.findViewById<android.widget.CheckedTextView>(R.id.folderCheckLabel).apply {
-                    text = app.label
-                    isChecked = checked[position]
-                }
-                return row
-            }
-        }
 
     private fun withBadge(
         icon: android.graphics.drawable.Drawable?,
