@@ -1,0 +1,8 @@
+Search in Select apps, easier widget resizing, and widgets back after a restore.
+
+- Select apps: search, the folder's apps first, icons in drawer folders
+- Resize widgets from any edge or corner, down to half a cell
+- Icons up to 200%; older app icons fill the icon shape
+- Launcher actions get Supernova's own icon look
+- Folder photos and icon pack icons take glass
+- Fixed the bottom drawer bar under the keyboard, new apps missing from drawer tabs, and the keyboard after widget search

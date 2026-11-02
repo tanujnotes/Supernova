@@ -28,8 +28,8 @@ android {
         applicationId = "com.supernova.launcher"
         minSdk = 28
         targetSdk = 36
-        versionCode = 7
-        versionName = "v0.1.7"
+        versionCode = 8
+        versionName = "v0.1.8"
     }
 
     signingConfigs {
