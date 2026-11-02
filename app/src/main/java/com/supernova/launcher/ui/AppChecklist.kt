@@ -38,15 +38,21 @@ class AppChecklist(
         val search = EditText(context).apply {
             hint = context.getString(R.string.search_apps)
             isSingleLine = true
+            // The outlined box draws no inner space of its own for a plain
+            // EditText: without it the text sits on the border.
+            val padH = context.dp(FIELD_PAD_H_DP)
+            val padV = context.dp(FIELD_PAD_V_DP)
+            setPadding(padH, padV, padH, padV)
             doAfterTextChanged { text ->
                 rows = arrange(text?.toString()?.takeIf { it.isNotBlank() })
                 adapter.notifyDataSetChanged()
             }
         }
+        // DialogField brings the dialog's own 24dp sides.
         addView(
             DialogField.wrap(search),
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                setMargins(context.dp(SIDE_DP), context.dp(TOP_DP), context.dp(SIDE_DP), context.dp(TOP_DP))
+                bottomMargin = context.dp(BELOW_FIELD_DP)
             }
         )
         val list = ListView(context).apply {
@@ -103,7 +109,8 @@ class AppChecklist(
     private companion object {
         const val DIVIDER = -1
         const val LIST_SHARE = 0.55f
-        const val SIDE_DP = 20
-        const val TOP_DP = 8
+        const val BELOW_FIELD_DP = 8
+        const val FIELD_PAD_H_DP = 16
+        const val FIELD_PAD_V_DP = 14
     }
 }
