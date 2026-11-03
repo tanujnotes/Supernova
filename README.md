@@ -35,3 +35,7 @@
    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=tanujnotes/supernova&type=date&legend=top-left" />
  </picture>
 </a>
+
+Please ⭐️ if you can.
+
+Thank you!
