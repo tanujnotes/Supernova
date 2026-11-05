@@ -1373,7 +1373,9 @@ class SettingsActivity : AppCompatActivity() {
                 getString(EnumLabels.of(IconShape.fromName(shapeName)))
             }
             // The plate's own colour only counts while it doesn't match.
-            dialogBinding.colorRow.visibility = if (dialogBinding.matchColorCheck.isChecked) View.GONE else View.VISIBLE
+            val colorShown = if (dialogBinding.matchColorCheck.isChecked) View.GONE else View.VISIBLE
+            dialogBinding.colorRow.visibility = colorShown
+            dialogBinding.colorDivider.visibility = colorShown
             val colorIndex = colors.indexOfFirst { it.second.equals(plateColor, ignoreCase = true) }
             dialogBinding.colorValue.text = getString(colors.getOrNull(colorIndex)?.first ?: R.string.color_default)
             dialogBinding.folderIconPreview.setImageDrawable(
