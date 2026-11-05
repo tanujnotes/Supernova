@@ -90,11 +90,11 @@ class LauncherRepository(private val context: Context) {
     // checked and placed under the lock: every open screen's view model
     // hears the same install, and only the first to get here adds it.
     suspend fun autoAddApp(app: LaunchableApp, cols: Int, rows: Int) {
-        mutate { current ->
+        mutateFitted(cols, rows) { current ->
             val placed = current.items.any {
                 it.itemType == ItemType.APP && it.packageName == app.packageName && it.userSerial == app.userSerial
             }
-            if (placed) return@mutate current
+            if (placed) return@mutateFitted current
             for (page in 0 until current.pageCount) {
                 val cell = WorkspaceGeometry.findFreeCell(current, page, 1, 1, cols, rows) ?: continue
                 val item = LauncherItem(
@@ -109,7 +109,7 @@ class LauncherRepository(private val context: Context) {
                     className = app.className,
                     userSerial = app.userSerial
                 )
-                return@mutate current.copy(items = current.items + item)
+                return@mutateFitted current.copy(items = current.items + item)
             }
             current
         }
@@ -178,7 +178,7 @@ class LauncherRepository(private val context: Context) {
             label = label
         )
         val members = folderMembers(folder.id, apps)
-        mutate { withNewFolder(it, folder, members, displace, cols, rows) }
+        mutateFitted(cols, rows) { withNewFolder(it, folder, members, displace, cols, rows) }
     }
 
     private fun folderMembers(folderId: String, apps: List<LaunchableApp>): List<LauncherItem> =
@@ -293,7 +293,7 @@ class LauncherRepository(private val context: Context) {
         rows: Int,
         preferredPage: Int
     ) {
-        mutate { withNewDockItem(it, item, members, rank, cols, rows, preferredPage) }
+        mutateFitted(cols, rows) { withNewDockItem(it, item, members, rank, cols, rows, preferredPage) }
     }
 
     suspend fun moveItemToWorkspace(
@@ -309,9 +309,9 @@ class LauncherRepository(private val context: Context) {
         mergeFolders: Boolean = true,
         mergeTargetId: String? = null
     ) {
-        mutate { original ->
+        mutateFitted(cols, rows) { original ->
             val current = applyDisplacement(original, displace, itemId, cols, rows) ?: original
-            val moving = current.items.firstOrNull { it.id == itemId } ?: return@mutate original
+            val moving = current.items.firstOrNull { it.id == itemId } ?: return@mutateFitted original
             val target = mergeTarget(current, page, cellX, cellY, itemId, mergeTargetId)
 
             // Folder semantics win over collision: dropping onto an icon or
@@ -337,7 +337,7 @@ class LauncherRepository(private val context: Context) {
                     // Occupied destination: relocate to the nearest free
                     // cell, or bounce the drop entirely (with any
                     // displacement undone) when the page is full.
-                    val placed = resolvePlacement(current, moved, cols, rows) ?: return@mutate original
+                    val placed = resolvePlacement(current, moved, cols, rows) ?: return@mutateFitted original
                     current.copy(items = current.items.map { if (it.id == placed.id) placed else it })
                 }
             }
@@ -420,7 +420,7 @@ class LauncherRepository(private val context: Context) {
     // Items whose ids still exist (double-undo, races) are skipped.
     // dockSlots: the dock's slots over all its pages (count x pages).
     suspend fun restoreItems(items: List<LauncherItem>, cols: Int, rows: Int, dockSlots: Int) {
-        mutate { current -> restored(current, items, cols, rows, dockSlots) }
+        mutateFitted(cols, rows) { current -> restored(current, items, cols, rows, dockSlots) }
     }
 
     suspend fun addWidget(
@@ -454,7 +454,7 @@ class LauncherRepository(private val context: Context) {
             label = label,
             userSerial = userSerial
         )
-        mutate { original ->
+        mutateFitted(cols, rows) { original ->
             val current = applyDisplacement(original, displace, null, cols, rows) ?: original
             // The widget is already bound by now, so if the layout changed
             // while it was being configured, keep it at the requested spot as
@@ -472,9 +472,9 @@ class LauncherRepository(private val context: Context) {
     // rect is in cells, on half cells with the subgrid on.
     suspend fun resizeWidget(itemId: String, rect: WorkspaceGeometry.CellRect, cols: Int, rows: Int): Boolean {
         var saved = false
-        mutate { current ->
+        mutateFitted(cols, rows) { current ->
             val widget = current.items.firstOrNull { it.id == itemId && it.itemType == ItemType.WIDGET }
-                ?: return@mutate current
+                ?: return@mutateFitted current
             val width = (rect.right - rect.left).coerceIn(MIN_WIDGET_SPAN, cols.toFloat())
             val height = (rect.bottom - rect.top).coerceIn(MIN_WIDGET_SPAN, rows.toFloat())
             val left = rect.left.coerceIn(0f, cols - width)
@@ -492,7 +492,7 @@ class LauncherRepository(private val context: Context) {
                     ignoreItems = WorkspaceGeometry.allowPlacementOverlap
                 )
             ) {
-                return@mutate current
+                return@mutateFitted current
             }
             saved = true
             current.copy(
@@ -911,12 +911,12 @@ class LauncherRepository(private val context: Context) {
         rows: Int,
         displace: List<WorkspaceGeometry.ReorderMove> = emptyList()
     ) {
-        mutate { original ->
+        mutateFitted(cols, rows) { original ->
             val current = applyDisplacement(original, displace, itemId, cols, rows) ?: original
             val moving = current.items.firstOrNull { it.id == itemId && it.itemType == ItemType.WIDGET }
-                ?: return@mutate original
+                ?: return@mutateFitted original
             val moved = WorkspaceGeometry.widgetOn(moving.copy(page = page), rect)
-            val placed = resolvePlacement(current, moved, cols, rows) ?: return@mutate original
+            val placed = resolvePlacement(current, moved, cols, rows) ?: return@mutateFitted original
             current.copy(items = current.items.map { if (it.id == placed.id) placed else it })
         }
     }
@@ -929,7 +929,7 @@ class LauncherRepository(private val context: Context) {
         mergeFolders: Boolean = true,
         mergeTargetId: String? = null
     ) {
-        mutate { original ->
+        mutateFitted(cols, rows) { original ->
             val current = applyDisplacement(original, displace, null, cols, rows) ?: original
             val target = mergeTarget(current, item.page, item.cellX, item.cellY, null, mergeTargetId)
 
@@ -943,7 +943,7 @@ class LauncherRepository(private val context: Context) {
                 mergeFolders && target != null && isFolderEligible(item) && isFolderEligible(target) ->
                     createNewFolderModel(current, item, target)
                 else -> {
-                    val placed = resolvePlacement(current, item, cols, rows) ?: return@mutate original
+                    val placed = resolvePlacement(current, item, cols, rows) ?: return@mutateFitted original
                     current.copy(items = current.items + placed)
                 }
             }
@@ -1055,6 +1055,17 @@ class LauncherRepository(private val context: Context) {
             context.supernovaStore.edit { prefs ->
                 prefs[StoreKeys.model] = json.encodeToString(next)
             }
+        }
+    }
+
+    // A layout edit on the grid in use: it starts from the layout as shown
+    // (WorkspaceGeometry.fitted), and saves the fitted spots only once
+    // something changes.
+    private suspend fun mutateFitted(cols: Int, rows: Int, block: (LauncherModel) -> LauncherModel) {
+        mutate { current ->
+            val shown = WorkspaceGeometry.fitted(current, cols, rows)
+            val next = block(shown)
+            if (next == shown) current else next
         }
     }
 
