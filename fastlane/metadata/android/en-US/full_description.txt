@@ -3,7 +3,7 @@
 <p><b>Home screen and dock</b></p>
 <ul>
 <li>Adjustable grid, icon size, labels and margins, and a dock with multiple pages</li>
-<li>Widgets with resizing, padding and stacking</li>
+<li>Widgets with resizing, padding and overlap (bring to front or send to back)</li>
 <li>Multiple pages with scroll effects and a page indicator</li>
 <li>Folders with custom previews, backgrounds and swipe-to-open</li>
 </ul>
