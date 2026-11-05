@@ -1303,8 +1303,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     // The drawer twin of the desktop grid dialog, on the same layout: rows
-    // and columns step down to 0 = Auto (rows only apply to the paged style,
-    // columns to the grid styles); the subgrid checkbox has no drawer meaning
+    // and columns step down to 0 = Auto (both apply to the two grid styles); the subgrid checkbox has no drawer meaning
     // and hides. Only OK commits.
     private fun showDrawerGridDialog() {
         val dialogBinding = DialogDesktopGridBinding.inflate(layoutInflater)

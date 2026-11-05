@@ -1164,6 +1164,8 @@ class DrawerController(
             }
         }
         adapter.submit(apps, folders, prefs.drawerFoldersFirst, listOrder(prefs))
+        // The first apps make a tile measurable.
+        if (adapter.tileHeightPx == 0) refreshGridRows(prefs)
         updatePrivateBar()
         syncPages()
         updateFrequentRow()
@@ -1572,6 +1574,11 @@ class DrawerController(
                 adapter.displayMode = AppDrawerAdapter.DisplayMode.TILE
                 val columns = columnCount(prefs)
                 adapter.tileWidthPx = gridWidthPx() / columns
+                refreshGridRows(prefs)
+                // Before the first layout there is no height to share out.
+                if (prefs.drawerRows > 0 && recycler.height == 0) {
+                    recycler.doOnLayout { refreshGridRows(viewModel.state.value.prefs) }
+                }
                 recycler.layoutManager = DrawerLayoutManager(context, columns).apply {
                     spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
                         override fun getSpanSize(position: Int): Int =
@@ -1580,11 +1587,13 @@ class DrawerController(
                 }
             }
             DrawerStyle.VERTICAL_LIST -> {
+                adapter.tileHeightPx = 0
                 adapter.displayMode = AppDrawerAdapter.DisplayMode.ROW
                 // One column: a list, with the grid's scrollbar arithmetic.
                 recycler.layoutManager = DrawerLayoutManager(context, 1)
             }
             DrawerStyle.PAGED_GRID -> {
+                adapter.tileHeightPx = 0
                 adapter.displayMode = AppDrawerAdapter.DisplayMode.TILE
             }
         }
@@ -1807,14 +1816,41 @@ class DrawerController(
     // row count the user set is, like the column count, a portrait number:
     // landscape has room for fewer rows, and honouring it there cuts pages
     // taller than the pager that silently lose their last row.
+    // A row is a tile's height: at least the minimum item_drawer_app
+    // declares, never less. A tile's icon box grows with the icon size
+    // (AppDrawerAdapter), and the row with it; a smaller icon leaves the
+    // tile at its minimum.
+    private fun minTileHeightPx(prefs: LauncherPrefs): Int {
+        val iconGrowth = (context.dp(TILE_ICON_DP) * (iconScale(prefs) - 1f)).roundToInt().coerceAtLeast(0)
+        return context.dp(TILE_MIN_HEIGHT_DP) + iconGrowth
+    }
+
+    // The vertical grid with Rows set: the list's height shared out between
+    // them, as the paged style cuts its pages, so more rows sit closer
+    // together. They may take up a tile's padding, down to icon and label
+    // touching the next row; Auto (and anything not yet measurable) keeps
+    // tiles at their own height.
+    private fun refreshGridRows(prefs: LauncherPrefs) {
+        if (currentStyle != DrawerStyle.VERTICAL_GRID) return
+        val recycler = binding.drawerRecycler
+        val rows = prefs.drawerRows
+        val height = recycler.height - recycler.paddingTop - recycler.paddingBottom
+        val natural = if (rows > 0 && height > 0) adapter.naturalTileHeightPx(recycler) else 0
+        val rowHeight = if (natural > 0) {
+            maxOf(height / rows, natural - 2 * context.dp(AppDrawerAdapter.TILE_PADDING_V_DP))
+        } else {
+            0
+        }
+        if (rowHeight == adapter.tileHeightPx && natural == adapter.tileNaturalPx) return
+        adapter.tileHeightPx = rowHeight
+        adapter.tileNaturalPx = natural
+        adapter.notifyItemRangeChanged(0, adapter.itemCount)
+    }
+
     private fun pageRows(prefs: LauncherPrefs): Int {
         val pager = binding.drawerPager
-        // A row is a tile's height: at least the minimum item_drawer_app
-        // declares, never less, or the count runs a row past the page. A
-        // tile's icon box grows with the icon size (AppDrawerAdapter), and
-        // the row with it; a smaller icon leaves the tile at its minimum.
-        val iconGrowth = (context.dp(TILE_ICON_DP) * (iconScale(prefs) - 1f)).roundToInt().coerceAtLeast(0)
-        val rowHeight = context.dp(TILE_MIN_HEIGHT_DP) + iconGrowth
+        // Or the count runs a row past the page.
+        val rowHeight = minTileHeightPx(prefs)
         // The pager's bottom padding keeps the navigation bar's strip.
         val fits = ((pager.height - pager.paddingBottom) / rowHeight).coerceAtLeast(2)
         return prefs.drawerRows.takeIf { it > 0 }

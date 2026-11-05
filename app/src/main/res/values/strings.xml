@@ -101,7 +101,7 @@
     <string name="drawer_columns_auto">Auto</string>
     <string name="drawer_grid">Drawer grid</string>
     <string name="drawer_grid_value">%1$s × %2$s</string>
-    <string name="drawer_grid_rows_note">Rows apply to the horizontal pages style</string>
+    <string name="drawer_grid_rows_note">Rows share out the drawer\'s height; Auto keeps rows close together</string>
     <string name="drawer_auto_keyboard">Show keyboard when opened</string>
     <string name="drawer_swipe_indicator">Swipe indicator</string>
     <string name="drawer_swipe_indicator_summary">Place a small arrow above the dock</string>
