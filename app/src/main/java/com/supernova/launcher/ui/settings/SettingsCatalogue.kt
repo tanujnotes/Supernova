@@ -633,15 +633,19 @@ object SettingsCatalogue {
                 rows.choice(
                     R.string.drawer_tab_bar, DrawerTabBar.entries,
                     { DrawerTabBar.fromName(it.drawerTabBar) }, { EnumLabels.of(it) },
+                    // Always listed, as the bar's place can be set before any
+                    // tab exists; until one does, the row says where tabs
+                    // come from.
                     subtitle = { prefs ->
                         val bar = DrawerTabBar.fromName(prefs.drawerTabBar)
-                        if (bar == DrawerTabBar.NONE) {
-                            context.getString(R.string.drawer_tab_bar_hidden_note)
-                        } else {
-                            context.getString(EnumLabels.of(bar))
+                        when {
+                            viewModel.drawerTabGroups().isEmpty() && !viewModel.hasWorkApps() -> context.getString(
+                                R.string.drawer_tab_bar_no_tabs, context.getString(EnumLabels.of(bar))
+                            )
+                            bar == DrawerTabBar.NONE -> context.getString(R.string.drawer_tab_bar_hidden_note)
+                            else -> context.getString(EnumLabels.of(bar))
                         }
-                    },
-                    visibleIf = { viewModel.drawerTabGroups().isNotEmpty() || viewModel.hasWorkApps() }
+                    }
                 ) { viewModel.setDrawerTabBar(it.name) },
                 rows.choice(
                     R.string.drawer_tab_style, DrawerTabStyle.entries,
