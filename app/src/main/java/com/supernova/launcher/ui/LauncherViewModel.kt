@@ -1452,12 +1452,12 @@ class LauncherViewModel(
 
     fun isInGroup(app: LaunchableApp, group: DrawerGroup): Boolean = hiddenKey(app) in group.members
 
-    fun setGroupMembership(group: DrawerGroup, app: LaunchableApp, member: Boolean) {
-        val key = hiddenKey(app)
-        // Picking a smart folder's apps makes it the user's, as a retype does.
-        editGroup(group.name) {
-            it.copy(members = if (member) it.members + key else it.members - key, smart = false)
-        }
+    // A checklist's Save: every changed tick in one write. Picking a smart
+    // folder's apps makes it the user's, as a retype does.
+    fun setGroupMembership(groupName: String, changes: Map<LaunchableApp, Boolean>) {
+        val add = changes.filterValues { it }.keys.map(::hiddenKey).toSet()
+        val remove = changes.filterValues { !it }.keys.map(::hiddenKey).toSet()
+        editGroup(groupName) { it.copy(members = it.members - remove + add, smart = false) }
     }
 
     // The name the group was stored under ('|' can't be in one), or null,

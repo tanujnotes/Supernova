@@ -1676,9 +1676,11 @@ class SettingsActivity : AppCompatActivity() {
             title = getString(R.string.badged_apps),
             apps = apps,
             checked = { "${it.userSerial}/${it.packageName}/${it.className}" in selected },
-            onToggle = { app, isChecked ->
-                val key = "${app.userSerial}/${app.packageName}/${app.className}"
-                if (isChecked) selected.add(key) else selected.remove(key)
+            onSave = { changes ->
+                changes.forEach { (app, isChecked) ->
+                    val key = "${app.userSerial}/${app.packageName}/${app.className}"
+                    if (isChecked) selected.add(key) else selected.remove(key)
+                }
                 viewModel.setBadgeApps(if (selected.containsAll(keys)) emptySet() else selected.toSet())
             }
         )
@@ -1890,48 +1892,23 @@ class SettingsActivity : AppCompatActivity() {
             title = group.name,
             apps = viewModel.visibleApps(),
             checked = { viewModel.isInGroup(it, group) },
-            onToggle = { app, isChecked ->
-                // Re-read the group each time so successive checks compose.
-                val latest = viewModel.drawerGroups().firstOrNull { it.name == group.name } ?: group
-                viewModel.setGroupMembership(latest, app, isChecked)
-            }
+            onSave = { changes -> viewModel.setGroupMembership(group.name, changes) }
         )
     }
 
-    // The app pickers list each app with its icon and a checkbox; every
-    // tick applies at once.
+    // The app pickers: search, ticked apps first, and nothing applied until
+    // Save, which hands over only the ticks that changed.
     private fun showAppChecklist(
         title: CharSequence,
         apps: List<LaunchableApp>,
         checked: (LaunchableApp) -> Boolean,
-        onToggle: (LaunchableApp, Boolean) -> Unit
+        onSave: (Map<LaunchableApp, Boolean>) -> Unit
     ) {
-        if (apps.isEmpty()) return
         val states = apps.map(checked).toBooleanArray()
-        val adapter = object : android.widget.ArrayAdapter<LaunchableApp>(this, R.layout.row_folder_check, apps) {
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val row = convertView ?: layoutInflater.inflate(R.layout.row_folder_check, parent, false)
-                val app = apps[position]
-                row.findViewById<android.widget.ImageView>(R.id.folderCheckIcon)
-                    .setImageDrawable(viewModel.appCatalog().iconFor(app))
-                row.findViewById<android.widget.CheckedTextView>(R.id.folderCheckLabel).apply {
-                    text = app.label
-                    isChecked = states[position]
-                }
-                return row
-            }
+        com.supernova.launcher.ui.AppChecklist.show(this, title, apps, states, viewModel.appCatalog()::iconFor) { ticks ->
+            val changes = apps.indices.filter { ticks[it] != states[it] }.associate { apps[it] to ticks[it] }
+            if (changes.isNotEmpty()) onSave(changes)
         }
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(title)
-            .setAdapter(adapter, null)
-            .setPositiveButton(R.string.done, null)
-            .create()
-        dialog.listView.setOnItemClickListener { _, _, position, _ ->
-            states[position] = !states[position]
-            onToggle(apps[position], states[position])
-            adapter.notifyDataSetChanged()
-        }
-        dialog.show()
     }
 
     private fun showHiddenAppsPicker() {
@@ -1939,7 +1916,7 @@ class SettingsActivity : AppCompatActivity() {
             title = getString(R.string.hidden_apps),
             apps = viewModel.state.value.apps,
             checked = { viewModel.isAppHidden(it) },
-            onToggle = { app, hidden -> viewModel.setAppHidden(app, hidden) }
+            onSave = { changes -> changes.forEach { (app, hidden) -> viewModel.setAppHidden(app, hidden) } }
         )
     }
 

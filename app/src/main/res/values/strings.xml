@@ -163,7 +163,7 @@
     <string name="private_space_settings">Settings</string>
     <string name="group_name">Group name</string>
     <string name="delete_group">Delete group</string>
-    <string name="edit_group_apps">Choose apps</string>
+    <string name="edit_group_apps">Select apps</string>
     <string name="hide_app">Hide from drawer</string>
     <string name="unhide_app">Unhide</string>
     <string name="set_swipe_up_action">Set swipe up action</string>

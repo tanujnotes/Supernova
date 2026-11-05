@@ -5,27 +5,30 @@ import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.BaseAdapter
 import android.widget.CheckedTextView
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ListView
+import androidx.appcompat.app.AlertDialog
 import androidx.core.widget.doAfterTextChanged
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.supernova.launcher.R
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.search.AppMatcher
 
-// Select apps' list, for home, dock and drawer folders: a search field over
-// the apps, the folder's own apps first, then a divider and the rest. The
-// order is set as the list opens, so a tick doesn't move its row. checked is
-// indexed as apps is, and holds every tick, filtered out of view or not.
+// Every app checklist (Select apps for home, dock and drawer folders, a
+// drawer group's apps, Hidden apps, Badged apps): a search field over the
+// apps, the ticked ones first, then a divider and the rest. The order is set
+// as the list opens, so a tick doesn't move its row. checked is indexed as
+// apps is, and holds every tick, filtered out of view or not.
 class AppChecklist(
     private val context: Context,
     private val apps: List<LaunchableApp>,
     private val checked: BooleanArray,
-    private val iconFor: (LaunchableApp) -> Drawable?,
-    private val onToggle: (index: Int) -> Unit
+    private val iconFor: (LaunchableApp) -> Drawable?
 ) {
     private val inFolder = apps.indices.filter { checked[it] }
     private val others = apps.indices.filterNot { checked[it] }
@@ -55,7 +58,7 @@ class AppChecklist(
                 bottomMargin = context.dp(BELOW_FIELD_DP)
             }
         )
-        val list = ListView(context).apply {
+        val list = BoundedListView(context, (context.resources.displayMetrics.heightPixels * LIST_SHARE).toInt()).apply {
             adapter = this@AppChecklist.adapter
             divider = null
             setOnItemClickListener { _, _, position, _ ->
@@ -63,21 +66,20 @@ class AppChecklist(
                 if (index != DIVIDER) {
                     checked[index] = !checked[index]
                     this@AppChecklist.adapter.notifyDataSetChanged()
-                    onToggle(index)
                 }
             }
         }
-        // The dialog doesn't bound a custom view's height: the list takes a
-        // share of the screen and scrolls within it.
-        val height = (context.resources.displayMetrics.heightPixels * LIST_SHARE).toInt()
-        addView(list, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height))
+        // Weighted, so the keyboard squeezes the list rather than cutting
+        // off its bottom.
+        addView(list, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
     }
 
+    // Matched across all apps at once, so a typo match in one group drops
+    // out when the other has a real one.
     private fun arrange(query: String?): List<Int> {
-        fun shown(group: List<Int>) =
-            if (query == null) group else group.filter { AppMatcher.matches(apps[it].label, query) }
-        val first = shown(inFolder)
-        val rest = shown(others)
+        val matched = query?.let { AppMatcher.filter(apps.indices.toList(), it) { i -> apps[i].label }.toHashSet() }
+        val first = if (matched == null) inFolder else inFolder.filter { it in matched }
+        val rest = if (matched == null) others else others.filter { it in matched }
         return if (first.isNotEmpty() && rest.isNotEmpty()) first + DIVIDER + rest else first + rest
     }
 
@@ -101,16 +103,61 @@ class AppChecklist(
             row.findViewById<CheckedTextView>(R.id.folderCheckLabel).apply {
                 text = app.label
                 isChecked = checked[index]
+                // A row reused for another app shows its tick at once: the
+                // box's own animation would play the old app's untick.
+                if (tag != index) jumpDrawablesToCurrentState()
+                tag = index
             }
             return row
         }
     }
 
-    private companion object {
-        const val DIVIDER = -1
-        const val LIST_SHARE = 0.55f
-        const val BELOW_FIELD_DP = 8
-        const val FIELD_PAD_H_DP = 16
-        const val FIELD_PAD_V_DP = 14
+    // Takes its full share of the screen while there is room, and whatever
+    // is left once the keyboard is up.
+    private class BoundedListView(context: Context, private val maxHeight: Int) : ListView(context) {
+        override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+            val size = MeasureSpec.getSize(heightMeasureSpec)
+            val height = if (MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.UNSPECIFIED) {
+                maxHeight
+            } else {
+                minOf(maxHeight, size)
+            }
+            super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY))
+        }
+    }
+
+    companion object {
+        private const val DIVIDER = -1
+        private const val LIST_SHARE = 0.55f
+        private const val BELOW_FIELD_DP = 8
+        private const val FIELD_PAD_H_DP = 16
+        private const val FIELD_PAD_V_DP = 14
+        // The dialog's own 80dp leaves a band above and below the card
+        // once the keyboard shrinks the window.
+        private const val INSET_V_DP = 24
+
+        // Ticks are kept until Save; a tap outside or back drops them.
+        fun show(
+            context: Context,
+            title: CharSequence,
+            apps: List<LaunchableApp>,
+            checked: BooleanArray,
+            iconFor: (LaunchableApp) -> Drawable?,
+            onSave: (BooleanArray) -> Unit
+        ): AlertDialog? {
+            if (apps.isEmpty()) return null
+            val ticks = checked.copyOf()
+            val checklist = AppChecklist(context, apps, ticks, iconFor)
+            val dialog = MaterialAlertDialogBuilder(context)
+                .setTitle(title)
+                .setView(checklist.view)
+                .setBackgroundInsetTop(context.dp(INSET_V_DP))
+                .setBackgroundInsetBottom(context.dp(INSET_V_DP))
+                .setPositiveButton(R.string.save) { _, _ -> onSave(ticks) }
+                .create()
+            dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+            dialog.show()
+            return dialog
+        }
     }
 }

@@ -197,9 +197,7 @@ class AppDrawerAdapter(
             }
         } else {
             // Search shows apps only; folder contents are reachable by name.
-            displayItems.addAll(allEntries.filter { entry ->
-                com.supernova.launcher.search.AppMatcher.matches(entry.lowerLabel, query)
-            })
+            displayItems.addAll(com.supernova.launcher.search.AppMatcher.filter(allEntries, query) { it.lowerLabel })
         }
         if (query.isBlank() && headerView != null && displayItems.isNotEmpty()) {
             displayItems.add(0, HeaderItem)

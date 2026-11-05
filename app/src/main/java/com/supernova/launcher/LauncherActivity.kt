@@ -3743,85 +3743,26 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             .map { keyOf(it.packageName, it.className, it.userSerial) in memberByKey }
             .toBooleanArray()
 
-        val checklist = com.supernova.launcher.ui.AppChecklist(this, apps, checked, viewModel.appCatalog()::iconFor) {}
-
-        // Static title with a pencil at the end; tapping it swaps in the
-        // rename field (committed on Done) and summons the keyboard.
-        val titleText = android.widget.TextView(this).apply {
-            text = folder.label.ifBlank { getString(R.string.folder) }
-            setTextAppearance(R.style.TextAppearance_Supernova_DialogTitle)
-        }
-        val titleInput = android.widget.EditText(this).apply {
-            setText(folder.label)
-            hint = getString(R.string.folder_name)
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS
-            importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
-            isSingleLine = true
-            textSize = 18f
-            visibility = View.GONE
-        }
-        val editTitleButton = android.widget.ImageView(this).apply {
-            setImageResource(R.drawable.ic_menu_edit)
-            imageTintList = android.content.res.ColorStateList.valueOf(titleText.currentTextColor)
-            val ta = context.obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackgroundBorderless))
-            background = ta.getDrawable(0)
-            ta.recycle()
-            contentDescription = getString(R.string.rename)
-            setPadding(dp(8), dp(8), dp(8), dp(8))
-        }
-        val titleWrap = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.HORIZONTAL
-            gravity = android.view.Gravity.CENTER_VERTICAL
-            setPadding(dp(24), dp(20), dp(12), 0)
-            addView(titleText, android.widget.LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-            addView(titleInput, android.widget.LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-            addView(editTitleButton)
-        }
-
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setCustomTitle(titleWrap)
-            .setView(checklist.view)
-            .setPositiveButton(R.string.done) { _, _ ->
-                val newName = titleInput.text?.toString()?.trim().orEmpty()
-                if (newName.isNotBlank() && newName != folder.label) {
-                    viewModel.renameFolder(folder.id, newName)
-                }
-                val added = ArrayList<LaunchableApp>()
-                val removed = HashSet<String>()
-                apps.forEachIndexed { index, app ->
-                    val member = memberByKey[keyOf(app.packageName, app.className, app.userSerial)]
-                    when {
-                        checked[index] && member == null -> added += app
-                        !checked[index] && member != null -> removed += member.id
-                    }
-                }
-                if (added.isNotEmpty() || removed.isNotEmpty()) {
-                    viewModel.applyFolderChecklist(folder.id, added, removed)
+        com.supernova.launcher.ui.AppChecklist.show(
+            this,
+            folder.label.ifBlank { getString(R.string.folder) },
+            apps,
+            checked,
+            viewModel.appCatalog()::iconFor
+        ) { ticks ->
+            val added = ArrayList<LaunchableApp>()
+            val removed = HashSet<String>()
+            apps.forEachIndexed { index, app ->
+                val member = memberByKey[keyOf(app.packageName, app.className, app.userSerial)]
+                when {
+                    ticks[index] && member == null -> added += app
+                    !ticks[index] && member != null -> removed += member.id
                 }
             }
-            .setNegativeButton(R.string.cancel, null)
-            .create()
-        dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-        editTitleButton.setOnClickListener {
-            titleText.visibility = View.GONE
-            editTitleButton.visibility = View.GONE
-            titleInput.visibility = View.VISIBLE
-            titleInput.requestFocus()
-            titleInput.setSelection(titleInput.text?.length ?: 0)
-            // Posted: asking for the IME in the same frame as the focus
-            // switch loses the race and nothing appears.
-            titleInput.post {
-                getSystemService(android.view.inputmethod.InputMethodManager::class.java)
-                    ?.showSoftInput(titleInput, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+            if (added.isNotEmpty() || removed.isNotEmpty()) {
+                viewModel.applyFolderChecklist(folder.id, added, removed)
             }
         }
-        dialog.show()
-        // MUST come after show(): AlertController scans only its CONTENT view
-        // for text editors when it builds the hierarchy during show(), and -
-        // our editor living in the custom title - stamps FLAG_ALT_FOCUSABLE_IM
-        // on the window, which makes the IME ignore every request. Clearing
-        // any earlier gets overwritten.
-        dialog.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
     }
 
     // Where a member taken out of a folder goes: the folder's page. A docked
@@ -3944,18 +3885,11 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         val apps = viewModel.visibleApps()
         if (apps.isEmpty()) return
         val checked = apps.map { viewModel.isInGroup(it, group) }.toBooleanArray()
-        val target = group.copy(name = name)
-        // Applied to the stored group as each tick lands, so successive checks compose.
-        val checklist = com.supernova.launcher.ui.AppChecklist(this, apps, checked, viewModel.appCatalog()::iconFor) {
-            viewModel.setGroupMembership(target, apps[it], checked[it])
+        com.supernova.launcher.ui.AppChecklist.show(this, name, apps, checked, viewModel.appCatalog()::iconFor) { ticks ->
+            val changes = apps.indices.filter { ticks[it] != checked[it] }.associate { apps[it] to ticks[it] }
+            // By the name it is stored under, which a rename just changed.
+            if (changes.isNotEmpty()) viewModel.setGroupMembership(name, changes)
         }
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(name)
-            .setView(checklist.view)
-            .setPositiveButton(R.string.done, null)
-            .create()
-        dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-        dialog.show()
     }
 
     private fun withBadge(
