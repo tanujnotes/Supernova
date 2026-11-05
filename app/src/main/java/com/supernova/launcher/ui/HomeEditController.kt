@@ -89,9 +89,12 @@ class HomeEditController(
             barInsets = insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
             )
+            // The window doesn't resize for the keyboard (adjustNothing), so
+            // the list ends above it by itself.
+            val keyboard = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
             val density = view.resources.displayMetrics.density
             binding.editWidgetRecycler.setPadding(
-                0, 0, 0, (24 * density).toInt() + barInsets.bottom
+                0, 0, 0, (24 * density).toInt() + maxOf(barInsets.bottom, keyboard)
             )
             overlay?.let(::applyOverlayInsets)
             insets
@@ -100,10 +103,22 @@ class HomeEditController(
         binding.editWidgetRecycler.adapter = adapter
         binding.editWidgetRecycler.itemAnimator = null
         binding.editWidgetSearch.doAfterTextChanged { adapter.filter(it?.toString().orEmpty()) }
+        // Searching opens the sheet fully: at its peek the keyboard covered
+        // both the field and the list.
+        binding.editWidgetSearch.setOnFocusChangeListener { _, focused ->
+            if (focused && isOpen) behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        }
         behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 // Swiping the sheet away leaves edit mode as a whole.
                 if (newState == BottomSheetBehavior.STATE_HIDDEN && isOpen) exit()
+                // Back at its peek, the field is out of sight under the
+                // keyboard: the keyboard goes.
+                if (newState == BottomSheetBehavior.STATE_COLLAPSED && binding.editWidgetSearch.hasFocus()) {
+                    activity.getSystemService(android.view.inputmethod.InputMethodManager::class.java)
+                        ?.hideSoftInputFromWindow(binding.editWidgetSearch.windowToken, 0)
+                    binding.editWidgetSearch.clearFocus()
+                }
             }
 
             override fun onSlide(bottomSheet: View, slideOffset: Float) = Unit
