@@ -423,10 +423,10 @@
     <string name="about_license_text">Supernova is free software, released under the GNU Affero General Public License v3.0. You may redistribute and modify it under the terms of that license; it comes with no warranty. The full text ships in the LICENSE file of the source repository.</string>
     <string name="section_home_subtitle">Grid, icons, labels and pages</string>
     <string name="section_dock_subtitle">Icons, background and pages</string>
-    <string name="section_drawer_subtitle">Layout, style and tabs</string>
+    <string name="section_drawer_subtitle">Layout, style and groups</string>
     <string name="section_search_subtitle">Providers, window and search bars</string>
     <string name="section_feed_subtitle">The page beside home and its cards</string>
-    <string name="section_folders_subtitle">Window, background and icon</string>
+    <string name="section_folders_subtitle">Window, icon and labels</string>
     <string name="section_icons_subtitle">Shape, packs, labels and badges</string>
     <string name="section_style_subtitle">Theme, colors and surfaces</string>
     <string name="section_gestures_subtitle">Swipes, taps, pinch and home button</string>
@@ -532,7 +532,7 @@
     <string name="label_card_size">Size</string>
     <string name="label_card_font">Font</string>
     <!-- Under the Label row: its size, then its font. -->
-    <string name="label_group_summary">%1$s · %2$s</string>
+    <string name="label_group_summary">%1$s · %2$s font</string>
     <string name="label_card_shadow">Shadow</string>
     <string name="label_card_single_line">Single line</string>
     <string name="font_default">Default</string>
