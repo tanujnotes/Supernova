@@ -972,6 +972,8 @@ class LauncherViewModel(
 
     fun setFolderMatchWindowColor(value: Boolean) = persist { preferences.setFolderMatchWindowColor(value) }
 
+    fun setFolderPlateColor(value: String) = persist { preferences.setFolderPlateColor(value) }
+
     fun setFolderBadges(value: Boolean) = persist { preferences.setFolderBadges(value) }
 
     fun setThemeMode(value: String) = persist { preferences.setThemeMode(value) }

@@ -175,4 +175,46 @@
             android:minWidth="48dp" />
     </LinearLayout>
 
+    <!-- Shown while the plate doesn't match the window. -->
+    <LinearLayout
+        android:id="@+id/colorRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
+        android:minHeight="56dp"
+        android:orientation="horizontal"
+        android:paddingStart="24dp"
+        android:paddingEnd="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/folder_plate_color"
+            android:textColor="@color/textPrimary"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/colorValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:ellipsize="end"
+            android:maxWidth="140dp"
+            android:maxLines="1"
+            android:textColor="@color/textSecondary"
+            android:textSize="14sp" />
+
+        <ImageView
+            android:layout_width="48dp"
+            android:layout_height="20dp"
+            android:layout_marginStart="8dp"
+            android:importantForAccessibility="no"
+            android:paddingHorizontal="14dp"
+            android:src="@drawable/ic_settings_chevron"
+            app:tint="@color/textSecondary" />
+    </LinearLayout>
+
 </LinearLayout>

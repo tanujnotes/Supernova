@@ -4027,11 +4027,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             icons.take(9).map { icon -> icon.constantState?.newDrawable(resources)?.mutate() ?: icon },
             dp(48),
             style = FolderPreviewStyle.fromName(prefs.folderPreviewStyle),
-            plateColor = if (prefs.folderMatchWindowColor) {
-                resolvedFolder.surface
-            } else {
-                FolderIconDrawable.DEFAULT_PLATE_COLOR
-            },
+            plateColor = FolderIconDrawable.plateColor(
+                prefs.folderMatchWindowColor, prefs.folderPlateColor, resolvedFolder.surface
+            ),
             shape = FolderIconDrawable.plateShape(prefs.folderIconShape, prefs),
             customSpec = com.supernova.launcher.data.CustomShapeSpec.decode(prefs.iconShapeCustom),
             outlineColor = if (prefs.folderIconOutline) resolvedFolder.accent else 0,

@@ -325,6 +325,9 @@ data class LauncherPrefs(
     // Plate uses the resolved FOLDER window surface instead of the
     // translucent default plate.
     val folderMatchWindowColor: Boolean = false,
+    // The folder icon plate while it doesn't match the window; "" = the
+    // see-through white default.
+    val folderPlateColor: String = "",
     // Badge folder icons with the summed unread count of their members.
     val folderBadges: Boolean = false,
     val themeMode: String = "SYSTEM",

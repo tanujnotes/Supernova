@@ -1346,11 +1346,13 @@ class SettingsActivity : AppCompatActivity() {
 
     // Folder icon appearance: shape + outline/clip/window-color toggles, all
     // edited against a live FolderIconDrawable preview of placeholder tiles.
-    // Only OK commits the four prefs.
+    // Only OK commits the prefs.
     private fun showFolderIconEditor() {
         val dialogBinding = DialogFolderIconBinding.inflate(layoutInflater)
         val prefs = viewModel.state.value.prefs
         var shapeName = prefs.folderIconShape
+        var plateColor = prefs.folderPlateColor
+        val colors = SettingsCatalogue.CURATED_COLORS
         dialogBinding.outlineCheck.isChecked = prefs.folderIconOutline
         dialogBinding.clipCheck.isChecked = prefs.folderClipToBg
         dialogBinding.matchColorCheck.isChecked = prefs.folderMatchWindowColor
@@ -1370,16 +1372,18 @@ class SettingsActivity : AppCompatActivity() {
             } else {
                 getString(EnumLabels.of(IconShape.fromName(shapeName)))
             }
+            // The plate's own colour only counts while it doesn't match.
+            dialogBinding.colorRow.visibility = if (dialogBinding.matchColorCheck.isChecked) View.GONE else View.VISIBLE
+            val colorIndex = colors.indexOfFirst { it.second.equals(plateColor, ignoreCase = true) }
+            dialogBinding.colorValue.text = getString(colors.getOrNull(colorIndex)?.first ?: R.string.color_default)
             dialogBinding.folderIconPreview.setImageDrawable(
                 com.supernova.launcher.ui.FolderIconDrawable(
                     sampleIcons,
                     dp(FOLDER_PREVIEW_DP),
                     style = FolderPreviewStyle.fromName(prefs.folderPreviewStyle),
-                    plateColor = if (dialogBinding.matchColorCheck.isChecked) {
-                        resolved.surface
-                    } else {
-                        com.supernova.launcher.ui.FolderIconDrawable.DEFAULT_PLATE_COLOR
-                    },
+                    plateColor = com.supernova.launcher.ui.FolderIconDrawable.plateColor(
+                        dialogBinding.matchColorCheck.isChecked, plateColor, resolved.surface
+                    ),
                     shape = com.supernova.launcher.ui.FolderIconDrawable.plateShape(shapeName, prefs),
                     customSpec = CustomShapeSpec.decode(prefs.iconShapeCustom),
                     outlineColor = if (dialogBinding.outlineCheck.isChecked) resolved.accent else 0,
@@ -1406,6 +1410,16 @@ class SettingsActivity : AppCompatActivity() {
                 refresh()
             }
         }
+        dialogBinding.colorRow.setOnClickListener { row ->
+            val value = dialogBinding.colorValue
+            val valueX = IntArray(2).also(value::getLocationInWindow)[0] + value.width / 2f
+            val current = colors.indexOfFirst { it.second.equals(plateColor, ignoreCase = true) }.coerceAtLeast(0)
+            val labels = colors.map { getString(it.first) }
+            showChoice(getString(R.string.folder_plate_color), labels, current, inDialog = row to valueX) { which ->
+                plateColor = colors[which].second
+                refresh()
+            }
+        }
         listOf(
             dialogBinding.outlineRow to dialogBinding.outlineCheck,
             dialogBinding.clipRow to dialogBinding.clipCheck,
@@ -1424,6 +1438,7 @@ class SettingsActivity : AppCompatActivity() {
                 viewModel.setFolderIconOutline(dialogBinding.outlineCheck.isChecked)
                 viewModel.setFolderClipToBg(dialogBinding.clipCheck.isChecked)
                 viewModel.setFolderMatchWindowColor(dialogBinding.matchColorCheck.isChecked)
+                viewModel.setFolderPlateColor(plateColor)
             }
             .setNegativeButton(R.string.cancel, null)
             .show()

@@ -348,6 +348,11 @@ class FolderIconDrawable(
     companion object {
         const val DEFAULT_PLATE_COLOR = 0x59FFFFFF
 
+        // The plate: the folder window's colour when matched, else the
+        // picked one (Default = see-through white).
+        fun plateColor(match: Boolean, picked: String, windowSurface: Int): Int =
+            if (match) windowSurface else LabelStyler.parseColor(picked, DEFAULT_PLATE_COLOR)
+
         // What a folder's own icon is drawn from, for the page and dock
         // signatures: a custom icon, or Reshape turned off for one, changes
         // nothing else they look at, and the old icon stayed on screen.

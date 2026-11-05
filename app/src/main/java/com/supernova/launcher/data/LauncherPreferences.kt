@@ -137,6 +137,7 @@ class LauncherPreferences(private val context: Context) {
             target[StoreKeys.folderIconOutline] = prefs.folderIconOutline
             target[StoreKeys.folderClipToBg] = prefs.folderClipToBg
             target[StoreKeys.folderMatchWindowColor] = prefs.folderMatchWindowColor
+            target[StoreKeys.folderPlateColor] = prefs.folderPlateColor
             target[StoreKeys.folderBadges] = prefs.folderBadges
             target[StoreKeys.themeMode] = prefs.themeMode
             target[StoreKeys.themeScheduleStart] = prefs.themeScheduleStart.coerceIn(0, 1439)
@@ -346,6 +347,7 @@ class LauncherPreferences(private val context: Context) {
             folderIconOutline = values[StoreKeys.folderIconOutline] ?: false,
             folderClipToBg = values[StoreKeys.folderClipToBg] ?: true,
             folderMatchWindowColor = values[StoreKeys.folderMatchWindowColor] ?: false,
+            folderPlateColor = values[StoreKeys.folderPlateColor].orEmpty(),
             folderBadges = values[StoreKeys.folderBadges] ?: false,
             themeMode = values[StoreKeys.themeMode] ?: "SYSTEM",
             themeScheduleStart = (values[StoreKeys.themeScheduleStart] ?: 1140).coerceIn(0, 1439),
@@ -723,6 +725,8 @@ class LauncherPreferences(private val context: Context) {
     suspend fun setFolderClipToBg(value: Boolean) = put(StoreKeys.folderClipToBg, value)
 
     suspend fun setFolderMatchWindowColor(value: Boolean) = put(StoreKeys.folderMatchWindowColor, value)
+
+    suspend fun setFolderPlateColor(value: String) = put(StoreKeys.folderPlateColor, value)
 
     suspend fun setFolderBadges(value: Boolean) = put(StoreKeys.folderBadges, value)
 

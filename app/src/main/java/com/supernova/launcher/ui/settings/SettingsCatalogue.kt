@@ -229,7 +229,7 @@ object SettingsCatalogue {
         )
     }
 
-    private val CURATED_COLORS = listOf(
+    val CURATED_COLORS = listOf(
         R.string.color_default to "",
         R.string.color_white to "#FFFFFFFF",
         R.string.color_black to "#FF000000",

@@ -136,6 +136,7 @@ object StoreKeys {
     val folderIconOutline: Preferences.Key<Boolean> = booleanPreferencesKey("folder_icon_outline")
     val folderClipToBg: Preferences.Key<Boolean> = booleanPreferencesKey("folder_clip_to_bg")
     val folderMatchWindowColor: Preferences.Key<Boolean> = booleanPreferencesKey("folder_match_window_color")
+    val folderPlateColor: Preferences.Key<String> = stringPreferencesKey("folder_plate_color")
     val folderBadges: Preferences.Key<Boolean> = booleanPreferencesKey("folder_badges")
     val themeMode: Preferences.Key<String> = stringPreferencesKey("theme_mode")
     val themeScheduleStart: Preferences.Key<Int> = intPreferencesKey("theme_schedule_start")
