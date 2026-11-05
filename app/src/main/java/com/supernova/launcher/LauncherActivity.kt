@@ -1291,7 +1291,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                         ?.let(::folderPreviewDrawable)
                 } ?: hit.groupName?.let { name ->
                     viewModel.drawerFolderGroups().firstOrNull { it.name == name }?.let { group ->
-                        drawerFolderIcon(group, viewModel.appsInGroup(group))
+                        drawerFolderIcon(group, viewModel.drawerFolderApps(group))
                     }
                 }
             },
@@ -1301,7 +1301,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                         ?.let { showFolderPopup(binding.workspacePager, it) }
                 } else {
                     viewModel.drawerFolderGroups().firstOrNull { it.name == folder.groupName }
-                        ?.let { showDrawerFolderPopup(binding.workspacePager, it, viewModel.appsInGroup(it)) }
+                        ?.let { showDrawerFolderPopup(binding.workspacePager, it, viewModel.drawerFolderApps(it)) }
                 }
             },
             // A card launch from search hides the overlay, as every result does.
@@ -1327,7 +1327,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             },
             onFolderLongPress = { view, folder ->
                 viewModel.drawerFolderGroups().firstOrNull { it.name == folder.groupName }?.let { group ->
-                    longPressDrawerFolder(view, group, viewModel.appsInGroup(group))
+                    longPressDrawerFolder(view, group, viewModel.drawerFolderApps(group))
                 }
             }
         )
@@ -3881,7 +3881,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     }
 
     private fun showDrawerGroupChecklist(group: DrawerGroup, name: String = group.name) {
-        val apps = viewModel.visibleApps()
+        // A folder on the personal list offers no work apps while they have
+        // their own tab.
+        val personalOnly = group.type == com.supernova.launcher.data.DrawerGroupType.FOLDER && viewModel.workTabActive()
+        val apps = if (personalOnly) viewModel.personalApps() else viewModel.visibleApps()
         if (apps.isEmpty()) return
         val checked = apps.map { viewModel.isInGroup(it, group) }.toBooleanArray()
         com.supernova.launcher.ui.AppChecklist.show(this, name, apps, checked, viewModel.appCatalog()::iconFor) { ticks ->

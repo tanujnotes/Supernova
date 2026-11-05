@@ -543,7 +543,7 @@ class SearchController(
         val frequent = viewModel.recentApps(gridColumns())
         val shortcuts = SuggestedShortcuts.pills(viewModel)
         // Folder members live inside their folder, as in the drawer.
-        val groups = viewModel.drawerFolderGroups().filter { viewModel.appsInGroup(it).isNotEmpty() }
+        val groups = viewModel.drawerFolderGroups().filter { viewModel.drawerFolderApps(it).isNotEmpty() }
         val inFolders = groups.filter { viewModel.leavesMainList(it) }.flatMapTo(HashSet()) { it.members }
         val folders = groups.map { group ->
             SearchResult.Folder(

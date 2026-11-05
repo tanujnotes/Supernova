@@ -1092,8 +1092,7 @@ class DrawerController(
         }
     }
 
-    private fun workTabActive(): Boolean =
-        viewModel.state.value.prefs.drawerWorkTab && viewModel.hasWorkApps()
+    private fun workTabActive(): Boolean = viewModel.workTabActive()
 
     // Shown unless the system hides the locked space's entry point.
     private fun privateTabActive(): Boolean {
@@ -1148,7 +1147,7 @@ class DrawerController(
         // member apps leave the flat list and live inside the folder.
         val folderGroups = if (tab == null) viewModel.drawerFolderGroups() else emptyList()
         val folders = folderGroups.mapNotNull { group ->
-            val members = viewModel.appsInGroup(group)
+            val members = viewModel.drawerFolderApps(group)
             if (members.isEmpty()) {
                 null
             } else {

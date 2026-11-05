@@ -1453,6 +1453,15 @@ class LauncherViewModel(
 
     fun isInGroup(app: LaunchableApp, group: DrawerGroup): Boolean = hiddenKey(app) in group.members
 
+    fun workTabActive(): Boolean = state.value.prefs.drawerWorkTab && hasWorkApps()
+
+    // A drawer folder's apps as the All list shows them: with the Work tab
+    // on, a work app stays in that tab, out of the personal folders.
+    fun drawerFolderApps(group: DrawerGroup): List<LaunchableApp> {
+        val apps = appsInGroup(group)
+        return if (workTabActive()) apps.filter { it.userSerial == 0L } else apps
+    }
+
     // A checklist's Save: every changed tick in one write. Picking a smart
     // folder's apps makes it the user's, as a retype does.
     fun setGroupMembership(groupName: String, changes: Map<LaunchableApp, Boolean>) {
@@ -1508,6 +1517,9 @@ class LauncherViewModel(
             val hidden = state.value.prefs.hiddenApps
             // Fresh enumeration: the install hook fires before appsFlow updates.
             val apps = catalog.listLaunchableApps().filterNot { it.privateSpace || hiddenKey(it) in hidden }
+                // With the Work tab on, work apps live there and stay out of
+                // the folders on the personal list.
+                .filter { !state.value.prefs.drawerWorkTab || it.userSerial == 0L }
             // Apps the user already placed in a folder group stay theirs.
             val claimed = drawerGroups()
                 .filter { it.type == DrawerGroupType.FOLDER && !it.smart }
