@@ -3528,16 +3528,18 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         }
     }
 
-    // An app in a home folder: its home icon's rows, then the folder's own.
+    // An app in a home folder: its home icon's rows, with Move to Home
+    // among them. The folder's own order is changed by dragging.
     private fun folderMemberMenu(
         folder: LauncherItem,
         member: LauncherItem,
-        sortAz: Boolean,
+        memberView: View,
         closeFolder: () -> Unit,
         applied: (com.supernova.launcher.data.LauncherModel) -> Unit
     ): SupernovaPopupMenu {
         val locked = desktopLocked
-        val menu = newItemPopup()
+        val menu = newItemPopup(forItem = true)
+        addNotificationRows(menu, member.packageName, member.userSerial)
         if (!locked) {
             menu.addRow(getString(R.string.remove), R.drawable.ic_menu_remove_item) {
                 val before = viewModel.state.value.model
@@ -3579,17 +3581,23 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     applied(before)
                 }
             }
-            // The folder's own order, which an A-Z folder doesn't show.
-            if (!sortAz) {
-                menu.addRow(getString(R.string.move_up), R.drawable.ic_menu_swipe) {
-                    val before = viewModel.state.value.model
-                    viewModel.reorderFolderMember(folder.id, member.id, -1)
-                    applied(before)
-                }
-                menu.addRow(getString(R.string.move_down), R.drawable.ic_menu_down) {
-                    val before = viewModel.state.value.model
-                    viewModel.reorderFolderMember(folder.id, member.id, 1)
-                    applied(before)
+        }
+        member.toLaunchableApp()?.let { app ->
+            addExtraRows(
+                menu,
+                PopupRows.decode(viewModel.state.value.prefs.popupItemsHome, PopupRows.homeDefaults),
+                app
+            )
+        }
+        addExportPngRow(menu, memberView, member.label)
+        member.packageName?.let { pkg ->
+            shortcutsFor(pkg, member.userSerial).take(4).forEach { shortcut ->
+                menu.addShortcut(
+                    shortcut.shortLabel ?: shortcut.longLabel ?: shortcut.id,
+                    shortcutIcon(shortcut)
+                ) {
+                    closeFolder()
+                    launchShortcut(pkg, shortcut.id, member.userSerial)
                 }
             }
         }
@@ -3638,10 +3646,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             // window, so the gesture's touches come in through its
             // interceptor (below), not dispatchTouchEvent.
             onLongPress = { memberView, member ->
-                val sortAz = viewModel.state.value.prefs.folderSortAz
                 memberMenu?.dismiss()
                 drag.arm(memberView, DragPayload.ExistingItem(member.id), window = popup) {
-                    folderMemberMenu(folder, member, sortAz, { popup?.dismiss() }, ::applied).also {
+                    folderMemberMenu(folder, member, memberView, { popup?.dismiss() }, ::applied).also {
                         it.show(memberView, menuTouchX)
                         memberMenu = it
                     }

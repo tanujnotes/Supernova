@@ -423,27 +423,6 @@ class LauncherRepository(private val context: Context) {
         mutate { current -> restored(current, items, cols, rows, dockSlots) }
     }
 
-    suspend fun reorderFolderMember(folderId: String, memberId: String, direction: Int) {
-        mutate { current ->
-            val members = current.items.filter { it.folderId == folderId }.sortedBy { it.rank }
-            val index = members.indexOfFirst { it.id == memberId }
-            if (index == -1) return@mutate current
-            val targetIndex = (index + direction).coerceIn(0, members.lastIndex)
-            if (targetIndex == index) return@mutate current
-
-            val reordered = members.toMutableList().apply {
-                val item = removeAt(index)
-                add(targetIndex, item)
-            }
-            val rankMap = reordered.mapIndexed { idx, item -> item.id to idx }.toMap()
-            current.copy(
-                items = current.items.map { item ->
-                    rankMap[item.id]?.let { rank -> item.copy(rank = rank) } ?: item
-                }
-            )
-        }
-    }
-
     suspend fun addWidget(
         page: Int,
         cellX: Int,
