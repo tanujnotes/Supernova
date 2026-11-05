@@ -1436,6 +1436,18 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 }
             }
         )
+        // Edge swipes flip pages rather than run system Back, while nothing
+        // is over the home screen.
+        com.supernova.launcher.ui.HomeEdgeSwipes(
+            binding.workspacePager,
+            homeInFront = {
+                !((::drawer.isInitialized && drawer.isVisible) ||
+                    (::search.isInitialized && search.isOpen) ||
+                    (::editMode.isInitialized && editMode.isOpen) ||
+                    feed.isOpen || desktopPreviews.isShowing)
+            },
+            leftEdgeTaken = { viewModel.state.value.prefs.let { it.feedEnabled && it.feedEdgeSwipe } }
+        )
         // Card edits re-arm the shared monitor (new Wi-Fi/Bluetooth needs)
         // and refresh whichever surface is showing cards. The feed collects
         // the same emission itself.
