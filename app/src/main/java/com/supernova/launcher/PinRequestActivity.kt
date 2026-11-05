@@ -213,7 +213,8 @@ class PinRequestActivity : AppCompatActivity() {
                 provider = info.provider?.flattenToString().orEmpty(),
                 label = label,
                 spanX = spanX,
-                spanY = spanY
+                spanY = spanY,
+                userSerial = info.profile?.let { getSystemService(android.os.UserManager::class.java)?.getSerialNumberForUser(it) } ?: 0L
             )
             finish()
         }

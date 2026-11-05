@@ -732,13 +732,14 @@ class LauncherViewModel(
         label: String,
         spanX: Int,
         spanY: Int,
-        displace: List<WorkspaceGeometry.ReorderMove> = emptyList()
+        displace: List<WorkspaceGeometry.ReorderMove> = emptyList(),
+        userSerial: Long = 0L
     ) {
         val prefs = state.value.prefs
         viewModelScope.launch {
             repository.addWidget(
                 page, cellX, cellY, prefs.gridCols, prefs.gridRows, appWidgetId, provider, label, spanX, spanY,
-                displace
+                displace, userSerial
             )
         }
     }

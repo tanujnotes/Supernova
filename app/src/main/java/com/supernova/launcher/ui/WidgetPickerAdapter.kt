@@ -38,7 +38,7 @@ class WidgetPickerAdapter(
     fun submit(list: List<WidgetPickerGroup>, expandAll: Boolean) {
         groups = list
         startExpanded = expandAll
-        if (expandAll) list.forEach { expanded.add(it.packageName) }
+        if (expandAll) list.forEach { expanded.add(it.key) }
         rebuild()
     }
 
@@ -59,10 +59,10 @@ class WidgetPickerAdapter(
             val widgets = if (q.isEmpty() || groupMatches) group.widgets else group.widgets.filter { it.label.lowercase().contains(q) }
             val shortcuts = if (q.isEmpty() || groupMatches) group.shortcuts else group.shortcuts.filter { it.label.lowercase().contains(q) }
             if (widgets.isEmpty() && shortcuts.isEmpty()) continue
-            val isExpanded = startExpanded || q.isNotEmpty() || group.packageName in expanded
+            val isExpanded = startExpanded || q.isNotEmpty() || group.key in expanded
             flat.add(
                 WidgetPickerEntry.Header(
-                    packageName = group.packageName,
+                    key = group.key,
                     label = group.label,
                     icon = group.icon,
                     widgetCount = group.widgets.size,
@@ -79,8 +79,8 @@ class WidgetPickerAdapter(
         notifyDataSetChanged()
     }
 
-    private fun toggle(packageName: String) {
-        if (packageName in expanded) expanded.remove(packageName) else expanded.add(packageName)
+    private fun toggle(key: String) {
+        if (key in expanded) expanded.remove(key) else expanded.add(key)
         rebuild()
     }
 
@@ -129,7 +129,7 @@ class WidgetPickerAdapter(
             }
             binding.headerCount.text = parts.joinToString(", ")
             binding.headerChevron.rotation = if (entry.expanded) 180f else 0f
-            binding.root.setOnClickListener { toggle(entry.packageName) }
+            binding.root.setOnClickListener { toggle(entry.key) }
         }
     }
 

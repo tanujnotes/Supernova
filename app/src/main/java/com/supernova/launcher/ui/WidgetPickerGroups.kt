@@ -4,8 +4,11 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
 import android.content.Context
 import android.content.Intent
+import android.content.pm.LauncherApps
 import android.graphics.drawable.Drawable
+import android.os.Build
 import android.os.Process
+import android.os.UserManager
 import com.supernova.launcher.R
 import com.supernova.launcher.gesture.ActionShortcut
 import com.supernova.launcher.gesture.GestureAction
@@ -19,7 +22,9 @@ data class WidgetPickerGroup(
     val label: String,
     val icon: Drawable?,
     val widgets: List<WidgetPickerEntry.Widget>,
-    val shortcuts: List<WidgetPickerEntry.Shortcut>
+    val shortcuts: List<WidgetPickerEntry.Shortcut>,
+    // Tells a work profile's copy of an app from the personal one.
+    val key: String = packageName
 )
 
 // What tapping a shortcut row does.
@@ -37,7 +42,7 @@ sealed interface ShortcutTarget {
 sealed interface WidgetPickerEntry {
     // A collapsible app row: icon, name, "N widgets, M shortcuts".
     data class Header(
-        val packageName: String,
+        val key: String,
         val label: String,
         val icon: Drawable?,
         val widgetCount: Int,
@@ -78,8 +83,9 @@ object WidgetPickerGroups {
         filter: ((android.appwidget.AppWidgetProviderInfo) -> Boolean)? = null
     ): List<WidgetPickerGroup> {
         val pm = context.packageManager
+        val me = Process.myUserHandle()
         val providers = AppWidgetManager.getInstance(context)
-            .getInstalledProvidersForProfile(Process.myUserHandle())
+            .getInstalledProvidersForProfile(me)
             .filter { filterPackage == null || it.provider.packageName == filterPackage }
             .filter { filter == null || filter(it) }
 
@@ -93,22 +99,13 @@ object WidgetPickerGroups {
             .groupBy { it.activityInfo.packageName }
 
         val packages = (widgetsByPackage.keys + shortcutsByPackage.keys).distinct()
-        return packages.mapNotNull { packageName ->
+        val personal = packages.mapNotNull { packageName ->
             val appLabel = runCatching {
                 pm.getApplicationLabel(pm.getApplicationInfo(packageName, 0)).toString()
             }.getOrNull() ?: return@mapNotNull null
             val icon = runCatching { pm.getApplicationIcon(packageName) }.getOrNull()
 
-            val widgets = widgetsByPackage[packageName].orEmpty().map { info ->
-                val spans = WidgetSizing.defaultSpans(context, info, cellWidthPx, cellHeightPx, cols, rows)
-                WidgetPickerEntry.Widget(
-                    info = info,
-                    label = runCatching { info.loadLabel(pm) }.getOrNull().orEmpty().ifBlank { appLabel },
-                    appLabel = appLabel,
-                    spanX = spans.first,
-                    spanY = spans.second
-                )
-            }.sortedWith(com.supernova.launcher.data.LabelOrder.by { it.label })
+            val widgets = widgetEntries(context, widgetsByPackage[packageName].orEmpty(), appLabel, cellWidthPx, cellHeightPx, cols, rows)
 
             val shortcuts = shortcutsByPackage[packageName].orEmpty().map { resolve ->
                 val activity = resolve.activityInfo
@@ -121,8 +118,71 @@ object WidgetPickerGroups {
             }.sortedWith(com.supernova.launcher.data.LabelOrder.by { it.label })
 
             WidgetPickerGroup(packageName, appLabel, icon, widgets, shortcuts)
-        }.sortedWith(com.supernova.launcher.data.LabelOrder.by { it.label })
+        }
+        return (personal + workGroups(context, filterPackage, filter, cellWidthPx, cellHeightPx, cols, rows))
+            .sortedWith(com.supernova.launcher.data.LabelOrder.by { it.label })
     }
+
+    // Widgets from work profiles, with the work badge on the app's name and
+    // icon. Paused profiles offer none, and the private space stays out.
+    private fun workGroups(
+        context: Context,
+        filterPackage: String?,
+        filter: ((AppWidgetProviderInfo) -> Boolean)?,
+        cellWidthPx: Int,
+        cellHeightPx: Int,
+        cols: Int,
+        rows: Int
+    ): List<WidgetPickerGroup> {
+        val pm = context.packageManager
+        val userManager = context.getSystemService(UserManager::class.java) ?: return emptyList()
+        val launcherApps = context.getSystemService(LauncherApps::class.java) ?: return emptyList()
+        val me = Process.myUserHandle()
+        val profiles = runCatching { userManager.userProfiles }.getOrDefault(emptyList()).filter { user ->
+            user != me && !isPrivateSpace(launcherApps, user) &&
+                !runCatching { userManager.isQuietModeEnabled(user) }.getOrDefault(true)
+        }
+        return profiles.flatMap { user ->
+            val serial = userManager.getSerialNumberForUser(user)
+            runCatching { AppWidgetManager.getInstance(context).getInstalledProvidersForProfile(user) }
+                .getOrDefault(emptyList())
+                .filter { filterPackage == null || it.provider.packageName == filterPackage }
+                .filter { filter == null || filter(it) }
+                .groupBy { it.provider.packageName }
+                .mapNotNull { (packageName, infos) ->
+                    val app = runCatching { launcherApps.getApplicationInfo(packageName, 0, user) }.getOrNull()
+                        ?: return@mapNotNull null
+                    val appLabel = pm.getUserBadgedLabel(app.loadLabel(pm), user).toString()
+                    val icon = runCatching { pm.getUserBadgedIcon(app.loadIcon(pm), user) }.getOrNull()
+                    val widgets = widgetEntries(context, infos, appLabel, cellWidthPx, cellHeightPx, cols, rows)
+                    WidgetPickerGroup(packageName, appLabel, icon, widgets, emptyList(), key = "$serial/$packageName")
+                }
+        }
+    }
+
+    private fun isPrivateSpace(launcherApps: LauncherApps, user: android.os.UserHandle): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM && runCatching {
+            launcherApps.getLauncherUserInfo(user)?.userType == UserManager.USER_TYPE_PROFILE_PRIVATE
+        }.getOrDefault(false)
+
+    private fun widgetEntries(
+        context: Context,
+        infos: List<AppWidgetProviderInfo>,
+        appLabel: String,
+        cellWidthPx: Int,
+        cellHeightPx: Int,
+        cols: Int,
+        rows: Int
+    ): List<WidgetPickerEntry.Widget> = infos.map { info ->
+        val spans = WidgetSizing.defaultSpans(context, info, cellWidthPx, cellHeightPx, cols, rows)
+        WidgetPickerEntry.Widget(
+            info = info,
+            label = runCatching { info.loadLabel(context.packageManager) }.getOrNull().orEmpty().ifBlank { appLabel },
+            appLabel = appLabel,
+            spanX = spans.first,
+            spanY = spans.second
+        )
+    }.sortedWith(com.supernova.launcher.data.LabelOrder.by { it.label })
 
     // The launcher's own row, listed first: every launcher action plus the Activities picker, as shortcuts.
     fun launcherGroup(context: Context, renderTile: (Drawable) -> Drawable): WidgetPickerGroup {

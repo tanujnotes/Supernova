@@ -617,7 +617,7 @@ class WidgetController(
     // tap to bind it again through the normal add flow, which asks for the
     // bind permission and runs the widget's own setup where it needs them.
     private fun fallbackWidgetView(item: LauncherItem): View {
-        val info = installedProvider(item.widgetProvider)
+        val info = installedProvider(item.widgetProvider, item.userSerial)
         return TextView(activity).apply {
             setBackgroundResource(R.drawable.bg_widget_fallback)
             gravity = Gravity.CENTER
@@ -639,11 +639,17 @@ class WidgetController(
         }
     }
 
-    private fun installedProvider(provider: String?): AppWidgetProviderInfo? {
+    // Looked up in the widget's own profile: a work widget's provider isn't
+    // among the personal ones.
+    private fun installedProvider(provider: String?, userSerial: Long = 0L): AppWidgetProviderInfo? {
         val component = provider?.let(ComponentName::unflattenFromString) ?: return null
-        return runCatching { appWidgetManager.getInstalledProviders() }.getOrNull()
+        val user = viewModel.appCatalog().userForSerial(userSerial) ?: android.os.Process.myUserHandle()
+        return runCatching { appWidgetManager.getInstalledProvidersForProfile(user) }.getOrNull()
             ?.firstOrNull { it.provider == component }
     }
+
+    private fun serialOf(user: android.os.UserHandle?): Long =
+        user?.let { activity.getSystemService(android.os.UserManager::class.java)?.getSerialNumberForUser(it) } ?: 0L
 
     // Widgets and cards a restore left without a live id get a new one where
     // that takes no asking: the bind permission held, no setup screen needed.
@@ -653,7 +659,7 @@ class WidgetController(
         model.items
             .filter { it.itemType == ItemType.WIDGET && it.appWidgetId == null }
             .forEach { item ->
-                rebindSilently(item.id, item.widgetProvider) { viewModel.setWidgetId(item.id, it) }
+                rebindSilently(item.id, item.widgetProvider, item.userSerial) { viewModel.setWidgetId(item.id, it) }
             }
         model.feedCards
             .filter { FeaturedType.fromName(it.featuredType) == FeaturedType.WIDGET && it.appWidgetId == null }
@@ -669,8 +675,8 @@ class WidgetController(
         return info.configure != null && !optional
     }
 
-    private fun rebindSilently(key: String, provider: String?, onBound: (Int) -> Unit) {
-        val info = if (rebindsTried.add(key)) installedProvider(provider) else null
+    private fun rebindSilently(key: String, provider: String?, userSerial: Long = 0L, onBound: (Int) -> Unit) {
+        val info = if (rebindsTried.add(key)) installedProvider(provider, userSerial) else null
         if (info == null || needsSetup(info)) return
         val widgetId = appWidgetHost.allocateAppWidgetId()
         // Not swept away before the model has it.
@@ -834,7 +840,8 @@ class WidgetController(
                     label = info.loadLabel(activity.packageManager)?.toString().orEmpty().ifBlank { activity.getString(R.string.widget) },
                     spanX = spans.first,
                     spanY = spans.second,
-                    displace = target.displace
+                    displace = target.displace,
+                    userSerial = serialOf(info.profile)
                 )
             }
             is Target.Restored -> viewModel.setWidgetId(target.itemId, pending.widgetId)

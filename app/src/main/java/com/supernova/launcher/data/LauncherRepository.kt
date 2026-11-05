@@ -436,7 +436,9 @@ class LauncherRepository(private val context: Context) {
         spanY: Int,
         // Neighbours a drag previewed aside; re-validated like every other
         // displacement, and dropped wholesale if the layout moved on.
-        displace: List<WorkspaceGeometry.ReorderMove> = emptyList()
+        displace: List<WorkspaceGeometry.ReorderMove> = emptyList(),
+        // The provider's profile, so a restore finds a work widget again.
+        userSerial: Long = 0L
     ) {
         val widget = LauncherItem(
             id = id(),
@@ -449,7 +451,8 @@ class LauncherRepository(private val context: Context) {
             spanY = spanY.coerceAtLeast(1),
             appWidgetId = appWidgetId,
             widgetProvider = provider,
-            label = label
+            label = label,
+            userSerial = userSerial
         )
         mutate { original ->
             val current = applyDisplacement(original, displace, null, cols, rows) ?: original
