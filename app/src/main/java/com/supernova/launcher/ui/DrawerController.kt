@@ -1405,18 +1405,9 @@ class DrawerController(
 
         applyTransition(prefs)
 
-        // Tab bar placement: physically reorder the sheet's children so
-        // BOTTOM sits below the list; TOP restores the original slot after
-        // the header row. Visibility (incl. NONE) is rebuildTabs' job.
         val sheet = binding.drawerSheet
         val tabs = binding.drawerTabs
         val wantBottom = DrawerTabBar.fromName(prefs.drawerTabBar) == DrawerTabBar.BOTTOM
-        val currentIndex = sheet.indexOfChild(tabs)
-        val targetIndex = if (wantBottom) sheet.childCount - 1 else 1
-        if (currentIndex != targetIndex) {
-            sheet.removeView(tabs)
-            sheet.addView(tabs, if (wantBottom) sheet.childCount else 1)
-        }
 
         val searchConfig = SearchBarConfig.decode(prefs.searchBarConfig).drawer
         val barPlacement = DrawerBarPlacement.fromConfig(searchConfig)
@@ -1434,6 +1425,30 @@ class DrawerController(
         if (rowIndex != rowTarget) {
             sheet.removeView(searchRow)
             sheet.addView(searchRow, if (searchAtBottom) sheet.childCount else 0)
+        }
+
+        // Tab bar placement, next to the search row: TOP right under a top
+        // row (or first, with the row at the bottom), BOTTOM right above a
+        // bottom row (or last). Placed by its neighbour, not by a fixed
+        // index, which put the private space bar above the tabs on a second
+        // pass. Visibility (incl. NONE) is rebuildTabs' job.
+        val tabsIndex = sheet.indexOfChild(tabs)
+        val rowAt = sheet.indexOfChild(searchRow)
+        val placed = when {
+            wantBottom && searchAtBottom -> tabsIndex == rowAt - 1
+            wantBottom -> tabsIndex == sheet.childCount - 1
+            searchAtBottom -> tabsIndex == 0
+            else -> tabsIndex == rowAt + 1
+        }
+        if (!placed) {
+            sheet.removeView(tabs)
+            val target = when {
+                wantBottom && searchAtBottom -> sheet.indexOfChild(searchRow)
+                wantBottom -> sheet.childCount
+                searchAtBottom -> 0
+                else -> sheet.indexOfChild(searchRow) + 1
+            }
+            sheet.addView(tabs, target)
         }
 
         // Field styling (C7): filled pill vs outline, radius, start icon.
