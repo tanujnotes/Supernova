@@ -381,25 +381,17 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             photoPickCallback = null
         }
 
-    private fun pickPhoto(onPicked: (android.net.Uri?) -> Unit) {
-        val sources = arrayOf(getString(R.string.photo_from_gallery), getString(R.string.wallpaper_from_files))
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.choose_photo)
-            .setItems(sources) { _, which ->
-                photoPickCallback = onPicked
-                runCatching {
-                    if (which == 0) {
-                        pickPhotoLauncher.launch(
-                            androidx.activity.result.PickVisualMediaRequest(
-                                ActivityResultContracts.PickVisualMedia.ImageOnly
-                            )
-                        )
-                    } else {
-                        pickPhotoFileLauncher.launch(arrayOf("image/*"))
-                    }
-                }.onFailure { Toast.makeText(this, R.string.launch_failed, Toast.LENGTH_SHORT).show() }
+    private fun pickPhoto(fromFiles: Boolean, onPicked: (android.net.Uri?) -> Unit) {
+        photoPickCallback = onPicked
+        runCatching {
+            if (fromFiles) {
+                pickPhotoFileLauncher.launch(arrayOf("image/*"))
+            } else {
+                pickPhotoLauncher.launch(
+                    androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
             }
-            .show()
+        }.onFailure { Toast.makeText(this, R.string.launch_failed, Toast.LENGTH_SHORT).show() }
     }
 
     private val exportBackupLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->

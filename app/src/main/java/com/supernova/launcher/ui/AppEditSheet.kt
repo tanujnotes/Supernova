@@ -36,8 +36,8 @@ object AppEditSheet {
         // Null only with itemLabel, for an item with no app behind it.
         app: LaunchableApp?,
         // Host-provided photo picker (the ActivityResult launcher must be
-        // registered on the activity); null hides the photo option.
-        pickPhoto: (((android.net.Uri?) -> Unit) -> Unit)? = null,
+        // registered on the activity); null hides the photo options.
+        pickPhoto: PhotoPicker? = null,
         // Per-item swipe editing. Non-null only when editing a placed
         // workspace item: `swipeLabels` reads the current up/down labels and
         // `onEditSwipe` opens the host picker, calling back with the chosen
@@ -73,7 +73,7 @@ object AppEditSheet {
                 ?: context.getString(R.string.option_default)
             binding.shapeValue.text = shapeLabel
             val iconLabel = when {
-                chosenPhoto != null -> context.getString(R.string.choose_photo)
+                chosenPhoto != null -> context.getString(R.string.icon_photo)
                 chosenIcon != null -> chosenIcon
                 else -> context.getString(R.string.option_default)
             }
@@ -139,8 +139,33 @@ object AppEditSheet {
             }
         }
 
+        // One row for the icon, wherever it comes from: Default, a photo or
+        // an icon pack.
         binding.iconRow.setOnClickListener {
-            IconPickerSheet.show(context, scope, viewModel, allowDefault = true) { pack, name ->
+            val onPhoto = pickPhoto?.let { picker ->
+                { fromFiles: Boolean ->
+                    picker(fromFiles) { uri ->
+                        if (uri == null) return@picker
+                        // Crop + encode off the main thread; the sheet stays
+                        // open and commits the result with Save like every
+                        // other field.
+                        scope.launch {
+                            val encoded = withContext(Dispatchers.IO) {
+                                GalleryIconCodec.encode(context.applicationContext, uri)
+                            }
+                            if (encoded == null) {
+                                Toast.makeText(context, R.string.photo_load_failed, Toast.LENGTH_SHORT).show()
+                                return@launch
+                            }
+                            chosenPhoto = encoded
+                            chosenPack = null
+                            chosenIcon = null
+                            refreshRows()
+                        }
+                    }
+                }
+            }
+            IconPickerSheet.show(context, scope, viewModel, allowDefault = true, onPickPhoto = onPhoto) { pack, name ->
                 chosenPack = pack
                 chosenIcon = name
                 // A pack icon (or a reset to default) replaces any photo.
@@ -171,32 +196,10 @@ object AppEditSheet {
             }
         }
 
-        binding.photoRow.visibility = if (pickPhoto == null) android.view.View.GONE else android.view.View.VISIBLE
-        binding.photoRow.setOnClickListener {
-            pickPhoto?.invoke { uri ->
-                if (uri == null) return@invoke
-                // Crop + encode off the main thread; the sheet stays open and
-                // commits the result with Save like every other field.
-                scope.launch {
-                    val encoded = withContext(Dispatchers.IO) {
-                        GalleryIconCodec.encode(context.applicationContext, uri)
-                    }
-                    if (encoded == null) {
-                        Toast.makeText(context, R.string.photo_load_failed, Toast.LENGTH_SHORT).show()
-                        return@launch
-                    }
-                    chosenPhoto = encoded
-                    chosenPack = null
-                    chosenIcon = null
-                    refreshRows()
-                }
-            }
-        }
-
         if (itemLabel != null) {
             listOf(
                 binding.hideLabelRow, binding.shapeRow, binding.variantRow,
-                binding.iconRow, binding.photoRow, binding.resetButton
+                binding.iconRow, binding.resetButton
             ).forEach { it.visibility = android.view.View.GONE }
             binding.saveButton.setOnClickListener {
                 val typed = binding.editLabel.text?.toString().orEmpty().trim()
@@ -235,6 +238,9 @@ object AppEditSheet {
     }
 }
 
+// A photo source (gallery or files), then the picked image's uri, or null.
+typealias PhotoPicker = (fromFiles: Boolean, onPicked: (android.net.Uri?) -> Unit) -> Unit
+
 // Pack -> drawable-grid picker; used for per-app icons and folder icons.
 object IconPickerSheet {
 
@@ -243,8 +249,8 @@ object IconPickerSheet {
         scope: CoroutineScope,
         viewModel: LauncherViewModel,
         allowDefault: Boolean = false,
-        // When set, a "Photo" entry lets the caller pick a gallery image.
-        onPickPhoto: (() -> Unit)? = null,
+        // When set, photo entries (gallery, files) hand the source back.
+        onPickPhoto: ((fromFiles: Boolean) -> Unit)? = null,
         onPick: (pack: String?, name: String?) -> Unit
     ) {
         scope.launch {
@@ -252,7 +258,10 @@ object IconPickerSheet {
             // Each entry pairs its label with the action tapping it runs.
             val entries = buildList<Pair<String, () -> Unit>> {
                 if (allowDefault) add(context.getString(R.string.option_default) to { onPick(null, null) })
-                if (onPickPhoto != null) add(context.getString(R.string.choose_photo) to onPickPhoto)
+                if (onPickPhoto != null) {
+                    add(context.getString(R.string.photo_from_gallery) to { onPickPhoto(false) })
+                    add(context.getString(R.string.photo_from_files) to { onPickPhoto(true) })
+                }
                 packs.forEach { pack ->
                     add(pack.label to { showGrid(context, scope, viewModel, pack.packageName, onPick) })
                 }

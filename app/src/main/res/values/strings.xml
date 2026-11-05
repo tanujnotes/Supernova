@@ -174,8 +174,10 @@
     <string name="swipe_to_open_folder_summary">Tap opens the first app, swipe up opens the folder</string>
     <string name="open_folder">Open folder</string>
     <string name="set_swipe_down_action">Set swipe down action</string>
-    <string name="choose_photo">Choose photo</string>
-    <string name="photo_from_gallery">Gallery</string>
+    <string name="icon_row">Icon</string>
+    <string name="icon_photo">Photo</string>
+    <string name="photo_from_gallery">Photo from gallery</string>
+    <string name="photo_from_files">Photo from files</string>
     <string name="photo_load_failed">Couldn\'t load that image</string>
     <string name="done">Done</string>
     <string name="icon_pack_system">System default</string>
