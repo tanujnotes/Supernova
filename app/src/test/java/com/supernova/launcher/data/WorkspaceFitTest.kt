@@ -11,8 +11,8 @@ class WorkspaceFitTest {
 
     // A free-positioned icon on its cell, as a drop on a cols x rows grid
     // stores it.
-    private fun icon(id: String, cellX: Int, cellY: Int, cols: Int, rows: Int, page: Int = 0) = LauncherItem(
-        id = id, itemType = ItemType.APP, page = page, cellX = cellX, cellY = cellY, label = id,
+    private fun icon(id: String, cellX: Int, cellY: Int, cols: Int, rows: Int) = LauncherItem(
+        id = id, itemType = ItemType.APP, cellX = cellX, cellY = cellY, label = id,
         workspaceX = (cellX + 0.5f) / cols, workspaceY = (cellY + 0.5f) / rows
     )
 

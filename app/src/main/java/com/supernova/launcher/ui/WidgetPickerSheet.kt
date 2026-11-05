@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.supernova.launcher.databinding.SheetWidgetPickerBinding
 import kotlinx.coroutines.Dispatchers
@@ -79,7 +80,7 @@ object WidgetPickerSheet {
         // Searching opens the sheet fully, above the keyboard.
         dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         binding.widgetSearch.setOnFocusChangeListener { _, focused ->
-            if (focused) dialog.behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
+            if (focused) dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
         }
 
         activity.lifecycleScope.launch {

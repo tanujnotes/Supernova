@@ -58,7 +58,8 @@ class AppChecklist(
                 bottomMargin = context.dp(BELOW_FIELD_DP)
             }
         )
-        val list = BoundedListView(context, (context.resources.displayMetrics.heightPixels * LIST_SHARE).toInt()).apply {
+        val maxHeight = (context.resources.displayMetrics.heightPixels * LIST_SHARE).toInt()
+        val list = BoundedListView(context, maxHeight).apply {
             adapter = this@AppChecklist.adapter
             divider = null
             setOnItemClickListener { _, _, position, _ ->
@@ -72,6 +73,22 @@ class AppChecklist(
         // Weighted, so the keyboard squeezes the list rather than cutting
         // off its bottom.
         addView(list, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+    }
+
+    // In a dialog with a Save button. Ticks are kept until Save, which hands
+    // them over; a tap outside or back drops them.
+    fun show(title: CharSequence, onSave: (BooleanArray) -> Unit): AlertDialog? {
+        if (apps.isEmpty()) return null
+        val dialog = MaterialAlertDialogBuilder(context)
+            .setTitle(title)
+            .setView(view)
+            .setBackgroundInsetTop(context.dp(INSET_V_DP))
+            .setBackgroundInsetBottom(context.dp(INSET_V_DP))
+            .setPositiveButton(R.string.save) { _, _ -> onSave(checked) }
+            .create()
+        dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        dialog.show()
+        return dialog
     }
 
     // Matched across all apps at once, so a typo match in one group drops
@@ -126,38 +143,14 @@ class AppChecklist(
         }
     }
 
-    companion object {
-        private const val DIVIDER = -1
-        private const val LIST_SHARE = 0.55f
-        private const val BELOW_FIELD_DP = 8
-        private const val FIELD_PAD_H_DP = 16
-        private const val FIELD_PAD_V_DP = 14
+    private companion object {
+        const val DIVIDER = -1
+        const val LIST_SHARE = 0.55f
+        const val BELOW_FIELD_DP = 8
+        const val FIELD_PAD_H_DP = 16
+        const val FIELD_PAD_V_DP = 14
         // The dialog's own 80dp leaves a band above and below the card
         // once the keyboard shrinks the window.
-        private const val INSET_V_DP = 24
-
-        // Ticks are kept until Save; a tap outside or back drops them.
-        fun show(
-            context: Context,
-            title: CharSequence,
-            apps: List<LaunchableApp>,
-            checked: BooleanArray,
-            iconFor: (LaunchableApp) -> Drawable?,
-            onSave: (BooleanArray) -> Unit
-        ): AlertDialog? {
-            if (apps.isEmpty()) return null
-            val ticks = checked.copyOf()
-            val checklist = AppChecklist(context, apps, ticks, iconFor)
-            val dialog = MaterialAlertDialogBuilder(context)
-                .setTitle(title)
-                .setView(checklist.view)
-                .setBackgroundInsetTop(context.dp(INSET_V_DP))
-                .setBackgroundInsetBottom(context.dp(INSET_V_DP))
-                .setPositiveButton(R.string.save) { _, _ -> onSave(ticks) }
-                .create()
-            dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-            dialog.show()
-            return dialog
-        }
+        const val INSET_V_DP = 24
     }
 }

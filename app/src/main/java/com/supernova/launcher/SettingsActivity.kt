@@ -1411,14 +1411,7 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
         dialogBinding.colorRow.setOnClickListener { row ->
-            val value = dialogBinding.colorValue
-            val valueX = IntArray(2).also(value::getLocationInWindow)[0] + value.width / 2f
-            val current = colors.indexOfFirst { it.second.equals(plateColor, ignoreCase = true) }.coerceAtLeast(0)
-            val labels = colors.map { getString(it.first) }
-            showChoice(getString(R.string.folder_plate_color), labels, current, inDialog = row to valueX) { which ->
-                plateColor = colors[which].second
-                refresh()
-            }
+            pickPlateColor(row, dialogBinding.colorValue, plateColor) { plateColor = it; refresh() }
         }
         listOf(
             dialogBinding.outlineRow to dialogBinding.outlineCheck,
@@ -1442,6 +1435,17 @@ class SettingsActivity : AppCompatActivity() {
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    // Opened over the row's value, in the dialog's window, as the shape is.
+    private fun pickPlateColor(row: View, value: View, current: String, onPick: (String) -> Unit) {
+        val colors = SettingsCatalogue.CURATED_COLORS
+        val valueX = IntArray(2).also(value::getLocationInWindow)[0] + value.width / 2f
+        val selected = colors.indexOfFirst { it.second.equals(current, ignoreCase = true) }.coerceAtLeast(0)
+        val labels = colors.map { getString(it.first) }
+        showChoice(getString(R.string.folder_plate_color), labels, selected, inDialog = row to valueX) { which ->
+            onPick(colors[which].second)
+        }
     }
 
     private fun showLockMethodPicker() {
@@ -1920,7 +1924,10 @@ class SettingsActivity : AppCompatActivity() {
         onSave: (Map<LaunchableApp, Boolean>) -> Unit
     ) {
         val states = apps.map(checked).toBooleanArray()
-        com.supernova.launcher.ui.AppChecklist.show(this, title, apps, states, viewModel.appCatalog()::iconFor) { ticks ->
+        val checklist = com.supernova.launcher.ui.AppChecklist(
+            this, apps, states.copyOf(), viewModel.appCatalog()::iconFor
+        )
+        checklist.show(title) { ticks ->
             val changes = apps.indices.filter { ticks[it] != states[it] }.associate { apps[it] to ticks[it] }
             if (changes.isNotEmpty()) onSave(changes)
         }

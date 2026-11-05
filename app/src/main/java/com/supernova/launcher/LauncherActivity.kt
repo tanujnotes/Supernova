@@ -3558,22 +3558,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             closeFolder()
             showItemEditSheet(member, allowSwipe = false)
         }
-        if (!locked) {
-            menu.addRow(getString(R.string.remove_from_folder), R.drawable.ic_menu_add) {
-                val page = pageForFolderMembers(folder)
-                val free = viewModel.firstFreeWorkspaceCell(page)
-                if (free == null) {
-                    Toast.makeText(this, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
-                } else {
-                    val before = viewModel.state.value.model
-                    // The move a drag onto that free cell makes, so a
-                    // folder left with one app gives way to it here
-                    // too.
-                    viewModel.moveItemToWorkspace(member.id, page, free.first, free.second, mergeFolders = false)
-                    applied(before)
-                }
-            }
-        }
+        if (!locked) addMoveToHomeRow(menu, folder, member, applied)
         member.toLaunchableApp()?.let { app ->
             addExtraRows(
                 menu,
@@ -3594,6 +3579,27 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             }
         }
         return menu
+    }
+
+    private fun addMoveToHomeRow(
+        menu: SupernovaPopupMenu,
+        folder: LauncherItem,
+        member: LauncherItem,
+        applied: (com.supernova.launcher.data.LauncherModel) -> Unit
+    ) {
+        menu.addRow(getString(R.string.remove_from_folder), R.drawable.ic_menu_add) {
+            val page = pageForFolderMembers(folder)
+            val free = viewModel.firstFreeWorkspaceCell(page)
+            if (free == null) {
+                Toast.makeText(this, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
+            } else {
+                val before = viewModel.state.value.model
+                // The move a drag onto that free cell makes, so a folder
+                // left with one app gives way to it here too.
+                viewModel.moveItemToWorkspace(member.id, page, free.first, free.second, mergeFolders = false)
+                applied(before)
+            }
+        }
     }
 
     private fun showFolderPopup(anchor: View, folder: LauncherItem) {
@@ -3742,13 +3748,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             .map { keyOf(it.packageName, it.className, it.userSerial) in memberByKey }
             .toBooleanArray()
 
-        com.supernova.launcher.ui.AppChecklist.show(
-            this,
-            folder.label.ifBlank { getString(R.string.folder) },
-            apps,
-            checked,
-            viewModel.appCatalog()::iconFor
-        ) { ticks ->
+        val checklist = com.supernova.launcher.ui.AppChecklist(
+            this, apps, checked.copyOf(), viewModel.appCatalog()::iconFor
+        )
+        checklist.show(folder.label.ifBlank { getString(R.string.folder) }) { ticks ->
             val added = ArrayList<LaunchableApp>()
             val removed = HashSet<String>()
             apps.forEachIndexed { index, app ->
@@ -3887,7 +3890,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         val apps = if (personalOnly) viewModel.personalApps() else viewModel.visibleApps()
         if (apps.isEmpty()) return
         val checked = apps.map { viewModel.isInGroup(it, group) }.toBooleanArray()
-        com.supernova.launcher.ui.AppChecklist.show(this, name, apps, checked, viewModel.appCatalog()::iconFor) { ticks ->
+        val checklist = com.supernova.launcher.ui.AppChecklist(
+            this, apps, checked.copyOf(), viewModel.appCatalog()::iconFor
+        )
+        checklist.show(name) { ticks ->
             val changes = apps.indices.filter { ticks[it] != checked[it] }.associate { apps[it] to ticks[it] }
             // By the name it is stored under, which a rename just changed.
             if (changes.isNotEmpty()) viewModel.setGroupMembership(name, changes)

@@ -201,6 +201,8 @@ class PinRequestActivity : AppCompatActivity() {
             return
         }
         val label = info.loadLabel(packageManager).orEmpty().ifBlank { getString(R.string.widget) }
+        val userManager = getSystemService(android.os.UserManager::class.java)
+        val serial = info.profile?.let { userManager?.getSerialNumberForUser(it) } ?: 0L
         lifecycleScope.launch {
             val placement = findPlacement(spanX, spanY)
             repository.addWidget(
@@ -214,7 +216,7 @@ class PinRequestActivity : AppCompatActivity() {
                 label = label,
                 spanX = spanX,
                 spanY = spanY,
-                userSerial = info.profile?.let { getSystemService(android.os.UserManager::class.java)?.getSerialNumberForUser(it) } ?: 0L
+                userSerial = serial
             )
             finish()
         }

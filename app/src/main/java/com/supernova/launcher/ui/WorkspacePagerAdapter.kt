@@ -341,7 +341,8 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
             // Folder icon appearance: the dock's signature takes every pref,
             // and without these a page kept its old plates until a restart.
             "${prefs.folderIconShape},${prefs.folderIconOutline},${prefs.folderClipToBg}," +
-            "${prefs.folderMatchWindowColor},${prefs.folderPlateColor},${prefs.folderPrioritizeFirst},${prefs.folderBgColor}," +
+            "${prefs.folderMatchWindowColor},${prefs.folderPlateColor}," +
+            "${prefs.folderPrioritizeFirst},${prefs.folderBgColor}," +
             "${prefs.styleConfig}|" +
             "${prefs.badgeTextColor},${prefs.badgeCornerRadius},${prefs.badgeOutline}|" +
             // The rest of the badge settings belong here too. They were

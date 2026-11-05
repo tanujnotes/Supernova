@@ -84,6 +84,7 @@ object WidgetPickerGroups {
     ): List<WidgetPickerGroup> {
         val pm = context.packageManager
         val me = Process.myUserHandle()
+        val grid = CellGrid(cellWidthPx, cellHeightPx, cols, rows)
         val providers = AppWidgetManager.getInstance(context)
             .getInstalledProvidersForProfile(me)
             .filter { filterPackage == null || it.provider.packageName == filterPackage }
@@ -105,7 +106,7 @@ object WidgetPickerGroups {
             }.getOrNull() ?: return@mapNotNull null
             val icon = runCatching { pm.getApplicationIcon(packageName) }.getOrNull()
 
-            val widgets = widgetEntries(context, widgetsByPackage[packageName].orEmpty(), appLabel, cellWidthPx, cellHeightPx, cols, rows)
+            val widgets = widgetEntries(context, widgetsByPackage[packageName].orEmpty(), appLabel, grid)
 
             val shortcuts = shortcutsByPackage[packageName].orEmpty().map { resolve ->
                 val activity = resolve.activityInfo
@@ -119,7 +120,7 @@ object WidgetPickerGroups {
 
             WidgetPickerGroup(packageName, appLabel, icon, widgets, shortcuts)
         }
-        return (personal + workGroups(context, filterPackage, filter, cellWidthPx, cellHeightPx, cols, rows))
+        return (personal + workGroups(context, filterPackage, filter, grid))
             .sortedWith(com.supernova.launcher.data.LabelOrder.by { it.label })
     }
 
@@ -129,14 +130,12 @@ object WidgetPickerGroups {
         context: Context,
         filterPackage: String?,
         filter: ((AppWidgetProviderInfo) -> Boolean)?,
-        cellWidthPx: Int,
-        cellHeightPx: Int,
-        cols: Int,
-        rows: Int
+        grid: CellGrid
     ): List<WidgetPickerGroup> {
         val pm = context.packageManager
-        val userManager = context.getSystemService(UserManager::class.java) ?: return emptyList()
-        val launcherApps = context.getSystemService(LauncherApps::class.java) ?: return emptyList()
+        val userManager = context.getSystemService(UserManager::class.java)
+        val launcherApps = context.getSystemService(LauncherApps::class.java)
+        if (userManager == null || launcherApps == null) return emptyList()
         val me = Process.myUserHandle()
         val profiles = runCatching { userManager.userProfiles }.getOrDefault(emptyList()).filter { user ->
             user != me && !isPrivateSpace(launcherApps, user) &&
@@ -154,7 +153,7 @@ object WidgetPickerGroups {
                         ?: return@mapNotNull null
                     val appLabel = pm.getUserBadgedLabel(app.loadLabel(pm), user).toString()
                     val icon = runCatching { pm.getUserBadgedIcon(app.loadIcon(pm), user) }.getOrNull()
-                    val widgets = widgetEntries(context, infos, appLabel, cellWidthPx, cellHeightPx, cols, rows)
+                    val widgets = widgetEntries(context, infos, appLabel, grid)
                     WidgetPickerGroup(packageName, appLabel, icon, widgets, emptyList(), key = "$serial/$packageName")
                 }
         }
@@ -165,16 +164,16 @@ object WidgetPickerGroups {
             launcherApps.getLauncherUserInfo(user)?.userType == UserManager.USER_TYPE_PROFILE_PRIVATE
         }.getOrDefault(false)
 
+    // The cell size and grid a widget's starting spans are worked out on.
+    private class CellGrid(val cellWidthPx: Int, val cellHeightPx: Int, val cols: Int, val rows: Int)
+
     private fun widgetEntries(
         context: Context,
         infos: List<AppWidgetProviderInfo>,
         appLabel: String,
-        cellWidthPx: Int,
-        cellHeightPx: Int,
-        cols: Int,
-        rows: Int
+        grid: CellGrid
     ): List<WidgetPickerEntry.Widget> = infos.map { info ->
-        val spans = WidgetSizing.defaultSpans(context, info, cellWidthPx, cellHeightPx, cols, rows)
+        val spans = WidgetSizing.defaultSpans(context, info, grid.cellWidthPx, grid.cellHeightPx, grid.cols, grid.rows)
         WidgetPickerEntry.Widget(
             info = info,
             label = runCatching { info.loadLabel(context.packageManager) }.getOrNull().orEmpty().ifBlank { appLabel },

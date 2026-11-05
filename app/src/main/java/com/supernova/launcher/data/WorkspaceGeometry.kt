@@ -97,68 +97,66 @@ object WorkspaceGeometry {
     }
 
     private fun fits(item: LauncherItem, cols: Int, rows: Int): Boolean {
-        val rect = itemRect(item, cols, rows)
-        if (!inBounds(rect, cols, rows)) return false
-        if (item.itemType == ItemType.WIDGET || item.workspaceX == null || item.workspaceY == null) return true
-        // A spot set on this grid sits on its cells and by its own cell.
-        val cx = item.workspaceX * cols
-        val cy = item.workspaceY * rows
-        return aligned(cx) && aligned(cy) &&
-            kotlin.math.abs(cx - 0.5f - item.cellX) <= 0.5f + EPSILON &&
-            kotlin.math.abs(cy - 0.5f - item.cellY) <= 0.5f + EPSILON
+        val x = item.workspaceX
+        val y = item.workspaceY
+        return inBounds(itemRect(item, cols, rows), cols, rows) &&
+            (item.itemType == ItemType.WIDGET || x == null || y == null ||
+                onOwnGrid(x * cols, item.cellX) && onOwnGrid(y * rows, item.cellY))
     }
+
+    // A spot set on this grid sits on its cells and by its own cell.
+    private fun onOwnGrid(center: Float, cell: Int): Boolean =
+        aligned(center) && kotlin.math.abs(center - 0.5f - cell) <= 0.5f + EPSILON
 
     private fun refit(item: LauncherItem, taken: List<CellRect>, cols: Int, rows: Int): LauncherItem {
         val rect = itemRect(item, cols, rows)
-        val spanX = if (item.itemType == ItemType.WIDGET) {
-            ceil(rect.right - rect.left - EPSILON).toInt().coerceIn(1, cols)
-        } else {
-            1
-        }
-        val spanY = if (item.itemType == ItemType.WIDGET) {
-            ceil(rect.bottom - rect.top - EPSILON).toInt().coerceIn(1, rows)
-        } else {
-            1
-        }
-        fun free(x: Int, y: Int): Boolean {
-            val area = cellRect(x, y, spanX, spanY)
+        val widget = item.itemType == ItemType.WIDGET
+        val spanX = if (widget) ceil(rect.right - rect.left - EPSILON).toInt().coerceIn(1, cols) else 1
+        val spanY = if (widget) ceil(rect.bottom - rect.top - EPSILON).toInt().coerceIn(1, rows) else 1
+        fun free(cell: Pair<Int, Int>): Boolean {
+            val area = cellRect(cell.first, cell.second, spanX, spanY)
             return inBounds(area, cols, rows) && taken.none { overlaps(it, area) }
         }
         // Its old cell: a widget pulled inside where it hangs over the edge,
         // an icon only while that cell is still on the grid.
         val stayed = when {
-            item.itemType == ItemType.WIDGET ->
+            widget ->
                 floor(rect.left + EPSILON).toInt().coerceIn(0, cols - spanX) to
                     floor(rect.top + EPSILON).toInt().coerceIn(0, rows - spanY)
             item.cellX in 0 until cols && item.cellY in 0 until rows -> item.cellX to item.cellY
             else -> null
         }
-        val cell = stayed?.takeIf { free(it.first, it.second) } ?: run {
-            var best: Pair<Int, Int>? = null
-            var bestDistance = Float.MAX_VALUE
-            val nearX = (rect.left + rect.right) / 2f
-            val nearY = (rect.top + rect.bottom) / 2f
-            for (y in 0..(rows - spanY)) {
-                for (x in 0..(cols - spanX)) {
-                    if (!free(x, y)) continue
-                    val dx = x + spanX / 2f - nearX
-                    val dy = y + spanY / 2f - nearY
-                    val distance = dx * dx + dy * dy
-                    if (distance < bestDistance) {
-                        bestDistance = distance
-                        best = x to y
-                    }
-                }
-            }
-            best
-        } ?: return item
+        val near = (rect.left + rect.right) / 2f to (rect.top + rect.bottom) / 2f
+        val cell = stayed?.takeIf(::free) ?: nearest(near, spanX to spanY, cols, rows, ::free) ?: return item
+        return placedOn(item, cellRect(cell.first, cell.second, spanX, spanY), cols, rows)
+    }
+
+    private fun placedOn(item: LauncherItem, area: CellRect, cols: Int, rows: Int): LauncherItem {
+        val x = area.left.roundToInt()
+        val y = area.top.roundToInt()
         return when {
-            item.itemType == ItemType.WIDGET -> widgetOn(item, cellRect(cell.first, cell.second, spanX, spanY))
-            item.workspaceX == null || item.workspaceY == null -> item.copy(cellX = cell.first, cellY = cell.second)
+            item.itemType == ItemType.WIDGET -> widgetOn(item, area)
+            item.workspaceX == null || item.workspaceY == null -> item.copy(cellX = x, cellY = y)
             else -> {
-                val (wx, wy) = cellCenteredPosition(cell.first, cell.second, cols, rows)
-                item.copy(cellX = cell.first, cellY = cell.second, workspaceX = wx, workspaceY = wy)
+                val (wx, wy) = cellCenteredPosition(x, y, cols, rows)
+                item.copy(cellX = x, cellY = y, workspaceX = wx, workspaceY = wy)
             }
+        }
+    }
+
+    private fun nearest(
+        near: Pair<Float, Float>,
+        span: Pair<Int, Int>,
+        cols: Int,
+        rows: Int,
+        free: (Pair<Int, Int>) -> Boolean
+    ): Pair<Int, Int>? {
+        val (spanX, spanY) = span
+        val cells = (0..(rows - spanY)).flatMap { y -> (0..(cols - spanX)).map { x -> x to y } }
+        return cells.filter(free).minByOrNull { (x, y) ->
+            val dx = x + spanX / 2f - near.first
+            val dy = y + spanY / 2f - near.second
+            dx * dx + dy * dy
         }
     }
 
