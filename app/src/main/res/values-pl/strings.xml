@@ -115,9 +115,9 @@
     <string name="drawer_grid_value">%1$s × %2$s</string>
     <string name="drawer_grid_rows_note">Wiersze mają zastosowanie do stylu stron poziomych</string>
     <string name="drawer_auto_keyboard">Pokazuj klawiaturę po otwarciu</string>
-    <string name="drawer_swipe_indicator">Wskaźnik przesunięcia (swipe)</string>
+    <string name="drawer_swipe_indicator">Wskaźnik przesunięcia</string>
     <string name="drawer_swipe_indicator_summary">Umieść małą strzałkę nad dockiem</string>
-    <string name="drawer_swipe_haptic">Wibracje (haptyka)</string>
+    <string name="drawer_swipe_haptic">Wibracje</string>
     <string name="drawer_swipe_haptic_summary">Wibruj, gdy przesunięcie w górę zaczyna otwierać menu aplikacji</string>
     <string name="drawer_tab_bar">Pozycja paska kart</string>
     <string name="tab_bar_top">Na górze</string>
