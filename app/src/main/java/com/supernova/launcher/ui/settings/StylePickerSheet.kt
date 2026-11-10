@@ -11,6 +11,7 @@ import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import com.supernova.launcher.R
+import com.supernova.launcher.data.Pref
 import com.supernova.launcher.databinding.SheetStylePickerBinding
 import com.supernova.launcher.ui.dp
 import com.supernova.launcher.ui.theme.SurfaceShapes
@@ -81,7 +82,7 @@ object StylePickerSheet {
 
         fun persist() {
             config = config.with(surfaceId, style)
-            viewModel.setStyleConfig(config.encode())
+            viewModel.set(Pref.styleConfig, config.encode())
         }
 
         fun activeSpec(): ColorSpec = when (slot) {

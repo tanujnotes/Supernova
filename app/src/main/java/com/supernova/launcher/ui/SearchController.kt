@@ -18,6 +18,7 @@ import com.supernova.launcher.R
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.databinding.ActivityLauncherBinding
 import com.supernova.launcher.databinding.ViewSearchOverlayBinding
+import com.supernova.launcher.runLogged
 import com.supernova.launcher.search.AppSearchProvider
 import com.supernova.launcher.search.ContactSearchProvider
 import com.supernova.launcher.search.MathSearchProvider
@@ -495,7 +496,7 @@ class SearchController(
             surface.dismiss()
         },
         onContactCall = { number ->
-            runCatching {
+            runLogged("dial contact") {
                 binding.root.context.startActivity(
                     Intent(Intent.ACTION_DIAL, android.net.Uri.parse("tel:$number"))
                 )
@@ -503,7 +504,7 @@ class SearchController(
             surface.dismiss()
         },
         onContactMessage = { number ->
-            runCatching {
+            runLogged("message contact") {
                 binding.root.context.startActivity(
                     Intent(Intent.ACTION_SENDTO, android.net.Uri.parse("smsto:$number"))
                 )
@@ -561,7 +562,7 @@ class SearchController(
 
     private fun openContact(contact: SearchResult.Contact) {
         val uri = ContactsContract.Contacts.getLookupUri(contact.contactId, contact.lookupKey)
-        runCatching {
+        runLogged("open contact") {
             binding.root.context.startActivity(Intent(Intent.ACTION_VIEW, uri))
         }
     }

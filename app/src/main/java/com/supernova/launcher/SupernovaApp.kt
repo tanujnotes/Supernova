@@ -16,13 +16,14 @@ class SupernovaApp : Application() {
     override fun onCreate() {
         super.onCreate()
         installCrashHandler()
+        Diagnostics.install(this)
         applyStoredTheme()
     }
 
     // Night mode must be set before the first activity inflates anything, so
     // this one preference read is deliberately synchronous.
     private fun applyStoredTheme() {
-        runCatching {
+        runLogged("apply stored theme") {
             val preferences = graph.preferences
             val prefs = runBlocking {
                 // Before the first snapshot, so the launcher's first frame is

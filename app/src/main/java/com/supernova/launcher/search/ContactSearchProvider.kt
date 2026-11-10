@@ -15,6 +15,7 @@ import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.provider.ContactsContract
 import androidx.core.graphics.drawable.RoundedBitmapDrawableFactory
+import com.supernova.launcher.runLogged
 import kotlin.math.min
 
 // Contact results for the async tier, via the contacts provider's own filter
@@ -50,7 +51,7 @@ class ContactSearchProvider(
             ContactsContract.Contacts.PHOTO_THUMBNAIL_URI
         )
         val results = mutableListOf<SearchResult>()
-        runCatching {
+        runLogged("search contacts") {
             context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
                 while (cursor.moveToNext() && results.size < MAX_RESULTS) {
                     val name = cursor.getString(2)?.takeIf { it.isNotBlank() } ?: continue

@@ -19,4 +19,14 @@
     <!-- View tag: a desktop icon's WorkspaceCanvas.IconFit, how it shrinks
          into a cell too small for it. -->
     <item name="tag_icon_fit" type="id" />
+    <!-- Accessibility actions on a home screen icon: a move without a drag
+         (ItemMoveActions). -->
+    <item name="a11y_move_left" type="id" />
+    <item name="a11y_move_right" type="id" />
+    <item name="a11y_move_up" type="id" />
+    <item name="a11y_move_down" type="id" />
+    <item name="a11y_move_previous_page" type="id" />
+    <item name="a11y_move_next_page" type="id" />
+    <item name="a11y_move_to_dock" type="id" />
+    <item name="a11y_move_to_home" type="id" />
 </resources>

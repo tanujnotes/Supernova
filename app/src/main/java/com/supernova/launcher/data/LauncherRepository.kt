@@ -5,6 +5,7 @@ import android.content.res.Resources
 import android.util.Log
 import androidx.datastore.preferences.core.edit
 import com.supernova.launcher.R
+import com.supernova.launcher.runLogged
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -30,9 +31,19 @@ class LauncherRepository(private val context: Context) {
     // flowOn keeps the whole-document JSON decode off whichever thread
     // collects; the state combine reads through this. A stored layout this
     // build can't read shows as an empty one, but stays as it is (decode).
-    val modelFlow: Flow<LauncherModel> = context.supernovaStore.data.map { prefs ->
-        decode(prefs[StoreKeys.model]) ?: LauncherModel(version = CURRENT_MODEL_VERSION)
-    }.distinctUntilChanged().flowOn(kotlinx.coroutines.Dispatchers.Default)
+    // The store re-emits on every write to it, a changed setting included:
+    // the document is decoded only when its own text has moved.
+    val modelFlow: Flow<LauncherModel> = context.supernovaStore.data
+        .map { prefs -> prefs[StoreKeys.model] }
+        .distinctUntilChanged()
+        .map { raw -> decode(raw) ?: LauncherModel(version = CURRENT_MODEL_VERSION) }
+        .distinctUntilChanged()
+        .flowOn(kotlinx.coroutines.Dispatchers.Default)
+
+    // The last document decoded, by its text: an edit starts from the
+    // layout the flow has already decoded instead of decoding it again.
+    @Volatile
+    private var lastDecoded: Pair<String, LauncherModel>? = null
 
     // Null for a stored layout that doesn't decode, one written by a newer
     // build say (an older one installed over it can't read its new types).
@@ -40,6 +51,11 @@ class LauncherRepository(private val context: Context) {
     // can read it brings it back; a copy is kept in files/ as well.
     private fun decode(raw: String?): LauncherModel? {
         if (raw == null) return LauncherModel(version = CURRENT_MODEL_VERSION)
+        val cached = lastDecoded?.takeIf { it.first == raw }?.second
+        return cached ?: decodeDocument(raw)?.also { lastDecoded = raw to it }
+    }
+
+    private fun decodeDocument(raw: String): LauncherModel? {
         return runCatching { json.decodeFromString<LauncherModel>(raw) }
             .onFailure { failure ->
                 Log.w("Supernova", "Launcher model doesn't decode; leaving it untouched", failure)
@@ -774,7 +790,7 @@ class LauncherRepository(private val context: Context) {
     private val autoBackupDir: File get() = File(context.filesDir, "auto_backups")
 
     // Whether the snapshot was written.
-    suspend fun writeAutoBackup(prefs: LauncherPrefs): Boolean = runCatching {
+    suspend fun writeAutoBackup(prefs: LauncherPrefs): Boolean = runLogged("write automatic backup") {
         val payload = exportBackup(prefs)
         autoBackupDir.mkdirs()
         val written = File(autoBackupDir, "layout-${System.currentTimeMillis()}.json")

@@ -29,7 +29,6 @@
     <string name="padding">Padding</string>
     <string name="bring_to_front">Bring to front</string>
     <string name="send_to_back">Send to back</string>
-    <string name="add_widget">Add Widget</string>
     <string name="pin_shortcut_title">Add “%1$s” to Home?</string>
     <string name="pin_widget_title">Add “%1$s” widget to Home?</string>
     <string name="widget_picker_empty">No widgets available</string>
@@ -415,6 +414,7 @@
         <item quantity="one">%1$d crash is on record. Share the log with the developer, then clear it so the next report holds only new crashes.</item>
         <item quantity="other">%1$d crashes are on record. Share the log with the developer, then clear it so the next report holds only new crashes.</item>
     </plurals>
+    <string name="crash_log_recovered_message">No crashes are on record, but the log holds problems the app recovered from. Share it with the developer if something isn\'t working, then clear it.</string>
     <string name="crash_log_share">Share crash log</string>
     <!-- Short, so the dialog's three buttons fit on one row. -->
     <string name="crash_log_share_button">Share</string>
@@ -929,4 +929,15 @@
     <string name="add_category_activities">Activities</string>
     <string name="no_activities">No activities</string>
     <string name="launch_failed">Couldn\'t launch that</string>
+    <!-- Screen reader actions on a home screen icon: moving it without a drag. -->
+    <string name="a11y_move_left">Move left</string>
+    <string name="a11y_move_right">Move right</string>
+    <string name="a11y_move_up">Move up</string>
+    <string name="a11y_move_down">Move down</string>
+    <string name="a11y_move_previous_page">Move to previous page</string>
+    <string name="a11y_move_next_page">Move to next page</string>
+    <string name="a11y_move_to_dock">Move to dock</string>
+    <string name="a11y_move_to_home">Move to home screen</string>
+    <string name="a11y_moved">Moved</string>
+    <string name="a11y_no_room">No free spot there</string>
 </resources>

@@ -6,6 +6,7 @@ import android.widget.Toast
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.supernova.launcher.data.Pref
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -66,7 +67,7 @@ class ApplyIconPackActivity : AppCompatActivity() {
 
     private fun apply(packPackage: String, label: String) {
         lifecycleScope.launch {
-            preferences.setIconPack(packPackage)
+            preferences.set(Pref.iconPack, packPackage)
             Toast.makeText(
                 this@ApplyIconPackActivity,
                 getString(R.string.icon_pack_applied, label),

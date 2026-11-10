@@ -23,6 +23,7 @@ import com.supernova.launcher.feed.CalendarCardSource
 import com.supernova.launcher.feed.ContactsCardSource
 import com.supernova.launcher.feed.FeedCard
 import com.supernova.launcher.feed.MediaCardSource
+import com.supernova.launcher.runLogged
 
 // Renders the feed pane's card list. One view type per card kind; the list is
 // tiny (a handful of cards), so submits rebuild wholesale and the pane's
@@ -132,10 +133,10 @@ class FeedAdapter(
             )
             val controls = state.controller.transportControls
             binding.mediaPlayPause.setOnClickListener {
-                runCatching { if (state.isPlaying) controls.pause() else controls.play() }
+                runLogged("media play or pause") { if (state.isPlaying) controls.pause() else controls.play() }
             }
-            binding.mediaNext.setOnClickListener { runCatching { controls.skipToNext() } }
-            binding.mediaPrev.setOnClickListener { runCatching { controls.skipToPrevious() } }
+            binding.mediaNext.setOnClickListener { runLogged("media next") { controls.skipToNext() } }
+            binding.mediaPrev.setOnClickListener { runLogged("media previous") { controls.skipToPrevious() } }
         }
     }
 

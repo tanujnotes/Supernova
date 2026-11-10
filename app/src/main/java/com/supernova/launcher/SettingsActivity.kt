@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.TextView
-import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,6 +25,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.supernova.launcher.data.Pref
 import com.supernova.launcher.widget.SupernovaWidgetHost
 import com.supernova.launcher.data.CornerCut
 import com.supernova.launcher.data.CustomShapeSpec
@@ -47,7 +47,6 @@ import com.supernova.launcher.gesture.GestureAction
 import com.supernova.launcher.gesture.GestureBinding
 import com.supernova.launcher.gesture.GestureDefaults
 import com.supernova.launcher.notification.SupernovaNotificationListener
-import com.supernova.launcher.ui.SearchBarConfig
 import com.supernova.launcher.ui.FolderPreviewStyle
 import com.supernova.launcher.ui.LauncherViewModel
 import com.supernova.launcher.ui.dp
@@ -117,23 +116,7 @@ class SettingsActivity : AppCompatActivity() {
         render()
     }
 
-    private val exportBackupLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        if (uri == null) return@registerForActivityResult
-        lifecycleScope.launch {
-            runCatching {
-                val payload = viewModel.exportBackup()
-                contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(payload) }
-            }.onSuccess {
-                Toast.makeText(this@SettingsActivity, R.string.backup_exported, Toast.LENGTH_SHORT).show()
-            }.onFailure {
-                Toast.makeText(
-                    this@SettingsActivity,
-                    getString(R.string.backup_export_failed, it.message ?: "unknown"),
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }
+    private val backup = com.supernova.launcher.ui.BackupTransfer(this, { viewModel })
 
     // Labs' Permissions: a grant or refusal shows on the row at once. A
     // refusal that comes back at once came without a dialog: the system
@@ -151,9 +134,13 @@ class SettingsActivity : AppCompatActivity() {
         val granted = permission.granted(this)
         when (permission) {
             com.supernova.launcher.ui.settings.LabsPermission.NOTIFICATIONS ->
-                runCatching { startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
+                runLogged("open notification access settings") {
+                    startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                }
             com.supernova.launcher.ui.settings.LabsPermission.ACCESSIBILITY ->
-                runCatching { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+                runLogged("open accessibility settings") {
+                    startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                }
             com.supernova.launcher.ui.settings.LabsPermission.DEVICE_ADMIN -> if (granted) {
                 // The app can give up its own admin; asking first, since
                 // the lock method that needs it stops working.
@@ -169,7 +156,7 @@ class SettingsActivity : AppCompatActivity() {
                     .setNegativeButton(R.string.cancel, null)
                     .show()
             } else {
-                runCatching {
+                runLogged("ask for device admin") {
                     startActivity(
                         Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
                             .putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, SupernovaDeviceAdmin.component(this))
@@ -188,7 +175,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun openOwnAppInfo() {
-        runCatching {
+        runLogged("open app details") {
             startActivity(
                 Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                     .setData(android.net.Uri.fromParts("package", packageName, null))
@@ -200,7 +187,7 @@ class SettingsActivity : AppCompatActivity() {
     private val exportIconsLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         if (uri == null) return@registerForActivityResult
         lifecycleScope.launch {
-            runCatching {
+            runLogged("export icons") {
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                     contentResolver.openOutputStream(uri)?.use {
                         com.supernova.launcher.data.IconExporter.export(this@SettingsActivity, it)
@@ -217,33 +204,6 @@ class SettingsActivity : AppCompatActivity() {
                     this@SettingsActivity,
                     getString(R.string.labs_export_icons_failed, it.message ?: "unknown"),
                     Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }
-
-    private val importBackupLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri == null) return@registerForActivityResult
-        val app = applicationContext
-        lifecycleScope.launch {
-            // Seen through even if this screen is recreated meanwhile (a
-            // rotation, a dark-mode switch while a cloud file downloads):
-            // cancelled, the import reported itself failed and restored
-            // nothing. Off the main thread: a file in a cloud drive
-            // downloads as it is opened, and a slow network was an ANR.
-            val outcome = kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
-                runCatching {
-                    val raw = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }.orEmpty()
-                    }
-                    viewModel.importBackup(raw)
-                }
-            }
-            outcome.onSuccess { result ->
-                Toast.makeText(app, result.summary(app.resources), Toast.LENGTH_LONG).show()
-            }.onFailure {
-                Toast.makeText(
-                    app, app.getString(R.string.backup_import_failed, it.message ?: "unknown"), Toast.LENGTH_LONG
                 ).show()
             }
         }
@@ -288,7 +248,7 @@ class SettingsActivity : AppCompatActivity() {
     private val requestContactsPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (!granted) {
-                viewModel.setSearchContacts(false)
+                viewModel.set(Pref.searchContacts, false)
                 Toast.makeText(this, R.string.contacts_permission_needed, Toast.LENGTH_LONG).show()
             }
         }
@@ -298,7 +258,7 @@ class SettingsActivity : AppCompatActivity() {
     private val requestFeedCalendarPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (!granted) {
-                viewModel.setFeedShowCalendar(false)
+                viewModel.set(Pref.feedShowCalendar, false)
                 Toast.makeText(this, R.string.calendar_permission_needed, Toast.LENGTH_LONG).show()
             }
         }
@@ -306,7 +266,7 @@ class SettingsActivity : AppCompatActivity() {
     private val requestFeedContactsPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (!granted) {
-                viewModel.setFeedShowContacts(false)
+                viewModel.set(Pref.feedShowContacts, false)
                 Toast.makeText(this, R.string.contacts_permission_feed_needed, Toast.LENGTH_LONG).show()
             }
         }
@@ -445,12 +405,8 @@ class SettingsActivity : AppCompatActivity() {
             pickLockMethod = ::showLockMethodPicker,
             editHiddenApps = ::showHiddenAppsPicker,
             editDrawerGroups = ::showDrawerGroups,
-            exportBackup = {
-                exportBackupLauncher.launch("supernova-backup-${System.currentTimeMillis()}.json")
-            },
-            importBackup = {
-                importBackupLauncher.launch(arrayOf("application/json", "text/plain"))
-            },
+            exportBackup = backup::pickExportFile,
+            importBackup = backup::pickImportFile,
             shareBackup = ::shareBackup,
             resetToDefaults = ::confirmResetToDefaults,
             quickStart = {
@@ -466,7 +422,9 @@ class SettingsActivity : AppCompatActivity() {
             onBadgesEnabled = {
                 if (!SupernovaNotificationListener.isEnabled(this)) {
                     Toast.makeText(this, R.string.badges_need_access, Toast.LENGTH_LONG).show()
-                    runCatching { startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
+                    runLogged("open notification access settings") {
+                        startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                    }
                 }
             },
             onSearchContactsEnabled = {
@@ -496,7 +454,9 @@ class SettingsActivity : AppCompatActivity() {
             },
             openCards = { navigateTo(R.string.settings_section_cards, 0) },
             openNotificationAccess = {
-                runCatching { startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
+                runLogged("open notification access settings") {
+                    startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                }
             },
             cardPreview = { card, parent ->
                 // The feed's own binder, inert: no launches, no menu, and a
@@ -680,7 +640,7 @@ class SettingsActivity : AppCompatActivity() {
     override fun onKeyLongPress(keyCode: Int, event: android.view.KeyEvent): Boolean {
         if (keyCode == android.view.KeyEvent.KEYCODE_VOLUME_DOWN && labsKeyWatched()) {
             val enable = !viewModel.state.value.prefs.labsEnabled
-            viewModel.setLabsEnabled(enable)
+            viewModel.set(Pref.labsEnabled, enable)
             Toast.makeText(
                 this, if (enable) R.string.labs_enabled else R.string.labs_disabled, Toast.LENGTH_SHORT
             ).show()
@@ -1057,7 +1017,7 @@ class SettingsActivity : AppCompatActivity() {
 
         showChoice(R.string.color_palette, labels, current) { which ->
             val mode = modes[which]
-            viewModel.setPaletteSource(mode.name)
+            viewModel.set(Pref.paletteSource, mode.name)
             if (mode == PaletteSourceMode.CUSTOM) promptPaletteSeed()
         }
     }
@@ -1073,7 +1033,7 @@ class SettingsActivity : AppCompatActivity() {
             .setPositiveButton(R.string.save) { _, _ ->
                 val digits = input.text?.toString().orEmpty().trim().removePrefix("#")
                 if (digits.length == 6 && digits.toLongOrNull(16) != null) {
-                    viewModel.setPaletteSeed("#$digits")
+                    viewModel.set(Pref.paletteSeed, "#$digits")
                 } else {
                     Toast.makeText(this, R.string.palette_seed_invalid, Toast.LENGTH_SHORT).show()
                 }
@@ -1088,7 +1048,7 @@ class SettingsActivity : AppCompatActivity() {
     // Once we hold the default, the system picker is the only place to change
     // it; ACTION_HOME_SETTINGS is the closest deep link every OEM ships.
     private fun openHomeSettings() {
-        runCatching { startActivity(HomeRole.homeSettingsIntent()) }
+        runLogged("open default home settings") { startActivity(HomeRole.homeSettingsIntent()) }
     }
 
     private fun isHomeRoleNeeded(): Boolean = HomeRole.isNeeded(this)
@@ -1238,7 +1198,7 @@ class SettingsActivity : AppCompatActivity() {
             .setTitle(R.string.custom_shape_title)
             .setView(dialogBinding.root)
             .setPositiveButton(R.string.ok) { _, _ ->
-                viewModel.setIconShapeCustom(current().encode())
+                viewModel.set(Pref.iconShapeCustom, current().encode())
                 viewModel.setIconShape(IconShape.CUSTOM)
             }
             .setNegativeButton(R.string.cancel, null)
@@ -1294,9 +1254,9 @@ class SettingsActivity : AppCompatActivity() {
             .setTitle(R.string.desktop_grid)
             .setView(dialogBinding.root)
             .setPositiveButton(R.string.ok) { _, _ ->
-                viewModel.setGridRows(rows)
-                viewModel.setGridCols(cols)
-                viewModel.setSubgrid(dialogBinding.subgridCheck.isChecked)
+                viewModel.set(Pref.gridRows, rows)
+                viewModel.set(Pref.gridCols, cols)
+                viewModel.set(Pref.subgrid, dialogBinding.subgridCheck.isChecked)
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
@@ -1336,8 +1296,8 @@ class SettingsActivity : AppCompatActivity() {
             .setMessage(R.string.drawer_grid_rows_note)
             .setView(dialogBinding.root)
             .setPositiveButton(R.string.ok) { _, _ ->
-                viewModel.setDrawerRows(rows)
-                viewModel.setDrawerColumns(cols)
+                viewModel.set(Pref.drawerRows, rows)
+                viewModel.set(Pref.drawerColumns, cols)
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
@@ -1428,11 +1388,11 @@ class SettingsActivity : AppCompatActivity() {
             .setTitle(R.string.folder_icon_appearance)
             .setView(dialogBinding.root)
             .setPositiveButton(R.string.ok) { _, _ ->
-                viewModel.setFolderIconShape(shapeName)
-                viewModel.setFolderIconOutline(dialogBinding.outlineCheck.isChecked)
-                viewModel.setFolderClipToBg(dialogBinding.clipCheck.isChecked)
-                viewModel.setFolderMatchWindowColor(dialogBinding.matchColorCheck.isChecked)
-                viewModel.setFolderPlateColor(plateColor)
+                viewModel.set(Pref.folderIconShape, shapeName)
+                viewModel.set(Pref.folderIconOutline, dialogBinding.outlineCheck.isChecked)
+                viewModel.set(Pref.folderClipToBg, dialogBinding.clipCheck.isChecked)
+                viewModel.set(Pref.folderMatchWindowColor, dialogBinding.matchColorCheck.isChecked)
+                viewModel.set(Pref.folderPlateColor, plateColor)
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
@@ -1457,7 +1417,7 @@ class SettingsActivity : AppCompatActivity() {
         )
         val current = methods.indexOf(viewModel.state.value.prefs.lockMethod).coerceAtLeast(0)
         showChoice(R.string.lock_method, labels, current) { which ->
-            viewModel.setLockMethod(methods[which])
+            viewModel.set(Pref.lockMethod, methods[which])
             // Selecting device admin sends the user to grant it (a no-op if
             // already active); the actual lock happens on the gesture.
             if (methods[which] == "DEVICE_ADMIN" && !SupernovaDeviceAdmin.isActive(this)) {
@@ -1470,7 +1430,7 @@ class SettingsActivity : AppCompatActivity() {
                     android.app.admin.DevicePolicyManager.EXTRA_ADD_EXPLANATION,
                     getString(R.string.lock_admin_explanation)
                 )
-                runCatching { startActivity(intent) }
+                runLogged("ask for device admin") { startActivity(intent) }
                 Toast.makeText(this, R.string.lock_admin_note, Toast.LENGTH_LONG).show()
             }
         }
@@ -1494,7 +1454,7 @@ class SettingsActivity : AppCompatActivity() {
                 .setMessage(labels[which])
                 .setPositiveButton(R.string.restore) { _, _ ->
                     lifecycleScope.launch {
-                        runCatching { viewModel.restoreAutoBackup(backups[which]) }
+                        runLogged("restore automatic backup") { viewModel.restoreAutoBackup(backups[which]) }
                             .onSuccess {
                                 Toast.makeText(
                                     this@SettingsActivity,
@@ -1520,7 +1480,7 @@ class SettingsActivity : AppCompatActivity() {
     // cacheDir/share, the only path the manifest FileProvider exposes.
     private fun shareBackup() {
         lifecycleScope.launch {
-            runCatching {
+            runLogged("share backup") {
                 val payload = viewModel.exportBackup()
                 val dir = java.io.File(cacheDir, "share").apply { mkdirs() }
                 val file = java.io.File(dir, "backup-${System.currentTimeMillis()}.json")
@@ -1548,13 +1508,22 @@ class SettingsActivity : AppCompatActivity() {
     // once it has been sent so the next report holds only new crashes.
     private fun showCrashLog() {
         val count = SupernovaApp.crashCount(this)
-        if (count == 0) {
+        // No crash, but the log may still hold failures the app carried on
+        // from (Diagnostics), which are worth sending too.
+        val recovered = count == 0 && SupernovaApp.crashLog(this).length() > 0
+        if (count == 0 && !recovered) {
             Toast.makeText(this, R.string.crash_log_none, Toast.LENGTH_SHORT).show()
             return
         }
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.crash_log)
-            .setMessage(resources.getQuantityString(R.plurals.crash_log_message, count, count))
+            .setMessage(
+                if (recovered) {
+                    getString(R.string.crash_log_recovered_message)
+                } else {
+                    resources.getQuantityString(R.plurals.crash_log_message, count, count)
+                }
+            )
             .setPositiveButton(R.string.crash_log_share_button) { _, _ -> shareCrashLog() }
             .setNeutralButton(R.string.crash_log_clear) { _, _ ->
                 SupernovaApp.crashLog(this).delete()
@@ -1567,7 +1536,7 @@ class SettingsActivity : AppCompatActivity() {
     // Staged in cacheDir/share like the backup, the only path the manifest
     // FileProvider exposes.
     private fun shareCrashLog() {
-        runCatching {
+        runLogged("share crash log") {
             val header = "Supernova ${SupernovaApp.versionLabel(this)}\n" +
                 "Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT}), " +
                 "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}\n"
@@ -1613,7 +1582,7 @@ class SettingsActivity : AppCompatActivity() {
                             // Free the host ids now instead of waiting for the
                             // next launcher create's orphan sweep; the host is
                             // addressed purely by id, so a local instance works.
-                            runCatching {
+                            runLogged("delete widget ids") {
                                 val host = android.appwidget.AppWidgetHost(
                                     applicationContext, SupernovaWidgetHost.HOST_ID
                                 )
@@ -1638,7 +1607,7 @@ class SettingsActivity : AppCompatActivity() {
     // a beat from now, then hard-exit the process. recreate() only rebuilds
     // one activity; a real restart needs a fresh process.
     private fun restartLauncher() {
-        runCatching {
+        runLogged("restart launcher") {
             val intent = Intent(this, LauncherActivity::class.java)
                 .setAction(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_HOME)
@@ -1665,7 +1634,9 @@ class SettingsActivity : AppCompatActivity() {
     private fun postTestBadge() {
         if (!SupernovaNotificationListener.isEnabled(this)) {
             Toast.makeText(this, R.string.badges_need_access, Toast.LENGTH_LONG).show()
-            runCatching { startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
+            runLogged("open notification access settings") {
+                startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+            }
             return
         }
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
@@ -1701,7 +1672,7 @@ class SettingsActivity : AppCompatActivity() {
                     val key = "${app.userSerial}/${app.packageName}/${app.className}"
                     if (isChecked) selected.add(key) else selected.remove(key)
                 }
-                viewModel.setBadgeApps(if (selected.containsAll(keys)) emptySet() else selected.toSet())
+                viewModel.set(Pref.badgeApps, if (selected.containsAll(keys)) emptySet() else selected.toSet())
             }
         )
     }
@@ -1719,7 +1690,8 @@ class SettingsActivity : AppCompatActivity() {
             .setTitle(R.string.search_chips)
             .setMultiChoiceItems(labels, checked) { _, which, isChecked -> checked[which] = isChecked }
             .setPositiveButton(R.string.ok) { _, _ ->
-                viewModel.setSearchChips(
+                viewModel.set(
+                    Pref.searchChips,
                     com.supernova.launcher.search.SearchChip.encode(
                         all.filterIndexed { index, _ -> checked[index] }
                     )
@@ -2044,7 +2016,7 @@ class SettingsActivity : AppCompatActivity() {
             list.layoutManager = LinearLayoutManager(this@SettingsActivity)
             list.addItemDecoration(PackDividers(getColor(R.color.settingsDivider)))
             list.adapter = IconPackChoiceAdapter(packages, labels, current) { chosen ->
-                viewModel.setIconPack(chosen)
+                viewModel.set(Pref.iconPack, chosen)
                 sheet.dismiss()
             }
             sheet.setContentView(sheetBinding.root)
@@ -2219,8 +2191,8 @@ class SettingsActivity : AppCompatActivity() {
             .setTitle(R.string.popup_menu_rows)
             .setView(scroll)
             .setPositiveButton(R.string.ok) { _, _ ->
-                viewModel.setPopupItemsHome(com.supernova.launcher.ui.PopupRows.encode(homeSelected))
-                viewModel.setPopupItemsDrawer(com.supernova.launcher.ui.PopupRows.encode(drawerSelected))
+                viewModel.set(Pref.popupItemsHome, com.supernova.launcher.ui.PopupRows.encode(homeSelected))
+                viewModel.set(Pref.popupItemsDrawer, com.supernova.launcher.ui.PopupRows.encode(drawerSelected))
             }
             .setNegativeButton(R.string.cancel, null)
             .show()

@@ -30,6 +30,9 @@ android {
         targetSdk = 36
         versionCode = 8
         versionName = "v0.1.8"
+        // For app/src/androidTest (SmokeTest): read its warning before
+        // running it on a phone in use.
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
@@ -146,4 +149,8 @@ dependencies {
     testImplementation(libs.coroutines.test)
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.kotlin.reflect)
+
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.uiautomator)
 }

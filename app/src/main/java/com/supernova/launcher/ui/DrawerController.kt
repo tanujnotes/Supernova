@@ -20,6 +20,7 @@ import com.supernova.launcher.R
 import com.supernova.launcher.data.DrawerGroup
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.data.LauncherPrefs
+import com.supernova.launcher.runLogged
 import com.supernova.launcher.search.AppSearchProvider
 import com.supernova.launcher.databinding.ActivityLauncherBinding
 import com.supernova.launcher.ui.theme.Styles
@@ -1122,7 +1123,7 @@ class DrawerController(
     private fun startSender(sender: android.content.IntentSender?) {
         sender ?: return
         val activity = binding.root.context as? android.app.Activity ?: return
-        runCatching { activity.startIntentSender(sender, null, 0, 0, 0) }
+        runLogged("start intent sender") { activity.startIntentSender(sender, null, 0, 0, 0) }
     }
 
     private fun appsForTab(tab: Any?): List<LaunchableApp> = when (tab) {
@@ -1545,7 +1546,7 @@ class DrawerController(
                 )
                 setOnClickListener {
                     when (button) {
-                        DrawerActionButton.PLAY_STORE -> runCatching {
+                        DrawerActionButton.PLAY_STORE -> runLogged("open Play Store") {
                             context.packageManager.getLaunchIntentForPackage("com.android.vending")
                                 ?.let(context::startActivity)
                         }

@@ -17,14 +17,11 @@ import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.view.WindowManager
-import android.view.inputmethod.InputMethodManager
 import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.core.graphics.Insets
@@ -90,11 +87,8 @@ import com.supernova.launcher.ui.WallpaperScrollMode
 import com.supernova.launcher.ui.SupernovaPopupMenu
 import com.supernova.launcher.ui.snapToHalfCell
 import com.supernova.launcher.ui.BadgeDiff
-import com.supernova.launcher.ui.BadgeDrawable
-import com.supernova.launcher.ui.BadgeLook
 import com.supernova.launcher.ui.BadgeStyle
 import com.supernova.launcher.ui.FolderEditSheet
-import com.supernova.launcher.ui.FolderPreviewStyle
 import com.supernova.launcher.ui.LabelStyler
 import com.supernova.launcher.ui.SwipeArrowDrawable
 import com.supernova.launcher.ui.FolderIconDrawable
@@ -157,12 +151,52 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // "which cards are activated right now".
     private lateinit var cardActivation: com.supernova.launcher.feed.CardActivation
     private val gestureDetector by lazy {
-        HomeGestureDetector(this, ::runGesture, ::workspaceCanScroll, ::pressOnItem)
+        HomeGestureDetector(this, { actions.runGesture(it) }, ::workspaceCanScroll, ::pressOnItem)
+    }
+
+    // What a gesture, the home button, an action shortcut or a feed card is
+    // bound to, carried out on this screen's surfaces.
+    private val actions by lazy {
+        com.supernova.launcher.ui.ActionRunner(
+            this, viewModel,
+            object : com.supernova.launcher.ui.ActionRunner.Host {
+                override val root: View get() = binding.root
+                override fun openDrawer() = this@LauncherActivity.openDrawer()
+                override fun expandNotificationShade() = this@LauncherActivity.expandNotificationShade()
+                override fun showPage(page: Int) =
+                    binding.workspacePager.setCurrentItem(workspaceAdapter.centerPosition(page), true)
+                override fun openSearch(query: String?) = if (query == null) search.open() else search.open(query)
+                override fun launchApp(app: LaunchableApp) = this@LauncherActivity.launchApp(app)
+                override fun launchShortcut(packageName: String, shortcutId: String, userSerial: Long) =
+                    this@LauncherActivity.launchShortcut(packageName, shortcutId, userSerial)
+                override fun launchIntentUri(uri: String) = this@LauncherActivity.launchIntentUri(uri, null)
+                override fun toggleDock() = this@LauncherActivity.toggleDock()
+                override fun showDesktopPreviews() = desktopPreviews.show()
+                override fun openFeed() = feed.open()
+            }
+        )
     }
 
     private val launchStartMs = SystemClock.elapsedRealtime()
 
     private lateinit var editMode: com.supernova.launcher.ui.HomeEditController
+
+    // A screen reader's way to move a dock or desktop icon, in place of the
+    // drag it can't perform.
+    private val itemMoves = com.supernova.launcher.ui.ItemMoveActions(
+        object : com.supernova.launcher.ui.ItemMoveActions.Host {
+            override fun state(): LauncherUiState = viewModel.state.value
+
+            override fun moveToCell(itemId: String, target: com.supernova.launcher.data.AccessibleMoves.Target.Cell) =
+                viewModel.moveItemToWorkspace(itemId, target.page, target.cellX, target.cellY, mergeFolders = false)
+
+            override fun moveToDock(itemId: String, rank: Int) {
+                viewModel.moveItemToDock(itemId, rank)
+            }
+
+            override fun announce(message: Int) = binding.root.announceForAccessibility(getString(message))
+        }
+    )
     private lateinit var pageDrag: com.supernova.launcher.ui.PageDragController
     // Reorder preview ("make space"): while a drag hovers over an
     // occupied spot, the blocking items animate aside after a short pause to
@@ -202,8 +236,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // because the temporary pause has already been dispatched.
     private var startedSinceResume = false
     private var appliedScrollEffect: ScrollEffect? = null
-    // Item currently being repositioned via tap-to-place move mode.
-    private var moveModeItemId: String? = null
 
     // X of the last touch-down, in window coordinates - dispatchTouchEvent
     // sees every event, and the activity's own view IS the window, so ev.x
@@ -244,8 +276,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // The badge state the icons were last drawn from, so a replay of the same
     // state - which arrives on every return to the home screen - does nothing.
     private var renderedBadges: com.supernova.launcher.notification.BadgeState? = null
-    // Dynamic badges' pictures, rendered once per notification.
-    private val badgeFaces by lazy { com.supernova.launcher.ui.BadgeFaces(applicationContext) }
+    // Every icon the home screen and the drawer draw beyond an app's own:
+    // folder previews, shortcut pictures, and the badges on all of them.
+    private val itemIcons by lazy { com.supernova.launcher.ui.ItemIcons(this, viewModel) }
     private var reportedFullyDrawn = false
     private var lastWallpaperPages = -1
 
@@ -331,12 +364,14 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         viewModel.pendingExportPng = null
         if (uri == null) return@registerForActivityResult
         if (bitmap == null) {
-            runCatching { android.provider.DocumentsContract.deleteDocument(contentResolver, uri) }
+            runLogged("delete the unwritten PNG") {
+                android.provider.DocumentsContract.deleteDocument(contentResolver, uri)
+            }
             Toast.makeText(this, R.string.export_png_lost, Toast.LENGTH_LONG).show()
             return@registerForActivityResult
         }
         lifecycleScope.launch {
-            runCatching {
+            runLogged("export icon as PNG") {
                 withContext(Dispatchers.IO) {
                     contentResolver.openOutputStream(uri)?.use {
                         bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
@@ -394,26 +429,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         }.onFailure { Toast.makeText(this, R.string.launch_failed, Toast.LENGTH_SHORT).show() }
     }
 
-    private val exportBackupLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        if (uri == null) return@registerForActivityResult
-        lifecycleScope.launch {
-            runCatching {
-                val payload = viewModel.exportBackup()
-                contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { writer ->
-                    writer.write(payload)
-                }
-            }.onSuccess {
-                Toast.makeText(this@LauncherActivity, R.string.backup_exported, Toast.LENGTH_SHORT).show()
-            }.onFailure {
-                Toast.makeText(
-                    this@LauncherActivity,
-                    getString(R.string.backup_export_failed, it.message ?: "unknown"),
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }
-
     // A wallpaper image from any folder: the system file picker reaches
     // every storage provider and file manager, where the photo picker shows
     // only the media library.
@@ -421,26 +436,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null) cropAndSetWallpaper(uri)
         }
-
-    private val importBackupLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri == null) return@registerForActivityResult
-        lifecycleScope.launch {
-            runCatching {
-                val raw = contentResolver.openInputStream(uri)?.bufferedReader()?.use { reader ->
-                    reader.readText()
-                }.orEmpty()
-                viewModel.importBackup(raw)
-            }.onSuccess { result ->
-                Toast.makeText(this@LauncherActivity, result.summary(resources), Toast.LENGTH_LONG).show()
-            }.onFailure {
-                Toast.makeText(
-                    this@LauncherActivity,
-                    getString(R.string.backup_import_failed, it.message ?: "unknown"),
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }
 
     private val saveApkLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/vnd.android.package-archive")
@@ -450,7 +445,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         if (uri == null || pending == null) return@registerForActivityResult
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
-                runCatching {
+                runLogged("save APK") {
                     contentResolver.openOutputStream(uri)?.use { output ->
                         java.io.File(pending.sourceDir).inputStream().use { it.copyTo(output) }
                     }
@@ -533,7 +528,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 // must close it before it can ever reach the (hidden) drawer.
                 ::feed.isInitialized && feed.isOpen -> feed.close()
                 ::drawer.isInitialized && drawer.isExpanded -> drawer.hide()
-                moveModeItemId != null -> moveModeItemId = null
                 else -> Unit
             }
         }
@@ -545,7 +539,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         setupDock()
         drag = LiveDragController(binding, viewModel, host = this)
         setupEditMode()
-        setupHomeGestures()
         observeState()
         maybeShowOnboarding()
         widgets.sweepOrphanIds()
@@ -615,7 +608,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // A drag in flight holds cell arithmetic from the old grid; the
         // preview offsets it applied are cleared with it.
         cancelReorderPreview(animate = false)
-        moveModeItemId = null
 
         // Cached pixel geometry, and every guard that would otherwise skip
         // the re-apply because the prefs themselves did not change.
@@ -1191,7 +1183,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         val pages = workspaceAdapter.realPageCount
         val forward = if (pages <= 1) 0.5f else (scrollPosition / (pages - 1)).coerceIn(0f, 1f)
         val offset = if (mode == WallpaperScrollMode.REVERSE) 1f - forward else forward
-        runCatching {
+        runLogged("set wallpaper offset steps") {
             val manager = WallpaperManager.getInstance(this)
             // Steps depend only on the page count; sending them per scroll
             // frame was a binder call per frame.
@@ -1208,7 +1200,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         drawer = DrawerController(
             binding = binding,
             viewModel = viewModel,
-            decorateIcon = { icon, app -> withBadge(icon, app.packageName, app.className, app.userSerial) },
+            decorateIcon = { icon, app -> itemIcons.withBadge(icon, app.packageName, app.className, app.userSerial) },
             onAppClick = { view, app -> launchApp(app, view) },
             onAppLongPress = ::longPressNewApp,
             onWebSearch = ::launchWebSearch,
@@ -1222,8 +1214,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 hideDrawer()
                 search.open()
             },
-            buildFolderIcon = ::drawerFolderIcon,
-            decorateFolderIcon = ::withFolderBadge,
+            buildFolderIcon = itemIcons::drawerFolderIcon,
+            decorateFolderIcon = itemIcons::withFolderBadge,
             onFolderClick = { view, group, members -> showDrawerFolderPopup(view, group, members) },
             onFolderLongPress = ::longPressDrawerFolder,
             cards = object : DrawerController.CardHost {
@@ -1271,7 +1263,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             onAppInfo = { app ->
                 val user = viewModel.appCatalog().userForSerial(app.userSerial)
                     ?: android.os.Process.myUserHandle()
-                runCatching {
+                runLogged("open app info") {
                     getSystemService(android.content.pm.LauncherApps::class.java).startAppDetailsActivity(
                         android.content.ComponentName(app.packageName, app.className), user, null, null
                     )
@@ -1288,10 +1280,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             folderIcon = { hit ->
                 hit.itemId?.let { id ->
                     viewModel.state.value.model.items.firstOrNull { it.id == id }
-                        ?.let(::folderPreviewDrawable)
+                        ?.let(itemIcons::folderPreviewDrawable)
                 } ?: hit.groupName?.let { name ->
                     viewModel.drawerFolderGroups().firstOrNull { it.name == name }?.let { group ->
-                        drawerFolderIcon(group, viewModel.drawerFolderApps(group))
+                        itemIcons.drawerFolderIcon(group, viewModel.drawerFolderApps(group))
                     }
                 }
             },
@@ -1397,7 +1389,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 }
 
                 override fun openCalendarEvent(eventId: Long) {
-                    runCatching {
+                    runLogged("open calendar event") {
                         startActivity(
                             Intent(
                                 Intent.ACTION_VIEW,
@@ -1422,7 +1414,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                             android.provider.ContactsContract.QuickContact.MODE_LARGE, null
                         )
                     }.onFailure {
-                        runCatching { startActivity(Intent(Intent.ACTION_VIEW, uri)) }
+                        runLogged("open contact") { startActivity(Intent(Intent.ACTION_VIEW, uri)) }
                     }
                 }
 
@@ -1494,7 +1486,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // Search targets (web engines, chips) launch blind: no <queries> entry,
     // no handler probing - a missing handler just no-ops.
     private fun openUriBlind(uri: String) {
-        runCatching {
+        runLogged("open link") {
             startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(uri)))
         }
     }
@@ -1506,7 +1498,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 Intent.ACTION_VIEW,
                 android.net.Uri.parse("https://www.google.com/search?q=${android.net.Uri.encode(query)}")
             )
-            runCatching { startActivity(fallback) }
+            runLogged("open web search") { startActivity(fallback) }
         }
     }
 
@@ -1577,191 +1569,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 if (state.iconsReady) renderDock(state)
             }
         }
-    }
-
-    private fun setupHomeGestures() {
-        // Recognition lives in HomeGestureDetector; dispatchTouchEvent feeds it.
-    }
-
-    private fun runGesture(gesture: Gesture): Boolean {
-        val prefs = viewModel.state.value.prefs
-        val bound = GestureDefaults.decode(prefs.gestureBindings)[gesture] ?: GestureBinding(GestureAction.NONE)
-        // The Expand notifications haptic: a tick as the swipe pulls the
-        // shade down.
-        if (gesture == Gesture.SWIPE_DOWN && bound.action == GestureAction.EXPAND_NOTIFICATIONS && prefs.swipeDownHaptic) {
-            binding.root.performHapticFeedback(
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    android.view.HapticFeedbackConstants.GESTURE_START
-                } else {
-                    android.view.HapticFeedbackConstants.VIRTUAL_KEY
-                }
-            )
-        }
-        return runAction(bound)
-    }
-
-    // The single action dispatcher: gestures and the home-button re-press
-    // both resolve to a GestureBinding and land here.
-    private fun runAction(bound: GestureBinding): Boolean {
-        return when (bound.action) {
-            GestureAction.NONE -> false
-            GestureAction.OPEN_DRAWER -> {
-                openDrawer()
-                true
-            }
-            GestureAction.EXPAND_NOTIFICATIONS -> {
-                expandNotificationShade()
-                true
-            }
-            GestureAction.OPEN_SETTINGS -> {
-                startActivity(Intent(this, SettingsActivity::class.java))
-                true
-            }
-            GestureAction.LOCK_SCREEN -> lockScreen()
-            GestureAction.DEFAULT_PAGE -> {
-                val model = viewModel.state.value.model
-                binding.workspacePager.setCurrentItem(
-                    workspaceAdapter.centerPosition(model.defaultPage.coerceIn(0, model.pageCount - 1)),
-                    true
-                )
-                true
-            }
-            GestureAction.OPEN_SEARCH -> {
-                search.open()
-                true
-            }
-            GestureAction.SEARCH_QUERY -> {
-                val query = bound.payload
-                if (query.isNullOrBlank()) false else { search.open(query); true }
-            }
-            GestureAction.RECENTS -> globalAction(SupernovaAccessibilityService.showRecents())
-            GestureAction.QUICK_SETTINGS -> globalAction(SupernovaAccessibilityService.showQuickSettings())
-            GestureAction.ASSISTANT -> {
-                runCatching { startActivity(Intent(Intent.ACTION_ASSIST)) }
-                    .onFailure { Toast.makeText(this, R.string.assistant_unavailable, Toast.LENGTH_SHORT).show() }
-                true
-            }
-            GestureAction.LAUNCH_APP -> {
-                launchGestureApp(bound.payload)
-                true
-            }
-            GestureAction.LAUNCH_SHORTCUT -> {
-                launchGestureShortcut(bound.payload)
-                true
-            }
-            GestureAction.LAUNCH_INTENT -> {
-                bound.payload?.let { launchIntentUri(it, null) }
-                bound.payload != null
-            }
-            GestureAction.TOGGLE_STATUS_BAR -> {
-                viewModel.setHideStatusBar(!viewModel.state.value.prefs.hideStatusBar)
-                true
-            }
-            GestureAction.TOGGLE_DOCK -> {
-                toggleDock()
-                true
-            }
-            GestureAction.JUMP_TO_PAGE -> {
-                bound.payload?.toIntOrNull()?.let { page ->
-                    val pages = viewModel.state.value.model.pageCount
-                    binding.workspacePager.setCurrentItem(
-                        workspaceAdapter.centerPosition(page.coerceIn(0, pages - 1)), true
-                    )
-                }
-                true
-            }
-            GestureAction.DESKTOP_PREVIEWS -> {
-                desktopPreviews.show()
-                true
-            }
-            GestureAction.OPEN_FEED -> {
-                if (viewModel.state.value.prefs.feedEnabled) {
-                    feed.open()
-                } else {
-                    Toast.makeText(this, R.string.feed_disabled_hint, Toast.LENGTH_SHORT).show()
-                }
-                true
-            }
-            GestureAction.VOICE_SEARCH -> {
-                startVoiceSearch()
-                true
-            }
-        }
-    }
-
-    // Fire-and-forget voice search: web voice search, else the voice command
-    // assistant, else a toast. Blind-start each so a missing app can't crash.
-    private fun startVoiceSearch() {
-        val intents = listOf(
-            Intent(android.speech.RecognizerIntent.ACTION_WEB_SEARCH),
-            Intent(Intent.ACTION_VOICE_COMMAND),
-            Intent(Intent.ACTION_ASSIST)
-        )
-        for (intent in intents) {
-            val ok = runCatching {
-                startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            }.isSuccess
-            if (ok) return
-        }
-        Toast.makeText(this, R.string.voice_search_unavailable, Toast.LENGTH_SHORT).show()
-    }
-
-    // Recents and quick settings both need the accessibility service, same as
-    // lock; tell the user rather than failing silently.
-    private fun globalAction(performed: Boolean): Boolean {
-        if (!performed) {
-            Toast.makeText(this, R.string.action_needs_accessibility, Toast.LENGTH_LONG).show()
-            runCatching { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
-        }
-        return true
-    }
-
-    // Payload is "pkg/cls@userSerial".
-    private fun launchGestureApp(payload: String?) {
-        val (component, serial) = com.supernova.launcher.data.LaunchTarget.split(payload ?: return)
-        val pkg = component.substringBefore('/')
-        val cls = component.substringAfter('/', "")
-        if (pkg.isEmpty() || cls.isEmpty()) return
-        launchApp(LaunchableApp(pkg, cls, "", serial))
-    }
-
-    // Payload is "pkg|shortcutId@userSerial".
-    private fun launchGestureShortcut(payload: String?) {
-        val (body, serial) = com.supernova.launcher.data.LaunchTarget.split(payload ?: return)
-        val pkg = body.substringBefore('|')
-        val shortcutId = body.substringAfter('|', "")
-        if (pkg.isEmpty() || shortcutId.isEmpty()) return
-        launchShortcut(pkg, shortcutId, serial)
-    }
-
-    // Screen lock needs an accessibility service on API 28+; without it we
-    // tell the user rather than silently doing nothing.
-    private fun lockScreen(): Boolean {
-        if (viewModel.state.value.prefs.lockMethod == "DEVICE_ADMIN") {
-            if (SupernovaDeviceAdmin.lock(this)) return true
-            // Selected but not yet granted: send the user to enable it.
-            promptDeviceAdmin()
-            return true
-        }
-        val locked = SupernovaAccessibilityService.lockScreen()
-        if (!locked) {
-            Toast.makeText(this, R.string.lock_needs_accessibility, Toast.LENGTH_LONG).show()
-            runCatching { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
-        }
-        return true
-    }
-
-    private fun promptDeviceAdmin() {
-        val intent = Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
-            .putExtra(
-                android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN,
-                SupernovaDeviceAdmin.component(this)
-            )
-            .putExtra(
-                android.app.admin.DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                getString(R.string.lock_admin_explanation)
-            )
-        runCatching { startActivity(intent) }
     }
 
     private fun observeState() {
@@ -2011,11 +1818,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 // slots evenly, so padding here only narrowed the label - the
                 // reason "Chrome" used to render as "Chro".
                 setPadding(0, dp(DOCK_SLOT_PADDING_V_DP), 0, dp(DOCK_SLOT_PADDING_V_DP))
-                setOnClickListener {
-                    val movingId = moveModeItemId ?: return@setOnClickListener
-                    moveModeItemId = null
-                    viewModel.moveItemToDock(movingId, rank)
-                }
+                // An empty slot takes its own taps, so they don't fall
+                // through to whatever lies behind the dock.
+                isClickable = true
                 // The drag layer turns "the slot under the finger" into a rank.
                 setTag(R.id.tag_dock_rank, rank)
             }
@@ -2511,10 +2316,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             search.hide()
             closed = true
         }
-        if (moveModeItemId != null) {
-            moveModeItemId = null
-            closed = true
-        }
         binding.workspacePager.setCurrentItem(defaultPagePosition(), animate)
         return closed
     }
@@ -2556,7 +2357,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         val reachedHome = wasOnDefaultPage || !prefs.homeButtonOnMainPage
         if (!cameFromBackground && reachedHome && !closed && !drag.isActive) {
             val action = HomeButtonAction.effective(prefs.homeButtonAction, prefs.homeSearch)
-            if (action != GestureAction.NONE) runAction(GestureBinding(action))
+            if (action != GestureAction.NONE) actions.run(GestureBinding(action))
         }
     }
 
@@ -2718,7 +2519,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 when {
                     uri != null -> {
                         val action = com.supernova.launcher.gesture.ActionShortcut.decode(uri)
-                        if (action != null) runAction(action) else launchIntentUri(uri, anchor)
+                        if (action != null) actions.run(action) else launchIntentUri(uri, anchor)
                     }
                     item.packageName != null && item.shortcutId != null ->
                         launchShortcut(item.packageName, item.shortcutId, item.userSerial, anchor)
@@ -2791,29 +2592,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         }
     }
 
-    // Icon for a SHORTCUT item carrying an intentUri: a launcher-action tile by
-    // action, or the snapshot icon activities/legacy shortcuts stored. Null for
-    // a plain app shortcut, which falls back to the app's own icon.
-    private fun intentItemIcon(item: LauncherItem): android.graphics.drawable.Drawable? {
-        val catalog = viewModel.appCatalog()
-        item.intentUri?.let { uri ->
-            com.supernova.launcher.gesture.ActionShortcut.decode(uri)?.let { binding ->
-                customFolderIcon(item.iconBase64, item.customIconPack, item.customIconName, item.iconRaw)
-                    ?.let { return it }
-                getDrawable(com.supernova.launcher.ui.ActionIcons.of(binding.action))?.let {
-                    return catalog.renderActionTile(it)
-                }
-            }
-        }
-        val stored = item.iconBase64?.takeIf { it.isNotEmpty() }
-            ?.let { com.supernova.launcher.data.GalleryIconCodec.decode(it) } ?: return null
-        // An app shortcut's picture (a Fossify contact's photo) is drawn
-        // across the shape the same way every time; through glass it came
-        // out whole, small or half cleared, depending on the photo.
-        val picture = if (item.shortcutId != null) catalog.renderShortcutPicture(stored) else null
-        return picture ?: catalog.renderThemedDrawable(android.graphics.drawable.BitmapDrawable(resources, stored))
-    }
-
     // The resolved POPUP surface styles every SupernovaPopupMenu.
     private fun popupSurface(): com.supernova.launcher.ui.theme.ResolvedSurface =
         com.supernova.launcher.ui.theme.Styles.resolve(this, viewModel.state.value.prefs)
@@ -2844,7 +2622,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         SupernovaNotificationListener.previewsFor(packageName, user.hashCode()).forEach { preview ->
             menu.addNotification(preview.title, preview.text) {
                 // The app's own tap intent; a stale one just no-ops.
-                runCatching { preview.contentIntent?.send() }
+                runLogged("open notification") { preview.contentIntent?.send() }
             }
         }
     }
@@ -2941,7 +2719,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     private fun pinShortcut(packageName: String, shortcutId: String, userSerial: Long) {
         val launcherApps = getSystemService(LauncherApps::class.java) ?: return
         val user = viewModel.appCatalog().userForSerial(userSerial) ?: Process.myUserHandle()
-        runCatching {
+        runLogged("query app shortcuts") {
             val query = LauncherApps.ShortcutQuery()
                 .setPackage(packageName)
                 .setQueryFlags(LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED)
@@ -3462,7 +3240,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     }
 
     private fun closeApp(packageName: String, toast: Boolean = true) {
-        runCatching {
+        runLogged("close app") {
             getSystemService(android.app.ActivityManager::class.java)
                 ?.killBackgroundProcesses(packageName)
         }
@@ -3666,9 +3444,11 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             }
         )
         adapter.decorateIcon = { icon, member ->
-            withBadge(icon, member.packageName, member.className, member.userSerial)
+            itemIcons.withBadge(icon, member.packageName, member.className, member.userSerial)
         }
-        adapter.shortcutIcon = { member -> member.takeIf { it.itemType == ItemType.SHORTCUT }?.let(::intentItemIcon) }
+        adapter.shortcutIcon = { member ->
+            member.takeIf { it.itemType == ItemType.SHORTCUT }?.let(itemIcons::intentItemIcon)
+        }
         folderAdapter = adapter
 
         animateWallpaperZoom(1f)
@@ -3834,7 +3614,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             }
         )
         adapter.decorateIcon = { icon, member ->
-            withBadge(icon, member.packageName, member.className, member.userSerial)
+            itemIcons.withBadge(icon, member.packageName, member.className, member.userSerial)
         }
         popup = folderPopup.show(
             anchor = anchor,
@@ -3910,156 +3690,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             // By the name it is stored under, which a rename just changed.
             if (changes.isNotEmpty()) viewModel.setGroupMembership(name, changes)
         }
-    }
-
-    private fun withBadge(
-        icon: android.graphics.drawable.Drawable?,
-        packageName: String?,
-        className: String?,
-        userSerial: Long
-    ): android.graphics.drawable.Drawable? {
-        val prefs = viewModel.state.value.prefs
-        if (!prefs.badges || icon == null || packageName == null) return icon
-        // Per-app badge filter: an empty set badges everything.
-        if (prefs.badgeApps.isNotEmpty() &&
-            "$userSerial/$packageName/${className.orEmpty()}" !in prefs.badgeApps
-        ) {
-            return icon
-        }
-        val user = viewModel.appCatalog().userForSerial(userSerial) ?: Process.myUserHandle()
-        val count = SupernovaNotificationListener.countFor(packageName, user.hashCode())
-        if (count <= 0) return icon
-        // The icon's dominant color, computed and cached at render time: what
-        // Dots are colored with and what a picture-less Dynamic badge falls
-        // back to. Before the first render the badge color stands in.
-        val iconColor = viewModel.appCatalog().dominantColorFor(userSerial, packageName, className)
-        val face = if (BadgeStyle.effective(prefs) == BadgeStyle.DYNAMIC) {
-            SupernovaNotificationListener.faceFor(packageName, user.hashCode())?.let {
-                badgeFaces.bitmapFor(it, iconColor ?: BadgeDrawable.DEFAULT_BADGE_COLOR)
-            }
-        } else {
-            null
-        }
-        return BadgeLook(prefs, resources.displayMetrics.density).wrap(icon, count, iconColor, face)
-    }
-
-    // Summed unread count over a folder's members, honoring the badge
-    // allowlist; 0 unless folder badges are on.
-    private fun folderBadgeCount(folder: LauncherItem): Int {
-        val prefs = viewModel.state.value.prefs
-        if (!prefs.badges || !prefs.folderBadges) return 0
-        return viewModel.folderMembers(folder.id).sumOf { member ->
-            val pkg = member.packageName ?: return@sumOf 0
-            if (prefs.badgeApps.isNotEmpty() &&
-                "${member.userSerial}/$pkg/${member.className.orEmpty()}" !in prefs.badgeApps
-            ) {
-                return@sumOf 0
-            }
-            val user = viewModel.appCatalog().userForSerial(member.userSerial) ?: Process.myUserHandle()
-            SupernovaNotificationListener.countFor(pkg, user.hashCode())
-        }
-    }
-
-    // Wraps an icon in a badge with a known count. Folders have no single
-    // app, so a Dynamic badge is a dot in the badge color there.
-    private fun badgeDrawable(icon: android.graphics.drawable.Drawable, count: Int): android.graphics.drawable.Drawable =
-        BadgeLook(viewModel.state.value.prefs, resources.displayMetrics.density).wrap(icon, count)
-
-    // A drawer folder's icon with its members' summed count, when folder
-    // badges are on.
-    private fun withFolderBadge(
-        icon: android.graphics.drawable.Drawable,
-        members: List<LaunchableApp>
-    ): android.graphics.drawable.Drawable {
-        val prefs = viewModel.state.value.prefs
-        if (!prefs.badges || !prefs.folderBadges) return icon
-        val count = members.sumOf { app ->
-            if (prefs.badgeApps.isNotEmpty() && "${app.userSerial}/${app.packageName}/${app.className}" !in prefs.badgeApps) {
-                return@sumOf 0
-            }
-            val user = viewModel.appCatalog().userForSerial(app.userSerial) ?: Process.myUserHandle()
-            SupernovaNotificationListener.countFor(app.packageName, user.hashCode())
-        }
-        return if (count > 0) badgeDrawable(icon, count) else icon
-    }
-
-    // A custom icon is fitted to the icon shape like any other, unless its
-    // Edit has Reshape off: then it is drawn as it is.
-    private fun folderPreviewDrawable(folder: LauncherItem): android.graphics.drawable.Drawable {
-        customFolderIcon(
-            folder.iconBase64, folder.customIconPack, folder.customIconName, folder.iconRaw, isFolder = true
-        )
-            ?.let { return it }
-        val memberIcons = viewModel.folderMembers(folder.id)
-            // The dense styles (3x3, dense ring) show up to nine members.
-            .take(9)
-            .mapNotNull { member ->
-                member.takeIf { it.itemType == ItemType.SHORTCUT }?.let(::intentItemIcon)
-                    ?: member.packageName?.let { pkg ->
-                        member.className?.let { cls ->
-                            viewModel.appCatalog().iconFor(LaunchableApp(pkg, cls, member.label, member.userSerial))
-                        }
-                    }
-            }
-        return composedFolderIcon(memberIcons)
-    }
-
-    private fun drawerFolderIcon(group: DrawerGroup, members: List<LaunchableApp>): android.graphics.drawable.Drawable =
-        customFolderIcon(group.iconBase64, group.iconPack, group.iconName, group.iconRaw, isFolder = true)
-            ?: composedFolderIcon(members.mapNotNull { app -> viewModel.appCatalog().iconFor(app) })
-
-    private fun customFolderIcon(
-        photo: String?,
-        pack: String?,
-        name: String?,
-        raw: Boolean,
-        isFolder: Boolean = false
-    ): android.graphics.drawable.Drawable? {
-        val catalog = viewModel.appCatalog()
-        val picture = photo?.takeIf { it.isNotEmpty() }
-            ?.let { com.supernova.launcher.data.GalleryIconCodec.decode(it) }
-        return when {
-            picture != null -> (
-                when {
-                    raw -> null
-                    isFolder -> catalog.renderFolderPicture(picture)
-                    else -> catalog.renderPickedPicture(picture)
-                }
-                )
-                ?: android.graphics.drawable.BitmapDrawable(resources, picture)
-            pack == null || name == null -> null
-            raw -> catalog.packDrawable(pack, name)
-            isFolder -> catalog.renderFolderPack(pack, name)
-            else -> catalog.renderPackDrawable(pack, name)
-        }
-    }
-
-    // The one FolderIconDrawable factory: workspace/dock previews and drawer
-    // folder entries all run through it so the folder-icon appearance prefs
-    // (shape, outline, clip, window color) apply everywhere.
-    private fun composedFolderIcon(icons: List<android.graphics.drawable.Drawable>): android.graphics.drawable.Drawable {
-        val prefs = viewModel.state.value.prefs
-        val resolvedFolder = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
-            .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER)
-        return FolderIconDrawable(
-            // The preview draws members at mini-cell bounds. The cache hands
-            // out shared instances, and a Drawable has exactly one bounds -
-            // mutating the shared one shrinks the same icon in the drawer.
-            icons.take(9).map { icon -> icon.constantState?.newDrawable(resources)?.mutate() ?: icon },
-            dp(48),
-            style = FolderPreviewStyle.fromName(prefs.folderPreviewStyle),
-            plateColor = FolderIconDrawable.plateColor(
-                prefs.folderMatchWindowColor, prefs.folderPlateColor, resolvedFolder.surface
-            ),
-            shape = FolderIconDrawable.plateShape(prefs.folderIconShape, prefs),
-            customSpec = com.supernova.launcher.data.CustomShapeSpec.decode(prefs.iconShapeCustom),
-            outlineColor = if (prefs.folderIconOutline) resolvedFolder.accent else 0,
-            outlineWidthPx = 2f * resources.displayMetrics.density,
-            clipMembers = prefs.folderClipToBg,
-            prioritizeFirst = prefs.folderPrioritizeFirst,
-            glass = FolderIconDrawable.glassFor(prefs),
-            shadow = prefs.iconShadow
-        )
     }
 
     private fun shortcutsFor(packageName: String, userSerial: Long): List<ShortcutInfo> {
@@ -4202,10 +3832,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         val app = item.toLaunchableApp()
 
         val icon = when (item.itemType) {
-            ItemType.FOLDER -> folderPreviewDrawable(item)
+            ItemType.FOLDER -> itemIcons.folderPreviewDrawable(item)
             ItemType.WIDGET -> getDrawable(R.drawable.ic_widget)
             ItemType.APP -> app?.let { viewModel.appCatalog().iconFor(it) } ?: getDrawable(R.drawable.ic_supernova)
-            ItemType.SHORTCUT -> intentItemIcon(item)
+            ItemType.SHORTCUT -> itemIcons.intentItemIcon(item)
                 ?: app?.let { viewModel.appCatalog().iconFor(it) } ?: getDrawable(R.drawable.ic_supernova)
         }
 
@@ -4215,10 +3845,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         val labelVisible = (if (inDock) prefs.dockLabels else prefs.showLabels) &&
             !(override?.hideLabel ?: false)
         val badged = if (item.itemType == ItemType.FOLDER) {
-            val count = folderBadgeCount(item)
-            if (count > 0 && icon != null) badgeDrawable(icon, count) else icon
+            val count = itemIcons.folderBadgeCount(item)
+            if (count > 0 && icon != null) itemIcons.badgeDrawable(icon, count) else icon
         } else {
-            withBadge(icon, item.packageName, item.className, item.userSerial)
+            itemIcons.withBadge(icon, item.packageName, item.className, item.userSerial)
         }
         iconBinding.icon.setImageDrawable(badged)
         if (inDock) {
@@ -4279,7 +3909,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
         val swipeToOpen = item.itemType == ItemType.FOLDER && item.swipeToOpen
         iconBinding.root.setOnClickListener {
-            if (handleMoveModeItemTap(item)) return@setOnClickListener
             if (swipeToOpen) launchFolderFirstItem(item, it) else launchItem(item, it)
         }
         iconBinding.root.setOnLongClickListener { v ->
@@ -4287,6 +3916,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             true
         }
         attachIconSwipe(iconBinding.root, item)
+        itemMoves.attach(iconBinding.root, item.id)
         if (swipeToOpen) {
             // A tap no longer opens it, so a screen reader gets the swipe as
             // an action of its own.
@@ -4326,7 +3956,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             .setTitle(R.string.home_action_wallpaper)
             .setItems(sources) { _, which ->
                 if (which == 0) {
-                    runCatching { startActivity(Intent(Intent.ACTION_SET_WALLPAPER)) }
+                    runLogged("open wallpaper picker") { startActivity(Intent(Intent.ACTION_SET_WALLPAPER)) }
                 } else {
                     runCatching { pickWallpaperFileLauncher.launch(arrayOf("image/*")) }
                         .onFailure { Toast.makeText(this, R.string.launch_failed, Toast.LENGTH_SHORT).show() }
@@ -4431,7 +4061,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         action ?: return
         // A launcher-action uri runs through the shared action dispatcher.
         com.supernova.launcher.gesture.ActionShortcut.decode(action)?.let {
-            runAction(it)
+            actions.run(it)
             return
         }
         // An intent an app's shortcut screen made (a direct dial, a route).
@@ -4460,23 +4090,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // while the frame is up: that left the page with no listener once the
         // frame was gone, and a tap no longer closed edit mode.
         if (widgets.dismissResizeFrame()) return
-        if (editMode.isOpen) {
-            editMode.exit()
-            return
-        }
-        val movingId = moveModeItemId ?: return
-        moveModeItemId = null
-        viewModel.moveItemToWorkspace(movingId, page, cellX, cellY, workspaceX, workspaceY)
-    }
-
-    // In move mode a tap on another icon merges (folder semantics); tapping the
-    // moving item itself cancels. Returns true when the tap was consumed.
-    private fun handleMoveModeItemTap(target: LauncherItem): Boolean {
-        val movingId = moveModeItemId ?: return false
-        moveModeItemId = null
-        if (target.id == movingId) return true
-        viewModel.moveItemToWorkspace(movingId, target.page, target.cellX, target.cellY)
-        return true
+        if (editMode.isOpen) editMode.exit()
     }
 
     // Empty-home actions: Widgets, Wallpapers, Settings. Page
@@ -5100,8 +4714,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
     private fun launchCardTarget(type: com.supernova.launcher.feed.FeaturedType, target: String) {
         when (type) {
-            com.supernova.launcher.feed.FeaturedType.APP -> launchGestureApp(target)
-            com.supernova.launcher.feed.FeaturedType.SHORTCUT -> launchGestureShortcut(target)
+            com.supernova.launcher.feed.FeaturedType.APP -> actions.launchApp(target)
+            com.supernova.launcher.feed.FeaturedType.SHORTCUT -> actions.launchShortcut(target)
             com.supernova.launcher.feed.FeaturedType.WIDGET -> Unit
         }
     }
@@ -5236,37 +4850,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             ?: resources.displayMetrics.heightPixels) - dp(prefs.desktopPaddingV) * 2
         return max(1, width / max(1, prefs.gridCols)) to max(1, height / max(1, prefs.gridRows))
     }
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.launcher_menu, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_add_widget -> {
-                editMode.enter()
-                true
-            }
-            R.id.action_export_backup -> {
-                exportBackupLauncher.launch("supernova-backup-${System.currentTimeMillis()}.json")
-                true
-            }
-            R.id.action_import_backup -> {
-                importBackupLauncher.launch(arrayOf("application/json", "text/plain"))
-                true
-            }
-            R.id.action_settings -> {
-                startActivity(Intent(this, SettingsActivity::class.java))
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
-    }
-
-
-
-
 
     companion object {
         // Same vertical bias the gesture detector uses for swipe-up/down.

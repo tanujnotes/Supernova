@@ -13,6 +13,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.graphics.createBitmap
 import androidx.viewpager2.widget.ViewPager2
+import com.supernova.launcher.runLogged
 import kotlin.math.roundToInt
 
 // Edit mode's page order: a long-press on a zoomed page lifts it and the finger
@@ -243,7 +244,7 @@ class PageDragController(
         val bitmap = createBitmap(width.coerceAtLeast(1), height.coerceAtLeast(1))
         val canvas = Canvas(bitmap)
         canvas.scale(scale, scale)
-        runCatching { source.draw(canvas) }
+        runLogged("draw dragged page") { source.draw(canvas) }
         bitmaps.add(bitmap)
         return ImageView(context).apply {
             setImageBitmap(bitmap)
