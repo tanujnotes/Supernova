@@ -25,6 +25,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.supernova.launcher.data.LockMethod
 import com.supernova.launcher.data.Pref
 import com.supernova.launcher.widget.SupernovaWidgetHost
 import com.supernova.launcher.data.CornerCut
@@ -105,7 +106,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var previews: PreviewController
     // The one view living in previewPane; created on first use.
     private var paneView: com.supernova.launcher.ui.settings.preview.SettingsPreviewView? = null
-    private var appliedAccent: String = "BLUE"
+    private var appliedAccent: AccentColor = AccentColor.BLUE
 
     // Header search over the whole catalogue; the index resolves lazily on
     // first activation so plain settings visits never build it.
@@ -297,7 +298,7 @@ class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         appliedAccent = viewModel.state.value.prefs.accentColor
-        ThemeEngine.applyAccent(this, AccentColor.fromName(appliedAccent))
+        ThemeEngine.applyAccent(this, appliedAccent)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
         // Edge-to-edge, like the launcher window: the toolbar takes the status
@@ -1013,11 +1014,11 @@ class SettingsActivity : AppCompatActivity() {
     private fun showPaletteSourcePicker() {
         val modes = PaletteSourceMode.entries
         val labels = modes.map { getString(EnumLabels.of(it)) }.toTypedArray()
-        val current = modes.indexOf(PaletteSourceMode.fromName(viewModel.state.value.prefs.paletteSource))
+        val current = modes.indexOf(viewModel.state.value.prefs.paletteSource)
 
         showChoice(R.string.color_palette, labels, current) { which ->
             val mode = modes[which]
-            viewModel.set(Pref.paletteSource, mode.name)
+            viewModel.set(Pref.paletteSource, mode)
             if (mode == PaletteSourceMode.CUSTOM) promptPaletteSeed()
         }
     }
@@ -1080,7 +1081,7 @@ class SettingsActivity : AppCompatActivity() {
                 )
                 is com.supernova.launcher.ui.ActionPick.Legacy -> {
                     pendingGestureShortcut = gesture
-                    runCatching {
+                    runLogged("open shortcut creator") {
                         createGestureShortcut.launch(Intent(Intent.ACTION_CREATE_SHORTCUT).setComponent(pick.component))
                     }.onFailure {
                         pendingGestureShortcut = null
@@ -1097,7 +1098,7 @@ class SettingsActivity : AppCompatActivity() {
     // made by looking at the shapes rather than by reading their names.
     private fun showIconShapePicker() {
         val prefs = viewModel.state.value.prefs
-        val current = IconShape.fromName(prefs.iconShape)
+        val current = prefs.iconShape
         val custom = CustomShapeSpec.decode(prefs.iconShapeCustom)
         val sheetBinding = SheetIconShapeBinding.inflate(layoutInflater)
         val sheet = com.supernova.launcher.ui.Sheets.open(this)
@@ -1341,7 +1342,7 @@ class SettingsActivity : AppCompatActivity() {
                 com.supernova.launcher.ui.FolderIconDrawable(
                     sampleIcons,
                     dp(FOLDER_PREVIEW_DP),
-                    style = FolderPreviewStyle.fromName(prefs.folderPreviewStyle),
+                    style = prefs.folderPreviewStyle,
                     plateColor = com.supernova.launcher.ui.FolderIconDrawable.plateColor(
                         dialogBinding.matchColorCheck.isChecked, plateColor, resolved.surface
                     ),
@@ -1410,7 +1411,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun showLockMethodPicker() {
-        val methods = listOf("ACCESSIBILITY", "DEVICE_ADMIN")
+        val methods = listOf(LockMethod.ACCESSIBILITY, LockMethod.DEVICE_ADMIN)
         val labels = arrayOf(
             getString(R.string.lock_method_accessibility),
             getString(R.string.lock_method_device_admin)
@@ -1420,7 +1421,7 @@ class SettingsActivity : AppCompatActivity() {
             viewModel.set(Pref.lockMethod, methods[which])
             // Selecting device admin sends the user to grant it (a no-op if
             // already active); the actual lock happens on the gesture.
-            if (methods[which] == "DEVICE_ADMIN" && !SupernovaDeviceAdmin.isActive(this)) {
+            if (methods[which] == LockMethod.DEVICE_ADMIN && !SupernovaDeviceAdmin.isActive(this)) {
                 val intent = android.content.Intent(
                     android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN
                 ).putExtra(
@@ -1576,8 +1577,10 @@ class SettingsActivity : AppCompatActivity() {
             .setPositiveButton(R.string.reset) { _, _ ->
                 lifecycleScope.launch {
                     // Capture the doomed widget ids before the model goes away.
-                    val widgetIds = runCatching { viewModel.persistedWidgetIds() }.getOrNull().orEmpty()
-                    runCatching { viewModel.resetToDefaults() }
+                    val widgetIds = runLogged("read widget ids before reset") {
+                        viewModel.persistedWidgetIds()
+                    }.getOrNull().orEmpty()
+                    runLogged("reset to defaults") { viewModel.resetToDefaults() }
                         .onSuccess {
                             // Free the host ids now instead of waiting for the
                             // next launcher create's orphan sweep; the host is

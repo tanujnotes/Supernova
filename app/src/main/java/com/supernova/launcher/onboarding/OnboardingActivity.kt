@@ -31,6 +31,7 @@ import com.supernova.launcher.HomeRole
 import com.supernova.launcher.R
 import com.supernova.launcher.data.IconShape
 import com.supernova.launcher.data.Pref
+import com.supernova.launcher.data.SearchWindowMode
 import com.supernova.launcher.databinding.ActivityOnboardingBinding
 import com.supernova.launcher.databinding.OnboardingPageDoneBinding
 import com.supernova.launcher.databinding.OnboardingPageIconsBinding
@@ -39,6 +40,7 @@ import com.supernova.launcher.databinding.OnboardingPageWelcomeBinding
 import com.supernova.launcher.databinding.OnboardingRowDropdownBinding
 import com.supernova.launcher.databinding.OnboardingRowSwitchBinding
 import com.supernova.launcher.databinding.OnboardingShapeTileBinding
+import com.supernova.launcher.runLogged
 import com.supernova.launcher.ui.ChoiceMenu
 import com.supernova.launcher.ui.DrawerBarPlacement
 import com.supernova.launcher.ui.DrawerStyle
@@ -78,7 +80,7 @@ class OnboardingActivity : AppCompatActivity() {
     private val isRerun by lazy { intent.getBooleanExtra(EXTRA_RERUN, false) }
     private val pages = PagesAdapter()
     private var seedJob: Job? = null
-    private var appliedAccent = ""
+    private var appliedAccent: AccentColor? = null
 
     // What Get started or Go home does once the default-home prompt answers.
     private var afterHomeRole: (() -> Unit)? = null
@@ -106,8 +108,9 @@ class OnboardingActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        appliedAccent = viewModel.state.value.prefs.accentColor
-        ThemeEngine.applyAccent(this, AccentColor.fromName(appliedAccent))
+        val accent = viewModel.state.value.prefs.accentColor
+        appliedAccent = accent
+        ThemeEngine.applyAccent(this, accent)
         binding = ActivityOnboardingBinding.inflate(layoutInflater)
         setContentView(binding.root)
         // Edge to edge over the wallpaper: light system bar
@@ -202,7 +205,7 @@ class OnboardingActivity : AppCompatActivity() {
             return
         }
         afterHomeRole = then
-        runCatching { requestHomeRole.launch(request) }.onFailure {
+        runLogged("ask for home role") { requestHomeRole.launch(request) }.onFailure {
             afterHomeRole = null
             then()
         }
@@ -246,11 +249,11 @@ class OnboardingActivity : AppCompatActivity() {
     private fun bindSearch(view: View) {
         val rows = pageRows(view, R.string.onboarding_search)
         val prefs = viewModel.state.value.prefs
-        val modes = listOf("WINDOW", "IMMERSIVE")
+        val modes = listOf(SearchWindowMode.WINDOW, SearchWindowMode.IMMERSIVE)
         addDropdown(
             rows, R.string.onboarding_mode,
             listOf(getString(R.string.search_window_window), getString(R.string.search_window_immersive)),
-            modes.indexOfFirst { it.equals(prefs.searchWindowMode, ignoreCase = true) }.coerceAtLeast(0)
+            modes.indexOf(prefs.searchWindowMode).coerceAtLeast(0)
         ) { viewModel.set(Pref.searchWindowMode, modes[it]) }
         addSwitch(
             rows, R.string.onboarding_shortcut_search, R.string.onboarding_shortcut_search_summary,
@@ -332,8 +335,8 @@ class OnboardingActivity : AppCompatActivity() {
                 getString(R.string.onboarding_drawer_vertical), getString(R.string.onboarding_drawer_list),
                 getString(R.string.onboarding_drawer_horizontal)
             ),
-            styles.indexOf(DrawerStyle.fromName(prefs.drawerStyle)).coerceAtLeast(0)
-        ) { viewModel.set(Pref.drawerStyle, styles[it].name) }
+            styles.indexOf(prefs.drawerStyle).coerceAtLeast(0)
+        ) { viewModel.set(Pref.drawerStyle, styles[it]) }
         addSwitch(
             rows, R.string.onboarding_show_keyboard, R.string.onboarding_show_keyboard_summary,
             prefs.drawerAutoKeyboard
@@ -354,8 +357,8 @@ class OnboardingActivity : AppCompatActivity() {
         val page = OnboardingPageIconsBinding.bind(view)
         val prefs = viewModel.state.value.prefs
         var scale = prefs.iconScale
-        var shape = IconShape.fromName(prefs.iconShape)
-        val accent = ThemeEngine.accentColor(this, AccentColor.fromName(prefs.accentColor))
+        var shape = prefs.iconShape
+        val accent = ThemeEngine.accentColor(this, prefs.accentColor)
 
         // Four sample icons, in the shape and at the size chosen.
         val preview = page.iconPreviewRow

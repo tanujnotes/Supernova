@@ -6,6 +6,7 @@ import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
 
+@kotlinx.serialization.Serializable(with = IconShape.Names::class)
 enum class IconShape {
     SYSTEM,
     CIRCLE,
@@ -25,9 +26,11 @@ enum class IconShape {
     PLATFORM,
     CUSTOM;
 
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<IconShape>("IconShape", entries, SYSTEM)
+
     companion object {
-        fun fromName(name: String): IconShape =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: SYSTEM
+        fun fromName(name: String): IconShape = Names.parse(name)
 
         // Cubic handle length approximating a quarter circle.
         private const val CIRCLE_HANDLE = 0.5523f

@@ -220,7 +220,7 @@ class SearchController(
     }
 
     private fun windowMode(): Boolean =
-        viewModel.state.value.prefs.searchWindowMode.equals("WINDOW", ignoreCase = true)
+        viewModel.state.value.prefs.searchWindowMode == com.supernova.launcher.data.SearchWindowMode.WINDOW
 
     // The window rotated or was resized. The tiles' columns follow the
     // drawer's, which follow the width, and a query's rows were cut to the
@@ -316,7 +316,7 @@ class SearchController(
             com.supernova.launcher.search.FolderSearchProvider(folderHits, folderIcon),
             com.supernova.launcher.search.CardSearchProvider { viewModel.feedCards() },
             WebSearchProvider(
-                provider = { WebProvider.fromName(viewModel.state.value.prefs.searchWebProvider) },
+                provider = { viewModel.state.value.prefs.searchWebProvider },
                 chips = { SearchChip.decode(viewModel.state.value.prefs.searchChips) }
             )
         )
@@ -475,7 +475,7 @@ class SearchController(
                 surface.dismiss()
             }
             else -> {
-                val provider = WebProvider.fromName(viewModel.state.value.prefs.searchWebProvider)
+                val provider = viewModel.state.value.prefs.searchWebProvider
                 onOpenUri(provider.searchUrl(query))
                 surface.dismiss()
             }

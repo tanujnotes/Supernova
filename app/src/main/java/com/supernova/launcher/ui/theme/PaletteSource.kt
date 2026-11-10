@@ -3,15 +3,19 @@ package com.supernova.launcher.ui.theme
 import android.app.WallpaperManager
 import android.content.Context
 import android.os.Build
+import com.supernova.launcher.data.SettingEnumSerializer
 
+@kotlinx.serialization.Serializable(with = PaletteSourceMode.Names::class)
 enum class PaletteSourceMode {
     SYSTEM,
     WALLPAPER,
     CUSTOM;
 
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<PaletteSourceMode>("PaletteSourceMode", entries, SYSTEM)
+
     companion object {
-        fun fromName(name: String): PaletteSourceMode =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: SYSTEM
+        fun fromName(name: String): PaletteSourceMode = Names.parse(name)
     }
 }
 

@@ -2,7 +2,6 @@ package com.supernova.launcher.data
 
 import android.content.Context
 import android.content.res.Resources
-import android.util.Log
 import androidx.datastore.preferences.core.edit
 import com.supernova.launcher.R
 import com.supernova.launcher.runLogged
@@ -58,7 +57,9 @@ class LauncherRepository(private val context: Context) {
     private fun decodeDocument(raw: String): LauncherModel? {
         return runCatching { json.decodeFromString<LauncherModel>(raw) }
             .onFailure { failure ->
-                Log.w("Supernova", "Launcher model doesn't decode; leaving it untouched", failure)
+                // Into the shared log too: this is the failure a tester most
+                // needs to be able to send.
+                com.supernova.launcher.Diagnostics.caught("read the stored layout; leaving it untouched", failure)
                 runCatching {
                     val copy = File(context.filesDir, "unreadable_model.json")
                     if (!copy.exists() || copy.readText() != raw) copy.writeText(raw)

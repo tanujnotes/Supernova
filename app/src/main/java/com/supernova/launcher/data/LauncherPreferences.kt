@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 
 class LauncherPreferences(private val context: Context) {
 
@@ -18,7 +19,9 @@ class LauncherPreferences(private val context: Context) {
     }
 
     // Any one setting, held to its range: LauncherPreferences.set(Pref.gridRows, 7).
-    suspend fun <T : Any> set(spec: PrefSpec<T>, value: T) = put(spec.key, spec.clamped(value))
+    suspend fun <T : Any> set(spec: PrefSpec<T>, value: T) {
+        context.supernovaStore.edit { spec.write(it, value) }
+    }
 
     companion object {
         private const val RECENT_LAUNCHES_MAX = 12
@@ -57,6 +60,15 @@ class LauncherPreferences(private val context: Context) {
     // distinctUntilChanged: unrelated store writes (the model document, a
     // gate flag) otherwise re-emit an equal snapshot and re-render the UI.
     val flow: Flow<LauncherPrefs> = context.supernovaStore.data.map(::decode).distinctUntilChanged()
+        .onEach { latest = it }
+
+    // The settings as last read, for whoever can't wait for the flow: a
+    // screen picks its accent color before it inflates anything, and its
+    // view model has no state of its own yet. The process reads them once
+    // at start (snapshot), so there is always an answer by then.
+    @Volatile
+    var latest: LauncherPrefs? = null
+        private set
 
     suspend fun saveDrawerGroup(group: DrawerGroup) {
         context.supernovaStore.edit { prefs ->

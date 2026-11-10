@@ -611,7 +611,7 @@ class DrawerController(
         }
         // Most-used ordering shifts with every launch; those changes no longer
         // re-emit state, so refresh the ordering as the drawer opens.
-        val mostUsed = DrawerSort.fromName(prefs.drawerSort) == DrawerSort.MOST_USED
+        val mostUsed = prefs.drawerSort == DrawerSort.MOST_USED
         if (!populated || needsRefresh || mostUsed) {
             populated = true
             needsRefresh = false
@@ -1003,7 +1003,7 @@ class DrawerController(
     // Moves the closed sheet between the two parking schemes when the pref
     // changes; a drawer that is open keeps what it has until it closes.
     private fun applyTransition(prefs: LauncherPrefs) {
-        val next = DrawerTransition.fromName(prefs.drawerTransition)
+        val next = prefs.drawerTransition
         if (next == transition) return
         val wasOpen = isVisible
         transition = next
@@ -1173,7 +1173,7 @@ class DrawerController(
     }
 
     private fun listOrder(prefs: LauncherPrefs): AppDrawerAdapter.Order =
-        when (DrawerSort.fromName(prefs.drawerSort)) {
+        when (prefs.drawerSort) {
             DrawerSort.ALPHA -> AppDrawerAdapter.Order.A_Z
             DrawerSort.ALPHA_REVERSE -> AppDrawerAdapter.Order.Z_A
             DrawerSort.INSTALL_DATE, DrawerSort.MOST_USED -> AppDrawerAdapter.Order.UNSORTED
@@ -1316,7 +1316,7 @@ class DrawerController(
     }
 
     private fun rebuildTabs(prefs: LauncherPrefs) {
-        val tabBarMode = DrawerTabBar.fromName(prefs.drawerTabBar)
+        val tabBarMode = prefs.drawerTabBar
         val groups = viewModel.drawerTabGroups()
         val workTab = workTabActive()
         val privateTab = privateTabActive()
@@ -1410,7 +1410,7 @@ class DrawerController(
 
         val sheet = binding.drawerSheet
         val tabs = binding.drawerTabs
-        val wantBottom = DrawerTabBar.fromName(prefs.drawerTabBar) == DrawerTabBar.BOTTOM
+        val wantBottom = prefs.drawerTabBar == DrawerTabBar.BOTTOM
 
         val searchConfig = SearchBarConfig.decode(prefs.searchBarConfig).drawer
         val barPlacement = DrawerBarPlacement.fromConfig(searchConfig)
@@ -1491,7 +1491,7 @@ class DrawerController(
         // The group tabs follow the drawer palette too. The Tab type: a
         // short bar under the label (Classic) or a pill behind it (Bubble).
         tabs.setTabTextColors(withAlpha(resolvedForBar.text, TAB_TEXT_ALPHA), resolvedForBar.text)
-        if (DrawerTabStyle.fromName(prefs.drawerTabStyle) == DrawerTabStyle.BUBBLE) {
+        if (prefs.drawerTabStyle == DrawerTabStyle.BUBBLE) {
             val pill = GradientDrawable().apply {
                 cornerRadius = TAB_BUBBLE_RADIUS_DP * density
                 setColor(android.graphics.Color.WHITE)
@@ -1567,7 +1567,7 @@ class DrawerController(
 
         applyInsetPadding()
 
-        currentStyle = DrawerStyle.fromName(prefs.drawerStyle)
+        currentStyle = prefs.drawerStyle
         val recycler = binding.drawerRecycler
 
         when (currentStyle) {
@@ -1602,7 +1602,7 @@ class DrawerController(
         applyListVisibility()
         placeListHeader()
         binding.drawerPager.setPageTransformer(
-            if (paged) PageTransformers.forEffect(ScrollEffect.fromName(prefs.drawerPageEffect)) else null
+            if (paged) PageTransformers.forEffect(prefs.drawerPageEffect) else null
         )
         syncPages()
         adapter.notifyDataSetChanged()
@@ -1644,7 +1644,7 @@ class DrawerController(
         val prefs = viewModel.state.value.prefs
         val searchEmpty = binding.drawerSearch.text.isNullOrBlank()
         val show = prefs.drawerFastScroller && searchEmpty &&
-            DrawerStyle.fromName(prefs.drawerStyle) != DrawerStyle.PAGED_GRID
+            prefs.drawerStyle != DrawerStyle.PAGED_GRID
         binding.drawerFastScroller.visibility = if (show) View.VISIBLE else View.GONE
         // Its track stands in for the list's own scrollbar.
         binding.drawerRecycler.isVerticalScrollBarEnabled = !show

@@ -1,5 +1,6 @@
 package com.supernova.launcher.data
 
+import com.supernova.launcher.runLogged
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -51,7 +52,7 @@ data class CustomShapeSpec(
         // (25% rounded corners) rather than an error.
         fun decode(raw: String): CustomShapeSpec {
             if (raw.isBlank()) return CustomShapeSpec()
-            return runCatching { json.decodeFromString(serializer(), raw) }
+            return runLogged("read custom icon shape") { json.decodeFromString(serializer(), raw) }
                 .getOrElse { return CustomShapeSpec() }
                 .sanitized()
         }

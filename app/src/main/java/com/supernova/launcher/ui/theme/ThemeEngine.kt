@@ -4,7 +4,9 @@ import android.app.Activity
 import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import com.supernova.launcher.R
+import com.supernova.launcher.data.SettingEnumSerializer
 
+@kotlinx.serialization.Serializable(with = ThemeMode.Names::class)
 enum class ThemeMode {
     SYSTEM,
     LIGHT,
@@ -14,15 +16,18 @@ enum class ThemeMode {
     // Dark during a user-set daily window (D1); no location, pure clock.
     SCHEDULE;
 
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<ThemeMode>("ThemeMode", entries, SYSTEM)
+
     companion object {
-        fun fromName(name: String): ThemeMode =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: SYSTEM
+        fun fromName(name: String): ThemeMode = Names.parse(name)
     }
 }
 
 // Curated accents: arbitrary RGB can't reach Material widget internals
 // without generating overlays at runtime, so each entry maps to a static
 // ThemeOverlay defined in themes.xml.
+@kotlinx.serialization.Serializable(with = AccentColor.Names::class)
 enum class AccentColor(val colorRes: Int, val overlayRes: Int) {
     BLUE(R.color.accentBlue, R.style.ThemeOverlay_Supernova_Blue),
     INDIGO(R.color.accentIndigo, R.style.ThemeOverlay_Supernova_Indigo),
@@ -35,9 +40,11 @@ enum class AccentColor(val colorRes: Int, val overlayRes: Int) {
     TEAL(R.color.accentTeal, R.style.ThemeOverlay_Supernova_Teal),
     CYAN(R.color.accentCyan, R.style.ThemeOverlay_Supernova_Cyan);
 
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<AccentColor>("AccentColor", entries, BLUE)
+
     companion object {
-        fun fromName(name: String): AccentColor =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: BLUE
+        fun fromName(name: String): AccentColor = Names.parse(name)
     }
 }
 
@@ -84,7 +91,7 @@ object ThemeEngine {
     private fun modeFor(
         prefs: com.supernova.launcher.data.LauncherPrefs,
         recheckIn: ((Long) -> Unit)?
-    ): Int = when (ThemeMode.fromName(prefs.themeMode)) {
+    ): Int = when (prefs.themeMode) {
         ThemeMode.SYSTEM -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
         ThemeMode.LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
         ThemeMode.DARK -> AppCompatDelegate.MODE_NIGHT_YES

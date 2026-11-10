@@ -11,18 +11,22 @@ import android.view.View
 import androidx.core.animation.doOnCancel
 import androidx.core.animation.doOnEnd
 import androidx.viewpager2.widget.ViewPager2
+import com.supernova.launcher.data.SettingEnumSerializer
 import kotlin.math.abs
 import kotlin.math.floor
 
+@kotlinx.serialization.Serializable(with = IndicatorStyle.Names::class)
 enum class IndicatorStyle {
     NONE,
     DOTS,
     CIRCLE,
     LINE;
 
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<IndicatorStyle>("IndicatorStyle", entries, LINE)
+
     companion object {
-        fun fromName(name: String): IndicatorStyle =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: LINE
+        fun fromName(name: String): IndicatorStyle = Names.parse(name)
     }
 }
 

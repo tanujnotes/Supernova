@@ -59,15 +59,15 @@ object Styles {
         val night = context.resources.configuration.uiMode and
             Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
         val key = Key(
-            prefs.styleConfig, prefs.paletteSource, prefs.paletteSeed, night,
-            prefs.accentColor, prefs.drawerBgColor, prefs.folderBgColor,
+            prefs.styleConfig, prefs.paletteSource.name, prefs.paletteSeed, night,
+            prefs.accentColor.name, prefs.drawerBgColor, prefs.folderBgColor,
             prefs.drawerBgOpacity, prefs.dockBgOpacity, wallpaperGeneration
         )
         cachedStyles?.let { if (key == cachedKey) return it }
 
         val palette = paletteFor(context, prefs, key)
         val config = StyleConfig.decode(prefs.styleConfig)
-        val accent = ThemeEngine.accentColor(context, AccentColor.fromName(prefs.accentColor))
+        val accent = ThemeEngine.accentColor(context, prefs.accentColor)
         val themeText = context.getColor(R.color.textPrimary)
         val onWallpaper = context.getColor(R.color.onWallpaper)
         val themeSurface = context.getColor(R.color.surface)
@@ -158,9 +158,9 @@ object Styles {
     private fun paletteFor(context: Context, prefs: LauncherPrefs, key: Key): TonalPalette {
         val paletteKey = key.copy(config = "", drawerBgColor = "", folderBgColor = "", drawerAlpha = 0f, dockAlpha = 0f)
         cachedPalette?.let { if (paletteKey == cachedPaletteKey) return it }
-        val fallback = ThemeEngine.accentColor(context, AccentColor.fromName(prefs.accentColor))
+        val fallback = ThemeEngine.accentColor(context, prefs.accentColor)
         val palette = PaletteFactory.resolve(
-            context, PaletteSourceMode.fromName(prefs.paletteSource), prefs.paletteSeed, fallback
+            context, prefs.paletteSource, prefs.paletteSeed, fallback
         )
         cachedPaletteKey = paletteKey
         cachedPalette = palette

@@ -7,6 +7,27 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import com.supernova.launcher.search.WebProvider
+import com.supernova.launcher.ui.AnimationSpeed
+import com.supernova.launcher.ui.BadgePosition
+import com.supernova.launcher.ui.DockBgStyle
+import com.supernova.launcher.ui.DrawerSort
+import com.supernova.launcher.ui.DrawerStyle
+import com.supernova.launcher.ui.DrawerTabBar
+import com.supernova.launcher.ui.DrawerTabStyle
+import com.supernova.launcher.ui.DrawerTransition
+import com.supernova.launcher.ui.FolderMode
+import com.supernova.launcher.ui.FolderPreviewStyle
+import com.supernova.launcher.ui.FolderScroll
+import com.supernova.launcher.ui.IndicatorStyle
+import com.supernova.launcher.ui.LabelFont
+import com.supernova.launcher.ui.LaunchAnimation
+import com.supernova.launcher.ui.PopupMenuStyle
+import com.supernova.launcher.ui.ScrollEffect
+import com.supernova.launcher.ui.StatusBarIcons
+import com.supernova.launcher.ui.theme.AccentColor
+import com.supernova.launcher.ui.theme.PaletteSourceMode
+import com.supernova.launcher.ui.theme.ThemeMode
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationStrategy
@@ -17,33 +38,72 @@ import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
 
-// A setting as it is stored: its key and, for a number, the range it is held
-// to on every read and write. It fills the LauncherPrefs field named after
-// the key ("grid_rows" is gridRows), and its default is that field's own.
-open class PrefSpec<T : Any> internal constructor(val key: Preferences.Key<T>) {
+// A setting as it is stored. It fills the LauncherPrefs field named after
+// its key ("grid_rows" is gridRows), and its default is that field's own.
+sealed class PrefSpec<T : Any> {
+
+    abstract val key: Preferences.Key<*>
 
     // The LauncherPrefs field this setting fills.
-    val field: String = key.name.split('_').let { words ->
-        words.first() + words.drop(1).joinToString("") { it.replaceFirstChar(Char::uppercaseChar) }
+    val field: String by lazy {
+        key.name.split('_').let { words ->
+            words.first() + words.drop(1).joinToString("") { it.replaceFirstChar(Char::uppercaseChar) }
+        }
     }
 
+    // The value held to its range, for a number that has one.
     open fun clamped(value: T): T = value
 
-    internal fun stored(values: Preferences): T? = values[key]?.let(::clamped)
+    // A value of the setting's own type, for LauncherPreferences.set.
+    internal abstract fun write(target: MutablePreferences, value: T)
+
+    // The value as the store holds it, for LauncherPrefs' serializer
+    // (PrefStoreFormat): null when nothing is stored.
+    internal abstract fun stored(values: Preferences): Any?
+
+    internal abstract fun store(target: MutablePreferences, raw: Any)
+}
+
+// A setting stored as what it is: a flag, a number, a string, a set of
+// strings.
+open class StoredPref<T : Any> internal constructor(override val key: Preferences.Key<T>) : PrefSpec<T>() {
+
+    override fun write(target: MutablePreferences, value: T) {
+        target[key] = clamped(value)
+    }
+
+    override fun stored(values: Preferences): Any? = values[key]?.let(::clamped)
 
     // From LauncherPrefs' own serializer, which hands every field over as
     // Any: a spec of the wrong type for its field fails PrefRegistryTest.
     @Suppress("UNCHECKED_CAST")
-    internal fun store(target: MutablePreferences, value: Any) {
-        target[key] = clamped(value as T)
-    }
+    override fun store(target: MutablePreferences, raw: Any) = write(target, raw as T)
 }
 
 private class RangedPref<T>(
     key: Preferences.Key<T>,
     private val range: ClosedRange<T>
-) : PrefSpec<T>(key) where T : Any, T : Comparable<T> {
+) : StoredPref<T>(key) where T : Any, T : Comparable<T> {
     override fun clamped(value: T): T = value.coerceIn(range)
+}
+
+// A setting that is one of an enum's values, stored as the value's name. The
+// name is turned back into the value by the enum's own serializer
+// (SettingEnumSerializer), the same way in the store and in a backup.
+class ChoicePref<E : Enum<E>> internal constructor(
+    override val key: Preferences.Key<String>,
+    val choices: List<E>
+) : PrefSpec<E>() {
+
+    override fun write(target: MutablePreferences, value: E) {
+        target[key] = value.name
+    }
+
+    override fun stored(values: Preferences): Any? = values[key]
+
+    override fun store(target: MutablePreferences, raw: Any) {
+        target[key] = raw as String
+    }
 }
 
 // Every setting, once. A new one is a field in LauncherPrefs (with its
@@ -70,15 +130,19 @@ object Pref {
     private val specs = mutableListOf<PrefSpec<*>>()
     val all: List<PrefSpec<*>> get() = specs
 
-    private fun <T : Any> add(spec: PrefSpec<T>): PrefSpec<T> = spec.also(specs::add)
+    private fun <T : Any> add(spec: StoredPref<T>): StoredPref<T> = spec.also(specs::add)
 
-    private fun bool(key: String) = add(PrefSpec(booleanPreferencesKey(key)))
-    private fun text(key: String) = add(PrefSpec(stringPreferencesKey(key)))
-    private fun textSet(key: String) = add(PrefSpec(stringSetPreferencesKey(key)))
-    private fun int(key: String) = add(PrefSpec(intPreferencesKey(key)))
+    private fun bool(key: String) = add(StoredPref(booleanPreferencesKey(key)))
+    private fun text(key: String) = add(StoredPref(stringPreferencesKey(key)))
+    private fun textSet(key: String) = add(StoredPref(stringSetPreferencesKey(key)))
+    private fun int(key: String) = add(StoredPref(intPreferencesKey(key)))
     private fun int(key: String, range: IntRange) = add(RangedPref(intPreferencesKey(key), range))
     private fun float(key: String, range: ClosedFloatingPointRange<Float>) =
         add(RangedPref(floatPreferencesKey(key), range))
+
+    // One of an enum's values, stored by name.
+    private fun <E : Enum<E>> choice(key: String, choices: List<E>) =
+        ChoicePref(stringPreferencesKey(key), choices).also(specs::add)
 
     val gridRows = int("grid_rows", 2..GridLimits.DESKTOP_BIG)
     val gridCols = int("grid_cols", 2..GridLimits.DESKTOP_BIG)
@@ -88,8 +152,8 @@ object Pref {
     val wallpaperScroll = bool("wallpaper_scroll")
     val wallpaperScrollMode = text("wallpaper_scroll_mode")
     val iconPack = text("icon_pack")
-    val scrollEffect = text("scroll_effect")
-    val iconShape = text("icon_shape")
+    val scrollEffect = choice("scroll_effect", ScrollEffect.entries)
+    val iconShape = choice("icon_shape", IconShape.entries)
     val iconShapeCustom = text("icon_shape_custom")
     val subgrid = bool("subgrid")
     val badges = bool("badges")
@@ -99,7 +163,7 @@ object Pref {
     val hiddenApps = textSet("hidden_apps")
     val gestureBindings = textSet("gesture_bindings")
     val drawerGroups = textSet("drawer_groups")
-    val pageIndicatorStyle = text("page_indicator_style")
+    val pageIndicatorStyle = choice("page_indicator_style", IndicatorStyle.entries)
     val pageIndicatorAutoHide = bool("page_indicator_auto_hide")
     val pageIndicatorColor = text("page_indicator_color")
     val infiniteScroll = bool("infinite_scroll")
@@ -109,7 +173,7 @@ object Pref {
     val desktopLocked = bool("desktop_locked")
     val dockEnabled = bool("dock_enabled")
     val dockPages = int("dock_pages", 1..PAGES_OR_ROWS_MAX)
-    val dockBgStyle = text("dock_bg_style")
+    val dockBgStyle = choice("dock_bg_style", DockBgStyle.entries)
     val dockBgOpacity = float("dock_bg_opacity", 0f..1f)
     val dockBgBehindNav = bool("dock_bg_behind_nav")
     val dockBgPadding = bool("dock_bg_padding")
@@ -118,15 +182,15 @@ object Pref {
     val widgetOverlap = bool("widget_overlap")
     val overlapWhenPlacing = bool("overlap_when_placing")
     val widgetPadding = int("widget_padding", 0..WIDGET_PADDING_MAX)
-    val drawerStyle = text("drawer_style")
+    val drawerStyle = choice("drawer_style", DrawerStyle.entries)
     val drawerColumns = int("drawer_columns", 0..GridLimits.DRAWER_COLUMNS_BIG)
     val drawerRows = int("drawer_rows", 0..GridLimits.DRAWER_ROWS_BIG)
     val drawerAutoKeyboard = bool("drawer_auto_keyboard")
     val drawerInfiniteScroll = bool("drawer_infinite_scroll")
-    val drawerPageEffect = text("drawer_page_effect")
-    val drawerTransition = text("drawer_transition")
-    val drawerTabBar = text("drawer_tab_bar")
-    val drawerTabStyle = text("drawer_tab_style")
+    val drawerPageEffect = choice("drawer_page_effect", ScrollEffect.entries)
+    val drawerTransition = choice("drawer_transition", DrawerTransition.entries)
+    val drawerTabBar = choice("drawer_tab_bar", DrawerTabBar.entries)
+    val drawerTabStyle = choice("drawer_tab_style", DrawerTabStyle.entries)
     val drawerTabsNoSwipe = bool("drawer_tabs_no_swipe")
     val drawerFrequentRow = bool("drawer_frequent_row")
     val drawerRememberPosition = bool("drawer_remember_position")
@@ -145,7 +209,7 @@ object Pref {
     val drawerScrubberColor = text("drawer_scrubber_color")
     val drawerActionButtons = text("drawer_action_buttons")
     val drawerIsolateTabs = bool("drawer_isolate_tabs")
-    val drawerSort = text("drawer_sort")
+    val drawerSort = choice("drawer_sort", DrawerSort.entries)
     val drawerWorkTab = bool("drawer_work_tab")
     val drawerDefaultTab = text("drawer_default_tab")
     val drawerHideAllTab = bool("drawer_hide_all_tab")
@@ -158,18 +222,18 @@ object Pref {
     val iconNormalize = bool("icon_normalize")
     val reshapeLegacy = text("reshape_legacy")
     val iconShadow = bool("icon_shadow")
-    val iconGlass = text("icon_glass")
+    val iconGlass = choice("icon_glass", IconGlass.entries)
     val iconSwipeIndicator = bool("icon_swipe_indicator")
     val themedIcons = bool("themed_icons")
     val themedIconsAutogen = bool("themed_icons_autogen")
-    val lockMethod = text("lock_method")
+    val lockMethod = choice("lock_method", LockMethod.entries)
     val badgeColor = text("badge_color")
-    val badgePosition = text("badge_position")
+    val badgePosition = choice("badge_position", BadgePosition.entries)
     val badgeScale = float("badge_scale", BADGE_SCALE_MIN..BADGE_SCALE_MAX)
     val badgeTextColor = text("badge_text_color")
     val badgeCornerRadius = int("badge_corner_radius", 0..BadgeLimits.CORNER_ROUND)
     val badgeOutline = bool("badge_outline")
-    val folderPreviewStyle = text("folder_preview_style")
+    val folderPreviewStyle = choice("folder_preview_style", FolderPreviewStyle.entries)
     val folderPrioritizeFirst = bool("folder_prioritize_first")
     val folderColumns = int("folder_columns", 0..GridLimits.FOLDER_COLUMNS_BIG)
     val folderSortAz = bool("folder_sort_az")
@@ -178,29 +242,29 @@ object Pref {
     val folderMatchDesktop = bool("folder_match_desktop")
     val folderShowName = bool("folder_show_name")
     val folderShowCount = bool("folder_show_count")
-    val folderMode = text("folder_mode")
+    val folderMode = choice("folder_mode", FolderMode.entries)
     val folderShadow = bool("folder_shadow")
-    val folderScroll = text("folder_scroll")
+    val folderScroll = choice("folder_scroll", FolderScroll.entries)
     val folderIconShape = text("folder_icon_shape")
     val folderIconOutline = bool("folder_icon_outline")
     val folderClipToBg = bool("folder_clip_to_bg")
     val folderMatchWindowColor = bool("folder_match_window_color")
     val folderPlateColor = text("folder_plate_color")
     val folderBadges = bool("folder_badges")
-    val themeMode = text("theme_mode")
+    val themeMode = choice("theme_mode", ThemeMode.entries)
     val themeScheduleStart = int("theme_schedule_start", 0..DAY_LAST_MINUTE)
     val themeScheduleEnd = int("theme_schedule_end", 0..DAY_LAST_MINUTE)
-    val accentColor = text("accent_color")
+    val accentColor = choice("accent_color", AccentColor.entries)
     val drawerBgColor = text("drawer_bg_color")
     val folderBgColor = text("folder_bg_color")
-    val paletteSource = text("palette_source")
+    val paletteSource = choice("palette_source", PaletteSourceMode.entries)
     val paletteSeed = text("palette_seed")
     val styleConfig = text("style_config")
     val widgetCornerRadius = int("widget_corner_radius", 0..WIDGET_RADIUS_MAX)
     val showScrims = bool("show_scrims")
     val wallpaperZoom = bool("wallpaper_zoom")
     val autoAddApps = bool("auto_add_apps")
-    val labelFont = text("label_font")
+    val labelFont = choice("label_font", LabelFont.entries)
     val labelSingleLine = bool("label_single_line")
     val dockInfiniteScroll = bool("dock_infinite_scroll")
     val dockMatchDesktop = bool("dock_match_desktop")
@@ -209,11 +273,11 @@ object Pref {
     val dockRememberPosition = bool("dock_remember_position")
     val dockPaddingH = int("dock_padding_h")
     val dockPaddingV = int("dock_padding_v")
-    val searchWebProvider = text("search_web_provider")
+    val searchWebProvider = choice("search_web_provider", WebProvider.entries)
     val searchContacts = bool("search_contacts")
     val searchShortcuts = bool("search_shortcuts")
     val searchFolders = bool("search_folders")
-    val searchWindowMode = text("search_window_mode")
+    val searchWindowMode = choice("search_window_mode", SearchWindowMode.entries)
     val searchAppsOneRow = bool("search_apps_one_row")
     val searchContactCards = bool("search_contact_cards")
     val searchCards = bool("search_cards")
@@ -233,16 +297,16 @@ object Pref {
     val popupCardBg = bool("popup_card_bg")
     val popupGroupShortcuts = bool("popup_group_shortcuts")
     val popupActionIcons = bool("popup_action_icons")
-    val popupStyle = text("popup_style")
+    val popupStyle = choice("popup_style", PopupMenuStyle.entries)
     val popupItemsHome = text("popup_items_home")
     val popupItemsDrawer = text("popup_items_drawer")
     val dropTargets = bool("drop_targets")
     val undoRemove = bool("undo_remove")
     val disableAnimations = bool("disable_animations")
-    val animationSpeed = text("animation_speed")
-    val launchAnimation = text("launch_animation")
+    val animationSpeed = choice("animation_speed", AnimationSpeed.entries)
+    val launchAnimation = choice("launch_animation", LaunchAnimation.entries)
     val hideStatusBar = bool("hide_status_bar")
-    val darkStatusIcons = text("dark_status_icons")
+    val darkStatusIcons = choice("dark_status_icons", StatusBarIcons.entries)
     val transparentNav = bool("transparent_nav")
     val iconWiggle = bool("icon_wiggle")
     val transparentStatus = bool("transparent_status")
@@ -297,10 +361,14 @@ object PrefStoreFormat {
 
         override fun decodeValue(): Any = checkNotNull(current)
 
-        // The one field type that isn't a primitive is a set of strings,
-        // which the store holds as it is.
+        // A set of strings is held by the store as it is. An enum is held
+        // as its name, which its own serializer reads back through
+        // decodeString.
         @Suppress("UNCHECKED_CAST")
-        override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T = decodeValue() as T
+        override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T {
+            val value = decodeValue()
+            return if (value is Set<*>) value as T else deserializer.deserialize(this)
+        }
     }
 
     private class Writer(private val target: MutablePreferences) : AbstractEncoder() {
@@ -322,8 +390,10 @@ object PrefStoreFormat {
             checkNotNull(spec).store(target, value)
         }
 
+        // As read: a set goes in whole, an enum through its serializer,
+        // which hands its name to encodeString.
         override fun <T> encodeSerializableValue(serializer: SerializationStrategy<T>, value: T) {
-            checkNotNull(spec).store(target, value as Any)
+            if (value is Set<*>) encodeValue(value) else serializer.serialize(this, value)
         }
     }
 }

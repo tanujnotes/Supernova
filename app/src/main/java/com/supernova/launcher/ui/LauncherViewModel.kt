@@ -96,6 +96,13 @@ class LauncherViewModel(
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
 
+    // What state holds until the first real one: not loaded, but with the
+    // settings as the process last read them rather than the defaults. A
+    // screen that took the default accent color from here drew itself, then
+    // found the real one and started over - on every cold start, and every
+    // time Settings opened.
+    private val placeholderState = LauncherUiState(prefs = preferences.latest ?: LauncherPrefs())
+
     val state = combine(
         repository.modelFlow,
         preferences.flow,
@@ -115,7 +122,7 @@ class LauncherViewModel(
             // nothing has been warmed; see the startup scan in init.
             iconsReady = generation > 0
         )
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, LauncherUiState())
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, placeholderState)
 
     // A setting's write: off the main thread, fire and forget. Every plain
     // setter below is one of these.
@@ -128,11 +135,11 @@ class LauncherViewModel(
     fun <T : Any> set(spec: PrefSpec<T>, value: T) = persist { preferences.set(spec, value) }
 
     private var appliedIconPack: String? = null
-    private var appliedIconShape: String? = null
+    private var appliedIconShape: IconShape? = null
     private var appliedIconShapeCustom: String? = null
     private var appliedReshape: com.supernova.launcher.data.ReshapeLegacy? = null
     private var appliedShadow: Boolean? = null
-    private var appliedGlass: String? = null
+    private var appliedGlass: com.supernova.launcher.data.IconGlass? = null
     // Themed-icon colors depend on the whole palette, so track a signature.
     private var appliedThemedSig: String? = null
     private var autoBackupWritten = false
@@ -199,14 +206,14 @@ class LauncherViewModel(
                     if (packChanged) catalog.applyIconPack(prefs.iconPack)
                     if (shapeChanged) {
                         catalog.applyIconShape(
-                            IconShape.fromName(prefs.iconShape),
+                            prefs.iconShape,
                             CustomShapeSpec.decode(prefs.iconShapeCustom)
                         )
                     }
                     if (normalizeChanged) catalog.applyReshapeLegacy(reshape)
                     if (shadowChanged) catalog.applyIconShadow(prefs.iconShadow)
                     if (glassChanged) {
-                        catalog.applyIconGlass(com.supernova.launcher.data.IconGlass.fromName(prefs.iconGlass))
+                        catalog.applyIconGlass(prefs.iconGlass)
                     }
                     if (resolutionChanged) catalog.applyIconResolution(resolution)
                     if (themedChanged) {
@@ -528,7 +535,7 @@ class LauncherViewModel(
         val app = getApplication<Application>()
         val palette = com.supernova.launcher.ui.theme.PaletteFactory.resolve(
             app,
-            com.supernova.launcher.ui.theme.PaletteSourceMode.fromName(prefs.paletteSource),
+            prefs.paletteSource,
             prefs.paletteSeed,
             fallbackSeed = app.getColor(com.supernova.launcher.R.color.accent)
         )
@@ -853,9 +860,9 @@ class LauncherViewModel(
     fun shortcutsFor(packageName: String, userSerial: Long): List<android.content.pm.ShortcutInfo> =
         catalog.shortcutsFor(packageName, userSerial)
 
-    fun setIconShape(shape: IconShape) = persist { preferences.set(Pref.iconShape, shape.name) }
+    fun setIconShape(shape: IconShape) = persist { preferences.set(Pref.iconShape, shape) }
 
-    fun setScrollEffect(effect: ScrollEffect) = persist { preferences.set(Pref.scrollEffect, effect.name) }
+    fun setScrollEffect(effect: ScrollEffect) = persist { preferences.set(Pref.scrollEffect, effect) }
 
     fun setAppHidden(app: LaunchableApp, hidden: Boolean) = persist { preferences.setAppHidden(hiddenKey(app), hidden) }
 
@@ -984,7 +991,7 @@ class LauncherViewModel(
     // labels, which left a renamed app filed under its old name - and out
     // of the A-Z rail's reach.
     private fun sortedApps(apps: List<LaunchableApp>): List<LaunchableApp> =
-        when (DrawerSort.fromName(state.value.prefs.drawerSort)) {
+        when (state.value.prefs.drawerSort) {
             DrawerSort.ALPHA -> byLabel(apps, descending = false)
             DrawerSort.ALPHA_REVERSE -> byLabel(apps, descending = true)
             DrawerSort.INSTALL_DATE -> apps.sortedByDescending { it.installTime }

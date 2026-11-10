@@ -15,6 +15,7 @@ import com.supernova.launcher.SupernovaAccessibilityService
 import com.supernova.launcher.SupernovaDeviceAdmin
 import com.supernova.launcher.data.LaunchTarget
 import com.supernova.launcher.data.LaunchableApp
+import com.supernova.launcher.data.LockMethod
 import com.supernova.launcher.data.Pref
 import com.supernova.launcher.gesture.Gesture
 import com.supernova.launcher.gesture.GestureAction
@@ -195,7 +196,7 @@ class ActionRunner(
     // Screen lock needs an accessibility service on API 28+; without it we
     // tell the user rather than silently doing nothing.
     private fun lockScreen(): Boolean {
-        if (viewModel.state.value.prefs.lockMethod == "DEVICE_ADMIN") {
+        if (viewModel.state.value.prefs.lockMethod == LockMethod.DEVICE_ADMIN) {
             // Selected but not yet granted: send the user to enable it.
             if (!SupernovaDeviceAdmin.lock(activity)) promptDeviceAdmin()
             return true

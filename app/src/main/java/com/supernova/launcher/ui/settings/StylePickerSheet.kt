@@ -65,9 +65,9 @@ object StylePickerSheet {
         dialog.setContentView(binding.root)
 
         val prefs = viewModel.state.value.prefs
-        val fallbackSeed = ThemeEngine.accentColor(context, AccentColor.fromName(prefs.accentColor))
+        val fallbackSeed = ThemeEngine.accentColor(context, prefs.accentColor)
         val palette = PaletteFactory.resolve(
-            context, PaletteSourceMode.fromName(prefs.paletteSource), prefs.paletteSeed, fallbackSeed
+            context, prefs.paletteSource, prefs.paletteSeed, fallbackSeed
         )
         val density = context.resources.displayMetrics.density
 

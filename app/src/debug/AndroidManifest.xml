@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- Runs LeakWatchSetup as the process starts. Debug builds only:
+             the leak detector is not in a release build at all. -->
+        <provider
+            android:name=".LeakWatchSetup"
+            android:authorities="${applicationId}.leak-watch-setup"
+            android:exported="false" />
+    </application>
+
+</manifest>

@@ -73,7 +73,7 @@ class ContactSearchProvider(
         return results
     }
 
-    private fun firstPhoneNumber(contactId: Long): String? = runCatching {
+    private fun firstPhoneNumber(contactId: Long): String? = runLogged("read contact number") {
         context.contentResolver.query(
             ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
             arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),

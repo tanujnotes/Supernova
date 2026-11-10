@@ -9,6 +9,7 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
+import android.view.ViewTreeObserver
 import android.widget.TextView
 import androidx.core.animation.doOnEnd
 import androidx.recyclerview.widget.RecyclerView
@@ -76,7 +77,11 @@ class FastScrollerView @JvmOverloads constructor(
         // The list fills after it has its size - the drawer submits its apps
         // as it opens - so its own layout changes miss that; every layout
         // pass catches it.
-        recycler.viewTreeObserver.addOnGlobalLayoutListener { updateThumb() }
+        val everyLayout = ViewTreeObserver.OnGlobalLayoutListener { updateThumb() }
+        watchTreeWhileInWindow(
+            add = { addOnGlobalLayoutListener(everyLayout) },
+            remove = { removeOnGlobalLayoutListener(everyLayout) }
+        )
     }
 
     fun setColors(thumb: Int, track: Int, bubbleText: Int) {

@@ -38,7 +38,7 @@ class ApplyIconPackActivity : AppCompatActivity() {
         // The accent overlay is what sets colorAccent, which the dialog's
         // colours resolve through: without it MaterialAlertDialogBuilder
         // found no theme colours and this screen crashed on open.
-        ThemeEngine.applyAccent(this, AccentColor.fromName(runBlocking { preferences.flow.first() }.accentColor))
+        ThemeEngine.applyAccent(this, runBlocking { preferences.flow.first() }.accentColor)
 
         val requested = requestedPack()
         if (requested == null) {

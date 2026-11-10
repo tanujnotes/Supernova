@@ -8,6 +8,7 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.net.Uri
 import android.util.Base64
+import com.supernova.launcher.runLogged
 import java.io.ByteArrayOutputStream
 
 // Turns a user-picked gallery image into the base64 PNG stored on an
@@ -70,7 +71,7 @@ object GalleryIconCodec {
         }
         val w = drawable.intrinsicWidth.takeIf { it > 0 } ?: ICON_SIZE
         val h = drawable.intrinsicHeight.takeIf { it > 0 } ?: ICON_SIZE
-        return runCatching {
+        return runLogged("encode picture") {
             val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bmp)
             drawable.setBounds(0, 0, w, h)
@@ -79,7 +80,7 @@ object GalleryIconCodec {
         }.getOrNull()
     }
 
-    fun decode(base64: String): Bitmap? = runCatching {
+    fun decode(base64: String): Bitmap? = runLogged("decode stored picture") {
         val bytes = Base64.decode(base64, Base64.DEFAULT)
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
     }.getOrNull()
@@ -113,7 +114,7 @@ object GalleryIconCodec {
     // a camera-sized image never materializes at full resolution just to
     // become a 192px icon, and in software memory, which the crop's canvas
     // needs to read it.
-    private fun decodeSampled(context: Context, uri: Uri): Bitmap? = runCatching {
+    private fun decodeSampled(context: Context, uri: Uri): Bitmap? = runLogged("read picked image") {
         val source = android.graphics.ImageDecoder.createSource(context.contentResolver, uri)
         android.graphics.ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
             val shortSide = minOf(info.size.width, info.size.height)

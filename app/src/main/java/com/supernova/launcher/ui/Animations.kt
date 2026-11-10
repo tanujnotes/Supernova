@@ -1,6 +1,7 @@
 package com.supernova.launcher.ui
 
 import com.supernova.launcher.data.LauncherPrefs
+import com.supernova.launcher.data.SettingEnumSerializer
 
 // Master animation switch. Every animation the launcher owns (launch reveal,
 // folder/popup transitions, drag fades, page effects, search fade, wallpaper
@@ -10,7 +11,7 @@ object Animations {
 
     // Duration multiplier for the launcher's own animations; 0 when disabled.
     fun factor(prefs: LauncherPrefs): Float =
-        if (!enabled(prefs)) 0f else AnimationSpeed.fromName(prefs.animationSpeed).factor
+        if (!enabled(prefs)) 0f else prefs.animationSpeed.factor
 
     // Scales a base duration by the animation-speed preference.
     fun duration(prefs: LauncherPrefs, baseMs: Long): Long =
@@ -19,20 +20,24 @@ object Animations {
 
 // Playback speed for launcher-owned animations. DEFAULT keeps the tuned
 // durations; the others scale them. "Disable animations" stays the on/off gate.
+@kotlinx.serialization.Serializable(with = AnimationSpeed.Names::class)
 enum class AnimationSpeed(val factor: Float) {
     SLOW(1.6f),
     DEFAULT(1.0f),
     FAST(0.6f),
     FASTER(0.35f);
 
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<AnimationSpeed>("AnimationSpeed", entries, DEFAULT)
+
     companion object {
-        fun fromName(name: String): AnimationSpeed =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: DEFAULT
+        fun fromName(name: String): AnimationSpeed = Names.parse(name)
     }
 }
 
 // App-launch transition styles (launchAnimation pref). LauncherActivity's
 // launchWithAnimation plays them; ADAPTIVE_ICON is the default.
+@kotlinx.serialization.Serializable(with = LaunchAnimation.Names::class)
 enum class LaunchAnimation {
     // Launcher3's own launch, the clip reveal from the icon: the same
     // launch as REVEAL.
@@ -56,9 +61,11 @@ enum class LaunchAnimation {
     // The app slides in from the right over the sinking launcher.
     SLIDE_LEFT;
 
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<LaunchAnimation>("LaunchAnimation", entries, ADAPTIVE_ICON)
+
     companion object {
-        fun fromName(name: String): LaunchAnimation =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: ADAPTIVE_ICON
+        fun fromName(name: String): LaunchAnimation = Names.parse(name)
     }
 }
 
@@ -66,28 +73,34 @@ enum class LaunchAnimation {
 // BottomSheetBehavior slide the drawer has always used; ZOOM and FADE park the
 // sheet at its open position and animate it in place, so nothing slides; a
 // swipe up opens them outright instead of pulling the sheet under the finger.
+@kotlinx.serialization.Serializable(with = DrawerTransition.Names::class)
 enum class DrawerTransition {
     SLIDE_UP,
     ZOOM,
     FADE;
 
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<DrawerTransition>("DrawerTransition", entries, SLIDE_UP)
+
     companion object {
-        fun fromName(name: String): DrawerTransition =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: SLIDE_UP
+        fun fromName(name: String): DrawerTransition = Names.parse(name)
     }
 }
 
 // Forced status-bar icon tint (darkStatusIcons pref). AUTO follows the theme
 // (light theme = dark icons); LIGHT forces APPEARANCE_LIGHT_STATUS_BARS on
 // (dark icons), DARK forces it off (light icons).
+@kotlinx.serialization.Serializable(with = StatusBarIcons.Names::class)
 enum class StatusBarIcons {
     AUTO,
     LIGHT,
     DARK;
 
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<StatusBarIcons>("StatusBarIcons", entries, AUTO)
+
     companion object {
-        fun fromName(name: String): StatusBarIcons =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: AUTO
+        fun fromName(name: String): StatusBarIcons = Names.parse(name)
     }
 }
 

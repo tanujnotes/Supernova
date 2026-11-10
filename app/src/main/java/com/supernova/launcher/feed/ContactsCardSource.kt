@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.provider.ContactsContract
+import com.supernova.launcher.runLogged
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -73,7 +74,7 @@ class ContactsCardSource(
         }
     }
 
-    private fun queryStarred(): List<Starred> = runCatching {
+    private fun queryStarred(): List<Starred> = runLogged("read starred contacts") {
         val projection = arrayOf(
             ContactsContract.Contacts._ID,
             ContactsContract.Contacts.LOOKUP_KEY,

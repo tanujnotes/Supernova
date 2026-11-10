@@ -11,6 +11,7 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.drawable.Drawable
+import com.supernova.launcher.data.SettingEnumSerializer
 import kotlin.math.min
 
 // How a badge renders, in three styles: Dots (Android 8 style, the
@@ -32,15 +33,18 @@ enum class BadgeStyle {
     }
 }
 
+@kotlinx.serialization.Serializable(with = BadgePosition.Names::class)
 enum class BadgePosition {
     TOP_RIGHT,
     TOP_LEFT,
     BOTTOM_RIGHT,
     BOTTOM_LEFT;
 
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<BadgePosition>("BadgePosition", entries, TOP_RIGHT)
+
     companion object {
-        fun fromName(name: String): BadgePosition =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: TOP_RIGHT
+        fun fromName(name: String): BadgePosition = Names.parse(name)
     }
 }
 

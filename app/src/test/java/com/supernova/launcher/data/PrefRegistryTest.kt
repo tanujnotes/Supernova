@@ -9,6 +9,10 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import com.supernova.launcher.ui.DrawerSort
+import com.supernova.launcher.ui.ScrollEffect
+import com.supernova.launcher.ui.theme.ThemeMode
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -52,17 +56,63 @@ class PrefRegistryTest {
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun <T : Any> MutablePreferences.putChanged(spec: PrefSpec<T>, defaults: Preferences) {
-        val changed: Any = when (val default = checkNotNull(defaults[spec.key]) { "${spec.field} wasn't written" }) {
-            is Boolean -> !default
-            is String -> default + "x"
-            is Set<*> -> setOf("x")
+    private fun MutablePreferences.putChanged(spec: PrefSpec<*>, defaults: Preferences) {
+        val default = checkNotNull(defaults[spec.key]) { "${spec.field} wasn't written" }
+        val changed: Any = when {
+            // Another of the enum's own names: one it doesn't know reads as the default.
+            spec is ChoicePref<*> -> spec.choices.map { it.name }.first { it != default }
+            default is Boolean -> !default
+            default is String -> default + "x"
+            default is Set<*> -> setOf("x")
             // A step up, or down from a default that sits at the top of its range.
-            is Int -> (spec as PrefSpec<Int>).clamped(default + 1).takeIf { it != default } ?: (default - 1)
-            is Float -> (spec as PrefSpec<Float>).clamped(default + 0.1f).takeIf { it != default } ?: (default - 0.1f)
+            default is Int -> (spec as PrefSpec<Int>).clamped(default + 1).takeIf { it != default } ?: (default - 1)
+            default is Float ->
+                (spec as PrefSpec<Float>).clamped(default + 0.1f).takeIf { it != default } ?: (default - 0.1f)
             else -> error("unexpected type for ${spec.field}")
         }
-        this[spec.key] = changed as T
+        this[spec.key as Preferences.Key<Any>] = changed
+    }
+
+    // An enum setting is stored and backed up as its name, as it was while
+    // the field was a string: what an earlier version wrote reads the same.
+    @Test
+    fun `an enum setting is its name in the store, read back in any case`() {
+        val stored = mutablePreferencesOf(Pref.scrollEffect.key to "cube", Pref.iconShape.key to "NOT_A_SHAPE")
+        val read = LauncherPreferences.decode(stored)
+        assertEquals(ScrollEffect.CUBE, read.scrollEffect)
+        assertEquals("a name this build doesn't know is the default", LauncherPrefs().iconShape, read.iconShape)
+
+        val written = mutablePreferencesOf()
+        LauncherPreferences.writeAll(written, LauncherPrefs(scrollEffect = ScrollEffect.CUBE))
+        assertEquals("CUBE", written[Pref.scrollEffect.key])
+    }
+
+    @Test
+    fun `a backup holds enum settings by name and restores one it doesn't know as the default`() {
+        val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+        val encoded = json.encodeToString(LauncherPrefs.serializer(), LauncherPrefs(drawerSort = DrawerSort.MOST_USED))
+        assertTrue(encoded, "\"drawerSort\":\"MOST_USED\"" in encoded)
+        assertTrue(encoded, "\"lockMethod\":\"ACCESSIBILITY\"" in encoded)
+
+        val old = """
+            {"scrollEffect":"CUBE","themeMode":"dark","accentColor":"FROM_THE_FUTURE","lockMethod":"DEVICE_ADMIN"}
+        """
+        val restored = json.decodeFromString(LauncherPrefs.serializer(), old)
+        assertEquals(ScrollEffect.CUBE, restored.scrollEffect)
+        assertEquals(ThemeMode.DARK, restored.themeMode)
+        assertEquals(LauncherPrefs().accentColor, restored.accentColor)
+        assertEquals(LockMethod.DEVICE_ADMIN, restored.lockMethod)
+    }
+
+    @Test
+    fun `every name an earlier version stored for an enum setting is still that value`() {
+        val current = Pref.all.filterIsInstance<ChoicePref<*>>()
+            .associate { spec -> spec.key.name to spec.choices.map { it.name }.toSet() }
+        NAMES_STORED_BY_0_1_8.trim().split(Regex("\\s+")).forEach { entry ->
+            val (key, names) = entry.split(':')
+            val known = checkNotNull(current[key]) { "$key is no longer an enum setting" }
+            names.split(',').forEach { assertTrue("$key lost the value $it", it in known) }
+        }
     }
 
     @Test
@@ -116,6 +166,41 @@ class PrefRegistryTest {
     }
 
     private companion object {
+        // key:NAME,NAME for each enum setting (a long one over several
+        // entries). A constant renamed or removed turns the setting of
+        // everyone who chose it back to the default.
+        const val NAMES_STORED_BY_0_1_8 = """
+        scroll_effect:NONE,SIMPLE,ZOOM,ACCORDION,FLIP,DEPTH,CUBE,CARD_STACK,TABLET,REVOLVING_DOOR
+        scroll_effect:FLIP_VERTICAL,IN_AND_OUT,GLASS,WIPE,ZOOM_FADE,THROW
+        icon_shape:SYSTEM,CIRCLE,SQUIRCLE,ROUNDED_SQUARE,SQUARE,TEARDROP,HEXAGON,PEBBLE,VESSEL
+        icon_shape:PENTAGON,HEXAGON_ROUNDED,HEPTAGON,OCTAGON,CROP,FLOWER,PLATFORM,CUSTOM
+        page_indicator_style:NONE,DOTS,CIRCLE,LINE
+        dock_bg_style:NONE,PILL,ROUNDED,SQUARE
+        drawer_style:VERTICAL_GRID,PAGED_GRID,VERTICAL_LIST
+        drawer_page_effect:NONE,SIMPLE,ZOOM,ACCORDION,FLIP,DEPTH,CUBE,CARD_STACK,TABLET
+        drawer_page_effect:REVOLVING_DOOR,FLIP_VERTICAL,IN_AND_OUT,GLASS,WIPE,ZOOM_FADE,THROW
+        drawer_transition:SLIDE_UP,ZOOM,FADE
+        drawer_tab_bar:TOP,BOTTOM,NONE
+        drawer_tab_style:CLASSIC,BUBBLE
+        drawer_sort:ALPHA,ALPHA_REVERSE,INSTALL_DATE,MOST_USED
+        icon_glass:OFF,FROSTED,CLEAR,SMOKED
+        lock_method:ACCESSIBILITY,DEVICE_ADMIN
+        badge_position:TOP_RIGHT,TOP_LEFT,BOTTOM_RIGHT,BOTTOM_LEFT
+        folder_preview_style:GRID,STACK,FAN,LINE,RADIAL,RADIAL_DENSE,GRID_3X3
+        folder_mode:WINDOW,IMMERSIVE
+        folder_scroll:VERTICAL,HORIZONTAL
+        theme_mode:SYSTEM,LIGHT,DARK,AUTO,SCHEDULE
+        accent_color:BLUE,INDIGO,PURPLE,PINK,RED,ORANGE,AMBER,GREEN,TEAL,CYAN
+        palette_source:SYSTEM,WALLPAPER,CUSTOM
+        label_font:DEFAULT,CONDENSED,SERIF,MONOSPACE
+        search_web_provider:GOOGLE,DUCKDUCKGO,BRAVE,BING
+        search_window_mode:IMMERSIVE,WINDOW
+        popup_style:BLOCK,PILLS,ANDROID12
+        animation_speed:SLOW,DEFAULT,FAST,FASTER
+        launch_animation:SYSTEM,CIRCLE,ADAPTIVE_ICON,REVEAL,SLIDE_UP,ZOOM,BLINK,SLIDE_LEFT
+        dark_status_icons:AUTO,LIGHT,DARK
+"""
+
         // name:type, B Boolean, S String, I Int, F Float, L set of strings.
         const val STORED_BY_0_1_8 = """
         grid_rows:I grid_cols:I dock_count:I icon_scale:F show_labels:B wallpaper_scroll:B

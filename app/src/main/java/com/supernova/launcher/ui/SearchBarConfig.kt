@@ -1,5 +1,6 @@
 package com.supernova.launcher.ui
 
+import com.supernova.launcher.runLogged
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -132,6 +133,8 @@ data class SearchBarConfig(
 
         fun decode(raw: String): SearchBarConfig =
             if (raw.isBlank()) DEFAULT
-            else runCatching { json.decodeFromString(serializer(), raw) }.getOrDefault(DEFAULT)
+            else runLogged("read search bar settings") {
+                json.decodeFromString(serializer(), raw)
+            }.getOrDefault(DEFAULT)
     }
 }

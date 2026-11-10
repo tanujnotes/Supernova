@@ -110,7 +110,7 @@ class CalendarCardSource(
     private fun queryUpcoming(): List<Event> {
         val now = System.currentTimeMillis()
         val end = now + WINDOW_MS
-        return runCatching {
+        return runLogged("read calendar events") {
             val projection = arrayOf(
                 CalendarContract.Instances.EVENT_ID,
                 CalendarContract.Instances.TITLE,

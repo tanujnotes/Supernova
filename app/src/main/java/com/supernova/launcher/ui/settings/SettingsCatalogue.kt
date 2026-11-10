@@ -7,7 +7,9 @@ import com.supernova.launcher.SupernovaApp
 import com.supernova.launcher.data.IconGlass
 import com.supernova.launcher.data.IconShape
 import com.supernova.launcher.data.LauncherPrefs
+import com.supernova.launcher.data.LockMethod
 import com.supernova.launcher.data.Pref
+import com.supernova.launcher.data.SearchWindowMode
 import com.supernova.launcher.runLogged
 import kotlin.math.roundToInt
 import com.supernova.launcher.ui.BadgePosition
@@ -278,10 +280,10 @@ object SettingsCatalogue {
                     size = { it.labelSize },
                     setSize = { viewModel.set(Pref.labelSize, it) },
                     sizeDisplay = { context.getString(R.string.label_size_value, it) },
-                    font = { context.getString(EnumLabels.of(LabelFont.fromName(it.labelFont))) },
+                    font = { context.getString(EnumLabels.of(it.labelFont)) },
                     pickFont = {
-                        rows.fontPick(LabelFont.fromName(viewModel.state.value.prefs.labelFont)) {
-                            viewModel.set(Pref.labelFont, it.name)
+                        rows.fontPick(viewModel.state.value.prefs.labelFont) {
+                            viewModel.set(Pref.labelFont, it)
                         }
                     },
                     shadow = { it.labelShadow },
@@ -323,12 +325,12 @@ object SettingsCatalogue {
                 SettingItem.Header(R.string.group_animations),
                 rows.choice(
                     R.string.scroll_effect, ScrollEffect.entries,
-                    { ScrollEffect.fromName(it.scrollEffect) }, { EnumLabels.of(it) }
+                    { it.scrollEffect }, { EnumLabels.of(it) }
                 ) { viewModel.setScrollEffect(it) },
                 rows.choice(
                     R.string.launch_animation, LaunchAnimation.entries,
-                    { LaunchAnimation.fromName(it.launchAnimation) }, { EnumLabels.of(it) },
-                    onPick = { viewModel.set(Pref.launchAnimation, it.name) }
+                    { it.launchAnimation }, { EnumLabels.of(it) },
+                    onPick = { viewModel.set(Pref.launchAnimation, it) }
                 ),
                 SettingItem.Toggle(
                     R.string.disable_animations,
@@ -342,9 +344,9 @@ object SettingsCatalogue {
                 ),
                 rows.choice(
                     R.string.animation_speed, com.supernova.launcher.ui.AnimationSpeed.entries,
-                    { com.supernova.launcher.ui.AnimationSpeed.fromName(it.animationSpeed) }, { EnumLabels.of(it) },
+                    { it.animationSpeed }, { EnumLabels.of(it) },
                     visibleIf = { !it.disableAnimations }
-                ) { viewModel.set(Pref.animationSpeed, it.name) },
+                ) { viewModel.set(Pref.animationSpeed, it) },
                 SettingItem.Toggle(
                     R.string.undo_remove,
                     get = { it.undoRemove },
@@ -359,9 +361,9 @@ object SettingsCatalogue {
                 ),
                 rows.choice(
                     R.string.status_bar_icons, StatusBarIcons.entries,
-                    { StatusBarIcons.fromName(it.darkStatusIcons) }, { EnumLabels.of(it) },
+                    { it.darkStatusIcons }, { EnumLabels.of(it) },
                     visibleIf = { !it.hideStatusBar }
-                ) { viewModel.set(Pref.darkStatusIcons, it.name) },
+                ) { viewModel.set(Pref.darkStatusIcons, it) },
                 SettingItem.Toggle(
                     R.string.transparent_status,
                     get = { it.transparentStatus },
@@ -379,18 +381,18 @@ object SettingsCatalogue {
                 SettingItem.Header(R.string.group_pages),
                 rows.choice(
                     R.string.page_indicator, IndicatorStyle.entries,
-                    { IndicatorStyle.fromName(it.pageIndicatorStyle) }, { EnumLabels.of(it) }
-                ) { viewModel.set(Pref.pageIndicatorStyle, it.name) },
+                    { it.pageIndicatorStyle }, { EnumLabels.of(it) }
+                ) { viewModel.set(Pref.pageIndicatorStyle, it) },
                 // Default follows the labels' color.
                 rows.color(
                     R.string.page_indicator_color, { it.pageIndicatorColor },
-                    visibleIf = { IndicatorStyle.fromName(it.pageIndicatorStyle) != IndicatorStyle.NONE }
+                    visibleIf = { it.pageIndicatorStyle != IndicatorStyle.NONE }
                 ) { viewModel.set(Pref.pageIndicatorColor, it) },
                 SettingItem.Toggle(
                     R.string.page_indicator_auto_hide,
                     get = { it.pageIndicatorAutoHide },
                     set = { viewModel.set(Pref.pageIndicatorAutoHide, it) },
-                    visibleIf = { IndicatorStyle.fromName(it.pageIndicatorStyle) != IndicatorStyle.NONE },
+                    visibleIf = { it.pageIndicatorStyle != IndicatorStyle.NONE },
                     subtitle = R.string.page_indicator_auto_hide_summary
                 ),
                 SettingItem.Toggle(
@@ -480,9 +482,9 @@ object SettingsCatalogue {
                 ),
                 rows.choice(
                     R.string.dock_bg_style, DockBgStyle.entries,
-                    { DockBgStyle.fromName(it.dockBgStyle) }, { EnumLabels.of(it) },
+                    { it.dockBgStyle }, { EnumLabels.of(it) },
                     visibleIf = { it.dockEnabled }
-                ) { viewModel.set(Pref.dockBgStyle, it.name) },
+                ) { viewModel.set(Pref.dockBgStyle, it) },
                 SettingItem.Slider(
                     R.string.dock_bg_opacity,
                     min = 0, max = 100,
@@ -491,13 +493,13 @@ object SettingsCatalogue {
                     set = { viewModel.set(Pref.dockBgOpacity, it / 100f) },
                     display = { context.getString(R.string.opacity_percent, it) },
                     preview = { p, v -> p.copy(dockBgOpacity = v / 100f) },
-                    visibleIf = { it.dockEnabled && DockBgStyle.fromName(it.dockBgStyle) != DockBgStyle.NONE }
+                    visibleIf = { it.dockEnabled && it.dockBgStyle != DockBgStyle.NONE }
                 ),
                 SettingItem.Toggle(
                     R.string.dock_bg_behind_nav,
                     get = { it.dockBgBehindNav },
                     set = { viewModel.set(Pref.dockBgBehindNav, it) },
-                    visibleIf = { it.dockEnabled && DockBgStyle.fromName(it.dockBgStyle) != DockBgStyle.NONE }
+                    visibleIf = { it.dockEnabled && it.dockBgStyle != DockBgStyle.NONE }
                 ),
                 SettingItem.Toggle(
                     R.string.dock_bg_padding,
@@ -507,7 +509,7 @@ object SettingsCatalogue {
                     // inset choice only means something without it.
                     visibleIf = {
                         it.dockEnabled && !it.dockBgBehindNav &&
-                            DockBgStyle.fromName(it.dockBgStyle) != DockBgStyle.NONE
+                            it.dockBgStyle != DockBgStyle.NONE
                     }
                 ),
                 SettingItem.Toggle(
@@ -589,16 +591,16 @@ object SettingsCatalogue {
                 SettingItem.Preview(PreviewKind.DRAWER),
                 rows.choice(
                     R.string.drawer_style, DrawerStyle.entries,
-                    { DrawerStyle.fromName(it.drawerStyle) }, { EnumLabels.of(it) }
-                ) { viewModel.set(Pref.drawerStyle, it.name) },
+                    { it.drawerStyle }, { EnumLabels.of(it) }
+                ) { viewModel.set(Pref.drawerStyle, it) },
                 rows.choice(
                     R.string.drawer_sort, DrawerSort.entries,
-                    { DrawerSort.fromName(it.drawerSort) }, { EnumLabels.of(it) }
-                ) { viewModel.set(Pref.drawerSort, it.name) },
+                    { it.drawerSort }, { EnumLabels.of(it) }
+                ) { viewModel.set(Pref.drawerSort, it) },
                 rows.choice(
                     R.string.drawer_transition, com.supernova.launcher.ui.DrawerTransition.entries,
-                    { com.supernova.launcher.ui.DrawerTransition.fromName(it.drawerTransition) }, { EnumLabels.of(it) }
-                ) { viewModel.set(Pref.drawerTransition, it.name) },
+                    { it.drawerTransition }, { EnumLabels.of(it) }
+                ) { viewModel.set(Pref.drawerTransition, it) },
                 SettingItem.Row(
                     R.string.drawer_grid,
                     subtitle = { prefs ->
@@ -610,7 +612,7 @@ object SettingsCatalogue {
                         )
                     },
                     onClick = actions.pickDrawerGrid,
-                    visibleIf = { DrawerStyle.fromName(it.drawerStyle) != DrawerStyle.VERTICAL_LIST }
+                    visibleIf = { it.drawerStyle != DrawerStyle.VERTICAL_LIST }
                 ),
                 SettingItem.Toggle(
                     R.string.drawer_auto_keyboard,
@@ -636,12 +638,12 @@ object SettingsCatalogue {
                 ),
                 rows.choice(
                     R.string.drawer_tab_bar, DrawerTabBar.entries,
-                    { DrawerTabBar.fromName(it.drawerTabBar) }, { EnumLabels.of(it) },
+                    { it.drawerTabBar }, { EnumLabels.of(it) },
                     // Always listed, as the bar's place can be set before any
                     // tab exists; until one does, the row says where tabs
                     // come from.
                     subtitle = { prefs ->
-                        val bar = DrawerTabBar.fromName(prefs.drawerTabBar)
+                        val bar = prefs.drawerTabBar
                         when {
                             viewModel.drawerTabGroups().isEmpty() && !viewModel.hasWorkApps() -> context.getString(
                                 R.string.drawer_tab_bar_no_tabs, context.getString(EnumLabels.of(bar))
@@ -650,15 +652,15 @@ object SettingsCatalogue {
                             else -> context.getString(EnumLabels.of(bar))
                         }
                     }
-                ) { viewModel.set(Pref.drawerTabBar, it.name) },
+                ) { viewModel.set(Pref.drawerTabBar, it) },
                 rows.choice(
                     R.string.drawer_tab_style, DrawerTabStyle.entries,
-                    { DrawerTabStyle.fromName(it.drawerTabStyle) }, { EnumLabels.of(it) },
+                    { it.drawerTabStyle }, { EnumLabels.of(it) },
                     visibleIf = {
                         (viewModel.drawerTabGroups().isNotEmpty() || viewModel.hasWorkApps()) &&
-                            DrawerTabBar.fromName(it.drawerTabBar) != DrawerTabBar.NONE
+                            it.drawerTabBar != DrawerTabBar.NONE
                     }
-                ) { viewModel.set(Pref.drawerTabStyle, it.name) },
+                ) { viewModel.set(Pref.drawerTabStyle, it) },
                 SettingItem.Toggle(
                     R.string.drawer_frequent_row,
                     get = { it.drawerFrequentRow },
@@ -669,13 +671,13 @@ object SettingsCatalogue {
                     R.string.drawer_infinite_scroll,
                     get = { it.drawerInfiniteScroll },
                     set = { viewModel.set(Pref.drawerInfiniteScroll, it) },
-                    visibleIf = { DrawerStyle.fromName(it.drawerStyle) == DrawerStyle.PAGED_GRID }
+                    visibleIf = { it.drawerStyle == DrawerStyle.PAGED_GRID }
                 ),
                 rows.choice(
                     R.string.drawer_page_effect, ScrollEffect.entries,
-                    { ScrollEffect.fromName(it.drawerPageEffect) }, { EnumLabels.of(it) },
-                    visibleIf = { DrawerStyle.fromName(it.drawerStyle) == DrawerStyle.PAGED_GRID }
-                ) { viewModel.set(Pref.drawerPageEffect, it.name) },
+                    { it.drawerPageEffect }, { EnumLabels.of(it) },
+                    visibleIf = { it.drawerStyle == DrawerStyle.PAGED_GRID }
+                ) { viewModel.set(Pref.drawerPageEffect, it) },
                 SettingItem.Accordion(R.string.advanced),
                 SettingItem.Toggle(
                     R.string.drawer_remember_position,
@@ -716,7 +718,7 @@ object SettingsCatalogue {
                     R.string.drawer_labels,
                     get = { it.drawerLabels },
                     set = { viewModel.set(Pref.drawerLabels, it) },
-                    visibleIf = { DrawerStyle.fromName(it.drawerStyle) != DrawerStyle.VERTICAL_LIST }
+                    visibleIf = { it.drawerStyle != DrawerStyle.VERTICAL_LIST }
                 ),
                 *labelOverrideItems(context, viewModel, actions, LabelContext.DRAWER) {
                     it.drawerLabels
@@ -725,7 +727,7 @@ object SettingsCatalogue {
                     R.string.drawer_fast_scroller,
                     get = { it.drawerFastScroller },
                     set = { viewModel.set(Pref.drawerFastScroller, it) },
-                    visibleIf = { DrawerStyle.fromName(it.drawerStyle) != DrawerStyle.PAGED_GRID }
+                    visibleIf = { it.drawerStyle != DrawerStyle.PAGED_GRID }
                 ),
                 SettingItem.Toggle(
                     R.string.drawer_pull_to_search,
@@ -805,8 +807,8 @@ object SettingsCatalogue {
                 SettingItem.Header(R.string.group_providers),
                 rows.choiceText(
                     R.string.search_web_provider, WebProvider.entries,
-                    { WebProvider.fromName(it.searchWebProvider) }, { it.displayName }
-                ) { viewModel.set(Pref.searchWebProvider, it.name) },
+                    { it.searchWebProvider }, { it.displayName }
+                ) { viewModel.set(Pref.searchWebProvider, it) },
                 SettingItem.Toggle(
                     R.string.search_contacts,
                     get = { it.searchContacts },
@@ -826,9 +828,15 @@ object SettingsCatalogue {
                     set = { viewModel.set(Pref.searchFolders, it) }
                 ),
                 rows.choice(
-                    R.string.search_window_mode, listOf("IMMERSIVE", "WINDOW"),
-                    { if (it.searchWindowMode.equals("WINDOW", ignoreCase = true)) "WINDOW" else "IMMERSIVE" },
-                    { if (it == "WINDOW") R.string.search_window_window else R.string.search_window_immersive }
+                    R.string.search_window_mode, SearchWindowMode.entries,
+                    { it.searchWindowMode },
+                    {
+                        if (it == SearchWindowMode.WINDOW) {
+                            R.string.search_window_window
+                        } else {
+                            R.string.search_window_immersive
+                        }
+                    }
                 ) { viewModel.set(Pref.searchWindowMode, it) },
                 SettingItem.Toggle(
                     R.string.search_apps_one_row,
@@ -1212,8 +1220,8 @@ object SettingsCatalogue {
                 SettingItem.Preview(PreviewKind.FOLDER),
                 rows.choice(
                     R.string.folder_preview_style, FolderPreviewStyle.entries,
-                    { FolderPreviewStyle.fromName(it.folderPreviewStyle) }, { EnumLabels.of(it) },
-                    onPick = { viewModel.set(Pref.folderPreviewStyle, it.name) }
+                    { it.folderPreviewStyle }, { EnumLabels.of(it) },
+                    onPick = { viewModel.set(Pref.folderPreviewStyle, it) }
                 ),
                 SettingItem.Toggle(
                     R.string.folder_prioritize_first,
@@ -1303,8 +1311,8 @@ object SettingsCatalogue {
                 ),
                 rows.choice(
                     R.string.folder_mode, FolderMode.entries,
-                    { FolderMode.fromName(it.folderMode) }, { EnumLabels.of(it) }
-                ) { viewModel.set(Pref.folderMode, it.name) },
+                    { it.folderMode }, { EnumLabels.of(it) }
+                ) { viewModel.set(Pref.folderMode, it) },
                 SettingItem.Toggle(
                     R.string.folder_shadow,
                     get = { it.folderShadow },
@@ -1312,8 +1320,8 @@ object SettingsCatalogue {
                 ),
                 rows.choice(
                     R.string.folder_scroll, FolderScroll.entries,
-                    { FolderScroll.fromName(it.folderScroll) }, { EnumLabels.of(it) }
-                ) { viewModel.set(Pref.folderScroll, it.name) },
+                    { it.folderScroll }, { EnumLabels.of(it) }
+                ) { viewModel.set(Pref.folderScroll, it) },
                 SettingItem.Row(
                     R.string.folder_icon_appearance,
                     onClick = actions.editFolderIcon
@@ -1378,13 +1386,13 @@ object SettingsCatalogue {
                 ),
                 SettingItem.Row(
                     R.string.icon_shape,
-                    subtitle = { context.getString(EnumLabels.of(IconShape.fromName(it.iconShape))) },
+                    subtitle = { context.getString(EnumLabels.of(it.iconShape)) },
                     onClick = actions.pickIconShape
                 ),
                 rows.choice(
                     R.string.icon_glass, com.supernova.launcher.data.IconGlass.entries,
-                    { com.supernova.launcher.data.IconGlass.fromName(it.iconGlass) }, { EnumLabels.of(it) },
-                    onPick = { viewModel.set(Pref.iconGlass, it.name) }
+                    { it.iconGlass }, { EnumLabels.of(it) },
+                    onPick = { viewModel.set(Pref.iconGlass, it) }
                 ),
                 // Bulk undo for per-app and per-folder icon picks.
                 SettingItem.Row(
@@ -1467,9 +1475,9 @@ object SettingsCatalogue {
                 ),
                 rows.choice(
                     R.string.badge_position, BadgePosition.entries,
-                    { BadgePosition.fromName(it.badgePosition) }, { EnumLabels.of(it) },
+                    { it.badgePosition }, { EnumLabels.of(it) },
                     visibleIf = { it.badges }
-                ) { viewModel.set(Pref.badgePosition, it.name) },
+                ) { viewModel.set(Pref.badgePosition, it) },
                 SettingItem.Slider(
                     R.string.badge_size,
                     min = 60, max = 160,
@@ -1512,20 +1520,20 @@ object SettingsCatalogue {
                     // Grouping draws the shortcuts on tiles of their own.
                     visibleIf = {
                         !it.popupGroupShortcuts ||
-                            !com.supernova.launcher.ui.PopupMenuStyle.fromName(it.popupStyle).canGroup
+                            !it.popupStyle.canGroup
                     }
                 ),
                 SettingItem.Toggle(
                     R.string.popup_group_shortcuts,
                     get = { it.popupGroupShortcuts },
                     set = { viewModel.set(Pref.popupGroupShortcuts, it) },
-                    visibleIf = { com.supernova.launcher.ui.PopupMenuStyle.fromName(it.popupStyle).canGroup },
+                    visibleIf = { it.popupStyle.canGroup },
                     subtitle = R.string.popup_group_shortcuts_summary
                 ),
                 rows.choice(
                     R.string.popup_style, com.supernova.launcher.ui.PopupMenuStyle.entries,
-                    { com.supernova.launcher.ui.PopupMenuStyle.fromName(it.popupStyle) }, { EnumLabels.of(it) },
-                    onPick = { viewModel.set(Pref.popupStyle, it.name) }
+                    { it.popupStyle }, { EnumLabels.of(it) },
+                    onPick = { viewModel.set(Pref.popupStyle, it) }
                 )
             )
         ),
@@ -1566,7 +1574,7 @@ object SettingsCatalogue {
                     R.string.lock_method,
                     subtitle = {
                         context.getString(
-                            if (it.lockMethod == "DEVICE_ADMIN")
+                            if (it.lockMethod == LockMethod.DEVICE_ADMIN)
                                 R.string.lock_method_device_admin
                             else R.string.lock_method_accessibility
                         )
@@ -1706,15 +1714,15 @@ object SettingsCatalogue {
             SettingItem.Row(
                 R.string.color_palette,
                 subtitle = {
-                    context.getString(EnumLabels.of(PaletteSourceMode.fromName(it.paletteSource)))
+                    context.getString(EnumLabels.of(it.paletteSource))
                 },
                 onClick = actions.openPaletteDialog,
                 look = SettingItem.RowLook(R.drawable.ic_tab_style)
             ),
             rows.choice(
                 R.string.theme_mode, ThemeMode.entries,
-                { ThemeMode.fromName(it.themeMode) }, { EnumLabels.of(it) }
-            ) { viewModel.set(Pref.themeMode, it.name) }.withLook(SettingItem.RowLook(R.drawable.ic_style_theme)),
+                { it.themeMode }, { EnumLabels.of(it) }
+            ) { viewModel.set(Pref.themeMode, it) }.withLook(SettingItem.RowLook(R.drawable.ic_style_theme)),
             SettingItem.Row(
                 R.string.theme_schedule_times,
                 subtitle = {
@@ -1724,16 +1732,16 @@ object SettingsCatalogue {
                     )
                 },
                 onClick = actions.editThemeSchedule,
-                visibleIf = { ThemeMode.fromName(it.themeMode) == ThemeMode.SCHEDULE },
+                visibleIf = { it.themeMode == ThemeMode.SCHEDULE },
                 look = SettingItem.RowLook(R.drawable.ic_style_schedule)
             ),
             rows.choice(
                 R.string.accent_color, AccentColor.entries,
-                { AccentColor.fromName(it.accentColor) }, { EnumLabels.of(it) },
-                onPick = { viewModel.set(Pref.accentColor, it.name) }
+                { it.accentColor }, { EnumLabels.of(it) },
+                onPick = { viewModel.set(Pref.accentColor, it) }
             ).withLook(
                 SettingItem.RowLook(R.drawable.ic_style_accent, swatch = {
-                    context.getColor(AccentColor.fromName(it.accentColor).colorRes)
+                    context.getColor(it.accentColor.colorRes)
                 })
             ),
             SettingItem.Header(R.string.style_group_surfaces),
@@ -1785,7 +1793,7 @@ object SettingsCatalogue {
                     viewModel.updateLabelOverride(labelContext) {
                         if (on) {
                             val p = viewModel.state.value.prefs
-                            LabelOverride(p.labelSize, p.labelFont, p.labelShadow, p.labelSingleLine)
+                            LabelOverride(p.labelSize, p.labelFont.name, p.labelShadow, p.labelSingleLine)
                         } else {
                             LabelOverride()
                         }
@@ -1804,11 +1812,11 @@ object SettingsCatalogue {
             SettingItem.Row(
                 R.string.label_font,
                 subtitle = {
-                    context.getString(EnumLabels.of(LabelFont.fromName(override(it).font ?: it.labelFont)))
+                    context.getString(EnumLabels.of(override(it).font?.let(LabelFont::fromName) ?: it.labelFont))
                 },
                 onClick = {
                     val prefs = viewModel.state.value.prefs
-                    rows.fontPick(LabelFont.fromName(override(prefs).font ?: prefs.labelFont)) { font ->
+                    rows.fontPick(override(prefs).font?.let(LabelFont::fromName) ?: prefs.labelFont) { font ->
                         viewModel.updateLabelOverride(labelContext) { it.copy(font = font.name) }
                     }
                 },

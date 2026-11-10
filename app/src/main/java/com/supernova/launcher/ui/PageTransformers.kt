@@ -2,9 +2,11 @@ package com.supernova.launcher.ui
 
 import android.view.View
 import androidx.viewpager2.widget.ViewPager2
+import com.supernova.launcher.data.SettingEnumSerializer
 import kotlin.math.abs
 import kotlin.math.max
 
+@kotlinx.serialization.Serializable(with = ScrollEffect.Names::class)
 enum class ScrollEffect {
     NONE,
     SIMPLE,
@@ -23,9 +25,11 @@ enum class ScrollEffect {
     ZOOM_FADE,
     THROW;
 
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<ScrollEffect>("ScrollEffect", entries, NONE)
+
     companion object {
-        fun fromName(name: String): ScrollEffect =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: NONE
+        fun fromName(name: String): ScrollEffect = Names.parse(name)
     }
 }
 

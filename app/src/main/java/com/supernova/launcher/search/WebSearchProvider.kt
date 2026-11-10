@@ -1,9 +1,11 @@
 package com.supernova.launcher.search
 
+import com.supernova.launcher.data.SettingEnumSerializer
 import java.net.URLEncoder
 
 // The user's configured web search engine. Display names are brand names and
 // deliberately not translated.
+@kotlinx.serialization.Serializable(with = WebProvider.Names::class)
 enum class WebProvider(val displayName: String) {
     GOOGLE("Google"),
     DUCKDUCKGO("DuckDuckGo"),
@@ -17,9 +19,11 @@ enum class WebProvider(val displayName: String) {
         BING -> "https://www.bing.com/search?q=${encodeQuery(query)}"
     }
 
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<WebProvider>("WebProvider", entries, GOOGLE)
+
     companion object {
-        fun fromName(name: String): WebProvider =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: GOOGLE
+        fun fromName(name: String): WebProvider = Names.parse(name)
     }
 }
 

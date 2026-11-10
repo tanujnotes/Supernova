@@ -29,7 +29,10 @@ class HomeEdgeSwipes(
     }
 
     init {
-        pager.viewTreeObserver.addOnPreDrawListener(preDraw)
+        pager.watchTreeWhileInWindow(
+            add = { addOnPreDrawListener(preDraw) },
+            remove = { removeOnPreDrawListener(preDraw) }
+        )
     }
 
     fun update() {

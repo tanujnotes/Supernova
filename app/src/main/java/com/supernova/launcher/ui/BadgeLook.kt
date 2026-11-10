@@ -14,6 +14,7 @@ import androidx.core.graphics.createBitmap
 import com.supernova.launcher.data.BadgeLimits
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.notification.BadgeFace
+import com.supernova.launcher.runLogged
 
 // The one place a badge's look is read out of prefs, for every surface that
 // draws one (home, dock, drawer, folders, the settings preview).
@@ -26,7 +27,7 @@ class BadgeLook(private val prefs: LauncherPrefs, private val density: Float) {
         val spec = BadgeSpec(
             style = style,
             color = colorFor(style, prefs, iconColor),
-            position = BadgePosition.fromName(prefs.badgePosition),
+            position = prefs.badgePosition,
             scale = prefs.badgeScale,
             textColor = LabelStyler.parseColor(prefs.badgeTextColor, BadgeDrawable.DEFAULT_TEXT_COLOR),
             cornerFraction = prefs.badgeCornerRadius / BadgeLimits.CORNER_ROUND.toFloat(),
@@ -81,7 +82,7 @@ class BadgeFaces(private val context: Context) {
         val key = "${face.id}@${face.postTime}#$fallbackColor"
         val cached = cache.get(key)
         if (cached != null || failed.get(key) == true) return cached
-        val bitmap = runCatching { render(face, fallbackColor) }.getOrNull()
+        val bitmap = runLogged("render badge picture") { render(face, fallbackColor) }.getOrNull()
         if (bitmap == null) failed.put(key, true) else cache.put(key, bitmap)
         return bitmap
     }

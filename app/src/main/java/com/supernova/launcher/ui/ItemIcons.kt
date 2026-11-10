@@ -165,7 +165,7 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
                 icon.constantState?.newDrawable(context.resources)?.mutate() ?: icon
             },
             context.dp(ICON_DP),
-            style = FolderPreviewStyle.fromName(prefs.folderPreviewStyle),
+            style = prefs.folderPreviewStyle,
             plateColor = FolderIconDrawable.plateColor(
                 prefs.folderMatchWindowColor, prefs.folderPlateColor, resolvedFolder.surface
             ),

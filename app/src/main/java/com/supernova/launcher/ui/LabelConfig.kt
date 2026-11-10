@@ -1,5 +1,6 @@
 package com.supernova.launcher.ui
 
+import com.supernova.launcher.runLogged
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -68,7 +69,9 @@ data class LabelConfig(
         fun decode(raw: String): LabelConfig {
             if (raw.isBlank()) return EMPTY
             if (raw == lastRaw) return lastDecoded
-            val decoded = runCatching { json.decodeFromString(serializer(), raw) }.getOrDefault(EMPTY)
+            val decoded = runLogged("read label settings") {
+                json.decodeFromString(serializer(), raw)
+            }.getOrDefault(EMPTY)
             lastRaw = raw
             lastDecoded = decoded
             return decoded

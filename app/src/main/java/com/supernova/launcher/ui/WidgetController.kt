@@ -31,6 +31,7 @@ import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.LauncherRepository
 import com.supernova.launcher.data.WorkspaceGeometry
 import com.supernova.launcher.databinding.ActivityLauncherBinding
+import com.supernova.launcher.runLogged
 import com.supernova.launcher.widget.SupernovaWidgetHost
 import com.supernova.launcher.widget.SupernovaWidgetHostView
 import com.supernova.launcher.widget.WidgetResizeFrame
@@ -80,8 +81,7 @@ class WidgetController(
         // return home. Listening is set up before the reply fails, and each
         // widget fills in on bind anyway, so it is let slide, as Launcher3
         // does.
-        runCatching { appWidgetHost.startListening() }
-            .onFailure { android.util.Log.w("Supernova", "Widget host startListening failed", it) }
+        runLogged("start widget host") { appWidgetHost.startListening() }
     }
 
     fun stopListening() = appWidgetHost.stopListening()
@@ -349,7 +349,9 @@ class WidgetController(
         slot.removeAllViews()
         // Guarded like every other widget view: a binder failure shows the
         // built-in bar this time rather than crashing.
-        val view = runCatching { appWidgetHost.createView(activity.applicationContext, id, info) }.getOrNull()
+        val view = runLogged("create search bar widget view") {
+            appWidgetHost.createView(activity.applicationContext, id, info)
+        }.getOrNull()
         if (view == null) {
             hostedSearchWidgetId = 0
             return null
@@ -558,7 +560,7 @@ class WidgetController(
     // host through it so the activity.applicationContext inflation constraint and the
     // corner clip apply everywhere.
     private fun createWidgetHostView(widgetId: Int, info: AppWidgetProviderInfo): AppWidgetHostView? {
-        val hostView: AppWidgetHostView = runCatching {
+        val hostView: AppWidgetHostView = runLogged("create widget view") {
             // Never the activity context: AppCompat installs an inflater
             // factory that rewrites ImageView into AppCompatImageView, and
             // RemoteViews then refuses reflected calls on the substituted

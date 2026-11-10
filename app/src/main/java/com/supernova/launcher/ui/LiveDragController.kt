@@ -37,6 +37,7 @@ import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.LauncherRepository
 import com.supernova.launcher.data.WorkspaceGeometry
 import com.supernova.launcher.databinding.ActivityLauncherBinding
+import com.supernova.launcher.runLogged
 import com.supernova.launcher.widget.WidgetResizeFrame
 import com.supernova.launcher.widget.WidgetSizing
 import kotlin.math.abs
@@ -61,8 +62,48 @@ import kotlin.math.roundToInt
 class LiveDragController(
     private val binding: ActivityLauncherBinding,
     private val viewModel: LauncherViewModel,
-    private val host: Host
+    private val host: Host,
+    private val drops: DropTarget
 ) {
+
+    // The pages' side of a drag: what a hover previews and what a drop
+    // does (WorkspaceDrops).
+    interface DropTarget {
+        // The hover's reorder preview and the drop itself.
+        fun hoverTargetRect(
+            payload: DragPayload,
+            cellX: Int,
+            cellY: Int,
+            rawCellX: Float,
+            rawCellY: Float
+        ): Pair<WorkspaceGeometry.CellRect, Set<String>>?
+
+        fun onDragOverWorkspace(
+            payload: DragPayload,
+            page: Int,
+            canvas: ViewGroup,
+            cellWidth: Int,
+            cellHeight: Int,
+            cellX: Int,
+            cellY: Int,
+            rawCellX: Float,
+            rawCellY: Float
+        )
+
+        fun cancelReorderPreview(animate: Boolean)
+
+        // False when the drop can't be taken: the picture then flies back.
+        fun onDropToWorkspace(
+            payload: DragPayload,
+            page: Int,
+            cellX: Int,
+            cellY: Int,
+            workspaceX: Float,
+            workspaceY: Float,
+            rawCellX: Float,
+            rawCellY: Float
+        ): Boolean
+    }
 
     interface Host {
         val workspaceAdapter: WorkspacePagerAdapter
@@ -98,29 +139,6 @@ class LiveDragController(
         // desktop page the dragged item came from, if it came from one.
         fun onDragFinished(sourcePage: Int?)
 
-        // The hover's reorder preview and the drop itself.
-        fun hoverTargetRect(
-            payload: DragPayload,
-            cellX: Int,
-            cellY: Int,
-            rawCellX: Float,
-            rawCellY: Float
-        ): Pair<WorkspaceGeometry.CellRect, Set<String>>?
-
-        fun onDragOverWorkspace(
-            payload: DragPayload,
-            page: Int,
-            canvas: ViewGroup,
-            cellWidth: Int,
-            cellHeight: Int,
-            cellX: Int,
-            cellY: Int,
-            rawCellX: Float,
-            rawCellY: Float
-        )
-
-        fun cancelReorderPreview(animate: Boolean)
-
         // False when the drop can't be taken: the picture then flies back.
         // merge: the drop was on the middle of the slot's icon, so it joins
         // or makes a folder there rather than trading places.
@@ -129,16 +147,6 @@ class LiveDragController(
         // Whether the payload could go into a folder with the dock slot's item.
         fun canMergeIntoDock(payload: DragPayload, rank: Int): Boolean
 
-        fun onDropToWorkspace(
-            payload: DragPayload,
-            page: Int,
-            cellX: Int,
-            cellY: Int,
-            workspaceX: Float,
-            workspaceY: Float,
-            rawCellX: Float,
-            rawCellY: Float
-        ): Boolean
     }
 
     private val context: Context get() = binding.root.context
@@ -609,7 +617,9 @@ class LiveDragController(
                     // A snapshot ignores the host view's outline clip, so the
                     // corner radius is cut into the picture by hand.
                     val radius = context.dp(viewModel.state.value.prefs.widgetCornerRadius).toFloat()
-                    runCatching { DragPicture(roundedCorners(anchor.drawToBitmap(), radius), anchor.screenRect()) }
+                    runLogged("draw drag picture") {
+                        DragPicture(roundedCorners(anchor.drawToBitmap(), radius), anchor.screenRect())
+                    }
                         .getOrNull()
                 } else {
                     null
@@ -802,7 +812,7 @@ class LiveDragController(
         when (target) {
             is DragTarget.Zone -> target.view.setBackgroundColor(0)
             is DragTarget.Workspace -> {
-                host.cancelReorderPreview(animate = true)
+                drops.cancelReorderPreview(animate = true)
                 hideDragGrid(animate = true)
             }
             else -> Unit
@@ -842,9 +852,9 @@ class LiveDragController(
         val prefs = viewModel.state.value.prefs
         val p = workspacePlacement(target.canvas, prefs, point.x, point.y)
         showDragGrid(
-            target.canvas, host.hoverTargetRect(payload, p[0].toInt(), p[1].toInt(), p[4], p[5])?.first, rawX, rawY
+            target.canvas, drops.hoverTargetRect(payload, p[0].toInt(), p[1].toInt(), p[4], p[5])?.first, rawX, rawY
         )
-        host.onDragOverWorkspace(
+        drops.onDragOverWorkspace(
             payload, target.page, target.canvas,
             max(1, target.canvas.width / max(1, prefs.gridCols)),
             max(1, target.canvas.height / max(1, prefs.gridRows)),
@@ -946,7 +956,7 @@ class LiveDragController(
         // Edit mode's add-page slot is not a page to flip onto: off the end
         // of the real pages a fresh one is asked for instead.
         if (next in 0 until host.workspaceAdapter.itemCount && !host.workspaceAdapter.isAddPage(next)) {
-            host.cancelReorderPreview(animate = false)
+            drops.cancelReorderPreview(animate = false)
             hideDragGrid(animate = true)
             pager.setCurrentItem(next, true)
             return true
@@ -987,7 +997,7 @@ class LiveDragController(
             is DragTarget.Zone -> {
                 // A preview the drag had started on the page must not go on
                 // to shift the neighbours once the item is gone.
-                host.cancelReorderPreview(animate = true)
+                drops.cancelReorderPreview(animate = true)
                 target.view.setBackgroundColor(0)
                 dropZoneActions[target.view]?.invoke(payload)
                 val rect = target.view.screenRect()
@@ -996,7 +1006,7 @@ class LiveDragController(
             }
             // Widgets never dock; findDragTarget already keeps them off it.
             is DragTarget.Dock -> if (!isWidgetPayload(payload) && !desktopLocked) {
-                host.cancelReorderPreview(animate = false)
+                drops.cancelReorderPreview(animate = false)
                 if (host.handleDropToDock(payload, target.rank, merge)) {
                     markSettling(payload)
                     dragLayer.settle(dockIconRect(target.slot, prefs), settleMs) { finishDrag(accepted = true) }
@@ -1007,7 +1017,7 @@ class LiveDragController(
                 val point = dropPointOnCanvas(target.canvas, payload)
                 if (point != null) {
                     val p = workspacePlacement(target.canvas, prefs, point.x, point.y)
-                    val accepted = host.onDropToWorkspace(
+                    val accepted = drops.onDropToWorkspace(
                         payload, target.page, p[0].toInt(), p[1].toInt(), p[2], p[3], p[4], p[5]
                     )
                     if (accepted) {
@@ -1021,7 +1031,7 @@ class LiveDragController(
             }
             DragTarget.None -> Unit
         }
-        host.cancelReorderPreview(animate = true)
+        drops.cancelReorderPreview(animate = true)
         // Nowhere to land: an item flies back to where it came from; a drawer
         // app or a picker widget has no home on screen and just fades. An app
         // taken out of a folder goes back into the folder's icon, the card it
@@ -1123,7 +1133,7 @@ class LiveDragController(
             val inset = context.dp(paddingDp)
             // The cells the drop takes, as the hover outlined them: a placed
             // widget may sit on half cells.
-            val cells = host.hoverTargetRect(payload, p[0].toInt(), p[1].toInt(), p[4], p[5])?.first
+            val cells = drops.hoverTargetRect(payload, p[0].toInt(), p[1].toInt(), p[4], p[5])?.first
                 ?: WorkspaceGeometry.cellRect(
                     clampAnchor(p[0].toInt(), widget.first, prefs.gridCols),
                     clampAnchor(p[1].toInt(), widget.second, prefs.gridRows),
