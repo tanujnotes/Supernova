@@ -367,6 +367,13 @@ class DrawerController(
         // A page doesn't scroll, so the paged style keeps its pages where the
         // list comes to rest, and cuts them to fit there (syncPages).
         binding.drawerPager.setPadding(0, 0, 0, context.dp(18) + listInset)
+        // Rows fade out towards both ends of the list. The bottom fade takes
+        // in the navigation bar the list scrolls under, so a row is all but
+        // gone by the time it is behind the buttons.
+        for (list in listOf(binding.drawerRecycler, binding.drawerSearchResults)) {
+            list.fadeTop = context.dp(LIST_FADE_DP)
+            list.fadeBottom = context.dp(LIST_FADE_DP) + listInset
+        }
         binding.drawerFastScroller.setPadding(0, context.dp(12), 0, context.dp(12) + listInset)
         // A 44dp field, on the line the old 52dp one was centred on.
         binding.drawerSearchRow.setPadding(
@@ -1885,6 +1892,8 @@ class DrawerController(
         const val FIELD_END_DP = 16
         // The row at rest away from the navigation bar: 16 + the 48dp field + 10.
         const val SEARCH_ROW_HEIGHT_DP = 74
+        // How far in from the list's top and bottom edges its rows fade.
+        const val LIST_FADE_DP = 32
         const val FIELD_END_WITH_BUTTONS_DP = 4
         const val ACTION_BUTTON_DP = 36
         const val ACTION_BUTTON_PAD_DP = 8

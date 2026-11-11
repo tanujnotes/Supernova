@@ -286,7 +286,7 @@
             android:layout_height="0dp"
             android:layout_weight="1">
 
-            <androidx.recyclerview.widget.RecyclerView
+            <com.supernova.launcher.ui.EdgeFadeRecyclerView
                 android:id="@+id/drawerRecycler"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
@@ -304,7 +304,7 @@
             <!-- The drawer search is the search window: while the field
                  holds a query this list - the search controller's results -
                  stands in for the drawer's own. -->
-            <androidx.recyclerview.widget.RecyclerView
+            <com.supernova.launcher.ui.EdgeFadeRecyclerView
                 android:id="@+id/drawerSearchResults"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
