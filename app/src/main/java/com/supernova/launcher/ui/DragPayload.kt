@@ -35,6 +35,10 @@ sealed interface DragPayload {
     // A widget dragged out of the add sheet, not yet bound; the spans are
     // the provider's defaults on the current grid.
     data class NewWidget(val info: AppWidgetProviderInfo, val spanX: Int, val spanY: Int) : DragPayload
+    // A shortcut row dragged out of the add sheet: the drop keeps its cell,
+    // and the row's flow (an app's shortcut screen, the activities picker,
+    // a launcher action) places its result there.
+    data class NewShortcut(val target: ShortcutTarget) : DragPayload
 }
 
 internal fun LauncherItem.toLaunchableApp(): LaunchableApp? {

@@ -22,8 +22,11 @@ class WidgetPickerAdapter(
     // Long-press on a preview: the host may pick the widget up and drag it
     // to a spot (the in-activity add sheet does; a dialog picker cannot, its
     // touches live in another window). Returns whether it took the press.
-    private val onDragWidget: ((AppWidgetProviderInfo, View) -> Boolean)? = null
-) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    private val onDragWidget: ((AppWidgetProviderInfo, View) -> Boolean)? = null,
+    // The same for a shortcut row, lifted by its icon; its flow then runs
+    // for the cell it is dropped on.
+    private val onDragShortcut: ((ShortcutTarget, View) -> Boolean)? = null
+): RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var groups: List<WidgetPickerGroup> = emptyList()
     private var query: String = ""
@@ -210,6 +213,9 @@ class WidgetPickerAdapter(
                 }
             )
             binding.root.setOnClickListener { onPickShortcut(entry.target) }
+            binding.root.setOnLongClickListener {
+                onDragShortcut?.invoke(entry.target, binding.shortcutIcon) ?: false
+            }
         }
     }
 

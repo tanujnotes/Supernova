@@ -41,6 +41,9 @@ class WorkspaceDrops(
         fun shortcutItem(shortcut: DragPayload.DrawerShortcut): ShortcutItem
 
         fun bindWidget(info: AppWidgetProviderInfo, target: WidgetController.Target)
+
+        // Runs a shortcut row's flow, its result bound for this cell.
+        fun placeShortcut(target: ShortcutTarget, cell: ShortcutPlacer.DropCell)
     }
 
     // Reorder preview ("make space"): while a drag hovers over an
@@ -187,6 +190,22 @@ class WorkspaceDrops(
                 host.bindWidget(payload.info, WidgetController.Target.Workspace(page, anchorX, anchorY, moves))
                 return true
             }
+            is DragPayload.NewShortcut -> {
+                // As a widget from the sheet: the neighbours in the way move
+                // aside once the row's result lands, nothing is added if its
+                // flow is cancelled, and with no room the flow never starts.
+                val target = iconRectAt(workspaceX, workspaceY, prefs.gridCols, prefs.gridRows)
+                val moves = WorkspaceGeometry.solveReorder(
+                    model, page, target, prefs.gridCols, prefs.gridRows, emptySet()
+                ) ?: run {
+                    Toast.makeText(context, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
+                    return false
+                }
+                host.placeShortcut(
+                    payload.target, ShortcutPlacer.DropCell(page, cellX, cellY, workspaceX, workspaceY, moves)
+                )
+                return true
+            }
         }
     }
 
@@ -273,7 +292,8 @@ class WorkspaceDrops(
                 if (item.itemType != ItemType.APP && item.itemType != ItemType.SHORTCUT) return false
                 excludeId = item.id
             }
-            is DragPayload.NewWidget -> return false
+            // Nor does a sheet's widget or shortcut row, still to be made.
+            is DragPayload.NewWidget, is DragPayload.NewShortcut -> return false
         }
         return folderTargetId(page, rawCellX, rawCellY, excludeId) != null
     }
@@ -317,8 +337,8 @@ class WorkspaceDrops(
             clampAnchor(cellX, spanX, cols), clampAnchor(cellY, spanY, rows), spanX, spanY
         )
         return when (payload) {
-            is DragPayload.DrawerApp, is DragPayload.DrawerShortcut, is DragPayload.DrawerFolder ->
-                snappedIconRect() to emptySet()
+            is DragPayload.DrawerApp, is DragPayload.DrawerShortcut, is DragPayload.DrawerFolder,
+            is DragPayload.NewShortcut -> snappedIconRect() to emptySet()
             is DragPayload.ExistingItem -> {
                 val item = viewModel.state.value.model.items.firstOrNull { it.id == payload.itemId } ?: return null
                 if (item.itemType == ItemType.WIDGET) {

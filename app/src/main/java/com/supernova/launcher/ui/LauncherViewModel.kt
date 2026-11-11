@@ -812,6 +812,11 @@ class LauncherViewModel(
     // widget's own setup screen is up.
     var pendingWidgetAdd: Any? = null
 
+    // Where a shortcut row dragged out of the add sheet was dropped, held
+    // across a recreate while the app's shortcut screen is up
+    // (ShortcutPlacer).
+    var pendingShortcutCell: ShortcutPlacer.DropCell? = null
+
     fun feedCards(): List<com.supernova.launcher.feed.FeedCard> = state.value.model.feedCards
 
     fun upsertFeedCard(card: com.supernova.launcher.feed.FeedCard) = persist { repository.upsertFeedCard(card) }

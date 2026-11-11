@@ -488,6 +488,14 @@ class LiveDragController(
         return true
     }
 
+    // A shortcut row long-pressed in the add sheet: lifted as its icon, an
+    // icon-sized drop. What it becomes is only known once its flow has run.
+    fun armShortcut(target: ShortcutTarget, icon: View): Boolean {
+        if (desktopLocked) return false
+        arm(icon, DragPayload.NewShortcut(target), menu = null)
+        return true
+    }
+
     // ---- Own drag layer. The picked-up item is a picture in DragLayer,
     // moved by the touch stream dispatchTouchEvent hands over, and every drop
     // target is found by hit-testing the views under the finger: the
@@ -593,6 +601,11 @@ class LiveDragController(
         payload is DragPayload.NewWidget ||
             (payload is DragPayload.ExistingItem && itemById(payload.itemId)?.itemType == ItemType.WIDGET)
 
+    // What the add sheet hands out (a widget, a shortcut row) goes to the
+    // home screen only, as does a placed widget.
+    private fun dockable(payload: DragPayload): Boolean =
+        !isWidgetPayload(payload) && payload !is DragPayload.NewShortcut
+
     // What the drag layer carries: an icon drawn at the size it is seen (the
     // picture starts exactly over it), a widget's own frame, or a picker
     // preview scaled to the cells it will take.
@@ -600,7 +613,8 @@ class LiveDragController(
         // Drawn at least at the desktop's icon size, where it is going: a
         // pill's 22dp icon, lifted at its own size, was blown up about twice
         // over, blurred, as it settled into its cell.
-        is DragPayload.DrawerApp, is DragPayload.DrawerShortcut, is DragPayload.DrawerFolder -> {
+        is DragPayload.DrawerApp, is DragPayload.DrawerShortcut, is DragPayload.DrawerFolder,
+        is DragPayload.NewShortcut -> {
             val minSize = host.desktopIconBoxPx(viewModel.state.value.prefs)
             iconPicture(dragIconView(anchor), minSize)
                 // A shortcut published without an icon shows none; it is
@@ -771,8 +785,9 @@ class LiveDragController(
         }
         // Widgets never dock, so for one the dock is no target: a release over
         // it counts as a release over nothing, and a placed widget flies back.
-        val carryingWidget = activeDragPayload?.let(::isWidgetPayload) == true
-        if (binding.dockBar.isVisible && !carryingWidget) {
+        // Nor does a shortcut row from the add sheet.
+        val dockable = activeDragPayload?.let(::dockable) != false
+        if (binding.dockBar.isVisible && dockable) {
             for (i in 0 until binding.dockBar.childCount) {
                 val slot = binding.dockBar.getChildAt(i)
                 val rank = slot.getTag(R.id.tag_dock_rank) as? Int ?: continue
@@ -1005,7 +1020,7 @@ class LiveDragController(
                 return
             }
             // Widgets never dock; findDragTarget already keeps them off it.
-            is DragTarget.Dock -> if (!isWidgetPayload(payload) && !desktopLocked) {
+            is DragTarget.Dock -> if (dockable(payload) && !desktopLocked) {
                 drops.cancelReorderPreview(animate = false)
                 if (host.handleDropToDock(payload, target.rank, merge)) {
                     markSettling(payload)
@@ -1041,7 +1056,9 @@ class LiveDragController(
         val folderId = (payload as? DragPayload.ExistingItem)?.let { itemById(it.itemId) }
             ?.takeIf { it.container == ContainerType.FOLDER }?.folderId
         val source = if (folderId != null) viewsOfItem(folderId).firstOrNull(::isOnScreen) else dragSourceView
-        val home = source?.takeIf { it.isShown && !dragFromDrawer && payload !is DragPayload.NewWidget }
+        val home = source?.takeIf {
+            it.isShown && !dragFromDrawer && payload !is DragPayload.NewWidget && payload !is DragPayload.NewShortcut
+        }
             ?.let { sourceRect(it, payload) }
         if (home != null) {
             dragLayer.settle(RectF(home), settleMs) { finishDrag(accepted = false, flewBack = true) }
@@ -1124,7 +1141,8 @@ class LiveDragController(
             is DragPayload.NewWidget -> payload.spanX to payload.spanY
             is DragPayload.ExistingItem -> itemById(payload.itemId)
                 ?.takeIf { it.itemType == ItemType.WIDGET }?.let { it.spanX to it.spanY }
-            is DragPayload.DrawerApp, is DragPayload.DrawerShortcut, is DragPayload.DrawerFolder -> null
+            is DragPayload.DrawerApp, is DragPayload.DrawerShortcut, is DragPayload.DrawerFolder,
+            is DragPayload.NewShortcut -> null
         }
         if (widget != null) {
             // A placed widget keeps its own padding; a new one has the setting's.
@@ -1359,7 +1377,7 @@ class LiveDragController(
             .firstOrNull { it.id == payload.itemId }
             ?.takeIf { it.itemType == ItemType.APP || it.itemType == ItemType.SHORTCUT }
             ?.toLaunchableApp()
-        is DragPayload.NewWidget -> null
+        is DragPayload.NewWidget, is DragPayload.NewShortcut -> null
     }
 
     private fun isUninstallable(packageName: String): Boolean =

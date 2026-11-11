@@ -38,6 +38,8 @@ class HomeEditController(
         fun pickWidget(info: AppWidgetProviderInfo)
         // A widget long-pressed in the sheet; true picks it up for a drag.
         fun dragWidget(info: AppWidgetProviderInfo, preview: View): Boolean
+        // A shortcut row long-pressed in the sheet; true picks it up.
+        fun dragShortcut(target: ShortcutTarget, icon: View): Boolean
         fun pickShortcut(target: ShortcutTarget)
         fun cellSizePx(): Pair<Int, Int>
         fun grid(): Pair<Int, Int>
@@ -75,7 +77,8 @@ class HomeEditController(
         onPickShortcut = { target -> leaveFor { host.pickShortcut(target) } },
         // Edit mode stays open while the finger rests; the drag itself (in
         // the activity) closes the sheet once the widget actually moves.
-        onDragWidget = { info, preview -> host.dragWidget(info, preview) }
+        onDragWidget = { info, preview -> host.dragWidget(info, preview) },
+        onDragShortcut = { target, icon -> host.dragShortcut(target, icon) }
     )
 
     // Edge-to-edge: the widget sheet runs under the navigation bar (enter()

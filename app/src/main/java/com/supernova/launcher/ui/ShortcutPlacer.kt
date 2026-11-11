@@ -11,68 +11,101 @@ import androidx.activity.result.contract.ActivityResultContracts
 import com.supernova.launcher.R
 import com.supernova.launcher.data.GalleryIconCodec
 import com.supernova.launcher.data.LaunchableApp
+import com.supernova.launcher.data.WorkspaceGeometry
 import com.supernova.launcher.gesture.ActionShortcut
 import com.supernova.launcher.runLogged
 import com.supernova.launcher.ui.settings.EnumLabels
 
-// A shortcut picked from the add sheet, placed as an icon on the first free
-// cell of the page in view: one an app makes on its own shortcut screen, a
-// launcher action, or any exported activity of an app. A field of the
+// A shortcut picked from the add sheet, placed as an icon: one an app makes
+// on its own shortcut screen, a launcher action, or any exported activity of
+// an app. A tapped row's icon goes on the first free cell of the page in
+// view, a dragged row's on the cell it was dropped on. A field of the
 // activity, so the shortcut screen's result is registered before it starts.
 class ShortcutPlacer(
     private val activity: ComponentActivity,
     private val viewModel: () -> LauncherViewModel
 ) {
+    // Where a row's result lands: the cell a drag dropped it on (with
+    // subgrid, the exact spot) and the neighbours the drop moved aside, or
+    // for a tap the page's first free cell.
+    data class DropCell(
+        val page: Int,
+        val cellX: Int,
+        val cellY: Int,
+        val workspaceX: Float? = null,
+        val workspaceY: Float? = null,
+        val displace: List<WorkspaceGeometry.ReorderMove> = emptyList()
+    )
+
     private val createShortcutLauncher =
         activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK) result.data?.let(::handleCreateShortcutResult)
+            // The cell goes with the screen it was kept for, answered or not.
+            val cell = viewModel().pendingShortcutCell
+            viewModel().pendingShortcutCell = null
+            if (result.resultCode == Activity.RESULT_OK) {
+                result.data?.let { handleCreateShortcutResult(it, cell) }
+            }
         }
 
     // A shortcut row from the add sheet: an app's CREATE_SHORTCUT flow, a
-    // launcher action placed as an icon, or the any-activity picker.
-    fun pick(target: ShortcutTarget) {
+    // launcher action placed as an icon, or the any-activity picker. cell:
+    // where a dragged row was dropped; null for a tap.
+    fun pick(target: ShortcutTarget, cell: DropCell? = null) {
         when (target) {
             is ShortcutTarget.Create -> {
                 val intent = Intent(Intent.ACTION_CREATE_SHORTCUT)
                     .setClassName(target.packageName, target.activityName)
+                // Kept in the view model: a recreate while the app's screen is
+                // up still places its answer where the row was dropped.
+                viewModel().pendingShortcutCell = cell
                 runLogged("open shortcut creator") { createShortcutLauncher.launch(intent) }
-                    .onFailure { Toast.makeText(activity, R.string.launch_failed, Toast.LENGTH_SHORT).show() }
+                    .onFailure {
+                        viewModel().pendingShortcutCell = null
+                        Toast.makeText(activity, R.string.launch_failed, Toast.LENGTH_SHORT).show()
+                    }
             }
-            is ShortcutTarget.Action -> addIntentItemAtFreeCell(
+            is ShortcutTarget.Action -> addIntentItem(
                 ActionShortcut.encode(target.action),
                 activity.getString(EnumLabels.of(target.action)),
-                iconBase64 = null
+                iconBase64 = null,
+                cell
             )
-            ShortcutTarget.Activities -> showActivitiesPicker()
+            ShortcutTarget.Activities -> showActivitiesPicker(cell)
         }
     }
 
-    // Places an intent-backed item on the first free cell of the current page.
-    private fun addIntentItemAtFreeCell(intentUri: String, label: String, iconBase64: String?) {
+    // The dropped cell, or for a tap the first free cell of the page in view;
+    // null, with a toast, when that page is full.
+    private fun landing(cell: DropCell?): DropCell? {
+        if (cell != null) return cell
         val page = viewModel().state.value.currentPage
         val free = viewModel().firstFreeWorkspaceCell(page, 1, 1)
-        if (free == null) {
-            Toast.makeText(activity, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
-            return
-        }
-        viewModel().addIntentItemToWorkspace(intentUri, label, iconBase64, page, free.first, free.second)
+        if (free == null) Toast.makeText(activity, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
+        return free?.let { DropCell(page, it.first, it.second) }
+    }
+
+    private fun addIntentItem(intentUri: String, label: String, iconBase64: String?, cell: DropCell?) {
+        val at = landing(cell) ?: return
+        viewModel().addIntentItemToWorkspace(
+            intentUri, label, iconBase64, at.page, at.cellX, at.cellY, at.workspaceX, at.workspaceY, at.displace
+        )
     }
 
     // Any exported activity of any installed app as an icon: the launch
     // intent is stored as an intentUri and the icon is snapshotted.
-    private fun showActivitiesPicker() {
+    private fun showActivitiesPicker(cell: DropCell?) {
         ActivitiesPickerSheet.show(activity, WidgetPickerIcons.of(viewModel().appCatalog())) { pick ->
             val intent = Intent()
                 .setComponent(pick.component)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             val icon = runCatching { activity.packageManager.getActivityIcon(pick.component) }.getOrNull()
-            addIntentItemAtFreeCell(
-                intent.toUri(Intent.URI_INTENT_SCHEME), pick.label, icon?.let { GalleryIconCodec.encode(it) }
+            addIntentItem(
+                intent.toUri(Intent.URI_INTENT_SCHEME), pick.label, icon?.let { GalleryIconCodec.encode(it) }, cell
             )
         }
     }
 
-    private fun handleCreateShortcutResult(data: Intent) {
+    private fun handleCreateShortcutResult(data: Intent, cell: DropCell?) {
         // Newer apps return a pinnable shortcut request; accepting it pins the
         // shortcut to us, so it launches reliably through startShortcut.
         val launcherApps = activity.getSystemService(LauncherApps::class.java)
@@ -89,9 +122,8 @@ class ShortcutPlacer(
                 val icon64 = icon?.let { GalleryIconCodec.encode(it) }
                 val serial = activity.getSystemService(UserManager::class.java)
                     ?.getSerialNumberForUser(shortcut.userHandle) ?: 0L
-                addPinnedShortcutAtFreeCell(
-                    shortcut.`package`, shortcut.id, shortcut.activity?.className, serial, label, icon64
-                )
+                val owner = LaunchableApp(shortcut.`package`, shortcut.activity?.className.orEmpty(), label, serial)
+                addPinnedShortcut(owner, shortcut.id, label, icon64, cell)
             }
             return
         }
@@ -100,28 +132,22 @@ class ShortcutPlacer(
         @Suppress("DEPRECATION")
         val shortcutIntent = data.getParcelableExtra<Intent>(Intent.EXTRA_SHORTCUT_INTENT) ?: return
         val name = data.getStringExtra(Intent.EXTRA_SHORTCUT_NAME).orEmpty()
-        addIntentItemAtFreeCell(
-            shortcutIntent.toUri(Intent.URI_INTENT_SCHEME), name, extractLegacyShortcutIcon(data)
+        addIntentItem(
+            shortcutIntent.toUri(Intent.URI_INTENT_SCHEME), name, extractLegacyShortcutIcon(data), cell
         )
     }
 
-    private fun addPinnedShortcutAtFreeCell(
-        packageName: String,
+    private fun addPinnedShortcut(
+        owner: LaunchableApp,
         shortcutId: String,
-        className: String?,
-        userSerial: Long,
         label: String,
-        iconBase64: String?
+        iconBase64: String?,
+        cell: DropCell?
     ) {
-        val page = viewModel().state.value.currentPage
-        val free = viewModel().firstFreeWorkspaceCell(page, 1, 1)
-        if (free == null) {
-            Toast.makeText(activity, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
-            return
-        }
+        val at = landing(cell) ?: return
         viewModel().addShortcutToWorkspace(
-            LaunchableApp(packageName, className.orEmpty(), label, userSerial),
-            shortcutId, label, page, free.first, free.second, iconBase64 = iconBase64, mergeFolders = false
+            owner, shortcutId, label, at.page, at.cellX, at.cellY, at.workspaceX, at.workspaceY,
+            iconBase64 = iconBase64, displace = at.displace, mergeFolders = false
         )
     }
 

@@ -292,6 +292,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     info: android.appwidget.AppWidgetProviderInfo,
                     target: WidgetController.Target
                 ) = widgets.bind(info, target)
+                override fun placeShortcut(
+                    target: com.supernova.launcher.ui.ShortcutTarget,
+                    cell: com.supernova.launcher.ui.ShortcutPlacer.DropCell
+                ) = shortcutPlacer.pick(target, cell)
             }
         )
     }
@@ -3898,8 +3902,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     else -> Unit
                 }
             }
-            // Widgets don't dock.
-            is DragPayload.NewWidget -> return false
+            // Widgets don't dock, nor do the add sheet's shortcut rows.
+            is DragPayload.NewWidget, is DragPayload.NewShortcut -> return false
         }
         return true
     }
@@ -4265,6 +4269,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 override fun pickWidget(info: AppWidgetProviderInfo) = widgets.onWidgetPicked(info)
                 override fun dragWidget(info: AppWidgetProviderInfo, preview: View): Boolean =
                     drag.armWidget(info, preview)
+                override fun dragShortcut(target: com.supernova.launcher.ui.ShortcutTarget, icon: View): Boolean =
+                    drag.armShortcut(target, icon)
                 override fun pickShortcut(target: com.supernova.launcher.ui.ShortcutTarget) =
                     pickShortcutTarget(target)
                 override fun cellSizePx(): Pair<Int, Int> = currentCellSizePx()
