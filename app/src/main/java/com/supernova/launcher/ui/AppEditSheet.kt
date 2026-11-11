@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.widget.Toast
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.supernova.launcher.R
+import com.supernova.launcher.data.AppIconSource
 import com.supernova.launcher.data.AppOverride
 import com.supernova.launcher.data.GalleryIconCodec
 import com.supernova.launcher.data.IconShape
@@ -72,11 +73,9 @@ object AppEditSheet {
             val shapeLabel = chosenShape?.let { context.getString(EnumLabels.of(IconShape.fromName(it))) }
                 ?: context.getString(R.string.option_default)
             binding.shapeValue.text = shapeLabel
-            val iconLabel = when {
-                chosenPhoto != null -> context.getString(R.string.icon_photo)
-                chosenIcon != null -> chosenIcon
-                else -> context.getString(R.string.option_default)
-            }
+            val iconLabel = chosenPhoto?.let { context.getString(R.string.icon_photo) }
+                ?: chosenIcon?.let { IconPickerSheet.pickLabel(viewModel, chosenPack, it) }
+                ?: context.getString(R.string.option_default)
             binding.iconValue.text = iconLabel
             val variantLabel = when (chosenVariant) {
                 "THEMED" -> context.getString(R.string.variant_themed)
@@ -139,8 +138,8 @@ object AppEditSheet {
             }
         }
 
-        // One row for the icon, wherever it comes from: Default, a photo or
-        // an icon pack.
+        // One row for the icon, wherever it comes from: Default, another
+        // app's icon, a photo or an icon pack.
         binding.iconRow.setOnClickListener {
             val onPhoto = pickPhoto?.let { picker ->
                 { fromFiles: Boolean ->
@@ -241,7 +240,8 @@ object AppEditSheet {
 // A photo source (gallery or files), then the picked image's uri, or null.
 typealias PhotoPicker = (fromFiles: Boolean, onPicked: (android.net.Uri?) -> Unit) -> Unit
 
-// Pack -> drawable-grid picker; used for per-app icons and folder icons.
+// Source -> icon-grid picker; used for per-app icons and folder icons. The
+// sources: Default, every installed app's own icon, a photo, each icon pack.
 object IconPickerSheet {
 
     fun show(
@@ -256,8 +256,10 @@ object IconPickerSheet {
         scope.launch {
             val packs = viewModel.availableIconPacks()
             // Each entry pairs its label with the action tapping it runs.
+            // App icons come first after Default: the built-in source.
             val entries = buildList<Pair<String, () -> Unit>> {
                 if (allowDefault) add(context.getString(R.string.option_default) to { onPick(null, null) })
+                add(context.getString(R.string.icon_source_apps) to { showAppGrid(context, viewModel, onPick) })
                 if (onPickPhoto != null) {
                     add(context.getString(R.string.photo_from_gallery) to { onPickPhoto(false) })
                     add(context.getString(R.string.photo_from_files) to { onPickPhoto(true) })
@@ -265,10 +267,6 @@ object IconPickerSheet {
                 packs.forEach { pack ->
                     add(pack.label to { showGrid(context, scope, viewModel, pack.packageName, onPick) })
                 }
-            }
-            if (entries.isEmpty()) {
-                Toast.makeText(context, R.string.icon_pack_none_installed, Toast.LENGTH_SHORT).show()
-                return@launch
             }
             MaterialAlertDialogBuilder(context)
                 .setTitle(R.string.change_icon)
@@ -291,22 +289,65 @@ object IconPickerSheet {
                 Toast.makeText(context, R.string.no_icons_in_pack, Toast.LENGTH_SHORT).show()
                 return@launch
             }
-            val binding = SheetIconPickerBinding.inflate(LayoutInflater.from(context))
-            val dialog = com.supernova.launcher.ui.Sheets.open(context)
-            dialog.setContentView(binding.root)
-            binding.iconGrid.layoutManager = androidx.recyclerview.widget.GridLayoutManager(context, 5)
-            binding.iconGrid.adapter = IconChoiceAdapter(viewModel, packPackage, names) { name ->
-                onPick(packPackage, name)
-                dialog.dismiss()
-            }
-            dialog.show()
+            showIconGrid(context, viewModel, IconGrid(packPackage, names), onPick)
         }
     }
 
+    // Every installed app's own icon, A-Z by the app's name, unlabelled
+    // (a long press names one). A work profile's copy of an app looks
+    // the same, so each app shows once; private space apps stay off the
+    // home screen, so they aren't offered.
+    private fun showAppGrid(context: Context, viewModel: LauncherViewModel, onPick: (String?, String?) -> Unit) {
+        val apps = appChoices(viewModel)
+        val grid = IconGrid(AppIconSource.PACK, apps.map(AppIconSource::nameFor), apps.map { it.label })
+        showIconGrid(context, viewModel, grid, onPick)
+    }
+
+    private fun appChoices(viewModel: LauncherViewModel): List<LaunchableApp> =
+        viewModel.state.value.apps
+            .filterNot { it.privateSpace }
+            .distinctBy { "${it.packageName}/${it.className}" }
+
+    // What the icon row shows for a pick from a grid: the pack drawable's
+    // name, or the name of the app whose icon it is.
+    fun pickLabel(viewModel: LauncherViewModel, pack: String?, name: String): String {
+        val source = AppIconSource.appOf(name)?.takeIf { AppIconSource.isAppIcon(pack) } ?: return name
+        return viewModel.state.value.apps.firstOrNull {
+            it.packageName == source.packageName && it.className == source.className &&
+                it.userSerial == source.userSerial
+        }?.label ?: source.packageName
+    }
+
+    // One grid's icons: a pack's drawables, or the app icons by name.
+    private class IconGrid(
+        val packPackage: String,
+        val names: List<String>,
+        // Read out and shown on a long press; null for a pack's drawables.
+        val labels: List<String>? = null
+    )
+
+    private fun showIconGrid(
+        context: Context,
+        viewModel: LauncherViewModel,
+        grid: IconGrid,
+        onPick: (String?, String?) -> Unit
+    ) {
+        val binding = SheetIconPickerBinding.inflate(LayoutInflater.from(context))
+        val dialog = com.supernova.launcher.ui.Sheets.open(context)
+        dialog.setContentView(binding.root)
+        binding.iconGrid.layoutManager = androidx.recyclerview.widget.GridLayoutManager(context, GRID_COLUMNS)
+        binding.iconGrid.adapter = IconChoiceAdapter(viewModel, grid) { name ->
+            onPick(grid.packPackage, name)
+            dialog.dismiss()
+        }
+        dialog.show()
+    }
+
+    private const val GRID_COLUMNS = 5
+
     private class IconChoiceAdapter(
         private val viewModel: LauncherViewModel,
-        private val packPackage: String,
-        private val names: List<String>,
+        private val grid: IconGrid,
         private val onPick: (String) -> Unit
     ) : androidx.recyclerview.widget.RecyclerView.Adapter<IconChoiceAdapter.Holder>() {
 
@@ -319,13 +360,17 @@ object IconPickerSheet {
             return Holder(view)
         }
 
-        override fun getItemCount(): Int = names.size
+        override fun getItemCount(): Int = grid.names.size
 
         override fun onBindViewHolder(holder: Holder, position: Int) {
-            val name = names[position]
+            val name = grid.names[position]
             // Lazy per-bind decode: the RecyclerView only materializes what
             // scrolls into view, so a 3,000-icon pack stays tractable.
-            holder.view.setImageDrawable(viewModel.appCatalog().packDrawable(packPackage, name))
+            holder.view.setImageDrawable(viewModel.appCatalog().packDrawable(grid.packPackage, name))
+            grid.labels?.getOrNull(position)?.let { label ->
+                holder.view.contentDescription = label
+                holder.view.tooltipText = label
+            }
             holder.view.setOnClickListener { onPick(name) }
         }
     }

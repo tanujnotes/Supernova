@@ -133,12 +133,22 @@ class AppCatalog(
         return overrides["$userSerial/$packageName/$className"]
     }
 
-    // Resolves a drawable by name out of an arbitrary installed package.
+    // Resolves a drawable by name out of an arbitrary installed package, or
+    // an app's own icon for an AppIconSource pick.
     fun packDrawable(packPackage: String, drawableName: String): Drawable? = runCatching {
+        if (AppIconSource.isAppIcon(packPackage)) return@runCatching appIconDrawable(drawableName)
         val res = pm.getResourcesForApplication(packPackage)
         val id = res.getIdentifier(drawableName, "drawable", packPackage)
         if (id == 0) null else res.getDrawable(id, null)
     }.getOrNull()
+
+    // An installed app's own icon as the app ships it: no pack, no shape.
+    private fun appIconDrawable(name: String): Drawable? {
+        val app = AppIconSource.appOf(name) ?: return null
+        return userForSerial(app.userSerial)?.let { user ->
+            resolveActivity(app.packageName, app.className, user)?.getIcon(0)
+        }
+    }
 
     fun iconFor(app: LaunchableApp): Drawable? {
         val cacheKey = "${app.userSerial}/${app.packageName}/${app.className}"
@@ -199,6 +209,9 @@ class AppCatalog(
             val custom = gallery ?: override?.iconPackPackage?.let { pack ->
                 override.iconDrawableName?.let { name -> packDrawable(pack, name) }
             }
+            // Another app's icon, picked in Edit, is drawn as that app's own
+            // icon is (shape, glass and all), not as a pack's finished art.
+            val pickedAppIcon = gallery == null && custom != null && AppIconSource.isAppIcon(override?.iconPackPackage)
 
             val source: Drawable
             val decoration: IconPackDecoration?
@@ -210,7 +223,8 @@ class AppCatalog(
             if (custom != null) {
                 source = custom
                 decoration = null
-                finishedArt = true
+                finishedArt = !pickedAppIcon
+                ownIcon = pickedAppIcon
             } else if (variant == "ORIGINAL") {
                 // The app's own icon with no pack plate and no shape clip.
                 source = resolveActivity(app.packageName, app.className, user)?.getIcon(0) ?: return null
@@ -519,9 +533,13 @@ class AppCatalog(
     // global shape; used for custom folder icons.
     fun renderPackDrawable(packPackage: String, drawableName: String): Drawable? {
         val source = packDrawable(packPackage, drawableName) ?: return null
-        return runLogged("render pack drawable") {
-            iconRenderer.render(source, null, iconShape, customShapeSpec, IconGlass.OFF)
-        }.getOrNull()
+        return if (AppIconSource.isAppIcon(packPackage)) {
+            renderPickedAppIcon(source)
+        } else {
+            runLogged("render pack drawable") {
+                iconRenderer.render(source, null, iconShape, customShapeSpec, IconGlass.OFF)
+            }.getOrNull()
+        }
     }
 
     // Any drawable pushed through the shape pipeline so launcher-action tiles
@@ -564,9 +582,19 @@ class AppCatalog(
     }
 
     fun renderFolderPack(packPackage: String, drawableName: String): Drawable? = synchronized(renderLock) {
-        if (iconRenderer.glass == IconGlass.OFF) return renderPackDrawable(packPackage, drawableName)
+        if (iconRenderer.glass == IconGlass.OFF || AppIconSource.isAppIcon(packPackage)) {
+            return renderPackDrawable(packPackage, drawableName)
+        }
         val source = packDrawable(packPackage, drawableName) ?: return null
         runLogged("render folder art") { iconRenderer.renderFolderArt(source, iconShape, customShapeSpec) }.getOrNull()
+    }
+
+    // An app's icon picked for a folder or a launcher action, drawn as the
+    // app's own icon is on the home screen.
+    private fun renderPickedAppIcon(source: Drawable): Drawable? = synchronized(renderLock) {
+        runLogged("render picked app icon") {
+            iconRenderer.renderOwnIcon(source, iconShape, customShapeSpec, iconRenderer.glass)
+        }.getOrNull()
     }
 
     // A picture picked for a launcher action, as one picked for an app is drawn.
@@ -743,6 +771,14 @@ class AppCatalog(
             activityInfoByKey = activityInfoByKey.filterKeys { !it.contains(marker) }
             iconCache.snapshot().keys.filter { it.contains(marker) }.forEach(iconCache::remove)
             dominantColors.keys.filter { it.contains(marker) }.forEach(dominantColors::remove)
+            // An app wearing this app's icon (picked in Edit) draws it afresh too.
+            overrides.filterValues { override ->
+                AppIconSource.isAppIcon(override.iconPackPackage) &&
+                    override.iconDrawableName?.let(AppIconSource::appOf)?.packageName == packageName
+            }.keys.forEach { key ->
+                iconCache.remove(key)
+                dominantColors.remove(key)
+            }
         }
     }
 

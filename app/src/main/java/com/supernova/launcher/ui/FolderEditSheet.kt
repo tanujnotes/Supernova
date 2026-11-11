@@ -175,11 +175,9 @@ object FolderEditSheet {
     ) {
         val context = binding.root.context
         fun renderIcon() {
-            binding.iconValue.text = when {
-                icon.photo != null -> context.getString(R.string.icon_photo)
-                icon.name != null -> icon.name
-                else -> context.getString(R.string.option_default)
-            }
+            binding.iconValue.text = icon.photo?.let { context.getString(R.string.icon_photo) }
+                ?: icon.name?.let { IconPickerSheet.pickLabel(viewModel, icon.pack, it) }
+                ?: context.getString(R.string.option_default)
             // The default icon is the folder's own preview: nothing to fit.
             binding.reshapeRow.visibility = if (icon.isCustom) View.VISIBLE else View.GONE
         }
@@ -188,7 +186,7 @@ object FolderEditSheet {
         binding.reshapeRow.setOnClickListener { binding.reshapeSwitch.toggle() }
         binding.reshapeSwitch.setOnCheckedChangeListener { _, checked -> icon.raw = !checked }
 
-        // One row for the icon: Default, a photo or an icon pack.
+        // One row for the icon: Default, an app's icon, a photo or an icon pack.
         val onPhoto = { fromFiles: Boolean ->
             pickPhoto(fromFiles) { uri ->
                 if (uri == null) return@pickPhoto

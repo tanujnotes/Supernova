@@ -190,6 +190,8 @@
     <string name="set_swipe_down_action">Set swipe down action</string>
     <string name="icon_row">Icon</string>
     <string name="icon_photo">Photo</string>
+    <!-- The icon picker's source listing every installed app's own icon. -->
+    <string name="icon_source_apps">App icons</string>
     <string name="photo_from_gallery">Photo from gallery</string>
     <string name="photo_from_files">Photo from files</string>
     <string name="photo_load_failed">Couldn\'t load that image</string>
