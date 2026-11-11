@@ -1,7 +1,9 @@
 package com.supernova.launcher.gesture
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HomeSwipeClassifierTest {
@@ -57,6 +59,25 @@ class HomeSwipeClassifierTest {
     @Test
     fun verticalSwipesIgnoreThePager() {
         assertEquals(Gesture.SWIPE_UP, classify(dx = 0f, dy = -200f, canScroll = { true }))
+    }
+
+    @Test
+    fun aSwipeThePagerTookIsThePagesWhenItCanMove() {
+        // #82: the page turned and the shade came down from one swipe.
+        assertTrue(HomeSwipeClassifier.pageOwnsSwipe(dx = 120f) { true })
+        assertTrue(HomeSwipeClassifier.pageOwnsSwipe(dx = -120f) { true })
+        // Finger left: the next page (+1); finger right: the previous one.
+        assertTrue(HomeSwipeClassifier.pageOwnsSwipe(dx = -120f) { it == 1 })
+        assertTrue(HomeSwipeClassifier.pageOwnsSwipe(dx = 120f) { it == -1 })
+    }
+
+    @Test
+    fun aPageWithNowhereToGoLeavesTheSwipeAlone() {
+        // One page, or the first page dragged towards a previous one: the
+        // page only strained at its edge, so the swipe is still a swipe.
+        assertFalse(HomeSwipeClassifier.pageOwnsSwipe(dx = 120f) { false })
+        assertFalse(HomeSwipeClassifier.pageOwnsSwipe(dx = 120f) { it == 1 })
+        assertFalse(HomeSwipeClassifier.pageOwnsSwipe(dx = -120f) { it == -1 })
     }
 
     @Test

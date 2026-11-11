@@ -157,11 +157,17 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     private val cards by lazy {
         com.supernova.launcher.ui.FeedCardRoutes(this, viewModel, { actions }, { cardActivation }, { widgets })
     }
-    // A swipe steeper than 60 degrees leaves the page where it is (#82).
+    // A home swipe turns the page or swipes up or down, never both (#82).
     private val pageSwipeGuard by lazy { com.supernova.launcher.ui.PageSwipeGuard(binding.workspacePager) }
 
     private val gestureDetector by lazy {
-        HomeGestureDetector(this, { actions.runGesture(it) }, ::workspaceCanScroll, ::pressOnItem)
+        HomeGestureDetector(
+            this,
+            { actions.runGesture(it) },
+            ::workspaceCanScroll,
+            ::pressOnItem,
+            pageTookSwipe = { pageSwipeGuard.pageTookStream }
+        )
     }
 
     // What a gesture, the home button, an action shortcut or a feed card is
