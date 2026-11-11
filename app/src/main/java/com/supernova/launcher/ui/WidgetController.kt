@@ -379,7 +379,8 @@ class WidgetController(
                 info.widgetCategory and AppWidgetProviderInfo.WIDGET_CATEGORY_SEARCHBOX != 0
             },
             prefs = prefs,
-            onPicked = { info -> bind(info, Target.SearchBar) }
+            onPicked = { info -> bind(info, Target.SearchBar) },
+            icons = WidgetPickerIcons.of(viewModel.appCatalog())
         )
     }
 
@@ -698,7 +699,8 @@ class WidgetController(
         WidgetPickerSheet.show(
             activity, cellWidth, cellHeight, prefs.gridCols, prefs.gridRows,
             filterPackage = packageName, prefs = prefs, onPicked = ::onWidgetPicked,
-            onPickShortcut = host::pickShortcutTarget
+            onPickShortcut = host::pickShortcutTarget,
+            icons = WidgetPickerIcons.of(viewModel.appCatalog())
         )
     }
 
@@ -757,7 +759,7 @@ class WidgetController(
         WidgetPickerSheet.show(
             activity, cellWidth, cellHeight, prefs.gridCols, prefs.gridRows,
             prefs = prefs, onPicked = { info -> onWidgetPickedForCard(info, cardId) },
-            renderTile = viewModel.appCatalog()::renderActionTile
+            icons = WidgetPickerIcons.of(viewModel.appCatalog())
         )
     }
 

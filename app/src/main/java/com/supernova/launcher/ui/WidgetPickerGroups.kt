@@ -55,7 +55,9 @@ sealed interface WidgetPickerEntry {
         val label: String,
         val appLabel: String,
         val spanX: Int,
-        val spanY: Int
+        val spanY: Int,
+        // Its app's icon, standing in for a preview the provider has none of.
+        val appIcon: Drawable? = null
     ) : WidgetPickerEntry
 
     // Two widgets side by side - a two-column preview grid.
@@ -69,6 +71,22 @@ sealed interface WidgetPickerEntry {
     ) : WidgetPickerEntry
 }
 
+// How the sheet's icons are drawn. The launcher's own: every app icon as it
+// shows on the home screen and in the drawer (pack, shape, glass, Edit), and
+// any other icon through the same shape and glass. The default leaves them
+// as the system hands them over.
+class WidgetPickerIcons(
+    // An app's icon, by package and profile serial, badged for its profile.
+    val app: (packageName: String, userSerial: Long) -> Drawable? = { _, _ -> null },
+    // Anything else: a shortcut's own icon, a launcher action tile.
+    val render: (Drawable) -> Drawable = { it }
+) {
+    companion object {
+        fun of(catalog: com.supernova.launcher.data.AppCatalog) =
+            WidgetPickerIcons(catalog::appIconFor, catalog::renderActionTile)
+    }
+}
+
 object WidgetPickerGroups {
 
     // Every installed app that offers widgets and/or shortcuts, grouped by
@@ -80,10 +98,14 @@ object WidgetPickerGroups {
         cols: Int,
         rows: Int,
         filterPackage: String? = null,
-        filter: ((android.appwidget.AppWidgetProviderInfo) -> Boolean)? = null
+        filter: ((android.appwidget.AppWidgetProviderInfo) -> Boolean)? = null,
+        icons: WidgetPickerIcons = WidgetPickerIcons()
     ): List<WidgetPickerGroup> {
         val pm = context.packageManager
         val me = Process.myUserHandle()
+        val mySerial = runCatching {
+            context.getSystemService(UserManager::class.java)?.getSerialNumberForUser(me)
+        }.getOrNull() ?: 0L
         val grid = CellGrid(cellWidthPx, cellHeightPx, cols, rows)
         val providers = AppWidgetManager.getInstance(context)
             .getInstalledProvidersForProfile(me)
@@ -104,23 +126,32 @@ object WidgetPickerGroups {
             val appLabel = runCatching {
                 pm.getApplicationLabel(pm.getApplicationInfo(packageName, 0)).toString()
             }.getOrNull() ?: return@mapNotNull null
-            val icon = runCatching { pm.getApplicationIcon(packageName) }.getOrNull()
+            val icon = icons.app(packageName, mySerial)
+                ?: runCatching { pm.getApplicationIcon(packageName) }.getOrNull()
 
-            val widgets = widgetEntries(context, widgetsByPackage[packageName].orEmpty(), appLabel, grid)
+            val widgets = widgetEntries(context, widgetsByPackage[packageName].orEmpty(), appLabel, icon, grid)
 
             val shortcuts = shortcutsByPackage[packageName].orEmpty().map { resolve ->
                 val activity = resolve.activityInfo
+                // A shortcut with no icon of its own wears its app's, as the
+                // app's row does; one with its own gets the same shape and
+                // glass.
+                val own = if (activity.icon != 0) {
+                    runCatching { resolve.loadIcon(pm) }.getOrNull()?.let(icons.render)
+                } else {
+                    null
+                }
                 WidgetPickerEntry.Shortcut(
                     packageName = packageName,
                     label = runCatching { resolve.loadLabel(pm).toString() }.getOrNull().orEmpty().ifBlank { appLabel },
-                    icon = runCatching { resolve.loadIcon(pm) }.getOrNull() ?: icon,
+                    icon = own ?: icon,
                     target = ShortcutTarget.Create(activity.packageName, activity.name)
                 )
             }.sortedWith(com.supernova.launcher.data.LabelOrder.by { it.label })
 
             WidgetPickerGroup(packageName, appLabel, icon, widgets, shortcuts)
         }
-        return (personal + workGroups(context, filterPackage, filter, grid))
+        return (personal + workGroups(context, filterPackage, filter, grid, icons))
             .sortedWith(com.supernova.launcher.data.LabelOrder.by { it.label })
     }
 
@@ -130,7 +161,8 @@ object WidgetPickerGroups {
         context: Context,
         filterPackage: String?,
         filter: ((AppWidgetProviderInfo) -> Boolean)?,
-        grid: CellGrid
+        grid: CellGrid,
+        icons: WidgetPickerIcons
     ): List<WidgetPickerGroup> {
         val pm = context.packageManager
         val userManager = context.getSystemService(UserManager::class.java)
@@ -152,8 +184,9 @@ object WidgetPickerGroups {
                     val app = runCatching { launcherApps.getApplicationInfo(packageName, 0, user) }.getOrNull()
                         ?: return@mapNotNull null
                     val appLabel = pm.getUserBadgedLabel(app.loadLabel(pm), user).toString()
-                    val icon = runCatching { pm.getUserBadgedIcon(app.loadIcon(pm), user) }.getOrNull()
-                    val widgets = widgetEntries(context, infos, appLabel, grid)
+                    val icon = icons.app(packageName, serial)
+                        ?: runCatching { pm.getUserBadgedIcon(app.loadIcon(pm), user) }.getOrNull()
+                    val widgets = widgetEntries(context, infos, appLabel, icon, grid)
                     WidgetPickerGroup(packageName, appLabel, icon, widgets, emptyList(), key = "$serial/$packageName")
                 }
         }
@@ -171,6 +204,7 @@ object WidgetPickerGroups {
         context: Context,
         infos: List<AppWidgetProviderInfo>,
         appLabel: String,
+        appIcon: Drawable?,
         grid: CellGrid
     ): List<WidgetPickerEntry.Widget> = infos.map { info ->
         val spans = WidgetSizing.defaultSpans(context, info, grid.cellWidthPx, grid.cellHeightPx, grid.cols, grid.rows)
@@ -179,12 +213,14 @@ object WidgetPickerGroups {
             label = runCatching { info.loadLabel(context.packageManager) }.getOrNull().orEmpty().ifBlank { appLabel },
             appLabel = appLabel,
             spanX = spans.first,
-            spanY = spans.second
+            spanY = spans.second,
+            appIcon = appIcon
         )
     }.sortedWith(com.supernova.launcher.data.LabelOrder.by { it.label })
 
     // The launcher's own row, listed first: every launcher action plus the Activities picker, as shortcuts.
-    fun launcherGroup(context: Context, renderTile: (Drawable) -> Drawable): WidgetPickerGroup {
+    fun launcherGroup(context: Context, icons: WidgetPickerIcons): WidgetPickerGroup {
+        val renderTile = icons.render
         val actions = ActionShortcut.choices.map { action ->
             WidgetPickerEntry.Shortcut(
                 packageName = context.packageName,

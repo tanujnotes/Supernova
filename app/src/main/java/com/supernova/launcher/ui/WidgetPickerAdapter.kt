@@ -174,9 +174,11 @@ class WidgetPickerAdapter(
                 val appContext = context.applicationContext
                 previewLoader.execute {
                     // Providers that only declare a previewLayout hand back
-                    // nothing usable here; fall back to the app icon.
+                    // nothing usable here; fall back to the app icon, as the
+                    // launcher draws it.
                     val loaded = runCatching { widget.info.loadPreviewImage(appContext, 0) }.getOrNull()
                         ?.takeIf { it.intrinsicWidth > 0 && it.intrinsicHeight > 0 }
+                        ?: widget.appIcon
                         ?: runCatching {
                             appContext.packageManager.getApplicationIcon(widget.info.provider.packageName)
                         }.getOrNull()

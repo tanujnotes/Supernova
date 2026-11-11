@@ -534,6 +534,24 @@ class AppCatalog(
 
     fun renderActionTile(tile: Drawable): Drawable = renderThemedDrawable(tile) ?: tile
 
+    // An app's icon as the launcher shows it everywhere else, for lists that
+    // name an app rather than one of its activities (the widget sheet): its
+    // launcher activity's icon with every customization - pack, shape, glass,
+    // Edit. An app with nothing to launch (a widget-only package) gets its
+    // plain icon through the same shape and glass.
+    fun appIconFor(packageName: String, userSerial: Long): Drawable? =
+        mainActivityFor(packageName, userSerial)?.let(::iconFor) ?: unlaunchableAppIcon(packageName, userSerial)
+
+    private fun unlaunchableAppIcon(packageName: String, userSerial: Long): Drawable? {
+        val user = userForSerial(userSerial) ?: return null
+        return runCatching { launcherApps.getApplicationInfo(packageName, 0, user).loadIcon(pm) }
+            .getOrNull()
+            ?.let { raw ->
+                val rendered = renderThemedDrawable(raw) ?: raw
+                runCatching { pm.getUserBadgedIcon(rendered, user) }.getOrDefault(rendered)
+            }
+    }
+
     // Art picked for a folder, under the icons' glass when that is on.
     fun renderFolderPicture(picture: android.graphics.Bitmap): Drawable? = synchronized(renderLock) {
         runLogged("render shortcut picture") {
