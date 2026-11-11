@@ -1,19 +1,15 @@
 package com.supernova.launcher.ui
 
 import android.app.Activity
-import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.LauncherApps
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.os.UserManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.supernova.launcher.R
 import com.supernova.launcher.data.GalleryIconCodec
-import com.supernova.launcher.data.LabelOrder
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.gesture.ActionShortcut
 import com.supernova.launcher.runLogged
@@ -62,57 +58,18 @@ class ShortcutPlacer(
         viewModel().addIntentItemToWorkspace(intentUri, label, iconBase64, page, free.first, free.second)
     }
 
-    // Any exported activity as an icon. Pick an app, then one of its activities;
-    // the launch intent is stored as an intentUri and the icon is snapshotted.
+    // Any exported activity of any installed app as an icon: the launch
+    // intent is stored as an intentUri and the icon is snapshotted.
     private fun showActivitiesPicker() {
-        val apps = LabelOrder.sorted(viewModel().visibleApps()) { it.label }
-        if (apps.isEmpty()) return
-        MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.add_category_activities)
-            .setItems(apps.map { it.label }.toTypedArray()) { _, which ->
-                showActivitiesForApp(apps[which])
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .showTracked()
-    }
-
-    private fun showActivitiesForApp(app: LaunchableApp) {
-        val pm = activity.packageManager
-        val activities = runCatching {
-            pm.getPackageInfo(app.packageName, PackageManager.GET_ACTIVITIES)
-                .activities.orEmpty()
-                .filter { it.exported && it.isEnabled }
-        }.getOrDefault(emptyList())
-            .let { found -> LabelOrder.sorted(found) { it.loadLabel(pm) } }
-
-        if (activities.isEmpty()) {
-            Toast.makeText(activity, R.string.no_activities, Toast.LENGTH_SHORT).show()
-            return
+        ActivitiesPickerSheet.show(activity, WidgetPickerIcons.of(viewModel().appCatalog())) { pick ->
+            val intent = Intent()
+                .setComponent(pick.component)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val icon = runCatching { activity.packageManager.getActivityIcon(pick.component) }.getOrNull()
+            addIntentItemAtFreeCell(
+                intent.toUri(Intent.URI_INTENT_SCHEME), pick.label, icon?.let { GalleryIconCodec.encode(it) }
+            )
         }
-        // Most activities inherit the app label; append the short class name
-        // so multiple activities of one app are distinguishable.
-        val names = activities.map { activity ->
-            val activityLabel = activity.loadLabel(pm).toString()
-            val shortClass = activity.name.substringAfterLast('.')
-            if (activityLabel.isBlank() || activityLabel == app.label) {
-                "${app.label}: $shortClass"
-            } else {
-                activityLabel
-            }
-        }.toTypedArray()
-        MaterialAlertDialogBuilder(activity)
-            .setTitle(app.label)
-            .setItems(names) { _, which ->
-                val activity = activities[which]
-                val intent = Intent()
-                    .setComponent(ComponentName(activity.packageName, activity.name))
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                val icon = runCatching { activity.loadIcon(pm) }.getOrNull()
-                val icon64 = icon?.let { GalleryIconCodec.encode(it) }
-                addIntentItemAtFreeCell(intent.toUri(Intent.URI_INTENT_SCHEME), names[which], icon64)
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .showTracked()
     }
 
     private fun handleCreateShortcutResult(data: Intent) {

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Activities picker: every installed app as a collapsible card, each
+     opening into the activities it lets other apps start. The list frame's
+     height is set from the window's in ActivitiesPickerSheet. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <include layout="@layout/sheet_handle" />
+
+    <TextView
+        style="@style/SheetTitle"
+        android:paddingBottom="12dp"
+        android:text="@string/add_category_activities" />
+
+    <FrameLayout
+        android:id="@+id/activitiesFrame"
+        android:layout_width="match_parent"
+        android:layout_height="560dp">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/activitiesRecycler"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="24dp" />
+
+        <ProgressBar
+            android:id="@+id/activitiesProgress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center" />
+
+        <TextView
+            android:id="@+id/activitiesEmpty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/no_activities"
+            android:textColor="@color/textSecondary"
+            android:textSize="16sp"
+            android:visibility="gone" />
+
+        <!-- The drawer's fast scrollbar and its letter bubble. -->
+        <com.supernova.launcher.ui.FastScrollerView
+            android:id="@+id/activitiesFastScroller"
+            android:layout_width="32dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="end"
+            android:paddingTop="4dp"
+            android:paddingBottom="24dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/activitiesFastScrollBubble"
+            android:layout_width="75dp"
+            android:layout_height="62dp"
+            android:layout_gravity="top|end"
+            android:layout_marginEnd="19dp"
+            android:background="@drawable/bg_fast_scroll_bubble"
+            android:elevation="3dp"
+            android:gravity="center"
+            android:importantForAccessibility="no"
+            android:includeFontPadding="false"
+            android:paddingHorizontal="13dp"
+            android:textSize="32sp"
+            android:visibility="invisible" />
+    </FrameLayout>
+</LinearLayout>

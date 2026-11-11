@@ -1,6 +1,14 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+    <!-- The Activities picker (widget sheet > Supernova > Activities) lists
+         every installed package, as a launcher's does: the activity people
+         pick is often in one with no drawer icon (a system settings screen),
+         which no <queries> entry can name ahead of time. -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
     <!-- Private space apps (Android 15+), shown while this is the default
          home app. -->
     <uses-permission android:name="android.permission.ACCESS_HIDDEN_PROFILES" />

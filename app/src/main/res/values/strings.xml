@@ -941,6 +941,11 @@
     <!-- Add to home surface (Phase 1) -->
     <string name="add_category_activities">Activities</string>
     <string name="no_activities">No activities</string>
+    <!-- Under an app in the Activities picker: how many of its activities it offers. -->
+    <plurals name="activity_count">
+        <item quantity="one">%d activity</item>
+        <item quantity="other">%d activities</item>
+    </plurals>
     <string name="launch_failed">Couldn\'t launch that</string>
     <!-- Screen reader actions on a home screen icon: moving it without a drag. -->
     <string name="a11y_move_left">Move left</string>
