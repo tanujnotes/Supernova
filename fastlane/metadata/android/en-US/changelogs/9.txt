@@ -1,0 +1,10 @@
+Crop wallpapers, open Private space from home, use any app's icon.
+
+- Wallpapers from files: crop, then set on home, lock screen or both
+- Private space opens its apps in a card on home
+- Edit: one Icon row, now with any installed app's icon
+- Activities picker lists every app
+- App checklists: search, ticked apps first
+- Folder apps get the full menu; work widgets in the picker
+- Smoother drawer swipes; edge swipes turn pages
+- Fixed home swipes that turned the page and swiped at once
