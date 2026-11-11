@@ -18,6 +18,7 @@ import com.supernova.launcher.R
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.databinding.ActivityLauncherBinding
 import com.supernova.launcher.databinding.ViewSearchOverlayBinding
+import com.supernova.launcher.runLogged
 import com.supernova.launcher.search.AppSearchProvider
 import com.supernova.launcher.search.ContactSearchProvider
 import com.supernova.launcher.search.MathSearchProvider
@@ -219,7 +220,7 @@ class SearchController(
     }
 
     private fun windowMode(): Boolean =
-        viewModel.state.value.prefs.searchWindowMode.equals("WINDOW", ignoreCase = true)
+        viewModel.state.value.prefs.searchWindowMode == com.supernova.launcher.data.SearchWindowMode.WINDOW
 
     // The window rotated or was resized. The tiles' columns follow the
     // drawer's, which follow the width, and a query's rows were cut to the
@@ -315,7 +316,7 @@ class SearchController(
             com.supernova.launcher.search.FolderSearchProvider(folderHits, folderIcon),
             com.supernova.launcher.search.CardSearchProvider { viewModel.feedCards() },
             WebSearchProvider(
-                provider = { WebProvider.fromName(viewModel.state.value.prefs.searchWebProvider) },
+                provider = { viewModel.state.value.prefs.searchWebProvider },
                 chips = { SearchChip.decode(viewModel.state.value.prefs.searchChips) }
             )
         )
@@ -474,7 +475,7 @@ class SearchController(
                 surface.dismiss()
             }
             else -> {
-                val provider = WebProvider.fromName(viewModel.state.value.prefs.searchWebProvider)
+                val provider = viewModel.state.value.prefs.searchWebProvider
                 onOpenUri(provider.searchUrl(query))
                 surface.dismiss()
             }
@@ -495,7 +496,7 @@ class SearchController(
             surface.dismiss()
         },
         onContactCall = { number ->
-            runCatching {
+            runLogged("dial contact") {
                 binding.root.context.startActivity(
                     Intent(Intent.ACTION_DIAL, android.net.Uri.parse("tel:$number"))
                 )
@@ -503,7 +504,7 @@ class SearchController(
             surface.dismiss()
         },
         onContactMessage = { number ->
-            runCatching {
+            runLogged("message contact") {
                 binding.root.context.startActivity(
                     Intent(Intent.ACTION_SENDTO, android.net.Uri.parse("smsto:$number"))
                 )
@@ -543,7 +544,7 @@ class SearchController(
         val frequent = viewModel.recentApps(gridColumns())
         val shortcuts = SuggestedShortcuts.pills(viewModel)
         // Folder members live inside their folder, as in the drawer.
-        val groups = viewModel.drawerFolderGroups().filter { viewModel.appsInGroup(it).isNotEmpty() }
+        val groups = viewModel.drawerFolderGroups().filter { viewModel.drawerFolderApps(it).isNotEmpty() }
         val inFolders = groups.filter { viewModel.leavesMainList(it) }.flatMapTo(HashSet()) { it.members }
         val folders = groups.map { group ->
             SearchResult.Folder(
@@ -561,7 +562,7 @@ class SearchController(
 
     private fun openContact(contact: SearchResult.Contact) {
         val uri = ContactsContract.Contacts.getLookupUri(contact.contactId, contact.lookupKey)
-        runCatching {
+        runLogged("open contact") {
             binding.root.context.startActivity(Intent(Intent.ACTION_VIEW, uri))
         }
     }

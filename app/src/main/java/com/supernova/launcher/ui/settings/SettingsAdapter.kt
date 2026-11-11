@@ -524,10 +524,17 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             binding.labelSummary.text = binding.root.context.getString(
                 R.string.label_group_summary, item.sizeDisplay(item.size(prefs)), item.font(prefs)
             )
+            // With labels off there is nothing to set: no summary, no band,
+            // and the row's tap is the checkbox's.
+            val shown = item.shown(prefs)
+            binding.labelSummary.visibility = if (shown) View.VISIBLE else View.GONE
+            binding.labelChevron.visibility = if (shown) View.VISIBLE else View.INVISIBLE
             binding.labelChevron.rotation = if (expanded) 180f else 0f
-            binding.labelBody.visibility = if (expanded) View.VISIBLE else View.GONE
-            binding.labelHeader.setOnClickListener { onToggle(item.title) }
-            bindCheck(binding.labelSwitch, item.shown(prefs), item.setShown)
+            binding.labelBody.visibility = if (expanded && shown) View.VISIBLE else View.GONE
+            binding.labelHeader.setOnClickListener {
+                if (shown) onToggle(item.title) else binding.labelSwitch.toggle()
+            }
+            bindCheck(binding.labelSwitch, shown, item.setShown)
 
             // Same contract as a Slider row: ticks preview, release commits,
             // and a rebind never yanks the thumb out from under a finger.

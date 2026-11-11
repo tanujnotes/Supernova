@@ -36,7 +36,7 @@ object SearchMarks {
     // not one of the chips.
     fun chipsFor(prefs: LauncherPrefs?): List<SearchChip> {
         val configured = SearchChip.decode(prefs?.searchChips.orEmpty())
-        val engine = when (WebProvider.fromName(prefs?.searchWebProvider.orEmpty())) {
+        val engine = when (prefs?.searchWebProvider ?: WebProvider.GOOGLE) {
             WebProvider.GOOGLE -> SearchChip.GOOGLE
             else -> null
         }

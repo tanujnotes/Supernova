@@ -48,6 +48,10 @@ enum class GestureAction {
     // Fire-and-forget voice search / voice assistant.
     VOICE_SEARCH,
 
+    // The private space's apps in a folder card over the home screen,
+    // unlocking the space first when it is locked (#75).
+    PRIVATE_SPACE,
+
     // An intent an app's own shortcut screen made (the Shortcuts tab: a
     // direct dial, a Maps route). Payload = the intent's URI.
     LAUNCH_INTENT,

@@ -144,7 +144,7 @@ object CustomCardEditorSheet {
                 .setMessage(R.string.card_unsaved_message)
                 .setPositiveButton(R.string.save) { _, _ -> save() }
                 .setNegativeButton(R.string.card_discard) { _, _ -> dialog.dismiss() }
-                .show()
+                .showTracked()
         }
         dialog.onBackPressedDispatcher.addCallback(dialog) { attemptClose() }
 
@@ -226,7 +226,7 @@ object CustomCardEditorSheet {
                     }
                 }
                 .setNegativeButton(R.string.cancel, null)
-                .show()
+                .showTracked()
         }
         binding.cardFeaturedAdd.setOnClickListener { pickFeatured() }
         binding.cardFeaturedRow.setOnClickListener { pickFeatured() }
@@ -325,7 +325,7 @@ object CustomCardEditorSheet {
                     }
                 }
                 .setNegativeButton(R.string.cancel, null)
-                .show()
+                .showTracked()
         }
 
         // ---- Activation conditions: a row each, "+" to add, "x" to drop ----
@@ -435,7 +435,7 @@ object CustomCardEditorSheet {
                     refreshConditions()
                 }
                 .setNegativeButton(R.string.cancel, null)
-                .show()
+                .showTracked()
         }
 
         fun editText(
@@ -459,7 +459,7 @@ object CustomCardEditorSheet {
                     onDone(input.text?.toString()?.trim().orEmpty())
                 }
                 .setNegativeButton(R.string.cancel, null)
-                .show()
+                .showTracked()
         }
 
         fun editBluetooth() = editText(
@@ -632,7 +632,7 @@ object CustomCardEditorSheet {
                 onPicked("${app.packageName}/${app.className}@${app.userSerial}", app.label)
             }
             .setNegativeButton(R.string.cancel, null)
-            .show()
+            .showTracked()
     }
 
     // "pkg|shortcutId@userSerial", mirroring the gesture LAUNCH_SHORTCUT
@@ -663,10 +663,10 @@ object CustomCardEditorSheet {
                         )
                     }
                     .setNegativeButton(R.string.cancel, null)
-                    .show()
+                    .showTracked()
             }
             .setNegativeButton(R.string.cancel, null)
-            .show()
+            .showTracked()
     }
 
     private fun requestConditionPermissions(

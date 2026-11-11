@@ -22,8 +22,11 @@ class WidgetPickerAdapter(
     // Long-press on a preview: the host may pick the widget up and drag it
     // to a spot (the in-activity add sheet does; a dialog picker cannot, its
     // touches live in another window). Returns whether it took the press.
-    private val onDragWidget: ((AppWidgetProviderInfo, View) -> Boolean)? = null
-) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    private val onDragWidget: ((AppWidgetProviderInfo, View) -> Boolean)? = null,
+    // The same for a shortcut row, lifted by its icon; its flow then runs
+    // for the cell it is dropped on.
+    private val onDragShortcut: ((ShortcutTarget, View) -> Boolean)? = null
+): RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var groups: List<WidgetPickerGroup> = emptyList()
     private var query: String = ""
@@ -38,7 +41,7 @@ class WidgetPickerAdapter(
     fun submit(list: List<WidgetPickerGroup>, expandAll: Boolean) {
         groups = list
         startExpanded = expandAll
-        if (expandAll) list.forEach { expanded.add(it.packageName) }
+        if (expandAll) list.forEach { expanded.add(it.key) }
         rebuild()
     }
 
@@ -59,10 +62,10 @@ class WidgetPickerAdapter(
             val widgets = if (q.isEmpty() || groupMatches) group.widgets else group.widgets.filter { it.label.lowercase().contains(q) }
             val shortcuts = if (q.isEmpty() || groupMatches) group.shortcuts else group.shortcuts.filter { it.label.lowercase().contains(q) }
             if (widgets.isEmpty() && shortcuts.isEmpty()) continue
-            val isExpanded = startExpanded || q.isNotEmpty() || group.packageName in expanded
+            val isExpanded = startExpanded || q.isNotEmpty() || group.key in expanded
             flat.add(
                 WidgetPickerEntry.Header(
-                    packageName = group.packageName,
+                    key = group.key,
                     label = group.label,
                     icon = group.icon,
                     widgetCount = group.widgets.size,
@@ -79,8 +82,8 @@ class WidgetPickerAdapter(
         notifyDataSetChanged()
     }
 
-    private fun toggle(packageName: String) {
-        if (packageName in expanded) expanded.remove(packageName) else expanded.add(packageName)
+    private fun toggle(key: String) {
+        if (key in expanded) expanded.remove(key) else expanded.add(key)
         rebuild()
     }
 
@@ -129,7 +132,7 @@ class WidgetPickerAdapter(
             }
             binding.headerCount.text = parts.joinToString(", ")
             binding.headerChevron.rotation = if (entry.expanded) 180f else 0f
-            binding.root.setOnClickListener { toggle(entry.packageName) }
+            binding.root.setOnClickListener { toggle(entry.key) }
         }
     }
 
@@ -174,9 +177,11 @@ class WidgetPickerAdapter(
                 val appContext = context.applicationContext
                 previewLoader.execute {
                     // Providers that only declare a previewLayout hand back
-                    // nothing usable here; fall back to the app icon.
+                    // nothing usable here; fall back to the app icon, as the
+                    // launcher draws it.
                     val loaded = runCatching { widget.info.loadPreviewImage(appContext, 0) }.getOrNull()
                         ?.takeIf { it.intrinsicWidth > 0 && it.intrinsicHeight > 0 }
+                        ?: widget.appIcon
                         ?: runCatching {
                             appContext.packageManager.getApplicationIcon(widget.info.provider.packageName)
                         }.getOrNull()
@@ -208,6 +213,9 @@ class WidgetPickerAdapter(
                 }
             )
             binding.root.setOnClickListener { onPickShortcut(entry.target) }
+            binding.root.setOnLongClickListener {
+                onDragShortcut?.invoke(entry.target, binding.shortcutIcon) ?: false
+            }
         }
     }
 

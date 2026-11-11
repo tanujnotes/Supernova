@@ -45,7 +45,7 @@ class AppMatcherTest {
 
     @Test
     fun oneTypoIsForgiven() {
-        assertEquals(AppMatcher.TIER_LOOSE, tier("Olauncher", "pla"))
+        assertEquals(AppMatcher.TIER_TYPO, tier("Olauncher", "pla"))
         assertEquals(listOf(0 until 3), ranges("Olauncher", "pla"))
         assertEquals(listOf(0 until 3), ranges("Calendar", "cla"))
         // One letter too many: with nothing to substitute against, the
@@ -62,6 +62,13 @@ class AppMatcherTest {
         assertNull(AppMatcher.match("Zeta Launcher", "pla"))
         assertNull(AppMatcher.match("Olauncher", "xya"))
         assertNull(AppMatcher.match("Chrome", "xyz"))
+    }
+
+    @Test
+    fun filterKeepsTyposOnlyWhenNothingMatchesBetter() {
+        val labels = listOf("Calculator", "Calendar", "Olauncher")
+        assertEquals(listOf("Calculator"), AppMatcher.filter(labels, "calc") { it })
+        assertEquals(listOf("Olauncher"), AppMatcher.filter(listOf("Olauncher", "Chrome"), "pla") { it })
     }
 
     @Test

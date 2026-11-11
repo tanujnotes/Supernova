@@ -30,6 +30,8 @@ import com.google.android.material.materialswitch.MaterialSwitch
 import com.supernova.launcher.HomeRole
 import com.supernova.launcher.R
 import com.supernova.launcher.data.IconShape
+import com.supernova.launcher.data.Pref
+import com.supernova.launcher.data.SearchWindowMode
 import com.supernova.launcher.databinding.ActivityOnboardingBinding
 import com.supernova.launcher.databinding.OnboardingPageDoneBinding
 import com.supernova.launcher.databinding.OnboardingPageIconsBinding
@@ -38,6 +40,7 @@ import com.supernova.launcher.databinding.OnboardingPageWelcomeBinding
 import com.supernova.launcher.databinding.OnboardingRowDropdownBinding
 import com.supernova.launcher.databinding.OnboardingRowSwitchBinding
 import com.supernova.launcher.databinding.OnboardingShapeTileBinding
+import com.supernova.launcher.runLogged
 import com.supernova.launcher.ui.ChoiceMenu
 import com.supernova.launcher.ui.DrawerBarPlacement
 import com.supernova.launcher.ui.DrawerStyle
@@ -50,7 +53,6 @@ import com.supernova.launcher.ui.theme.AccentColor
 import com.supernova.launcher.ui.theme.Styles
 import com.supernova.launcher.ui.theme.SurfaceId
 import com.supernova.launcher.ui.theme.ThemeEngine
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
@@ -78,7 +80,7 @@ class OnboardingActivity : AppCompatActivity() {
     private val isRerun by lazy { intent.getBooleanExtra(EXTRA_RERUN, false) }
     private val pages = PagesAdapter()
     private var seedJob: Job? = null
-    private var appliedAccent = ""
+    private var appliedAccent: AccentColor? = null
 
     // What Get started or Go home does once the default-home prompt answers.
     private var afterHomeRole: (() -> Unit)? = null
@@ -86,36 +88,9 @@ class OnboardingActivity : AppCompatActivity() {
     // The Contact Search switch waiting on the permission it asked for.
     private var contactSwitch: MaterialSwitch? = null
 
-    private val importBackupLauncher =
-        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri == null) return@registerForActivityResult
-            val app = applicationContext
-            lifecycleScope.launch {
-                // Seen through even if this screen is recreated meanwhile (a
-                // rotation, a dark-mode switch while a cloud file downloads):
-                // cancelled, the import reported itself failed and restored
-                // nothing. Off the main thread: a file in a cloud drive
-                // downloads as it is opened, and a slow network was an ANR.
-                val outcome = withContext(NonCancellable) {
-                    runCatching {
-                        val raw = withContext(Dispatchers.IO) {
-                            contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }.orEmpty()
-                        }
-                        viewModel.importBackup(raw)
-                    }
-                }
-                outcome.onSuccess { result ->
-                    Toast.makeText(app, result.summary(app.resources), Toast.LENGTH_LONG).show()
-                    // The backup brought its own home screen and settings:
-                    // nothing is left to set up.
-                    if (!isDestroyed) finishOnboarding()
-                }.onFailure {
-                    Toast.makeText(
-                        app, app.getString(R.string.backup_import_failed, it.message ?: "unknown"), Toast.LENGTH_LONG
-                    ).show()
-                }
-            }
-        }
+    // The backup brought its own home screen and settings: nothing is left
+    // to set up.
+    private val backup = com.supernova.launcher.ui.BackupTransfer(this, { viewModel }, onImported = ::finishOnboarding)
 
     private val requestHomeRole =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -126,15 +101,16 @@ class OnboardingActivity : AppCompatActivity() {
 
     private val requestContacts =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            viewModel.setSearchContacts(granted)
+            viewModel.set(Pref.searchContacts, granted)
             contactSwitch?.isChecked = granted
             contactSwitch = null
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        appliedAccent = viewModel.state.value.prefs.accentColor
-        ThemeEngine.applyAccent(this, AccentColor.fromName(appliedAccent))
+        val accent = viewModel.state.value.prefs.accentColor
+        appliedAccent = accent
+        ThemeEngine.applyAccent(this, accent)
         binding = ActivityOnboardingBinding.inflate(layoutInflater)
         setContentView(binding.root)
         // Edge to edge over the wallpaper: light system bar
@@ -229,7 +205,7 @@ class OnboardingActivity : AppCompatActivity() {
             return
         }
         afterHomeRole = then
-        runCatching { requestHomeRole.launch(request) }.onFailure {
+        runLogged("ask for home role") { requestHomeRole.launch(request) }.onFailure {
             afterHomeRole = null
             then()
         }
@@ -263,7 +239,7 @@ class OnboardingActivity : AppCompatActivity() {
             askHomeRoleThen { goTo(PAGE_SEARCH) }
         }
         page.welcomeRestore.setOnClickListener {
-            importBackupLauncher.launch(arrayOf("application/json", "text/plain"))
+            backup.pickImportFile()
         }
         page.welcomeSkip.setOnClickListener { finishOnboarding() }
     }
@@ -273,23 +249,23 @@ class OnboardingActivity : AppCompatActivity() {
     private fun bindSearch(view: View) {
         val rows = pageRows(view, R.string.onboarding_search)
         val prefs = viewModel.state.value.prefs
-        val modes = listOf("WINDOW", "IMMERSIVE")
+        val modes = listOf(SearchWindowMode.WINDOW, SearchWindowMode.IMMERSIVE)
         addDropdown(
             rows, R.string.onboarding_mode,
             listOf(getString(R.string.search_window_window), getString(R.string.search_window_immersive)),
-            modes.indexOfFirst { it.equals(prefs.searchWindowMode, ignoreCase = true) }.coerceAtLeast(0)
-        ) { viewModel.setSearchWindowMode(modes[it]) }
+            modes.indexOf(prefs.searchWindowMode).coerceAtLeast(0)
+        ) { viewModel.set(Pref.searchWindowMode, modes[it]) }
         addSwitch(
             rows, R.string.onboarding_shortcut_search, R.string.onboarding_shortcut_search_summary,
             prefs.searchShortcuts
-        ) { checked, _ -> viewModel.setSearchShortcuts(checked) }
+        ) { checked, _ -> viewModel.set(Pref.searchShortcuts, checked) }
         addSwitch(
             rows, R.string.onboarding_contact_search, R.string.onboarding_contact_search_summary,
             prefs.searchContacts && contactsGranted()
         ) { checked, switch ->
             when {
-                !checked -> viewModel.setSearchContacts(false)
-                contactsGranted() -> viewModel.setSearchContacts(true)
+                !checked -> viewModel.set(Pref.searchContacts, false)
+                contactsGranted() -> viewModel.set(Pref.searchContacts, true)
                 else -> {
                     // On once the permission comes back granted.
                     switch.isChecked = false
@@ -314,7 +290,8 @@ class OnboardingActivity : AppCompatActivity() {
             placements.indexOf(SearchBarPlacement.fromName(config.desktop.placement)).coerceAtLeast(0)
         ) { index ->
             val current = SearchBarConfig.decode(viewModel.state.value.prefs.searchBarConfig)
-            viewModel.setSearchBarConfig(
+            viewModel.set(
+                Pref.searchBarConfig,
                 current.copy(desktop = current.desktop.copy(placement = placements[index].name)).encode()
             )
         }
@@ -331,7 +308,8 @@ class OnboardingActivity : AppCompatActivity() {
         ) { index ->
             val placement = drawerPlacements[index]
             val current = SearchBarConfig.decode(viewModel.state.value.prefs.searchBarConfig)
-            viewModel.setSearchBarConfig(
+            viewModel.set(
+                Pref.searchBarConfig,
                 current.copy(
                     drawer = current.drawer.copy(
                         placement = placement.name,
@@ -357,16 +335,16 @@ class OnboardingActivity : AppCompatActivity() {
                 getString(R.string.onboarding_drawer_vertical), getString(R.string.onboarding_drawer_list),
                 getString(R.string.onboarding_drawer_horizontal)
             ),
-            styles.indexOf(DrawerStyle.fromName(prefs.drawerStyle)).coerceAtLeast(0)
-        ) { viewModel.setDrawerStyle(styles[it].name) }
+            styles.indexOf(prefs.drawerStyle).coerceAtLeast(0)
+        ) { viewModel.set(Pref.drawerStyle, styles[it]) }
         addSwitch(
             rows, R.string.onboarding_show_keyboard, R.string.onboarding_show_keyboard_summary,
             prefs.drawerAutoKeyboard
-        ) { checked, _ -> viewModel.setDrawerAutoKeyboard(checked) }
+        ) { checked, _ -> viewModel.set(Pref.drawerAutoKeyboard, checked) }
         addSwitch(
             rows, R.string.onboarding_frequent_apps, R.string.onboarding_frequent_apps_summary,
             prefs.drawerFrequentRow
-        ) { checked, _ -> viewModel.setDrawerFrequentRow(checked) }
+        ) { checked, _ -> viewModel.set(Pref.drawerFrequentRow, checked) }
         addSwitch(
             rows, R.string.onboarding_smart_folders, R.string.onboarding_smart_folders_summary,
             prefs.smartFolders
@@ -379,8 +357,8 @@ class OnboardingActivity : AppCompatActivity() {
         val page = OnboardingPageIconsBinding.bind(view)
         val prefs = viewModel.state.value.prefs
         var scale = prefs.iconScale
-        var shape = IconShape.fromName(prefs.iconShape)
-        val accent = ThemeEngine.accentColor(this, AccentColor.fromName(prefs.accentColor))
+        var shape = prefs.iconShape
+        val accent = ThemeEngine.accentColor(this, prefs.accentColor)
 
         // Four sample icons, in the shape and at the size chosen.
         val preview = page.iconPreviewRow
@@ -413,7 +391,7 @@ class OnboardingActivity : AppCompatActivity() {
         fun setSize(percent: Int) {
             val clamped = percent.coerceIn(SIZE_MIN, SIZE_MAX)
             scale = clamped / 100f
-            viewModel.setIconScale(scale)
+            viewModel.set(Pref.iconScale, scale)
             renderSize()
             renderPreview()
         }

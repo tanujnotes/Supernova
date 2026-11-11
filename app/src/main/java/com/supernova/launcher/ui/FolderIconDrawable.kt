@@ -23,10 +23,12 @@ import com.supernova.launcher.data.GlassPainter
 import com.supernova.launcher.data.IconGlass
 import com.supernova.launcher.data.IconShape
 import com.supernova.launcher.data.LauncherPrefs
+import com.supernova.launcher.data.SettingEnumSerializer
 import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.sin
 
+@kotlinx.serialization.Serializable(with = FolderPreviewStyle.Names::class)
 enum class FolderPreviewStyle {
     GRID,
     STACK,
@@ -36,9 +38,11 @@ enum class FolderPreviewStyle {
     RADIAL_DENSE,
     GRID_3X3;
 
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<FolderPreviewStyle>("FolderPreviewStyle", entries, GRID)
+
     companion object {
-        fun fromName(name: String): FolderPreviewStyle =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: GRID
+        fun fromName(name: String): FolderPreviewStyle = Names.parse(name)
     }
 }
 
@@ -348,6 +352,11 @@ class FolderIconDrawable(
     companion object {
         const val DEFAULT_PLATE_COLOR = 0x59FFFFFF
 
+        // The plate: the folder window's colour when matched, else the
+        // picked one (Default = see-through white).
+        fun plateColor(match: Boolean, picked: String, windowSurface: Int): Int =
+            if (match) windowSurface else LabelStyler.parseColor(picked, DEFAULT_PLATE_COLOR)
+
         // What a folder's own icon is drawn from, for the page and dock
         // signatures: a custom icon, or Reshape turned off for one, changes
         // nothing else they look at, and the old icon stayed on screen.
@@ -357,9 +366,9 @@ class FolderIconDrawable(
         // The plate's shape: the folder's own pick, else the icons' -
         // "" (Default) follows the icon shape.
         fun plateShape(folderIconShape: String, prefs: LauncherPrefs): IconShape =
-            IconShape.fromName(folderIconShape.ifEmpty { prefs.iconShape })
+            if (folderIconShape.isEmpty()) prefs.iconShape else IconShape.fromName(folderIconShape)
 
-        fun glassFor(prefs: LauncherPrefs): IconGlass = IconGlass.fromName(prefs.iconGlass)
+        fun glassFor(prefs: LauncherPrefs): IconGlass = prefs.iconGlass
 
         private const val OPAQUE_ALPHA = 0xFF000000.toInt()
         private const val SHADOW_COLOR = 0x4D000000

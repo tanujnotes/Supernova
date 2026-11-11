@@ -36,4 +36,12 @@ object HomeSwipeClassifier {
         }
         return null
     }
+
+    // Whether a swipe the pager scrolled under (ui/PageSwipeGuard) was the
+    // page's, dx as above. With a page there to move to, it was: a swipe up
+    // or down must not fire on the same lift, as the shade came down over a
+    // page that had just turned (#82). With nowhere to go the page only
+    // strained at its edge, and the swipe is still a swipe.
+    fun pageOwnsSwipe(dx: Float, canScroll: (direction: Int) -> Boolean): Boolean =
+        canScroll(if (dx < 0) 1 else -1)
 }

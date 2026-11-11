@@ -11,6 +11,7 @@ import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import com.supernova.launcher.R
+import com.supernova.launcher.data.Pref
 import com.supernova.launcher.databinding.SheetStylePickerBinding
 import com.supernova.launcher.ui.dp
 import com.supernova.launcher.ui.theme.SurfaceShapes
@@ -64,9 +65,9 @@ object StylePickerSheet {
         dialog.setContentView(binding.root)
 
         val prefs = viewModel.state.value.prefs
-        val fallbackSeed = ThemeEngine.accentColor(context, AccentColor.fromName(prefs.accentColor))
+        val fallbackSeed = ThemeEngine.accentColor(context, prefs.accentColor)
         val palette = PaletteFactory.resolve(
-            context, PaletteSourceMode.fromName(prefs.paletteSource), prefs.paletteSeed, fallbackSeed
+            context, prefs.paletteSource, prefs.paletteSeed, fallbackSeed
         )
         val density = context.resources.displayMetrics.density
 
@@ -81,7 +82,7 @@ object StylePickerSheet {
 
         fun persist() {
             config = config.with(surfaceId, style)
-            viewModel.setStyleConfig(config.encode())
+            viewModel.set(Pref.styleConfig, config.encode())
         }
 
         fun activeSpec(): ColorSpec = when (slot) {

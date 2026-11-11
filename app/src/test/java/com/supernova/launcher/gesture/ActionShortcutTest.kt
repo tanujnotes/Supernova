@@ -44,6 +44,15 @@ class ActionShortcutTest {
     }
 
     @Test
+    fun privateSpaceIsOfferedOnlyWithAPrivateSpace() {
+        val withSpace = ActionShortcut.offered(ActionShortcut.choices, hasPrivateSpace = true)
+        val without = ActionShortcut.offered(ActionShortcut.choices, hasPrivateSpace = false)
+        assertEquals(ActionShortcut.choices, withSpace)
+        assertEquals(ActionShortcut.choices - GestureAction.PRIVATE_SPACE, without)
+        assert(GestureAction.PRIVATE_SPACE in GestureDefaults.pickerActions)
+    }
+
+    @Test
     fun choicesAreAllRenderableAndPayloadless() {
         // Everything offered as a standalone icon must be launchable with no
         // target; payload actions are added through their own target pickers.

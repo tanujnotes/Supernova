@@ -1,6 +1,9 @@
 package com.supernova.launcher.ui
 
+import android.app.Activity
+import android.app.Dialog
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.res.ColorStateList
 import android.view.View
 import android.view.ViewGroup
@@ -9,7 +12,9 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.content.res.AppCompatResources
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputLayout
 import com.supernova.launcher.R
 
@@ -26,8 +31,44 @@ object Sheets {
         BottomSheetDialog(context).apply {
             behavior.skipCollapsed = true
             behavior.state = BottomSheetBehavior.STATE_EXPANDED
+            OpenDialogs.track(this)
         }
 }
+
+// The dialogs and sheets that may be standing over an activity. The launcher
+// takes its own down on a Home press, as it does its menus and the drawer: an
+// Edit sheet left up had the press run the home button's action behind it,
+// and the drawer opened under the sheet.
+//
+// Held weakly and only asked while showing, so nothing has to be taken out.
+// Main thread only.
+object OpenDialogs {
+
+    private val tracked = java.util.Collections.newSetFromMap(java.util.WeakHashMap<Dialog, Boolean>())
+
+    fun track(dialog: Dialog) {
+        tracked += dialog
+    }
+
+    // Dismisses every one opened from this activity; whether any was up.
+    fun dismissAll(owner: Activity): Boolean {
+        val open = tracked.filter { it.isShowing && it.context.owningActivity() === owner }
+        open.forEach { it.dismiss() }
+        return open.isNotEmpty()
+    }
+
+    private fun Context.owningActivity(): Activity? {
+        var context: Context? = this
+        while (context is ContextWrapper) {
+            if (context is Activity) return context
+            context = context.baseContext
+        }
+        return null
+    }
+}
+
+// show(), for a dialog the launcher may open: a Home press closes it.
+fun MaterialAlertDialogBuilder.showTracked(): AlertDialog = show().also(OpenDialogs::track)
 
 // A text field for a dialog. A bare EditText handed to setView lands flush
 // against the dialog's edges with an underline and nothing else; this wraps

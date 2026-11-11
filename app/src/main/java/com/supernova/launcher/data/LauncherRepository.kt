@@ -2,9 +2,9 @@ package com.supernova.launcher.data
 
 import android.content.Context
 import android.content.res.Resources
-import android.util.Log
 import androidx.datastore.preferences.core.edit
 import com.supernova.launcher.R
+import com.supernova.launcher.runLogged
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -30,9 +30,19 @@ class LauncherRepository(private val context: Context) {
     // flowOn keeps the whole-document JSON decode off whichever thread
     // collects; the state combine reads through this. A stored layout this
     // build can't read shows as an empty one, but stays as it is (decode).
-    val modelFlow: Flow<LauncherModel> = context.supernovaStore.data.map { prefs ->
-        decode(prefs[StoreKeys.model]) ?: LauncherModel(version = CURRENT_MODEL_VERSION)
-    }.distinctUntilChanged().flowOn(kotlinx.coroutines.Dispatchers.Default)
+    // The store re-emits on every write to it, a changed setting included:
+    // the document is decoded only when its own text has moved.
+    val modelFlow: Flow<LauncherModel> = context.supernovaStore.data
+        .map { prefs -> prefs[StoreKeys.model] }
+        .distinctUntilChanged()
+        .map { raw -> decode(raw) ?: LauncherModel(version = CURRENT_MODEL_VERSION) }
+        .distinctUntilChanged()
+        .flowOn(kotlinx.coroutines.Dispatchers.Default)
+
+    // The last document decoded, by its text: an edit starts from the
+    // layout the flow has already decoded instead of decoding it again.
+    @Volatile
+    private var lastDecoded: Pair<String, LauncherModel>? = null
 
     // Null for a stored layout that doesn't decode, one written by a newer
     // build say (an older one installed over it can't read its new types).
@@ -40,9 +50,16 @@ class LauncherRepository(private val context: Context) {
     // can read it brings it back; a copy is kept in files/ as well.
     private fun decode(raw: String?): LauncherModel? {
         if (raw == null) return LauncherModel(version = CURRENT_MODEL_VERSION)
+        val cached = lastDecoded?.takeIf { it.first == raw }?.second
+        return cached ?: decodeDocument(raw)?.also { lastDecoded = raw to it }
+    }
+
+    private fun decodeDocument(raw: String): LauncherModel? {
         return runCatching { json.decodeFromString<LauncherModel>(raw) }
             .onFailure { failure ->
-                Log.w("Supernova", "Launcher model doesn't decode; leaving it untouched", failure)
+                // Into the shared log too: this is the failure a tester most
+                // needs to be able to send.
+                com.supernova.launcher.Diagnostics.caught("read the stored layout; leaving it untouched", failure)
                 runCatching {
                     val copy = File(context.filesDir, "unreadable_model.json")
                     if (!copy.exists() || copy.readText() != raw) copy.writeText(raw)
@@ -90,11 +107,11 @@ class LauncherRepository(private val context: Context) {
     // checked and placed under the lock: every open screen's view model
     // hears the same install, and only the first to get here adds it.
     suspend fun autoAddApp(app: LaunchableApp, cols: Int, rows: Int) {
-        mutate { current ->
+        mutateFitted(cols, rows) { current ->
             val placed = current.items.any {
                 it.itemType == ItemType.APP && it.packageName == app.packageName && it.userSerial == app.userSerial
             }
-            if (placed) return@mutate current
+            if (placed) return@mutateFitted current
             for (page in 0 until current.pageCount) {
                 val cell = WorkspaceGeometry.findFreeCell(current, page, 1, 1, cols, rows) ?: continue
                 val item = LauncherItem(
@@ -109,7 +126,7 @@ class LauncherRepository(private val context: Context) {
                     className = app.className,
                     userSerial = app.userSerial
                 )
-                return@mutate current.copy(items = current.items + item)
+                return@mutateFitted current.copy(items = current.items + item)
             }
             current
         }
@@ -178,7 +195,7 @@ class LauncherRepository(private val context: Context) {
             label = label
         )
         val members = folderMembers(folder.id, apps)
-        mutate { withNewFolder(it, folder, members, displace, cols, rows) }
+        mutateFitted(cols, rows) { withNewFolder(it, folder, members, displace, cols, rows) }
     }
 
     private fun folderMembers(folderId: String, apps: List<LaunchableApp>): List<LauncherItem> =
@@ -293,7 +310,7 @@ class LauncherRepository(private val context: Context) {
         rows: Int,
         preferredPage: Int
     ) {
-        mutate { withNewDockItem(it, item, members, rank, cols, rows, preferredPage) }
+        mutateFitted(cols, rows) { withNewDockItem(it, item, members, rank, cols, rows, preferredPage) }
     }
 
     suspend fun moveItemToWorkspace(
@@ -309,9 +326,9 @@ class LauncherRepository(private val context: Context) {
         mergeFolders: Boolean = true,
         mergeTargetId: String? = null
     ) {
-        mutate { original ->
+        mutateFitted(cols, rows) { original ->
             val current = applyDisplacement(original, displace, itemId, cols, rows) ?: original
-            val moving = current.items.firstOrNull { it.id == itemId } ?: return@mutate original
+            val moving = current.items.firstOrNull { it.id == itemId } ?: return@mutateFitted original
             val target = mergeTarget(current, page, cellX, cellY, itemId, mergeTargetId)
 
             // Folder semantics win over collision: dropping onto an icon or
@@ -337,7 +354,7 @@ class LauncherRepository(private val context: Context) {
                     // Occupied destination: relocate to the nearest free
                     // cell, or bounce the drop entirely (with any
                     // displacement undone) when the page is full.
-                    val placed = resolvePlacement(current, moved, cols, rows) ?: return@mutate original
+                    val placed = resolvePlacement(current, moved, cols, rows) ?: return@mutateFitted original
                     current.copy(items = current.items.map { if (it.id == placed.id) placed else it })
                 }
             }
@@ -420,28 +437,7 @@ class LauncherRepository(private val context: Context) {
     // Items whose ids still exist (double-undo, races) are skipped.
     // dockSlots: the dock's slots over all its pages (count x pages).
     suspend fun restoreItems(items: List<LauncherItem>, cols: Int, rows: Int, dockSlots: Int) {
-        mutate { current -> restored(current, items, cols, rows, dockSlots) }
-    }
-
-    suspend fun reorderFolderMember(folderId: String, memberId: String, direction: Int) {
-        mutate { current ->
-            val members = current.items.filter { it.folderId == folderId }.sortedBy { it.rank }
-            val index = members.indexOfFirst { it.id == memberId }
-            if (index == -1) return@mutate current
-            val targetIndex = (index + direction).coerceIn(0, members.lastIndex)
-            if (targetIndex == index) return@mutate current
-
-            val reordered = members.toMutableList().apply {
-                val item = removeAt(index)
-                add(targetIndex, item)
-            }
-            val rankMap = reordered.mapIndexed { idx, item -> item.id to idx }.toMap()
-            current.copy(
-                items = current.items.map { item ->
-                    rankMap[item.id]?.let { rank -> item.copy(rank = rank) } ?: item
-                }
-            )
-        }
+        mutateFitted(cols, rows) { current -> restored(current, items, cols, rows, dockSlots) }
     }
 
     suspend fun addWidget(
@@ -457,7 +453,9 @@ class LauncherRepository(private val context: Context) {
         spanY: Int,
         // Neighbours a drag previewed aside; re-validated like every other
         // displacement, and dropped wholesale if the layout moved on.
-        displace: List<WorkspaceGeometry.ReorderMove> = emptyList()
+        displace: List<WorkspaceGeometry.ReorderMove> = emptyList(),
+        // The provider's profile, so a restore finds a work widget again.
+        userSerial: Long = 0L
     ) {
         val widget = LauncherItem(
             id = id(),
@@ -470,9 +468,10 @@ class LauncherRepository(private val context: Context) {
             spanY = spanY.coerceAtLeast(1),
             appWidgetId = appWidgetId,
             widgetProvider = provider,
-            label = label
+            label = label,
+            userSerial = userSerial
         )
-        mutate { original ->
+        mutateFitted(cols, rows) { original ->
             val current = applyDisplacement(original, displace, null, cols, rows) ?: original
             // The widget is already bound by now, so if the layout changed
             // while it was being configured, keep it at the requested spot as
@@ -490,9 +489,9 @@ class LauncherRepository(private val context: Context) {
     // rect is in cells, on half cells with the subgrid on.
     suspend fun resizeWidget(itemId: String, rect: WorkspaceGeometry.CellRect, cols: Int, rows: Int): Boolean {
         var saved = false
-        mutate { current ->
+        mutateFitted(cols, rows) { current ->
             val widget = current.items.firstOrNull { it.id == itemId && it.itemType == ItemType.WIDGET }
-                ?: return@mutate current
+                ?: return@mutateFitted current
             val width = (rect.right - rect.left).coerceIn(MIN_WIDGET_SPAN, cols.toFloat())
             val height = (rect.bottom - rect.top).coerceIn(MIN_WIDGET_SPAN, rows.toFloat())
             val left = rect.left.coerceIn(0f, cols - width)
@@ -510,7 +509,7 @@ class LauncherRepository(private val context: Context) {
                     ignoreItems = WorkspaceGeometry.allowPlacementOverlap
                 )
             ) {
-                return@mutate current
+                return@mutateFitted current
             }
             saved = true
             current.copy(
@@ -792,7 +791,7 @@ class LauncherRepository(private val context: Context) {
     private val autoBackupDir: File get() = File(context.filesDir, "auto_backups")
 
     // Whether the snapshot was written.
-    suspend fun writeAutoBackup(prefs: LauncherPrefs): Boolean = runCatching {
+    suspend fun writeAutoBackup(prefs: LauncherPrefs): Boolean = runLogged("write automatic backup") {
         val payload = exportBackup(prefs)
         autoBackupDir.mkdirs()
         val written = File(autoBackupDir, "layout-${System.currentTimeMillis()}.json")
@@ -929,12 +928,12 @@ class LauncherRepository(private val context: Context) {
         rows: Int,
         displace: List<WorkspaceGeometry.ReorderMove> = emptyList()
     ) {
-        mutate { original ->
+        mutateFitted(cols, rows) { original ->
             val current = applyDisplacement(original, displace, itemId, cols, rows) ?: original
             val moving = current.items.firstOrNull { it.id == itemId && it.itemType == ItemType.WIDGET }
-                ?: return@mutate original
+                ?: return@mutateFitted original
             val moved = WorkspaceGeometry.widgetOn(moving.copy(page = page), rect)
-            val placed = resolvePlacement(current, moved, cols, rows) ?: return@mutate original
+            val placed = resolvePlacement(current, moved, cols, rows) ?: return@mutateFitted original
             current.copy(items = current.items.map { if (it.id == placed.id) placed else it })
         }
     }
@@ -947,7 +946,7 @@ class LauncherRepository(private val context: Context) {
         mergeFolders: Boolean = true,
         mergeTargetId: String? = null
     ) {
-        mutate { original ->
+        mutateFitted(cols, rows) { original ->
             val current = applyDisplacement(original, displace, null, cols, rows) ?: original
             val target = mergeTarget(current, item.page, item.cellX, item.cellY, null, mergeTargetId)
 
@@ -961,7 +960,7 @@ class LauncherRepository(private val context: Context) {
                 mergeFolders && target != null && isFolderEligible(item) && isFolderEligible(target) ->
                     createNewFolderModel(current, item, target)
                 else -> {
-                    val placed = resolvePlacement(current, item, cols, rows) ?: return@mutate original
+                    val placed = resolvePlacement(current, item, cols, rows) ?: return@mutateFitted original
                     current.copy(items = current.items + placed)
                 }
             }
@@ -1073,6 +1072,17 @@ class LauncherRepository(private val context: Context) {
             context.supernovaStore.edit { prefs ->
                 prefs[StoreKeys.model] = json.encodeToString(next)
             }
+        }
+    }
+
+    // A layout edit on the grid in use: it starts from the layout as shown
+    // (WorkspaceGeometry.fitted), and saves the fitted spots only once
+    // something changes.
+    private suspend fun mutateFitted(cols: Int, rows: Int, block: (LauncherModel) -> LauncherModel) {
+        mutate { current ->
+            val shown = WorkspaceGeometry.fitted(current, cols, rows)
+            val next = block(shown)
+            if (next == shown) current else next
         }
     }
 

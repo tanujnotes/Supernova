@@ -39,12 +39,12 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
-            android:text="@string/grid_cols"
+            android:text="@string/grid_rows"
             android:textColor="@color/textPrimary"
             android:textSize="16sp" />
 
         <ImageButton
-            android:id="@+id/colsDown"
+            android:id="@+id/rowsDown"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="@drawable/bg_step_circle"
@@ -54,7 +54,7 @@
             android:src="@drawable/ic_step_minus" />
 
         <TextView
-            android:id="@+id/colsValue"
+            android:id="@+id/rowsValue"
             android:layout_width="44dp"
             android:layout_height="wrap_content"
             android:gravity="center"
@@ -63,7 +63,7 @@
             android:textStyle="bold" />
 
         <ImageButton
-            android:id="@+id/colsUp"
+            android:id="@+id/rowsUp"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="@drawable/bg_step_circle"
@@ -93,12 +93,12 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
-            android:text="@string/grid_rows"
+            android:text="@string/grid_cols"
             android:textColor="@color/textPrimary"
             android:textSize="16sp" />
 
         <ImageButton
-            android:id="@+id/rowsDown"
+            android:id="@+id/colsDown"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="@drawable/bg_step_circle"
@@ -108,7 +108,7 @@
             android:src="@drawable/ic_step_minus" />
 
         <TextView
-            android:id="@+id/rowsValue"
+            android:id="@+id/colsValue"
             android:layout_width="44dp"
             android:layout_height="wrap_content"
             android:gravity="center"
@@ -117,7 +117,7 @@
             android:textStyle="bold" />
 
         <ImageButton
-            android:id="@+id/rowsUp"
+            android:id="@+id/colsUp"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="@drawable/bg_step_circle"

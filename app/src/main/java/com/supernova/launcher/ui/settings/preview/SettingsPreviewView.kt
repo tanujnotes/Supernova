@@ -411,7 +411,7 @@ class SettingsPreviewView @JvmOverloads constructor(
 
         val strip = newRow()
         strip.setPadding(dp(10), dp(8), dp(10), dp(8))
-        when (DockBgStyle.fromName(prefs.dockBgStyle)) {
+        when (prefs.dockBgStyle) {
             DockBgStyle.NONE -> Unit
             DockBgStyle.PILL -> strip.background = surfaceDrawable(resolved, dp(30).toFloat())
             DockBgStyle.ROUNDED -> strip.background = surfaceDrawable(resolved, dp(14).toFloat())
@@ -476,12 +476,10 @@ class SettingsPreviewView @JvmOverloads constructor(
         image.setImageDrawable(
             FolderIconDrawable(
                 icons, dp(64),
-                style = FolderPreviewStyle.fromName(prefs.folderPreviewStyle),
-                plateColor = if (prefs.folderMatchWindowColor) {
-                    resolved.surface
-                } else {
-                    FolderIconDrawable.DEFAULT_PLATE_COLOR
-                },
+                style = prefs.folderPreviewStyle,
+                plateColor = FolderIconDrawable.plateColor(
+                    prefs.folderMatchWindowColor, prefs.folderPlateColor, resolved.surface
+                ),
                 shape = FolderIconDrawable.plateShape(prefs.folderIconShape, prefs),
                 customSpec = com.supernova.launcher.data.CustomShapeSpec.decode(prefs.iconShapeCustom),
                 outlineColor = if (prefs.folderIconOutline) resolved.accent else 0,
@@ -559,7 +557,7 @@ class SettingsPreviewView @JvmOverloads constructor(
 
         // IMMERSIVE fills the screen over a scrim; the stage shows that rather
         // than pretending the card just got wider.
-        val immersive = com.supernova.launcher.ui.FolderMode.fromName(prefs.folderMode) ==
+        val immersive = prefs.folderMode ==
             com.supernova.launcher.ui.FolderMode.IMMERSIVE
         if (!immersive) return card
         val stage = FrameLayout(context).apply { setBackgroundColor(IMMERSIVE_STAGE_SCRIM) }
@@ -582,7 +580,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         val density = resources.displayMetrics.density
         // WINDOW floats an inset rounded card; IMMERSIVE fills the screen. Same
         // split the real overlay makes.
-        val windowMode = prefs.searchWindowMode.equals("WINDOW", ignoreCase = true)
+        val windowMode = prefs.searchWindowMode == com.supernova.launcher.data.SearchWindowMode.WINDOW
 
         val panel = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -614,7 +612,7 @@ class SettingsPreviewView @JvmOverloads constructor(
                 resolved, R.drawable.ic_search,
                 context.getString(
                     R.string.search_web_for,
-                    com.supernova.launcher.search.WebProvider.fromName(prefs.searchWebProvider).displayName,
+                    prefs.searchWebProvider.displayName,
                     SEARCH_DEMO_QUERY
                 )
             )

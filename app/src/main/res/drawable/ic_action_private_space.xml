@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher-action icon for the private space: a shield with a keyhole cut
+     through it, built as the other action tiles are (ic_action_lock): the
+     icon paper behind a glyph painted blue, its top half laid over it in
+     red. An adaptive icon, so it takes the icon shape, glass and shadow. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <background android:drawable="@color/launcherIconBackground" />
+    <foreground>
+        <aapt:attr name="android:drawable">
+            <vector
+                android:width="108dp"
+                android:height="108dp"
+                android:viewportWidth="108"
+                android:viewportHeight="108">
+                <group
+                    android:scaleX="2.25"
+                    android:scaleY="2.25"
+                    android:translateX="27"
+                    android:translateY="27">
+                    <path
+                        android:fillColor="#3F72AF"
+                        android:fillType="evenOdd"
+                        android:pathData="M12,1L3,5v6c0,5.55 3.84,10.74 9,12 5.16,-1.26 9,-6.45 9,-12V5l-9,-4zM11.1,11.9A2.1,2.1 0,1 1,12.9 11.9L13.5,15.8H10.5Z" />
+                    <group>
+                        <clip-path android:pathData="M0,0H24V12H0Z" />
+                        <path
+                            android:fillColor="#D4574B"
+                            android:fillType="evenOdd"
+                            android:pathData="M12,1L3,5v6c0,5.55 3.84,10.74 9,12 5.16,-1.26 9,-6.45 9,-12V5l-9,-4zM11.1,11.9A2.1,2.1 0,1 1,12.9 11.9L13.5,15.8H10.5Z" />
+                    </group>
+                </group>
+            </vector>
+        </aapt:attr>
+    </foreground>
+</adaptive-icon>

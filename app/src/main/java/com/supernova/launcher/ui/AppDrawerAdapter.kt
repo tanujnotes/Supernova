@@ -101,6 +101,31 @@ class AppDrawerAdapter(
     // controller sets it with the column count, before the rebind that
     // follows.
     var tileWidthPx: Int = 0
+    // A grid row's height when the drawer's Rows share out its height (the
+    // vertical grid with Rows set); 0 = the tile's own height.
+    var tileHeightPx: Int = 0
+    // The tile's own height (naturalTileHeightPx): a row shorter than it
+    // takes the difference out of the tile's padding.
+    var tileNaturalPx: Int = 0
+
+    // A tile's own height at the current icon size and label style, taken
+    // from the app whose label runs longest, the likeliest to wrap; 0 with
+    // no apps or no column width yet.
+    fun naturalTileHeightPx(parent: ViewGroup): Int {
+        val longest = allEntries.maxByOrNull { it.app.label.length }
+        val width = tileWidthPx
+        if (longest == null || width <= 0) return 0
+        val holder = TileHolder(ItemDrawerAppBinding.inflate(LayoutInflater.from(parent.context), parent, false))
+        val fixed = tileHeightPx
+        tileHeightPx = 0
+        holder.bind(longest.app)
+        tileHeightPx = fixed
+        holder.itemView.measure(
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        return holder.itemView.measuredHeight
+    }
 
     fun setDisplay(iconScale: Float, showLabels: Boolean, prefs: com.supernova.launcher.data.LauncherPrefs? = null) {
         val labelStyleChanged = prefs != null && (
@@ -197,9 +222,7 @@ class AppDrawerAdapter(
             }
         } else {
             // Search shows apps only; folder contents are reachable by name.
-            displayItems.addAll(allEntries.filter { entry ->
-                com.supernova.launcher.search.AppMatcher.matches(entry.lowerLabel, query)
-            })
+            displayItems.addAll(com.supernova.launcher.search.AppMatcher.filter(allEntries, query) { it.lowerLabel })
         }
         if (query.isBlank() && headerView != null && displayItems.isNotEmpty()) {
             displayItems.add(0, HeaderItem)
@@ -359,6 +382,21 @@ class AppDrawerAdapter(
         }
     }
 
+    // A row taller than its tile keeps the icon and label in its middle; a
+    // shorter one trims the tile's padding, never the label.
+    private fun applyTileHeight(root: View) {
+        val height = if (tileHeightPx > 0) tileHeightPx else ViewGroup.LayoutParams.WRAP_CONTENT
+        if (root.layoutParams.height != height) root.layoutParams = root.layoutParams.apply { this.height = height }
+        (root as? android.widget.LinearLayout)?.gravity =
+            if (tileHeightPx > 0) android.view.Gravity.CENTER else android.view.Gravity.CENTER_HORIZONTAL
+        val pad = (TILE_PADDING_V_DP * root.resources.displayMetrics.density).toInt()
+        val squeeze = if (tileHeightPx in 1 until tileNaturalPx) (tileNaturalPx - tileHeightPx + 1) / 2 else 0
+        val padV = (pad - squeeze).coerceAtLeast(0)
+        if (root.paddingTop != padV || root.paddingBottom != padV) {
+            root.setPadding(root.paddingLeft, padV, root.paddingRight, padV)
+        }
+    }
+
     // Hosts the drawer's header view; there is one such view, so a rebind
     // (or a second holder) simply takes it over.
     private class ListHeaderHolder(private val container: android.widget.FrameLayout) :
@@ -376,6 +414,7 @@ class AppDrawerAdapter(
 
         fun bind(app: LaunchableApp) {
             applyTileWidth(binding.root)
+            applyTileHeight(binding.root)
             binding.appLabel.text = app.label
             labelPrefs?.let { LabelStyler.apply(binding.appLabel, it, onWallpaper = false, context = LabelContext.DRAWER) }
             binding.appLabel.visibility = if (showLabels && !app.hideLabel) View.VISIBLE else View.GONE
@@ -413,6 +452,7 @@ class AppDrawerAdapter(
 
         fun bind(folder: FolderEntry) {
             applyTileWidth(binding.root)
+            applyTileHeight(binding.root)
             binding.appLabel.text = folder.group.name
             labelPrefs?.let { LabelStyler.apply(binding.appLabel, it, onWallpaper = false, context = LabelContext.DRAWER) }
             binding.appLabel.visibility = if (showLabels) View.VISIBLE else View.GONE
@@ -473,6 +513,8 @@ class AppDrawerAdapter(
     } ?: 0
 
     companion object {
+        // item_drawer_app's paddingVertical.
+        const val TILE_PADDING_V_DP = 12
         private const val TYPE_TILE = 0
         private const val TYPE_ROW = 1
         private const val TYPE_WEB = 2

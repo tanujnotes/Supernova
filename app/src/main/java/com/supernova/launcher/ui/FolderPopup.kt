@@ -55,6 +55,13 @@ class FolderPopup(private val context: Context) {
         animate: Boolean = true,
         // Duration multiplier from the animation-speed pref.
         speed: Float = 1f,
+        // False: the title is a name to read, not a field to rename in (the
+        // private space card's).
+        titleEditable: Boolean = true,
+        // A text button on the title row, before the menu (the private space
+        // card's Lock).
+        actionLabel: CharSequence? = null,
+        onAction: ((View) -> Unit)? = null,
         onRename: (String) -> Unit,
         // The title row's overflow button, handed over to anchor a menu on.
         onMenu: ((View) -> Unit)? = null,
@@ -83,6 +90,15 @@ class FolderPopup(private val context: Context) {
             }
         }
         binding.folderTitle.visibility = if (showTitle) View.VISIBLE else View.GONE
+        if (!titleEditable) {
+            binding.folderTitle.apply {
+                isFocusable = false
+                isFocusableInTouchMode = false
+                isLongClickable = false
+                isCursorVisible = false
+                keyListener = null
+            }
+        }
 
         val immersive = mode == FolderMode.IMMERSIVE
         val metrics = context.resources.displayMetrics
@@ -162,6 +178,12 @@ class FolderPopup(private val context: Context) {
                     override fun onChanged() = showCount()
                 }
             )
+        }
+
+        if (actionLabel != null && onAction != null && showTitle) {
+            binding.folderAction.text = actionLabel
+            binding.folderAction.visibility = View.VISIBLE
+            binding.folderAction.setOnClickListener { onAction(it) }
         }
 
         if (onMenu != null && showTitle) {

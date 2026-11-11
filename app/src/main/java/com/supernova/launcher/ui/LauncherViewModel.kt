@@ -28,10 +28,11 @@ import com.supernova.launcher.data.LauncherItem
 import com.supernova.launcher.data.LauncherPreferences
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.LauncherRepository
+import com.supernova.launcher.data.Pref
+import com.supernova.launcher.data.PrefSpec
 import com.supernova.launcher.data.PrivateSpace
 import com.supernova.launcher.data.WorkspaceGeometry
 import com.supernova.launcher.gesture.Gesture
-import com.supernova.launcher.gesture.GestureAction
 import com.supernova.launcher.gesture.GestureBinding
 import com.supernova.launcher.gesture.GestureDefaults
 import com.supernova.launcher.onboarding.DefaultLayoutBuilder
@@ -95,6 +96,13 @@ class LauncherViewModel(
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
 
+    // What state holds until the first real one: not loaded, but with the
+    // settings as the process last read them rather than the defaults. A
+    // screen that took the default accent color from here drew itself, then
+    // found the real one and started over - on every cold start, and every
+    // time Settings opened.
+    private val placeholderState = LauncherUiState(prefs = preferences.latest ?: LauncherPrefs())
+
     val state = combine(
         repository.modelFlow,
         preferences.flow,
@@ -114,7 +122,7 @@ class LauncherViewModel(
             // nothing has been warmed; see the startup scan in init.
             iconsReady = generation > 0
         )
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, LauncherUiState())
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, placeholderState)
 
     // A setting's write: off the main thread, fire and forget. Every plain
     // setter below is one of these.
@@ -122,12 +130,16 @@ class LauncherViewModel(
         viewModelScope.launch { block() }
     }
 
+    // Any one setting: viewModel.set(Pref.gridRows, 7). The settings that
+    // need more than their own key written keep a function of their own.
+    fun <T : Any> set(spec: PrefSpec<T>, value: T) = persist { preferences.set(spec, value) }
+
     private var appliedIconPack: String? = null
-    private var appliedIconShape: String? = null
+    private var appliedIconShape: IconShape? = null
     private var appliedIconShapeCustom: String? = null
     private var appliedReshape: com.supernova.launcher.data.ReshapeLegacy? = null
     private var appliedShadow: Boolean? = null
-    private var appliedGlass: String? = null
+    private var appliedGlass: com.supernova.launcher.data.IconGlass? = null
     // Themed-icon colors depend on the whole palette, so track a signature.
     private var appliedThemedSig: String? = null
     private var autoBackupWritten = false
@@ -194,14 +206,14 @@ class LauncherViewModel(
                     if (packChanged) catalog.applyIconPack(prefs.iconPack)
                     if (shapeChanged) {
                         catalog.applyIconShape(
-                            IconShape.fromName(prefs.iconShape),
+                            prefs.iconShape,
                             CustomShapeSpec.decode(prefs.iconShapeCustom)
                         )
                     }
                     if (normalizeChanged) catalog.applyReshapeLegacy(reshape)
                     if (shadowChanged) catalog.applyIconShadow(prefs.iconShadow)
                     if (glassChanged) {
-                        catalog.applyIconGlass(com.supernova.launcher.data.IconGlass.fromName(prefs.iconGlass))
+                        catalog.applyIconGlass(prefs.iconGlass)
                     }
                     if (resolutionChanged) catalog.applyIconResolution(resolution)
                     if (themedChanged) {
@@ -523,7 +535,7 @@ class LauncherViewModel(
         val app = getApplication<Application>()
         val palette = com.supernova.launcher.ui.theme.PaletteFactory.resolve(
             app,
-            com.supernova.launcher.ui.theme.PaletteSourceMode.fromName(prefs.paletteSource),
+            prefs.paletteSource,
             prefs.paletteSeed,
             fallbackSeed = app.getColor(com.supernova.launcher.R.color.accent)
         )
@@ -721,8 +733,6 @@ class LauncherViewModel(
 
     fun renameFolder(folderId: String, name: String) = persist { repository.renameFolder(folderId, name) }
 
-    fun reorderFolderMember(folderId: String, memberId: String, direction: Int) = persist { repository.reorderFolderMember(folderId, memberId, direction) }
-
     fun sortFolder(folderId: String) = persist { repository.sortFolder(folderId) }
 
     fun addWidget(
@@ -734,13 +744,14 @@ class LauncherViewModel(
         label: String,
         spanX: Int,
         spanY: Int,
-        displace: List<WorkspaceGeometry.ReorderMove> = emptyList()
+        displace: List<WorkspaceGeometry.ReorderMove> = emptyList(),
+        userSerial: Long = 0L
     ) {
         val prefs = state.value.prefs
         viewModelScope.launch {
             repository.addWidget(
                 page, cellX, cellY, prefs.gridCols, prefs.gridRows, appWidgetId, provider, label, spanX, spanY,
-                displace
+                displace, userSerial
             )
         }
     }
@@ -770,127 +781,9 @@ class LauncherViewModel(
         }
     }
 
-    fun setGridRows(value: Int) = persist { preferences.setGridRows(value) }
-
-    fun setGridCols(value: Int) = persist { preferences.setGridCols(value) }
-
-    fun setDockCount(value: Int) = persist { preferences.setDockCount(value) }
-
-    fun setIconScale(value: Float) = persist { preferences.setIconScale(value) }
-
-    fun setShowLabels(value: Boolean) = persist { preferences.setShowLabels(value) }
-
-    fun setWallpaperScroll(value: Boolean) = persist { preferences.setWallpaperScroll(value) }
-
-    fun setWallpaperScrollMode(value: String) = persist { preferences.setWallpaperScrollMode(value) }
-
-    fun setPageIndicatorStyle(style: String) = persist { preferences.setPageIndicatorStyle(style) }
-
-    fun setPageIndicatorAutoHide(value: Boolean) = persist { preferences.setPageIndicatorAutoHide(value) }
-
-    fun setPageIndicatorColor(value: String) = persist { preferences.setPageIndicatorColor(value) }
-
-    fun setInfiniteScroll(value: Boolean) = persist { preferences.setInfiniteScroll(value) }
-
-    fun setRemoveEmptyPages(value: Boolean) = persist { preferences.setRemoveEmptyPages(value) }
-
     fun setDesktopPadding(horizontal: Int, vertical: Int) = persist { preferences.setDesktopPadding(horizontal, vertical) }
 
-    fun setDesktopLocked(value: Boolean) = persist { preferences.setDesktopLocked(value) }
-
-    fun setDockEnabled(value: Boolean) = persist { preferences.setDockEnabled(value) }
-
-    fun setDockPages(value: Int) = persist { preferences.setDockPages(value) }
-
-    fun setDockBgStyle(style: String) = persist { preferences.setDockBgStyle(style) }
-
-    fun setDockBgOpacity(value: Float) = persist { preferences.setDockBgOpacity(value) }
-
-    fun setDockBgBehindNav(value: Boolean) = persist { preferences.setDockBgBehindNav(value) }
-
-    fun setSearchQueryShortcuts(value: Boolean) = persist { preferences.setSearchQueryShortcuts(value) }
-
     fun setSearchBarWidget(id: Int, provider: String) = persist { preferences.setSearchBarWidget(id, provider) }
-
-    fun setSearchChips(value: String) = persist { preferences.setSearchChips(value) }
-
-    fun setHomeButtonOnMainPage(value: Boolean) = persist { preferences.setHomeButtonOnMainPage(value) }
-
-    fun setIconWiggle(value: Boolean) = persist { preferences.setIconWiggle(value) }
-
-    fun setTransparentStatus(value: Boolean) = persist { preferences.setTransparentStatus(value) }
-
-    fun setFolderShadow(value: Boolean) = persist { preferences.setFolderShadow(value) }
-
-    fun setDrawerInfiniteScroll(value: Boolean) = persist { preferences.setDrawerInfiniteScroll(value) }
-
-    fun setDrawerPageEffect(value: String) = persist { preferences.setDrawerPageEffect(value) }
-
-    fun setDrawerTransition(value: String) = persist { preferences.setDrawerTransition(value) }
-
-    fun setDockBgPadding(value: Boolean) = persist { preferences.setDockBgPadding(value) }
-
-    fun setDockLabels(value: Boolean) = persist { preferences.setDockLabels(value) }
-
-    fun setDockIconScale(value: Float) = persist { preferences.setDockIconScale(value) }
-
-    fun setWidgetOverlap(value: Boolean) = persist { preferences.setWidgetOverlap(value) }
-
-    fun setOverlapWhenPlacing(value: Boolean) = persist { preferences.setOverlapWhenPlacing(value) }
-
-    fun setWidgetPadding(value: Int) = persist { preferences.setWidgetPadding(value) }
-
-    fun setDrawerStyle(style: String) = persist { preferences.setDrawerStyle(style) }
-
-    fun setDrawerColumns(value: Int) = persist { preferences.setDrawerColumns(value) }
-
-    fun setDrawerRows(value: Int) = persist { preferences.setDrawerRows(value) }
-
-    fun setDrawerAutoKeyboard(value: Boolean) = persist { preferences.setDrawerAutoKeyboard(value) }
-
-    fun setDrawerTabBar(value: String) = persist { preferences.setDrawerTabBar(value) }
-
-    fun setDrawerTabStyle(value: String) = persist { preferences.setDrawerTabStyle(value) }
-
-    fun setDrawerTabsNoSwipe(value: Boolean) = persist { preferences.setDrawerTabsNoSwipe(value) }
-
-    fun setDrawerFrequentRow(value: Boolean) = persist { preferences.setDrawerFrequentRow(value) }
-
-    fun setDrawerRememberPosition(value: Boolean) = persist { preferences.setDrawerRememberPosition(value) }
-
-    fun setDrawerAutoClose(value: Boolean) = persist { preferences.setDrawerAutoClose(value) }
-
-    fun setDrawerFoldersFirst(value: Boolean) = persist { preferences.setDrawerFoldersFirst(value) }
-
-    fun setDrawerIconScale(value: Float) = persist { preferences.setDrawerIconScale(value) }
-
-    fun setDrawerMatchDesktop(value: Boolean) = persist { preferences.setDrawerMatchDesktop(value) }
-
-    fun setDrawerBgOpacity(value: Float) = persist { preferences.setDrawerBgOpacity(value) }
-
-    fun setDrawerFastScroller(value: Boolean) = persist { preferences.setDrawerFastScroller(value) }
-
-    fun setDrawerPullToSearch(value: Boolean) = persist { preferences.setDrawerPullToSearch(value) }
-
-    fun setDrawerSwipeIndicator(value: Boolean) = persist { preferences.setDrawerSwipeIndicator(value) }
-
-    fun setDrawerSwipeHaptic(value: Boolean) = persist { preferences.setDrawerSwipeHaptic(value) }
-
-    fun setSwipeDownHaptic(value: Boolean) = persist { preferences.setSwipeDownHaptic(value) }
-
-    fun setDrawerScrubberColor(value: String) = persist { preferences.setDrawerScrubberColor(value) }
-
-    fun setDrawerActionButtons(value: String) = persist { preferences.setDrawerActionButtons(value) }
-
-    fun setDrawerSort(value: String) = persist { preferences.setDrawerSort(value) }
-
-    fun setDrawerWorkTab(value: Boolean) = persist { preferences.setDrawerWorkTab(value) }
-
-    fun setDrawerDefaultTab(value: String) = persist { preferences.setDrawerDefaultTab(value) }
-
-    fun setDrawerHideAllTab(value: Boolean) = persist { preferences.setDrawerHideAllTab(value) }
-
-    fun setLabelSize(value: Int) = persist { preferences.setLabelSize(value) }
 
     // Rewrites one context's slice of the labelConfig document. The transform
     // sees the current override; returning an all-null override goes back to
@@ -899,206 +792,14 @@ class LauncherViewModel(
         val prefs = state.value.prefs
         val config = LabelConfig.decode(prefs.labelConfig)
         val updated = config.with(context, transform(config.of(context)))
-        viewModelScope.launch { preferences.setLabelConfig(updated.encode()) }
+        viewModelScope.launch { preferences.set(Pref.labelConfig, updated.encode()) }
     }
-
-    fun setLabelColor(value: String) = persist { preferences.setLabelColor(value) }
-
-    fun setLabelShadow(value: Boolean) = persist { preferences.setLabelShadow(value) }
-
-    fun setDrawerLabels(value: Boolean) = persist { preferences.setDrawerLabels(value) }
-
-    fun setFolderLabels(value: Boolean) = persist { preferences.setFolderLabels(value) }
-
-    fun setIconNormalize(value: Boolean) = persist { preferences.setIconNormalize(value) }
-
-    fun setReshapeLegacy(value: String) = persist { preferences.setReshapeLegacy(value) }
-
-    fun setIconShadow(value: Boolean) = persist { preferences.setIconShadow(value) }
-
-    fun setIconGlass(value: String) = persist { preferences.setIconGlass(value) }
-
-    fun setIconSwipeIndicator(value: Boolean) = persist { preferences.setIconSwipeIndicator(value) }
-
-    fun setThemedIconsAutogen(value: Boolean) = persist { preferences.setThemedIconsAutogen(value) }
-
-    fun setThemedIcons(value: Boolean) = persist { preferences.setThemedIcons(value) }
-
-    fun setLockMethod(value: String) = persist { preferences.setLockMethod(value) }
-
-    fun setAnimationSpeed(value: String) = persist { preferences.setAnimationSpeed(value) }
-
-    fun setDockPaddingH(value: Int) = persist { preferences.setDockPaddingH(value) }
-
-    fun setDockPaddingV(value: Int) = persist { preferences.setDockPaddingV(value) }
-
-    fun setBadgeColor(value: String) = persist { preferences.setBadgeColor(value) }
-
-    fun setBadgePosition(value: String) = persist { preferences.setBadgePosition(value) }
-
-    fun setBadgeScale(value: Float) = persist { preferences.setBadgeScale(value) }
-
-    fun setBadgeTextColor(value: String) = persist { preferences.setBadgeTextColor(value) }
-
-    fun setBadgeCornerRadius(value: Int) = persist { preferences.setBadgeCornerRadius(value) }
-
-    fun setBadgeOutline(value: Boolean) = persist { preferences.setBadgeOutline(value) }
-
-    fun setFolderPreviewStyle(value: String) = persist { preferences.setFolderPreviewStyle(value) }
-
-    fun setFolderPrioritizeFirst(value: Boolean) = persist { preferences.setFolderPrioritizeFirst(value) }
-
-    fun setFolderColumns(value: Int) = persist { preferences.setFolderColumns(value) }
-
-    fun setFolderSortAz(value: Boolean) = persist { preferences.setFolderSortAz(value) }
-
-    fun setFolderCloseOnLaunch(value: Boolean) = persist { preferences.setFolderCloseOnLaunch(value) }
-
-    fun setFolderIconScale(value: Float) = persist { preferences.setFolderIconScale(value) }
-
-    fun setFolderMatchDesktop(value: Boolean) = persist { preferences.setFolderMatchDesktop(value) }
-
-    fun setFolderShowName(value: Boolean) = persist { preferences.setFolderShowName(value) }
 
     fun setFolderShowCount(value: Boolean) = persist { preferences.setFolderShowCount(value) }
 
-    fun setFolderMode(value: String) = persist { preferences.setFolderMode(value) }
-
-    fun setFolderScroll(value: String) = persist { preferences.setFolderScroll(value) }
-
-    fun setFolderIconShape(value: String) = persist { preferences.setFolderIconShape(value) }
-
-    fun setFolderIconOutline(value: Boolean) = persist { preferences.setFolderIconOutline(value) }
-
-    fun setFolderClipToBg(value: Boolean) = persist { preferences.setFolderClipToBg(value) }
-
-    fun setFolderMatchWindowColor(value: Boolean) = persist { preferences.setFolderMatchWindowColor(value) }
-
-    fun setFolderBadges(value: Boolean) = persist { preferences.setFolderBadges(value) }
-
-    fun setThemeMode(value: String) = persist { preferences.setThemeMode(value) }
-
     fun setThemeSchedule(startMinute: Int, endMinute: Int) = persist { preferences.setThemeSchedule(startMinute, endMinute) }
 
-    fun setAccentColor(value: String) = persist { preferences.setAccentColor(value) }
-
-    fun setDrawerBgColor(value: String) = persist { preferences.setDrawerBgColor(value) }
-
-    fun setPaletteSource(value: String) = persist { preferences.setPaletteSource(value) }
-
-    fun setPaletteSeed(value: String) = persist { preferences.setPaletteSeed(value) }
-
-    fun setStyleConfig(value: String) = persist { preferences.setStyleConfig(value) }
-
-    fun setWidgetCornerRadius(value: Int) = persist { preferences.setWidgetCornerRadius(value) }
-
-    fun setShowScrims(value: Boolean) = persist { preferences.setShowScrims(value) }
-
-    fun setWallpaperZoom(value: Boolean) = persist { preferences.setWallpaperZoom(value) }
-
-    fun setAutoAddApps(value: Boolean) = persist { preferences.setAutoAddApps(value) }
-
-    fun setLabelFont(value: String) = persist { preferences.setLabelFont(value) }
-
-    fun setLabelSingleLine(value: Boolean) = persist { preferences.setLabelSingleLine(value) }
-
-    fun setDockInfiniteScroll(value: Boolean) = persist { preferences.setDockInfiniteScroll(value) }
-
-    fun setDockMatchDesktop(value: Boolean) = persist { preferences.setDockMatchDesktop(value) }
-
-    fun setDockOverlay(value: Boolean) = persist { preferences.setDockOverlay(value) }
-
-    fun setDockAutoClose(value: Boolean) = persist { preferences.setDockAutoClose(value) }
-
-    fun setDockRememberPosition(value: Boolean) = persist { preferences.setDockRememberPosition(value) }
-
-    fun setSearchWebProvider(value: String) = persist { preferences.setSearchWebProvider(value) }
-
-    fun setSearchContacts(value: Boolean) = persist { preferences.setSearchContacts(value) }
-
-    fun setSearchShortcuts(value: Boolean) = persist { preferences.setSearchShortcuts(value) }
-
-    fun setSearchFolders(value: Boolean) = persist { preferences.setSearchFolders(value) }
-
-    fun setSearchWindowMode(value: String) = persist { preferences.setSearchWindowMode(value) }
-
-    fun setSearchAppsOneRow(value: Boolean) = persist { preferences.setSearchAppsOneRow(value) }
-
-    fun setSearchContactCards(value: Boolean) = persist { preferences.setSearchContactCards(value) }
-
-    fun setSearchCards(value: Boolean) = persist { preferences.setSearchCards(value) }
-
-    fun setSearchCalculator(value: Boolean) = persist { preferences.setSearchCalculator(value) }
-
-    fun setSearchHiddenApps(value: Boolean) = persist { preferences.setSearchHiddenApps(value) }
-
-    fun setSearchHistory(value: Boolean) = persist { preferences.setSearchHistory(value) }
-
-    fun setSearchPrivateKeyboard(value: Boolean) = persist { preferences.setSearchPrivateKeyboard(value) }
-
-    fun setHomeSearch(value: Boolean) = persist { preferences.setHomeSearch(value) }
-
-    fun setHomeButtonAction(value: String) = persist { preferences.setHomeButtonAction(value) }
-
-    fun setSearchBarConfig(value: String) = persist { preferences.setSearchBarConfig(value) }
-
-    fun setPopupNotifications(value: Boolean) = persist { preferences.setPopupNotifications(value) }
-
-    fun setPopupCardBg(value: Boolean) = persist { preferences.setPopupCardBg(value) }
-
-    fun setPopupGroupShortcuts(value: Boolean) = persist { preferences.setPopupGroupShortcuts(value) }
-
     fun setPopupActionIcons(value: Boolean) = persist { preferences.setPopupActionIcons(value) }
-
-    fun setPopupStyle(value: String) = persist { preferences.setPopupStyle(value) }
-
-    fun setPopupItemsHome(value: String) = persist { preferences.setPopupItemsHome(value) }
-
-    fun setPopupItemsDrawer(value: String) = persist { preferences.setPopupItemsDrawer(value) }
-
-    fun setDropTargets(value: Boolean) = persist { preferences.setDropTargets(value) }
-
-    fun setUndoRemove(value: Boolean) = persist { preferences.setUndoRemove(value) }
-
-    fun setDisableAnimations(value: Boolean) = persist { preferences.setDisableAnimations(value) }
-
-    fun setLaunchAnimation(value: String) = persist { preferences.setLaunchAnimation(value) }
-
-    fun setHideStatusBar(value: Boolean) = persist { preferences.setHideStatusBar(value) }
-
-    fun setDarkStatusIcons(value: String) = persist { preferences.setDarkStatusIcons(value) }
-
-    fun setTransparentNav(value: Boolean) = persist { preferences.setTransparentNav(value) }
-
-    fun setHomeRotation(value: Boolean) = persist { preferences.setHomeRotation(value) }
-
-    fun setHomeOrientation(value: String) = persist { preferences.setHomeOrientation(value) }
-
-    fun setFeedEnabled(value: Boolean) = persist { preferences.setFeedEnabled(value) }
-
-    fun setFeedEdgeSwipe(value: Boolean) = persist { preferences.setFeedEdgeSwipe(value) }
-
-    fun setFeedShowSearch(value: Boolean) = persist { preferences.setFeedShowSearch(value) }
-
-    fun setFeedShowFrequent(value: Boolean) = persist { preferences.setFeedShowFrequent(value) }
-
-    fun setFeedShowShortcuts(value: Boolean) = persist { preferences.setFeedShowShortcuts(value) }
-
-    fun setFeedShowMedia(value: Boolean) = persist { preferences.setFeedShowMedia(value) }
-
-    fun setFeedShowCalendar(value: Boolean) = persist { preferences.setFeedShowCalendar(value) }
-
-    fun setFeedShowContacts(value: Boolean) = persist { preferences.setFeedShowContacts(value) }
-
-    fun setFeedShortcutRows(value: Int) = persist { preferences.setFeedShortcutRows(value) }
-
-    fun setLabsEnabled(value: Boolean) = persist { preferences.setLabsEnabled(value) }
-
-    fun setLabsShowComponent(value: Boolean) = persist { preferences.setLabsShowComponent(value) }
-
-    fun setLabsExportPng(value: Boolean) = persist { preferences.setLabsExportPng(value) }
-
-    fun setLabsBigGrid(value: Boolean) = persist { preferences.setLabsBigGrid(value) }
 
     fun clearIconCache() = persist { preferences.requestIconCacheClear() }
 
@@ -1110,6 +811,11 @@ class LauncherViewModel(
     // PendingWidget), held across a recreate while the system's bind or the
     // widget's own setup screen is up.
     var pendingWidgetAdd: Any? = null
+
+    // Where a shortcut row dragged out of the add sheet was dropped, held
+    // across a recreate while the app's shortcut screen is up
+    // (ShortcutPlacer).
+    var pendingShortcutCell: ShortcutPlacer.DropCell? = null
 
     fun feedCards(): List<com.supernova.launcher.feed.FeedCard> = state.value.model.feedCards
 
@@ -1147,18 +853,6 @@ class LauncherViewModel(
 
     suspend fun restoredDockPage(): Int = preferences.restoredDockPage()
 
-    fun setFolderBgColor(value: String) = persist { preferences.setFolderBgColor(value) }
-
-    fun setIconPack(packageName: String) = persist { preferences.setIconPack(packageName) }
-
-    fun setBadges(value: Boolean) = persist { preferences.setBadges(value) }
-
-    fun setBadgeCounts(value: Boolean) = persist { preferences.setBadgeCounts(value) }
-
-    fun setBadgeStyle(value: String) = persist { preferences.setBadgeStyle(value) }
-
-    fun setBadgeApps(value: Set<String>) = persist { preferences.setBadgeApps(value) }
-
     fun setGestureBinding(gesture: Gesture, binding: GestureBinding) {
         viewModelScope.launch {
             preferences.setGestureBinding(gesture.name, GestureDefaults.encode(gesture, binding))
@@ -1171,13 +865,9 @@ class LauncherViewModel(
     fun shortcutsFor(packageName: String, userSerial: Long): List<android.content.pm.ShortcutInfo> =
         catalog.shortcutsFor(packageName, userSerial)
 
-    fun setSubgrid(value: Boolean) = persist { preferences.setSubgrid(value) }
+    fun setIconShape(shape: IconShape) = persist { preferences.set(Pref.iconShape, shape) }
 
-    fun setIconShape(shape: IconShape) = persist { preferences.setIconShape(shape.name) }
-
-    fun setIconShapeCustom(value: String) = persist { preferences.setIconShapeCustom(value) }
-
-    fun setScrollEffect(effect: ScrollEffect) = persist { preferences.setScrollEffect(effect.name) }
+    fun setScrollEffect(effect: ScrollEffect) = persist { preferences.set(Pref.scrollEffect, effect) }
 
     fun setAppHidden(app: LaunchableApp, hidden: Boolean) = persist { preferences.setAppHidden(hiddenKey(app), hidden) }
 
@@ -1306,7 +996,7 @@ class LauncherViewModel(
     // labels, which left a renamed app filed under its old name - and out
     // of the A-Z rail's reach.
     private fun sortedApps(apps: List<LaunchableApp>): List<LaunchableApp> =
-        when (DrawerSort.fromName(state.value.prefs.drawerSort)) {
+        when (state.value.prefs.drawerSort) {
             DrawerSort.ALPHA -> byLabel(apps, descending = false)
             DrawerSort.ALPHA_REVERSE -> byLabel(apps, descending = true)
             DrawerSort.INSTALL_DATE -> apps.sortedByDescending { it.installTime }
@@ -1418,7 +1108,7 @@ class LauncherViewModel(
                 }
             }
             if (state.value.prefs.drawerDefaultTab == group.name) {
-                preferences.setDrawerDefaultTab(name)
+                preferences.set(Pref.drawerDefaultTab, name)
             }
         }
         return name
@@ -1452,12 +1142,21 @@ class LauncherViewModel(
 
     fun isInGroup(app: LaunchableApp, group: DrawerGroup): Boolean = hiddenKey(app) in group.members
 
-    fun setGroupMembership(group: DrawerGroup, app: LaunchableApp, member: Boolean) {
-        val key = hiddenKey(app)
-        // Picking a smart folder's apps makes it the user's, as a retype does.
-        editGroup(group.name) {
-            it.copy(members = if (member) it.members + key else it.members - key, smart = false)
-        }
+    fun workTabActive(): Boolean = state.value.prefs.drawerWorkTab && hasWorkApps()
+
+    // A drawer folder's apps as the All list shows them: with the Work tab
+    // on, a work app stays in that tab, out of the personal folders.
+    fun drawerFolderApps(group: DrawerGroup): List<LaunchableApp> {
+        val apps = appsInGroup(group)
+        return if (workTabActive()) apps.filter { it.userSerial == 0L } else apps
+    }
+
+    // A checklist's Save: every changed tick in one write. Picking a smart
+    // folder's apps makes it the user's, as a retype does.
+    fun setGroupMembership(groupName: String, changes: Map<LaunchableApp, Boolean>) {
+        val add = changes.filterValues { it }.keys.map(::hiddenKey).toSet()
+        val remove = changes.filterValues { !it }.keys.map(::hiddenKey).toSet()
+        editGroup(groupName) { it.copy(members = it.members - remove + add, smart = false) }
     }
 
     // The name the group was stored under ('|' can't be in one), or null,
@@ -1486,7 +1185,7 @@ class LauncherViewModel(
     // the user deleted, too.
     fun setSmartFolders(value: Boolean) {
         viewModelScope.launch {
-            preferences.setSmartFolders(value)
+            preferences.set(Pref.smartFolders, value)
             if (value) {
                 preferences.clearDismissedSmartGroups()
                 regenerateSmartFolders()
@@ -1507,6 +1206,9 @@ class LauncherViewModel(
             val hidden = state.value.prefs.hiddenApps
             // Fresh enumeration: the install hook fires before appsFlow updates.
             val apps = catalog.listLaunchableApps().filterNot { it.privateSpace || hiddenKey(it) in hidden }
+                // With the Work tab on, work apps live there and stay out of
+                // the folders on the personal list.
+                .filter { !state.value.prefs.drawerWorkTab || it.userSerial == 0L }
             // Apps the user already placed in a folder group stay theirs.
             val claimed = drawerGroups()
                 .filter { it.type == DrawerGroupType.FOLDER && !it.smart }
@@ -1607,7 +1309,7 @@ class LauncherViewModel(
     suspend fun placeDefaultSearchBar() {
         val config = SearchBarConfig.decode(preferences.snapshot().searchBarConfig)
         if (SearchBarPlacement.fromName(config.desktop.placement) != SearchBarPlacement.NONE) return
-        preferences.setSearchBarConfig(config.copy(desktop = DesktopSearchBarConfig.FRESH).encode())
+        preferences.set(Pref.searchBarConfig, config.copy(desktop = DesktopSearchBarConfig.FRESH).encode())
     }
 
     // Back to what a fresh install on this screen starts with: its grid and
@@ -1624,7 +1326,7 @@ class LauncherViewModel(
     fun autoBackups(): List<java.io.File> = repository.autoBackups()
 
     suspend fun restoreAutoBackup(file: java.io.File): LauncherRepository.ImportResult =
-        importBackup(file.readText())
+        importBackup(withContext(Dispatchers.IO) { file.readText() })
 
     // One snapshot per session, taken once the real layout has loaded.
     fun writeAutoBackupOnce() {

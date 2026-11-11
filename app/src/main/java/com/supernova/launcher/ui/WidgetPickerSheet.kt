@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.supernova.launcher.databinding.SheetWidgetPickerBinding
 import kotlinx.coroutines.Dispatchers
@@ -33,11 +34,12 @@ object WidgetPickerSheet {
         prefs: com.supernova.launcher.data.LauncherPrefs,
         onPicked: (AppWidgetProviderInfo) -> Unit,
         onPickShortcut: ((ShortcutTarget) -> Unit)? = null,
-        // Shapes the launcher's own action tiles, where the sheet lists them.
-        renderTile: (android.graphics.drawable.Drawable) -> android.graphics.drawable.Drawable = { it }
+        // How the sheet draws its icons; the launcher's own customizations.
+        icons: WidgetPickerIcons = WidgetPickerIcons()
     ) {
         val binding = SheetWidgetPickerBinding.inflate(LayoutInflater.from(activity))
         val dialog = BottomSheetDialog(activity)
+        OpenDialogs.track(dialog)
         dialog.setContentView(binding.root)
         // Drawer surface on the sheet, and the dialog's nav bar painted to
         // match so the sheet appears to run under it. Opaque, whatever the
@@ -76,15 +78,20 @@ object WidgetPickerSheet {
         val singleApp = filterPackage != null
         binding.widgetSearch.visibility = if (singleApp) View.GONE else View.VISIBLE
         binding.widgetSearch.doAfterTextChanged { adapter.filter(it?.toString().orEmpty()) }
+        // Searching opens the sheet fully, above the keyboard.
+        dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        binding.widgetSearch.setOnFocusChangeListener { _, focused ->
+            if (focused) dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        }
 
         activity.lifecycleScope.launch {
             val groups = withContext(Dispatchers.Default) {
                 val apps = WidgetPickerGroups.build(
-                    activity, cellWidthPx, cellHeightPx, cols, rows, filterPackage, filter
+                    activity, cellWidthPx, cellHeightPx, cols, rows, filterPackage, filter, icons
                 )
                 // The launcher's own actions are not search widgets either.
                 if (singleApp || filter != null) apps
-                else listOf(WidgetPickerGroups.launcherGroup(activity, renderTile)) + apps
+                else listOf(WidgetPickerGroups.launcherGroup(activity, icons)) + apps
             }
             if (groups.isEmpty()) {
                 binding.widgetPickerEmpty.visibility = View.VISIBLE

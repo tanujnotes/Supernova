@@ -7,19 +7,23 @@ import android.util.TypedValue
 import android.widget.TextView
 import com.supernova.launcher.R
 import com.supernova.launcher.data.LauncherPrefs
+import com.supernova.launcher.data.SettingEnumSerializer
 import com.supernova.launcher.ui.theme.Styles
 import com.supernova.launcher.ui.theme.SurfaceId
 import java.util.EnumMap
 
+@kotlinx.serialization.Serializable(with = LabelFont.Names::class)
 enum class LabelFont {
     DEFAULT,
     CONDENSED,
     SERIF,
     MONOSPACE;
 
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<LabelFont>("LabelFont", entries, DEFAULT)
+
     companion object {
-        fun fromName(name: String): LabelFont =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: DEFAULT
+        fun fromName(name: String): LabelFont = Names.parse(name)
     }
 }
 
@@ -58,7 +62,7 @@ object LabelStyler {
             LabelContext.DRAWER -> SurfaceId.DRAWER
             LabelContext.FOLDER -> SurfaceId.FOLDER
             LabelContext.DOCK ->
-                SurfaceId.DOCK.takeIf { DockBgStyle.fromName(prefs.dockBgStyle) != DockBgStyle.NONE }
+                SurfaceId.DOCK.takeIf { prefs.dockBgStyle != DockBgStyle.NONE }
             LabelContext.DESKTOP -> null
         }
         val fallback = when {
@@ -69,7 +73,7 @@ object LabelStyler {
         val size = (override.size ?: prefs.labelSize).coerceIn(9, 18)
         view.setTextSize(TypedValue.COMPLEX_UNIT_SP, size.toFloat())
         view.setTextColor(parseColor(prefs.labelColor, fallback))
-        view.typeface = typefaceFor(LabelFont.fromName(override.font ?: prefs.labelFont))
+        view.typeface = typefaceFor(override.font?.let(LabelFont::fromName) ?: prefs.labelFont)
         // Each surface declares its own maxLines in XML; remember that value
         // on the view so single-line can be undone on a recycled bind.
         val surfaceMax = view.getTag(R.id.tag_default_max_lines) as? Int

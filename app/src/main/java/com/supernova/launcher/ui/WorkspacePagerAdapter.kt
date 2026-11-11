@@ -304,7 +304,8 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
     }
 
     private fun pageSignature(state: LauncherUiState, page: Int): String {
-        val pageItems = state.model.items.filter { it.container == ContainerType.WORKSPACE && it.page == page }
+        val pageItems = WorkspaceGeometry.fitted(state.model, state.prefs.gridCols, state.prefs.gridRows).items
+            .filter { it.container == ContainerType.WORKSPACE && it.page == page }
         // The page adds its items in list order, which is their stacking where
         // they overlap, so a Bring to front or Send to back rebinds it.
         val stack = pageItems.joinToString(",") { it.id }
@@ -340,7 +341,8 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
             // Folder icon appearance: the dock's signature takes every pref,
             // and without these a page kept its old plates until a restart.
             "${prefs.folderIconShape},${prefs.folderIconOutline},${prefs.folderClipToBg}," +
-            "${prefs.folderMatchWindowColor},${prefs.folderPrioritizeFirst},${prefs.folderBgColor}," +
+            "${prefs.folderMatchWindowColor},${prefs.folderPlateColor}," +
+            "${prefs.folderPrioritizeFirst},${prefs.folderBgColor}," +
             "${prefs.styleConfig}|" +
             "${prefs.badgeTextColor},${prefs.badgeCornerRadius},${prefs.badgeOutline}|" +
             // The rest of the badge settings belong here too. They were
@@ -463,7 +465,10 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
             }
             val boundWidgets = mutableListOf<Pair<LauncherItem, View>>()
 
-            val pageItems = state.model.items.filter { it.container == ContainerType.WORKSPACE && it.page == page }
+            // As fitted to the grid in use: after a grid change, an item that
+            // no longer lines up shows on a free cell (WorkspaceGeometry.fitted).
+            val pageItems = WorkspaceGeometry.fitted(state.model, cols, rows).items
+                .filter { it.container == ContainerType.WORKSPACE && it.page == page }
             pageItems.forEach { item ->
                 val child = host.viewForItem(item)
                 if (child.parent != null) {

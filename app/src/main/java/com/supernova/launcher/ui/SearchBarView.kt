@@ -21,6 +21,7 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.widget.ImageViewCompat
 import com.supernova.launcher.R
 import com.supernova.launcher.data.IconGlass
+import com.supernova.launcher.runLogged
 import com.supernova.launcher.ui.theme.ResolvedSurface
 
 // The desktop/dock search bar pill: SEARCH_BAR surface colors plus per-config
@@ -207,14 +208,14 @@ class SearchBarView @JvmOverloads constructor(
 
     // Blind-start like the other chips: launches the store app when present.
     private fun openPlayStore() {
-        runCatching {
+        runLogged("open Play Store") {
             context.packageManager.getLaunchIntentForPackage("com.android.vending")
                 ?.let(context::startActivity)
         }
     }
 
     private fun startVoiceSearch() {
-        runCatching {
+        runLogged("start voice search") {
             context.startActivity(
                 Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
                     .putExtra(
@@ -229,7 +230,7 @@ class SearchBarView @JvmOverloads constructor(
     // front door first (the mic-style assistant surface where available).
     private fun startAssistant() {
         if (runCatching { context.startActivity(Intent(Intent.ACTION_VOICE_COMMAND)) }.isSuccess) return
-        runCatching { context.startActivity(Intent(Intent.ACTION_ASSIST)) }
+        runLogged("open assistant") { context.startActivity(Intent(Intent.ACTION_ASSIST)) }
     }
 
     // The documented "open calendar at a day" deep link, blind-started: a
@@ -239,7 +240,7 @@ class SearchBarView @JvmOverloads constructor(
             .appendPath("time")
             .also { ContentUris.appendId(it, System.currentTimeMillis()) }
             .build()
-        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
+        runLogged("open link") { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
     }
 
     private companion object {

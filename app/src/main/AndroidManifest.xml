@@ -1,6 +1,14 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+    <!-- The Activities picker (widget sheet > Supernova > Activities) lists
+         every installed package, as a launcher's does: the activity people
+         pick is often in one with no drawer icon (a system settings screen),
+         which no <queries> entry can name ahead of time. -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
     <!-- Private space apps (Android 15+), shown while this is the default
          home app. -->
     <uses-permission android:name="android.permission.ACCESS_HIDDEN_PROFILES" />
@@ -10,6 +18,9 @@
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <!-- The popup menu's optional Close app / Relaunch rows. -->
     <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
+    <!-- Wallpapers > Image from files sets the framed image itself, on the
+         home screen, the lock screen or both (install-time). -->
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <!-- The drawer popup's Uninstall row and the Uninstall drop target fire
          ACTION_DELETE. From targetSdk 28 the system uninstaller finishes
          silently unless the caller holds this (install-time) permission. -->
@@ -53,13 +64,6 @@
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="http" />
-        </intent>
-        <!-- A wallpaper picked from files goes to the system's crop-and-set
-             screen (WallpaperManager.getCropAndSetWallpaperIntent), which
-             can't find the cropper on Android 11+ without this. -->
-        <intent>
-            <action android:name="android.service.wallpaper.CROP_AND_SET_WALLPAPER" />
-            <data android:mimeType="image/*" />
         </intent>
         <!-- The legacy shortcut picker lists apps offering CREATE_SHORTCUT
              activities; without this they are invisible on Android 11+. -->
@@ -221,6 +225,17 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <!-- Wallpapers > Image from files: frame the image, then set it on
+             the home screen, the lock screen or both. It opens over the
+             launcher in the home task, so Home closes it. Rotation only
+             re-fits the image. -->
+        <activity
+            android:name=".WallpaperCropActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:theme="@style/Theme.Supernova.WallpaperCrop" />
 
         <!-- Lets other apps ask to pin a shortcut or widget to the home screen;
              the system only delivers these to the default launcher. -->

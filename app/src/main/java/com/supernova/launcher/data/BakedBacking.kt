@@ -16,9 +16,9 @@ import com.supernova.launcher.data.Pixels.rgb
 // glass can stand in for it. clear() takes a picture's backing from its edge
 // (or a gap in it) inward, following a gradient a pixel at a time until the
 // logo's own colours stop it, so a detail inside the logo in the same colour
-// (the hole in Maps' pin) stays. clearMatching() takes a given colour from
-// a foreground that repeats its background's (Maps' white tile), only where
-// that background was cleared. Both then unmix the outline: a pixel there is
+// (the hole in Maps' pin) stays. clearMatching() takes what a foreground
+// repeats of the background under it (Maps' white tile), only where that
+// background was cleared. Both then unmix the outline: a pixel there is
 // part logo, part backing (anti-aliasing), and is left as the logo's colour
 // at that share of opacity rather than as a pale rim.
 //
@@ -38,6 +38,9 @@ internal object BakedBacking {
     // How far each channel may sit from the backing colour and still be it:
     // wide enough to take a tile's faint shading.
     private const val TOLERANCE = 40
+    // How far a foreground pixel may sit from the background under it and
+    // still be a copy of it.
+    private const val MATCH_TOLERANCE = 24
     // How far a pixel may differ from the cleared neighbour it is reached
     // from: a gradient changes this slowly, a logo's edge does not.
     private const val STEP = 10
@@ -85,16 +88,26 @@ internal object BakedBacking {
         }
     }
 
-    // Clears backing-coloured pixels a foreground repeats over a background
-    // that was cleared (allowed), reached from the layer's edge or a gap.
-    // True when it took any.
-    fun clearMatching(pixels: IntArray, size: Int, backing: Int, allowed: BooleanArray): Boolean {
+    // Clears foreground pixels that repeat the background under them
+    // (background: that layer as it was, before it was cleared) where the
+    // background was cleared (allowed), reached from the layer's edge or a
+    // gap. True when it took any.
+    //
+    // Matched pixel for pixel, and closely: a copy of the background is the
+    // same colour as it, where art merely in its family is not. Measured
+    // against one backing colour at the tile's own tolerance, the top of
+    // Samsung Contacts' disc - a darker red than its tile, lighter at the top
+    // - was taken in ragged bites wherever its shading crossed the line.
+    fun clearMatching(pixels: IntArray, size: Int, background: IntArray, allowed: BooleanArray): Boolean {
         val original = pixels.copyOf()
-        val fill = Fill(original, size, backing) { pixel, _ -> near(pixel, backing, TOLERANCE) }
-        fill.allowed = allowed
+        val matches = BooleanArray(original.size) { index ->
+            allowed[index] && alpha(original[index]) > 0 &&
+                near(original[index], background[index], MATCH_TOLERANCE)
+        }
+        val fill = Fill(original, size, 0) { _, _ -> true }
+        fill.allowed = matches
         pixels.indices
-            .filter { allowed[it] && alpha(original[it]) > 0 && near(original[it], backing, TOLERANCE) }
-            .filter { Pixels.reachable(original, size, it, SEED_ALPHA) }
+            .filter { matches[it] && Pixels.reachable(original, size, it, SEED_ALPHA) }
             .forEach(fill::add)
         fill.run()
         if (fill.count > 0) fill.clearInto(pixels)

@@ -1,5 +1,26 @@
 package com.supernova.launcher.data
 
+import com.supernova.launcher.search.WebProvider
+import com.supernova.launcher.ui.AnimationSpeed
+import com.supernova.launcher.ui.BadgePosition
+import com.supernova.launcher.ui.DockBgStyle
+import com.supernova.launcher.ui.DrawerSort
+import com.supernova.launcher.ui.DrawerStyle
+import com.supernova.launcher.ui.DrawerTabBar
+import com.supernova.launcher.ui.DrawerTabStyle
+import com.supernova.launcher.ui.DrawerTransition
+import com.supernova.launcher.ui.FolderMode
+import com.supernova.launcher.ui.FolderPreviewStyle
+import com.supernova.launcher.ui.FolderScroll
+import com.supernova.launcher.ui.IndicatorStyle
+import com.supernova.launcher.ui.LabelFont
+import com.supernova.launcher.ui.LaunchAnimation
+import com.supernova.launcher.ui.PopupMenuStyle
+import com.supernova.launcher.ui.ScrollEffect
+import com.supernova.launcher.ui.StatusBarIcons
+import com.supernova.launcher.ui.theme.AccentColor
+import com.supernova.launcher.ui.theme.PaletteSourceMode
+import com.supernova.launcher.ui.theme.ThemeMode
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -127,8 +148,8 @@ data class LauncherPrefs(
     // meaning without a migration.
     val wallpaperScrollMode: String = "",
     val iconPack: String = "",
-    val scrollEffect: String = "NONE",
-    val iconShape: String = "SYSTEM",
+    val scrollEffect: ScrollEffect = ScrollEffect.NONE,
+    val iconShape: IconShape = IconShape.SYSTEM,
     // JSON CustomShapeSpec backing IconShape.CUSTOM; "" = default 25% ROUND.
     val iconShapeCustom: String = "",
     val subgrid: Boolean = false,
@@ -143,7 +164,7 @@ data class LauncherPrefs(
     // Drawer tabs as "Name|key1,key2,..." entries; the All tab is implicit.
     val drawerGroups: Set<String> = emptySet(),
     // Line by default.
-    val pageIndicatorStyle: String = "LINE",
+    val pageIndicatorStyle: IndicatorStyle = IndicatorStyle.LINE,
     // The indicator only shows while the page moves; off keeps it up.
     val pageIndicatorAutoHide: Boolean = true,
     // Indicator color; "" draws it in the labels' color, as the swipe
@@ -161,7 +182,7 @@ data class LauncherPrefs(
     val dockEnabled: Boolean = true,
     // Dock rank space is page * dockCount + slot; extra pages swipe in place.
     val dockPages: Int = 1,
-    val dockBgStyle: String = "NONE",
+    val dockBgStyle: DockBgStyle = DockBgStyle.NONE,
     val dockBgOpacity: Float = 0.3f,
     // Dock background runs flush to the window's bottom edge (no side or
     // bottom margins, square bottom corners), meeting the transparent nav
@@ -182,7 +203,7 @@ data class LauncherPrefs(
     val overlapWhenPlacing: Boolean = false,
     // Inset in dp applied inside each widget's cell-derived frame.
     val widgetPadding: Int = 0,
-    val drawerStyle: String = "VERTICAL_GRID",
+    val drawerStyle: DrawerStyle = DrawerStyle.VERTICAL_GRID,
     // 0 = derive from screen width (the pre-setting behavior).
     val drawerColumns: Int = 0,
     // Rows for the paged drawer style; 0 = derive from the sheet height.
@@ -193,15 +214,15 @@ data class LauncherPrefs(
     // Paged drawer style only, the Horizontal Scroll group:
     // wrap past the last page, and the effect used between pages.
     val drawerInfiniteScroll: Boolean = false,
-    val drawerPageEffect: String = "NONE",
+    val drawerPageEffect: ScrollEffect = ScrollEffect.NONE,
     // How the drawer arrives: SLIDE_UP/ZOOM/FADE (DrawerTransition names).
-    val drawerTransition: String = "SLIDE_UP",
+    val drawerTransition: DrawerTransition = DrawerTransition.SLIDE_UP,
     // Where the group tab bar renders: TOP/BOTTOM/NONE (DrawerTabBar names).
     // NONE hides tabs entirely, so the drawer always shows the All list.
-    val drawerTabBar: String = "TOP",
+    val drawerTabBar: DrawerTabBar = DrawerTabBar.TOP,
     // Tab type: CLASSIC (a bar under the label) or BUBBLE (a pill
     // behind it); DrawerTabStyle names.
-    val drawerTabStyle: String = "CLASSIC",
+    val drawerTabStyle: DrawerTabStyle = DrawerTabStyle.CLASSIC,
     // Isolate tabs: a sideways swipe on the list stays on the tab.
     val drawerTabsNoSwipe: Boolean = false,
     // Horizontal most-launched strip pinned above the drawer list.
@@ -246,7 +267,7 @@ data class LauncherPrefs(
     // Apps living in TAB-type drawer groups leave the All tab (tab
     // isolation); folder-type groups always did.
     val drawerIsolateTabs: Boolean = false,
-    val drawerSort: String = "ALPHA",
+    val drawerSort: DrawerSort = DrawerSort.ALPHA,
     // On by default; it only shows with a work profile.
     val drawerWorkTab: Boolean = true,
     // Name of the group tab selected on open ("" = All), and whether the
@@ -272,7 +293,7 @@ data class LauncherPrefs(
     // its size (ShadowedIconDrawable).
     val iconShadow: Boolean = true,
     // IconGlass name (OFF/FROSTED/CLEAR/SMOKED): icon backgrounds as glass.
-    val iconGlass: String = "OFF",
+    val iconGlass: IconGlass = IconGlass.OFF,
     // A short bar under any icon that has a swipe action bound. An icon swipe
     // is invisible without it, so it stays on by default; it only ever draws
     // on icons that actually carry one.
@@ -282,9 +303,9 @@ data class LauncherPrefs(
     // Synthesize a monochrome layer for apps that ship none (D8).
     val themedIconsAutogen: Boolean = false,
     // Screen-lock mechanism: ACCESSIBILITY (default) or DEVICE_ADMIN.
-    val lockMethod: String = "ACCESSIBILITY",
+    val lockMethod: LockMethod = LockMethod.ACCESSIBILITY,
     val badgeColor: String = "",
-    val badgePosition: String = "TOP_RIGHT",
+    val badgePosition: BadgePosition = BadgePosition.TOP_RIGHT,
     val badgeScale: Float = 1f,
     // Numeric dots' number color; "" = white.
     val badgeTextColor: String = "",
@@ -292,7 +313,7 @@ data class LauncherPrefs(
     val badgeCornerRadius: Int = BadgeLimits.CORNER_ROUND,
     // A thin dark ring around every badge (Outline).
     val badgeOutline: Boolean = true,
-    val folderPreviewStyle: String = "GRID",
+    val folderPreviewStyle: FolderPreviewStyle = FolderPreviewStyle.GRID,
     // Draw the first member large in the preview, remaining members small.
     val folderPrioritizeFirst: Boolean = false,
     // 0 = derive from member count.
@@ -308,13 +329,13 @@ data class LauncherPrefs(
     // The folder window's app count, between its name and its menu button.
     val folderShowCount: Boolean = false,
     // WINDOW = anchored popup card; IMMERSIVE = full-screen folder (FolderMode).
-    val folderMode: String = "WINDOW",
+    val folderMode: FolderMode = FolderMode.WINDOW,
     // Drop shadow under the folder card. Off flattens it onto the wallpaper,
     // which is what a translucent folder surface usually wants.
     val folderShadow: Boolean = true,
     // VERTICAL scrolls the folder grid; HORIZONTAL, the default, pages it
     // (FolderScroll).
-    val folderScroll: String = "HORIZONTAL",
+    val folderScroll: FolderScroll = FolderScroll.HORIZONTAL,
     // IconShape name clipping the folder preview plate; "" = the default
     // rounded plate.
     val folderIconShape: String = "",
@@ -325,21 +346,24 @@ data class LauncherPrefs(
     // Plate uses the resolved FOLDER window surface instead of the
     // translucent default plate.
     val folderMatchWindowColor: Boolean = false,
+    // The folder icon plate while it doesn't match the window; "" = the
+    // see-through white default.
+    val folderPlateColor: String = "",
     // Badge folder icons with the summed unread count of their members.
     val folderBadges: Boolean = false,
-    val themeMode: String = "SYSTEM",
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
     // SCHEDULE mode's dark window, minutes since midnight; end < start wraps
     // past midnight (defaults: 19:00-07:00).
     val themeScheduleStart: Int = 1140,
     val themeScheduleEnd: Int = 420,
-    val accentColor: String = "BLUE",
+    val accentColor: AccentColor = AccentColor.BLUE,
     // "" = follow the theme; else #AARRGGBB.
     val drawerBgColor: String = "",
     val folderBgColor: String = "",
     // Style engine: where tonal palettes come from (SYSTEM/WALLPAPER/CUSTOM),
     // the CUSTOM seed as #RRGGBB, and per-surface overrides as one JSON
     // document (see ui/theme/StyleConfig).
-    val paletteSource: String = "SYSTEM",
+    val paletteSource: PaletteSourceMode = PaletteSourceMode.SYSTEM,
     val paletteSeed: String = "",
     val styleConfig: String = "",
     // Corner clip radius for widget host views in dp; 0 = no clip.
@@ -347,7 +371,7 @@ data class LauncherPrefs(
     val showScrims: Boolean = false,
     val wallpaperZoom: Boolean = true,
     val autoAddApps: Boolean = false,
-    val labelFont: String = "DEFAULT",
+    val labelFont: LabelFont = LabelFont.DEFAULT,
     // One ellipsized line everywhere by default: a wrapped name reads as a
     // broken word ("OpenWeathe" over "r"). Per-surface overrides in
     // labelConfig can still allow two lines.
@@ -364,7 +388,7 @@ data class LauncherPrefs(
     val dockPaddingH: Int = 0,
     val dockPaddingV: Int = 0,
     // Global search: web engine (WebProvider name) and per-provider toggles.
-    val searchWebProvider: String = "GOOGLE",
+    val searchWebProvider: WebProvider = WebProvider.GOOGLE,
     val searchContacts: Boolean = false,
     val searchShortcuts: Boolean = true,
     // Folder names (workspace and drawer groups) as search results. Off by
@@ -372,7 +396,7 @@ data class LauncherPrefs(
     val searchFolders: Boolean = false,
     // Search window presentation: IMMERSIVE (full-screen, the original) or
     // WINDOW (floating rounded card).
-    val searchWindowMode: String = "IMMERSIVE",
+    val searchWindowMode: SearchWindowMode = SearchWindowMode.IMMERSIVE,
     // App results as one horizontal strip instead of vertical rows. On by
     // default.
     val searchAppsOneRow: Boolean = true,
@@ -424,7 +448,7 @@ data class LauncherPrefs(
     // icons, named by their tooltips, instead of a labelled row each.
     val popupActionIcons: Boolean = false,
     // Long-press menu layout (ui/PopupMenuStyle name): BLOCK/PILLS/ANDROID12.
-    val popupStyle: String = "BLOCK",
+    val popupStyle: PopupMenuStyle = PopupMenuStyle.BLOCK,
     // Optional popup rows (ui/SupernovaPopupMenu PopupRows tokens, comma
     // joined). "" = defaults; "NONE" = explicitly none.
     val popupItemsHome: String = "",
@@ -438,14 +462,14 @@ data class LauncherPrefs(
     // Master animation kill switch consulted via ui/Animations.enabled.
     val disableAnimations: Boolean = false,
     // Playback speed multiplier (ui/AnimationSpeed): SLOW/DEFAULT/FAST/FASTER.
-    val animationSpeed: String = "DEFAULT",
+    val animationSpeed: AnimationSpeed = AnimationSpeed.DEFAULT,
     // App-launch transition style (ui/LaunchAnimation name). REVEAL is the
     // pre-phase-6 clip-reveal behavior; Adaptive icon is the default.
-    val launchAnimation: String = "ADAPTIVE_ICON",
+    val launchAnimation: LaunchAnimation = LaunchAnimation.ADAPTIVE_ICON,
     // System chrome: status bar hidden on the launcher, forced icon tint
     // (ui/StatusBarIcons name; AUTO follows the theme), nav bar transparency.
     val hideStatusBar: Boolean = false,
-    val darkStatusIcons: String = "AUTO",
+    val darkStatusIcons: StatusBarIcons = StatusBarIcons.AUTO,
     val transparentNav: Boolean = true,
     // Workspace icons rock back and forth while a drag is live, on out
     // of the box. Off keeps the grid still.
@@ -473,9 +497,11 @@ data class LauncherPrefs(
     // How many rows of suggested-shortcut pills the feed shows
     // ("Suggested shortcuts rows"), 1..3.
     val feedShortcutRows: Int = 1,
-    // A hidden Labs menu, shown by holding volume down on the settings
-    // root, and its switches.
+    // Labs used to be hidden until volume down was held on the settings
+    // root; it is always listed since 2026-11-11 and this is no longer read.
+    // Kept so the key 0.1.8 stored stays a known setting (PrefRegistryTest).
     val labsEnabled: Boolean = false,
+    // Labs' switches.
     // The app's component name in its edit sheet, for icon theme makers.
     val labsShowComponent: Boolean = false,
     // Export PNG in a desktop item's long-press menu.

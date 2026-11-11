@@ -6,6 +6,7 @@ package com.supernova.launcher.data
 // on it unchanged. A launcher can't read the wallpaper on Android 13+
 // without all-files access, so nothing behind the pane is blurred: a style
 // is a tint, a sheen across the top, a glow along the bottom and a lit rim.
+@kotlinx.serialization.Serializable(with = IconGlass.Names::class)
 enum class IconGlass(
     // How opaque the pane's tint is.
     val tintAlpha: Float,
@@ -25,9 +26,11 @@ enum class IconGlass(
     // Dark glass whatever the app's colour.
     SMOKED(tintAlpha = 0.50f, haze = 0f, sheen = 0.14f, glow = 0.06f, edge = 0.38f, grain = false);
 
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<IconGlass>("IconGlass", entries, OFF)
+
     companion object {
-        fun fromName(name: String): IconGlass =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: OFF
+        fun fromName(name: String): IconGlass = Names.parse(name)
 
         const val SMOKE_COLOR = 0xFF0C0E16.toInt()
     }

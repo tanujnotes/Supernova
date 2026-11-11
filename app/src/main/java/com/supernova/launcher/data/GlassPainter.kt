@@ -66,11 +66,14 @@ class GlassPainter {
             front = frontTile.first
             tint = frontTile.second.color
         } else {
+            val backOriginal = back?.copyOf()
             val cleared = back?.let { layer ->
                 BakedBacking.clear(layer, size)?.also { BakedBacking.clearTexture(layer, it.backing) }
             }
             tint = cleared?.color ?: Color.WHITE
-            front?.let { if (cleared != null) BakedBacking.clearMatching(it, size, cleared.backing, cleared.taken) }
+            if (front != null && cleared != null && backOriginal != null) {
+                BakedBacking.clearMatching(front, size, backOriginal, cleared.taken)
+            }
         }
         canvas.withClip(mask) {
             drawPane(this, glass, tint, size, size)

@@ -61,7 +61,7 @@ class PinRequestActivity : AppCompatActivity() {
         // The accent overlay is what sets colorAccent, which the dialog's
         // colours resolve through: without it MaterialAlertDialogBuilder
         // found no theme colours and this screen crashed on open.
-        ThemeEngine.applyAccent(this, AccentColor.fromName(runBlocking { preferences.flow.first() }.accentColor))
+        ThemeEngine.applyAccent(this, runBlocking { preferences.flow.first() }.accentColor)
 
         if (savedInstanceState != null) {
             pendingWidgetId = savedInstanceState.getInt(KEY_PENDING_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
@@ -195,12 +195,14 @@ class PinRequestActivity : AppCompatActivity() {
 
     private fun acceptWidget(request: PinItemRequest, info: AppWidgetProviderInfo, widgetId: Int, spanX: Int, spanY: Int) {
         val extras = Bundle().apply { putInt(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId) }
-        if (!request.isValid || !runCatching { request.accept(extras) }.getOrDefault(false)) {
+        if (!request.isValid || !runLogged("accept pin request") { request.accept(extras) }.getOrDefault(false)) {
             widgetHost.deleteAppWidgetId(widgetId)
             finish()
             return
         }
         val label = info.loadLabel(packageManager).orEmpty().ifBlank { getString(R.string.widget) }
+        val userManager = getSystemService(android.os.UserManager::class.java)
+        val serial = info.profile?.let { userManager?.getSerialNumberForUser(it) } ?: 0L
         lifecycleScope.launch {
             val placement = findPlacement(spanX, spanY)
             repository.addWidget(
@@ -213,7 +215,8 @@ class PinRequestActivity : AppCompatActivity() {
                 provider = info.provider?.flattenToString().orEmpty(),
                 label = label,
                 spanX = spanX,
-                spanY = spanY
+                spanY = spanY,
+                userSerial = serial
             )
             finish()
         }

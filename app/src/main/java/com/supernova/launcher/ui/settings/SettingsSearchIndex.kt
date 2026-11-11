@@ -45,8 +45,6 @@ class SettingsSearchIndex private constructor(val entries: List<Entry>) {
                 SettingsCatalogue.styleSection(context, viewModel, actions)
             val entries = buildList {
                 for (section in sections) {
-                    // Labs stays hidden until it is asked for.
-                    if (section.title == com.supernova.launcher.R.string.labs) continue
                     val sectionLabel = context.getString(section.title)
                     for (item in section.items) {
                         // Preview headers carry no title and aren't rows;

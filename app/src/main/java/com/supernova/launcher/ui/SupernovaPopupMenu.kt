@@ -20,6 +20,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.annotation.DrawableRes
 import com.supernova.launcher.R
+import com.supernova.launcher.data.SettingEnumSerializer
 import com.supernova.launcher.ui.theme.ResolvedSurface
 import android.os.Build
 
@@ -83,6 +84,7 @@ object PopupRows {
 // Long-press menu layout (popupStyle pref, C4). BLOCK is the classic single
 // slab; PILLS floats every row as its own pill; ANDROID12 is the large-radius
 // spaced look of the platform's 12-era menus.
+@kotlinx.serialization.Serializable(with = PopupMenuStyle.Names::class)
 enum class PopupMenuStyle {
     BLOCK,
     PILLS,
@@ -92,9 +94,11 @@ enum class PopupMenuStyle {
     // one row each already, so there it has nothing to do.
     val canGroup: Boolean get() = this != PILLS
 
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<PopupMenuStyle>("PopupMenuStyle", entries, BLOCK)
+
     companion object {
-        fun fromName(name: String): PopupMenuStyle =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: BLOCK
+        fun fromName(name: String): PopupMenuStyle = Names.parse(name)
     }
 }
 

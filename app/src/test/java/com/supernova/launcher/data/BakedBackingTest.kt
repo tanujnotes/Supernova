@@ -194,13 +194,46 @@ class BakedBackingTest {
             "...WWW"
         )
         val allowed = BooleanArray(36) { index -> index % 6 < 3 && index / 6 < 3 }
-        assertTrue(BakedBacking.clearMatching(front, 6, white, allowed))
+        assertTrue(BakedBacking.clearMatching(front, 6, IntArray(36) { white }, allowed))
         for (index in 0 until 36) {
             val x = index % 6
             val y = index / 6
             val expected = if (x >= 3 && y >= 3) white else 0
             assertEquals("pixel $x,$y", expected, front[index])
         }
+    }
+
+    @Test
+    fun aForegroundDiscInTheBackgroundsFamilyIsNotTakenForACopyOfIt() {
+        // Samsung Contacts: a red tile shading from light to dark, and over
+        // it a darker red disc, itself lighter at the top. The disc sits near
+        // enough to the tile's colour for the tile's own tolerance, but it is
+        // art, not a copy of the tile, and stays whole.
+        val size = 8
+        val tile = IntArray(size * size) { index ->
+            val y = index / size
+            0xFF000000.toInt() or (254 shl 16) or ((69 - 2 * y) shl 8) or (68 - 2 * y)
+        }
+        val front = IntArray(size * size) { index ->
+            val x = index % size
+            val y = index / size
+            if (x in 2..5 && y in 2..5) 0xFF000000.toInt() or ((222 - 2 * y) shl 16) or (34 shl 8) or 34 else clear
+        }
+        val before = front.copyOf()
+        assertFalse(BakedBacking.clearMatching(front, size, tile, BooleanArray(size * size) { true }))
+        assertArrayEquals(before, front)
+    }
+
+    @Test
+    fun aForegroundCopyFollowsTheBackgroundsShading() {
+        // A copy of a shaded tile goes wherever it repeats the shade under it.
+        val size = 6
+        val tile = IntArray(size * size) { index ->
+            0xFF000000.toInt() or (200 shl 16) or ((40 + 20 * (index / size)) shl 8)
+        }
+        val front = tile.copyOf()
+        assertTrue(BakedBacking.clearMatching(front, size, tile, BooleanArray(size * size) { true }))
+        assertTrue(front.all { it == 0 })
     }
 
     @Test

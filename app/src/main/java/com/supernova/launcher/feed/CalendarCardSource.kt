@@ -7,6 +7,7 @@ import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
 import android.provider.CalendarContract
+import com.supernova.launcher.runLogged
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -57,7 +58,7 @@ class CalendarCardSource(
             state.value = CalendarState.NeedsPermission
             return
         }
-        runCatching {
+        runLogged("watch calendar") {
             context.contentResolver.registerContentObserver(
                 CalendarContract.Instances.CONTENT_URI, true, observer
             )
@@ -87,7 +88,7 @@ class CalendarCardSource(
             return
         }
         if (!observerRegistered) {
-            runCatching {
+            runLogged("watch calendar") {
                 context.contentResolver.registerContentObserver(
                     CalendarContract.Instances.CONTENT_URI, true, observer
                 )
@@ -109,7 +110,7 @@ class CalendarCardSource(
     private fun queryUpcoming(): List<Event> {
         val now = System.currentTimeMillis()
         val end = now + WINDOW_MS
-        return runCatching {
+        return runLogged("read calendar events") {
             val projection = arrayOf(
                 CalendarContract.Instances.EVENT_ID,
                 CalendarContract.Instances.TITLE,

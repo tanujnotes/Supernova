@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
 import android.os.UserManager
+import com.supernova.launcher.runLogged
 
 // What an app's own shortcut screen (ACTION_CREATE_SHORTCUT) answered, as a
 // launch target for a gesture or an icon swipe.
@@ -30,7 +31,9 @@ object CreatedShortcuts {
     }
 
     private fun pinned(context: Context, pin: LauncherApps.PinItemRequest): CreatedShortcut? {
-        val shortcut = pin.shortcutInfo?.takeIf { runCatching { pin.accept() }.getOrDefault(false) } ?: return null
+        val shortcut = pin.shortcutInfo
+            ?.takeIf { runLogged("accept created shortcut") { pin.accept() }.getOrDefault(false) }
+            ?: return null
         val serial = context.getSystemService(UserManager::class.java)
             ?.getSerialNumberForUser(shortcut.userHandle) ?: 0L
         val label = (shortcut.shortLabel ?: shortcut.longLabel ?: shortcut.`package`).toString()

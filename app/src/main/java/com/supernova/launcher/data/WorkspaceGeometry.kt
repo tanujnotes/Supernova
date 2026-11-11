@@ -12,6 +12,8 @@ import kotlin.math.roundToInt
 object WorkspaceGeometry {
 
     private const val EPSILON = 0.08f
+    // In half cells: 0.1 is a twentieth of a cell either way.
+    private const val ALIGN_TOLERANCE = 0.1f
 
     // widgetOverlap pref, pushed from the ViewModel's prefs collector. When
     // set, space occupied by a widget counts as free, so items can be placed
@@ -49,6 +51,115 @@ object WorkspaceGeometry {
         }
     }
 
+    // --- Grid changes. Stored spots are kept as they are, so the old grid
+    // brought back finds every item where it was; what no longer lines up
+    // with the grid in use is fitted, for showing and for every placement
+    // check alike: an item off the grid, or whose spot was set on another
+    // grid, takes its old cell where that is inside and free, else the
+    // nearest free one. Edits then save what is shown.
+
+    private class FitCache(val model: LauncherModel, val cols: Int, val rows: Int, val result: LauncherModel)
+
+    @Volatile
+    private var fitCache: FitCache? = null
+
+    fun fitted(model: LauncherModel, cols: Int, rows: Int): LauncherModel {
+        fitCache?.let { if (it.model === model && it.cols == cols && it.rows == rows) return it.result }
+        val misfits = model.items.filter { it.container == ContainerType.WORKSPACE && !fits(it, cols, rows) }
+        val result = if (misfits.isEmpty()) {
+            model
+        } else {
+            val misfitIds = misfits.mapTo(HashSet()) { it.id }
+            val placed = HashMap<String, LauncherItem>()
+            misfits.groupBy { it.page }.forEach { (page, items) ->
+                val taken = model.items
+                    .filter { it.container == ContainerType.WORKSPACE && it.page == page && it.id !in misfitIds }
+                    .mapTo(ArrayList()) { itemRect(it, cols, rows) }
+                items.sortedWith(compareBy({ it.cellY }, { it.cellX })).forEach { item ->
+                    val fit = refit(item, taken, cols, rows)
+                    placed[item.id] = fit
+                    taken += itemRect(fit, cols, rows)
+                }
+            }
+            model.copy(items = model.items.map { placed[it.id] ?: it })
+        }
+        fitCache = FitCache(model, cols, rows, result)
+        return result
+    }
+
+    private fun inBounds(r: CellRect, cols: Int, rows: Int): Boolean =
+        r.left > -EPSILON && r.top > -EPSILON && r.right < cols + EPSILON && r.bottom < rows + EPSILON
+
+    // On a cell or a half cell, as every drop snaps.
+    private fun aligned(center: Float): Boolean {
+        val halves = (center - 0.5f) * 2f
+        return kotlin.math.abs(halves - halves.roundToInt()) < ALIGN_TOLERANCE
+    }
+
+    private fun fits(item: LauncherItem, cols: Int, rows: Int): Boolean {
+        val x = item.workspaceX
+        val y = item.workspaceY
+        return inBounds(itemRect(item, cols, rows), cols, rows) &&
+            (item.itemType == ItemType.WIDGET || x == null || y == null ||
+                onOwnGrid(x * cols, item.cellX) && onOwnGrid(y * rows, item.cellY))
+    }
+
+    // A spot set on this grid sits on its cells and by its own cell.
+    private fun onOwnGrid(center: Float, cell: Int): Boolean =
+        aligned(center) && kotlin.math.abs(center - 0.5f - cell) <= 0.5f + EPSILON
+
+    private fun refit(item: LauncherItem, taken: List<CellRect>, cols: Int, rows: Int): LauncherItem {
+        val rect = itemRect(item, cols, rows)
+        val widget = item.itemType == ItemType.WIDGET
+        val spanX = if (widget) ceil(rect.right - rect.left - EPSILON).toInt().coerceIn(1, cols) else 1
+        val spanY = if (widget) ceil(rect.bottom - rect.top - EPSILON).toInt().coerceIn(1, rows) else 1
+        fun free(cell: Pair<Int, Int>): Boolean {
+            val area = cellRect(cell.first, cell.second, spanX, spanY)
+            return inBounds(area, cols, rows) && taken.none { overlaps(it, area) }
+        }
+        // Its old cell: a widget pulled inside where it hangs over the edge,
+        // an icon only while that cell is still on the grid.
+        val stayed = when {
+            widget ->
+                floor(rect.left + EPSILON).toInt().coerceIn(0, cols - spanX) to
+                    floor(rect.top + EPSILON).toInt().coerceIn(0, rows - spanY)
+            item.cellX in 0 until cols && item.cellY in 0 until rows -> item.cellX to item.cellY
+            else -> null
+        }
+        val near = (rect.left + rect.right) / 2f to (rect.top + rect.bottom) / 2f
+        val cell = stayed?.takeIf(::free) ?: nearest(near, spanX to spanY, cols, rows, ::free) ?: return item
+        return placedOn(item, cellRect(cell.first, cell.second, spanX, spanY), cols, rows)
+    }
+
+    private fun placedOn(item: LauncherItem, area: CellRect, cols: Int, rows: Int): LauncherItem {
+        val x = area.left.roundToInt()
+        val y = area.top.roundToInt()
+        return when {
+            item.itemType == ItemType.WIDGET -> widgetOn(item, area)
+            item.workspaceX == null || item.workspaceY == null -> item.copy(cellX = x, cellY = y)
+            else -> {
+                val (wx, wy) = cellCenteredPosition(x, y, cols, rows)
+                item.copy(cellX = x, cellY = y, workspaceX = wx, workspaceY = wy)
+            }
+        }
+    }
+
+    private fun nearest(
+        near: Pair<Float, Float>,
+        span: Pair<Int, Int>,
+        cols: Int,
+        rows: Int,
+        free: (Pair<Int, Int>) -> Boolean
+    ): Pair<Int, Int>? {
+        val (spanX, spanY) = span
+        val cells = (0..(rows - spanY)).flatMap { y -> (0..(cols - spanX)).map { x -> x to y } }
+        return cells.filter(free).minByOrNull { (x, y) ->
+            val dx = x + spanX / 2f - near.first
+            val dy = y + spanY / 2f - near.second
+            dx * dx + dy * dy
+        }
+    }
+
     private fun overlaps(a: CellRect, b: CellRect): Boolean =
         a.left + EPSILON < b.right - EPSILON &&
             b.left + EPSILON < a.right - EPSILON &&
@@ -57,7 +168,7 @@ object WorkspaceGeometry {
 
     // The items on a page lying over an area.
     fun idsOverlapping(model: LauncherModel, page: Int, area: CellRect, cols: Int, rows: Int): Set<String> =
-        model.items.filter { item ->
+        fitted(model, cols, rows).items.filter { item ->
             item.container == ContainerType.WORKSPACE && item.page == page && overlaps(area, itemRect(item, cols, rows))
         }.mapTo(mutableSetOf()) { it.id }
 
@@ -78,7 +189,7 @@ object WorkspaceGeometry {
             return false
         }
         if (ignoreItems) return true
-        return model.items.none { item ->
+        return fitted(model, cols, rows).items.none { item ->
             item.container == ContainerType.WORKSPACE && item.page == page &&
                 item.id !in excludeIds &&
                 !(allowWidgetOverlap && item.itemType == ItemType.WIDGET) &&
@@ -142,11 +253,12 @@ object WorkspaceGeometry {
     data class Stacking(val below: Boolean, val above: Boolean)
 
     fun stacking(model: LauncherModel, item: LauncherItem, cols: Int, rows: Int): Stacking {
-        val rect = itemRect(item, cols, rows)
+        val shown = fitted(model, cols, rows)
+        val rect = itemRect(shown.items.firstOrNull { it.id == item.id } ?: item, cols, rows)
         var below = false
         var above = false
         var passed = false
-        for (other in model.items) {
+        for (other in shown.items) {
             if (other.id == item.id) {
                 passed = true
                 continue
@@ -298,7 +410,7 @@ object WorkspaceGeometry {
         // Overlap-when-placing: the drop lands over whatever is there, so
         // nothing needs to move.
         if (allowPlacementOverlap) return emptyList()
-        val statics = model.items.filter {
+        val statics = fitted(model, cols, rows).items.filter {
             it.container == ContainerType.WORKSPACE && it.page == page &&
                 it.id !in excludeIds &&
                 !(allowWidgetOverlap && it.itemType == ItemType.WIDGET)

@@ -101,7 +101,10 @@ class ActionPickerSheet private constructor(
 
     private fun launcherRows(): List<Row> {
         val none = Row(null, context.getString(R.string.swipe_none)) { picked(ActionPick.None) }
-        return listOf(none) + actions.map { action ->
+        val offered = com.supernova.launcher.gesture.ActionShortcut.offered(
+            actions, viewModel.appCatalog().hasPrivateSpace()
+        )
+        return listOf(none) + offered.map { action ->
             val label = context.getString(EnumLabels.of(action))
             // The same shaped tile the action gets as a home icon.
             val tile = AppCompatResources.getDrawable(context, ActionIcons.of(action))
@@ -140,7 +143,7 @@ class ActionPickerSheet private constructor(
                 }
             }
             .setNegativeButton(R.string.cancel, null)
-            .show()
+            .showTracked()
     }
 
     private fun shortcutRows(): List<Row> {
@@ -167,7 +170,7 @@ class ActionPickerSheet private constructor(
             .setTitle(R.string.action_jump_to_page)
             .setItems(labels.toTypedArray()) { _, which -> onPage(which, labels[which]) }
             .setNegativeButton(R.string.cancel, null)
-            .show()
+            .showTracked()
     }
 
     private class RowAdapter(private val textColor: Int) : RecyclerView.Adapter<RowAdapter.Holder>() {

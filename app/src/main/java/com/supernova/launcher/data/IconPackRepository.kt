@@ -6,7 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.graphics.drawable.Drawable
-import android.util.Log
+import com.supernova.launcher.runLogged
 import org.xmlpull.v1.XmlPullParser
 
 data class IconPack(
@@ -99,7 +99,7 @@ class IconPackRepository(private val context: Context) {
         var maskName: String? = null
         var uponName: String? = null
 
-        readAppFilter(resources, packageName) { parser -> runCatching {
+        readAppFilter(resources, packageName) { parser -> runLogged("parse icon pack $packageName") {
             while (parser.next() != XmlPullParser.END_DOCUMENT) {
                 if (parser.eventType != XmlPullParser.START_TAG) continue
                 when (parser.name) {
@@ -126,7 +126,7 @@ class IconPackRepository(private val context: Context) {
                     "scale" -> iconScale = parser.getAttributeValue(null, "factor")?.toFloatOrNull() ?: 1f
                 }
             }
-        }.onFailure { Log.w("Supernova", "Failed parsing icon pack $packageName", it) } } ?: return
+        } } ?: return
 
         componentMap = map
         packageFallback = byPackage
@@ -185,7 +185,7 @@ class IconPackRepository(private val context: Context) {
 
         val drawablesId = resources.getIdentifier("drawables", "xml", packageName)
         if (drawablesId != 0) {
-            runCatching {
+            runLogged("read icon pack drawable list") {
                 val parser = resources.getXml(drawablesId)
                 try {
                     while (parser.eventType != XmlPullParser.END_DOCUMENT) {
@@ -202,7 +202,7 @@ class IconPackRepository(private val context: Context) {
 
         if (names.isEmpty()) {
             readAppFilter(resources, packageName) { parser ->
-                runCatching {
+                runLogged("read icon pack drawable list") {
                     while (parser.eventType != XmlPullParser.END_DOCUMENT) {
                         if (parser.eventType == XmlPullParser.START_TAG && parser.name == "item") {
                             parser.getAttributeValue(null, "drawable")?.let(names::add)

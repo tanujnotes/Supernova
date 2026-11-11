@@ -16,6 +16,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.supernova.launcher.R
 import com.supernova.launcher.data.LauncherRepository
+import com.supernova.launcher.runLogged
 
 // Full-screen desktop-previews overlay (the DESKTOP_PREVIEWS action): page
 // thumbnails in a horizontal row over a dim scrim, with jump / set-default /
@@ -245,7 +246,7 @@ class DesktopPreviewsOverlay(
         )
         val canvas = Canvas(bitmap)
         canvas.scale(scale, scale)
-        runCatching { view.draw(canvas) }
+        runLogged("draw page preview") { view.draw(canvas) }
         return bitmap
     }
 

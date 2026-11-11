@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothProfile
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import com.supernova.launcher.runLogged
 
 // Feeds CardVisibility.Environment with the connected Bluetooth audio
 // device names. Registered only while the feed is shown AND at least one
@@ -62,8 +63,10 @@ class ConditionMonitor(private val context: Context) {
                         }
                     }
                 }
-                runCatching { adapter.getProfileProxy(context, listener, BluetoothProfile.HEADSET) }
-                runCatching { adapter.getProfileProxy(context, listener, BluetoothProfile.A2DP) }
+                runLogged("watch Bluetooth headset") {
+                    adapter.getProfileProxy(context, listener, BluetoothProfile.HEADSET)
+                }
+                runLogged("watch Bluetooth audio") { adapter.getProfileProxy(context, listener, BluetoothProfile.A2DP) }
             }
         }
     }

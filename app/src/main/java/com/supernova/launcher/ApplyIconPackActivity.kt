@@ -6,6 +6,7 @@ import android.widget.Toast
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.supernova.launcher.data.Pref
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -37,7 +38,7 @@ class ApplyIconPackActivity : AppCompatActivity() {
         // The accent overlay is what sets colorAccent, which the dialog's
         // colours resolve through: without it MaterialAlertDialogBuilder
         // found no theme colours and this screen crashed on open.
-        ThemeEngine.applyAccent(this, AccentColor.fromName(runBlocking { preferences.flow.first() }.accentColor))
+        ThemeEngine.applyAccent(this, runBlocking { preferences.flow.first() }.accentColor)
 
         val requested = requestedPack()
         if (requested == null) {
@@ -66,7 +67,7 @@ class ApplyIconPackActivity : AppCompatActivity() {
 
     private fun apply(packPackage: String, label: String) {
         lifecycleScope.launch {
-            preferences.setIconPack(packPackage)
+            preferences.set(Pref.iconPack, packPackage)
             Toast.makeText(
                 this@ApplyIconPackActivity,
                 getString(R.string.icon_pack_applied, label),

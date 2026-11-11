@@ -1,5 +1,6 @@
 package com.supernova.launcher.ui.theme
 
+import com.supernova.launcher.runLogged
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -72,6 +73,6 @@ data class StyleConfig(
 
         fun decode(raw: String): StyleConfig =
             if (raw.isBlank()) EMPTY
-            else runCatching { json.decodeFromString(serializer(), raw) }.getOrDefault(EMPTY)
+            else runLogged("read style settings") { json.decodeFromString(serializer(), raw) }.getOrDefault(EMPTY)
     }
 }

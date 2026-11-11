@@ -21,7 +21,8 @@ class AppSearchProvider(
             // How well the name matches comes first, so a typo-tolerant hit
             // never outranks a real prefix however often it is launched.
             .sortedWith(
-                compareBy<Pair<LaunchableApp, AppMatcher.Match>> { it.second.tier }
+                // A typo stands level with a run here, as it always has.
+                compareBy<Pair<LaunchableApp, AppMatcher.Match>> { it.second.tier.coerceAtMost(AppMatcher.TIER_LOOSE) }
                     .thenByDescending { counts[countKey(it.first)] ?: 0 }
                     .then(com.supernova.launcher.data.LabelOrder.by { it.first.label })
             )

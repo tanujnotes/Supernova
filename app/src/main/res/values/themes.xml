@@ -28,6 +28,13 @@
         <item name="elevationOverlayEnabled">false</item>
     </style>
 
+    <!-- The wallpaper crop screen: black behind the image while it loads,
+         and no wallpaper drawn under a screen the image covers. -->
+    <style name="Theme.Supernova.WallpaperCrop">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowShowWallpaper">false</item>
+    </style>
+
     <style name="Theme.Supernova.Transparent" parent="Theme.MaterialComponents.DayNight.Dialog.Alert">
         <item name="colorPrimary">@color/accent</item>
         <item name="colorControlHighlight">@color/rippleHighlight</item>

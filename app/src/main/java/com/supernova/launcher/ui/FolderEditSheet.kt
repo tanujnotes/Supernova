@@ -30,7 +30,7 @@ object FolderEditSheet {
         folder: LauncherItem,
         // Host-provided photo picker (the ActivityResult launcher is
         // registered on the activity).
-        pickPhoto: ((android.net.Uri?) -> Unit) -> Unit,
+        pickPhoto: PhotoPicker,
         // Opens the host's swipe action picker, calling back with the chosen
         // label (null = cleared) so the row can refresh without racing the
         // async model write.
@@ -114,7 +114,7 @@ object FolderEditSheet {
         scope: CoroutineScope,
         viewModel: LauncherViewModel,
         group: DrawerGroup,
-        pickPhoto: ((android.net.Uri?) -> Unit) -> Unit
+        pickPhoto: PhotoPicker
     ) {
         val binding = SheetAppEditBinding.inflate(LayoutInflater.from(context))
         val dialog = Sheets.open(context)
@@ -171,15 +171,13 @@ object FolderEditSheet {
         viewModel: LauncherViewModel,
         binding: SheetAppEditBinding,
         icon: IconChoice,
-        pickPhoto: ((android.net.Uri?) -> Unit) -> Unit
+        pickPhoto: PhotoPicker
     ) {
         val context = binding.root.context
         fun renderIcon() {
-            binding.iconValue.text = when {
-                icon.photo != null -> context.getString(R.string.choose_photo)
-                icon.name != null -> icon.name
-                else -> context.getString(R.string.option_default)
-            }
+            binding.iconValue.text = icon.photo?.let { context.getString(R.string.icon_photo) }
+                ?: icon.name?.let { IconPickerSheet.pickLabel(viewModel, icon.pack, it) }
+                ?: context.getString(R.string.option_default)
             // The default icon is the folder's own preview: nothing to fit.
             binding.reshapeRow.visibility = if (icon.isCustom) View.VISIBLE else View.GONE
         }
@@ -188,17 +186,9 @@ object FolderEditSheet {
         binding.reshapeRow.setOnClickListener { binding.reshapeSwitch.toggle() }
         binding.reshapeSwitch.setOnCheckedChangeListener { _, checked -> icon.raw = !checked }
 
-        binding.iconRow.setOnClickListener {
-            IconPickerSheet.show(context, scope, viewModel, allowDefault = true) { pack, name ->
-                icon.pack = pack
-                icon.name = name
-                // A pack icon (or a reset to default) replaces any photo.
-                icon.photo = null
-                renderIcon()
-            }
-        }
-        binding.photoRow.setOnClickListener {
-            pickPhoto { uri ->
+        // One row for the icon: Default, an app's icon, a photo or an icon pack.
+        val onPhoto = { fromFiles: Boolean ->
+            pickPhoto(fromFiles) { uri ->
                 if (uri == null) return@pickPhoto
                 scope.launch {
                     val encoded = withContext(Dispatchers.IO) {
@@ -213,6 +203,15 @@ object FolderEditSheet {
                     icon.name = null
                     renderIcon()
                 }
+            }
+        }
+        binding.iconRow.setOnClickListener {
+            IconPickerSheet.show(context, scope, viewModel, allowDefault = true, onPickPhoto = onPhoto) { pack, name ->
+                icon.pack = pack
+                icon.name = name
+                // A pack icon (or a reset to default) replaces any photo.
+                icon.photo = null
+                renderIcon()
             }
         }
     }

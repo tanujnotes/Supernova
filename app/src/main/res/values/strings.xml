@@ -29,13 +29,21 @@
     <string name="padding">Padding</string>
     <string name="bring_to_front">Bring to front</string>
     <string name="send_to_back">Send to back</string>
-    <string name="add_widget">Add Widget</string>
     <string name="pin_shortcut_title">Add “%1$s” to Home?</string>
     <string name="pin_widget_title">Add “%1$s” widget to Home?</string>
     <string name="widget_picker_empty">No widgets available</string>
     <string name="home_action_wallpaper">Wallpapers</string>
     <string name="wallpaper_apps">Wallpaper apps</string>
     <string name="wallpaper_from_files">Image from files</string>
+    <!-- The crop screen an image from files opens in, and where Set
+         wallpaper can put it. -->
+    <string name="wallpaper_set">Set wallpaper</string>
+    <string name="wallpaper_crop_description">Wallpaper image. Drag to move it, pinch to zoom.</string>
+    <string name="wallpaper_target_home">Home screen</string>
+    <string name="wallpaper_target_lock">Lock screen</string>
+    <string name="wallpaper_target_both">Home and lock screen</string>
+    <string name="wallpaper_load_failed">Couldn\'t load image as wallpaper</string>
+    <string name="wallpaper_set_failed">Couldn\'t set the wallpaper</string>
     <string name="home_action_settings">Settings</string>
     <plurals name="widget_count">
         <item quantity="one">%1$d widget</item>
@@ -101,7 +109,7 @@
     <string name="drawer_columns_auto">Auto</string>
     <string name="drawer_grid">Drawer grid</string>
     <string name="drawer_grid_value">%1$s × %2$s</string>
-    <string name="drawer_grid_rows_note">Rows apply to the horizontal pages style</string>
+    <string name="drawer_grid_rows_note">Rows share out the drawer\'s height; Auto keeps rows close together</string>
     <string name="drawer_auto_keyboard">Show keyboard when opened</string>
     <string name="drawer_swipe_indicator">Swipe indicator</string>
     <string name="drawer_swipe_indicator_summary">Place a small arrow above the dock</string>
@@ -112,6 +120,7 @@
     <string name="tab_bar_bottom">Bottom</string>
     <string name="tab_bar_none">Hidden</string>
     <string name="drawer_tab_bar_hidden_note">Hidden — the drawer shows all apps</string>
+    <string name="drawer_tab_bar_no_tabs">%1$s · add tabs in Drawer groups</string>
     <string name="drawer_frequent_row">Recently opened apps</string>
     <string name="drawer_remember_position">Remember scroll position</string>
     <string name="drawer_auto_close">Close drawer after launching</string>
@@ -161,9 +170,14 @@
     <string name="private_space_unlock">Unlock</string>
     <string name="private_space_install">Install</string>
     <string name="private_space_settings">Settings</string>
+    <!-- The Private space action's card (#75): its menu rows and the toast
+         when the phone has no private space to open. -->
+    <string name="private_space_install_apps">Install apps</string>
+    <string name="private_space_open_settings">Private space settings</string>
+    <string name="private_space_missing">No private space on this phone</string>
     <string name="group_name">Group name</string>
     <string name="delete_group">Delete group</string>
-    <string name="edit_group_apps">Choose apps</string>
+    <string name="edit_group_apps">Select apps</string>
     <string name="hide_app">Hide from drawer</string>
     <string name="unhide_app">Unhide</string>
     <string name="set_swipe_up_action">Set swipe up action</string>
@@ -174,8 +188,12 @@
     <string name="swipe_to_open_folder_summary">Tap opens the first app, swipe up opens the folder</string>
     <string name="open_folder">Open folder</string>
     <string name="set_swipe_down_action">Set swipe down action</string>
-    <string name="choose_photo">Choose photo</string>
-    <string name="photo_from_gallery">Gallery</string>
+    <string name="icon_row">Icon</string>
+    <string name="icon_photo">Photo</string>
+    <!-- The icon picker's source listing every installed app's own icon. -->
+    <string name="icon_source_apps">App icons</string>
+    <string name="photo_from_gallery">Photo from gallery</string>
+    <string name="photo_from_files">Photo from files</string>
     <string name="photo_load_failed">Couldn\'t load that image</string>
     <string name="done">Done</string>
     <string name="icon_pack_system">System default</string>
@@ -239,6 +257,7 @@
     <string name="folder_icon_outline">Accent outline</string>
     <string name="folder_clip_to_bg">Keep icons inside the background</string>
     <string name="folder_match_window_color">Match folder window color</string>
+    <string name="folder_plate_color">Color</string>
     <string name="folder_columns">Folder columns</string>
     <string name="folder_columns_auto">Auto</string>
     <string name="folder_sort_az">Sort folder apps A-Z</string>
@@ -411,6 +430,7 @@
         <item quantity="one">%1$d crash is on record. Share the log with the developer, then clear it so the next report holds only new crashes.</item>
         <item quantity="other">%1$d crashes are on record. Share the log with the developer, then clear it so the next report holds only new crashes.</item>
     </plurals>
+    <string name="crash_log_recovered_message">No crashes are on record, but the log holds problems the app recovered from. Share it with the developer if something isn\'t working, then clear it.</string>
     <string name="crash_log_share">Share crash log</string>
     <!-- Short, so the dialog's three buttons fit on one row. -->
     <string name="crash_log_share_button">Share</string>
@@ -420,10 +440,10 @@
     <string name="about_license_text">Supernova is free software, released under the GNU Affero General Public License v3.0. You may redistribute and modify it under the terms of that license; it comes with no warranty. The full text ships in the LICENSE file of the source repository.</string>
     <string name="section_home_subtitle">Grid, icons, labels and pages</string>
     <string name="section_dock_subtitle">Icons, background and pages</string>
-    <string name="section_drawer_subtitle">Layout, style and tabs</string>
+    <string name="section_drawer_subtitle">Layout, style and groups</string>
     <string name="section_search_subtitle">Providers, window and search bars</string>
     <string name="section_feed_subtitle">The page beside home and its cards</string>
-    <string name="section_folders_subtitle">Window, background and icon</string>
+    <string name="section_folders_subtitle">Window, icon and labels</string>
     <string name="section_icons_subtitle">Shape, packs, labels and badges</string>
     <string name="section_style_subtitle">Theme, colors and surfaces</string>
     <string name="section_gestures_subtitle">Swipes, taps, pinch and home button</string>
@@ -529,7 +549,7 @@
     <string name="label_card_size">Size</string>
     <string name="label_card_font">Font</string>
     <!-- Under the Label row: its size, then its font. -->
-    <string name="label_group_summary">%1$s · %2$s</string>
+    <string name="label_group_summary">%1$s · %2$s font</string>
     <string name="label_card_shadow">Shadow</string>
     <string name="label_card_single_line">Single line</string>
     <string name="font_default">Default</string>
@@ -568,8 +588,6 @@
     <string name="group_name_taken">A group with that name already exists</string>
     <string name="labs">Labs</string>
     <string name="section_labs_subtitle">Experiments and icon theme tools</string>
-    <string name="labs_enabled">Labs menu enabled</string>
-    <string name="labs_disabled">Labs menu disabled</string>
     <string name="labs_show_component">Show component in edit dialog</string>
     <string name="labs_show_component_summary">For icon theme makers: an app\'s edit sheet shows its component name</string>
     <string name="labs_big_grid">Big grid size options</string>
@@ -681,6 +699,7 @@
     <string name="action_desktop_previews">Desktop previews</string>
     <string name="action_open_feed">Feed page</string>
     <string name="action_voice_search">Voice search</string>
+    <string name="action_private_space">Private space</string>
     <string name="settings_launcher_label">Supernova Settings</string>
     <string name="lock_method">Screen lock method</string>
     <string name="lock_method_accessibility">Accessibility service</string>
@@ -924,5 +943,21 @@
     <!-- Add to home surface (Phase 1) -->
     <string name="add_category_activities">Activities</string>
     <string name="no_activities">No activities</string>
+    <!-- Under an app in the Activities picker: how many of its activities it offers. -->
+    <plurals name="activity_count">
+        <item quantity="one">%d activity</item>
+        <item quantity="other">%d activities</item>
+    </plurals>
     <string name="launch_failed">Couldn\'t launch that</string>
+    <!-- Screen reader actions on a home screen icon: moving it without a drag. -->
+    <string name="a11y_move_left">Move left</string>
+    <string name="a11y_move_right">Move right</string>
+    <string name="a11y_move_up">Move up</string>
+    <string name="a11y_move_down">Move down</string>
+    <string name="a11y_move_previous_page">Move to previous page</string>
+    <string name="a11y_move_next_page">Move to next page</string>
+    <string name="a11y_move_to_dock">Move to dock</string>
+    <string name="a11y_move_to_home">Move to home screen</string>
+    <string name="a11y_moved">Moved</string>
+    <string name="a11y_no_room">No free spot there</string>
 </resources>

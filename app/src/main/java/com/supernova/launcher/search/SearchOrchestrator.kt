@@ -1,5 +1,6 @@
 package com.supernova.launcher.search
 
+import com.supernova.launcher.runLogged
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -49,7 +50,7 @@ class SearchOrchestrator(
         if (active.isEmpty()) return
         asyncJob = scope.launch(backgroundDispatcher) {
             val async = active.flatMap { provider ->
-                runCatching { provider.search(trimmed) }.getOrDefault(emptyList())
+                runLogged("search provider") { provider.search(trimmed) }.getOrDefault(emptyList())
             }
             ensureActive()
             if (async.isEmpty()) return@launch
@@ -70,7 +71,7 @@ class SearchOrchestrator(
 
     private fun collect(providers: List<SearchProvider>, query: String): List<SearchResult> =
         providers.filter { isEnabled(it.id) }.flatMap { provider ->
-            runCatching { provider.search(query) }.getOrDefault(emptyList())
+            runLogged("search provider") { provider.search(query) }.getOrDefault(emptyList())
         }
 
     // Stable sort groups results into display sections regardless of which

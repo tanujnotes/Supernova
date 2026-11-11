@@ -1,6 +1,17 @@
 package com.supernova.launcher.data
 
 import androidx.datastore.preferences.core.mutablePreferencesOf
+import com.supernova.launcher.search.WebProvider
+import com.supernova.launcher.ui.AnimationSpeed
+import com.supernova.launcher.ui.DrawerTabBar
+import com.supernova.launcher.ui.FolderMode
+import com.supernova.launcher.ui.FolderScroll
+import com.supernova.launcher.ui.LabelFont
+import com.supernova.launcher.ui.LaunchAnimation
+import com.supernova.launcher.ui.PopupMenuStyle
+import com.supernova.launcher.ui.ScrollEffect
+import com.supernova.launcher.ui.StatusBarIcons
+import com.supernova.launcher.ui.theme.PaletteSourceMode
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -27,8 +38,8 @@ class BackupRoundTripTest {
         wallpaperScroll = false,
         wallpaperScrollMode = "REVERSE",
         iconPack = "com.example.iconpack",
-        scrollEffect = "CUBE",
-        iconShape = "HEXAGON",
+        scrollEffect = ScrollEffect.CUBE,
+        iconShape = IconShape.HEXAGON,
         iconShapeCustom = """{"radii":[10,20,30,40],"cuts":["ROUND","CUT","SQUIRCLE","ROUND"]}""",
         subgrid = true,
         badges = true,
@@ -36,31 +47,31 @@ class BackupRoundTripTest {
         badgeStyle = "DYNAMIC",
         badgeApps = setOf("0/com.a/com.a.Main"),
         iconShadow = true,
-        iconGlass = "SMOKED",
+        iconGlass = IconGlass.SMOKED,
         iconSwipeIndicator = false,
         themedIcons = true,
         themedIconsAutogen = true,
-        lockMethod = "DEVICE_ADMIN",
+        lockMethod = LockMethod.DEVICE_ADMIN,
         hiddenApps = setOf("0/com.a/com.a.Main"),
         gestureBindings = setOf("SWIPE_UP:OPEN_SETTINGS", "DOUBLE_TAP:LOCK_SCREEN"),
         drawerGroups = setOf("Games|0/com.a/com.a.Main"),
         drawerRows = 4,
         drawerAutoKeyboard = true,
-        drawerTabBar = "BOTTOM",
+        drawerTabBar = DrawerTabBar.BOTTOM,
         drawerFrequentRow = true,
         drawerRememberPosition = true,
         drawerAutoClose = false,
         drawerFoldersFirst = false,
         smartFolders = true,
         smartFoldersDismissed = setOf("Games"),
-        folderMode = "IMMERSIVE",
-        folderScroll = "HORIZONTAL",
+        folderMode = FolderMode.IMMERSIVE,
+        folderScroll = FolderScroll.HORIZONTAL,
         folderIconShape = "CIRCLE",
         folderIconOutline = true,
         folderClipToBg = false,
         folderMatchWindowColor = true,
         folderBadges = true,
-        paletteSource = "WALLPAPER",
+        paletteSource = PaletteSourceMode.WALLPAPER,
         paletteSeed = "#336699",
         styleConfig = """{"surfaces":{"DRAWER":{"alpha":0.8}}}""",
         widgetCornerRadius = 8,
@@ -68,7 +79,7 @@ class BackupRoundTripTest {
         showScrims = true,
         wallpaperZoom = false,
         autoAddApps = true,
-        labelFont = "SERIF",
+        labelFont = LabelFont.SERIF,
         labelConfig = """{"dock":{"size":10},"folder":{"shadow":true}}""",
         labelSingleLine = false,
         dockInfiniteScroll = true,
@@ -78,11 +89,11 @@ class BackupRoundTripTest {
         dockRememberPosition = true,
         dockPaddingH = 8,
         dockPaddingV = 4,
-        searchWebProvider = "DUCKDUCKGO",
+        searchWebProvider = WebProvider.DUCKDUCKGO,
         searchContacts = true,
         searchShortcuts = false,
         searchFolders = false,
-        searchWindowMode = "WINDOW",
+        searchWindowMode = SearchWindowMode.WINDOW,
         searchAppsOneRow = true,
         searchContactCards = true,
         searchCards = false,
@@ -96,16 +107,16 @@ class BackupRoundTripTest {
         popupNotifications = false,
         popupCardBg = true,
         popupGroupShortcuts = true,
-        popupStyle = "PILLS",
+        popupStyle = PopupMenuStyle.PILLS,
         popupItemsHome = "PLAY_STORE,CLOSE_APP",
         popupItemsDrawer = "NONE",
         dropTargets = true,
         undoRemove = false,
         disableAnimations = true,
-        animationSpeed = "FAST",
-        launchAnimation = "SLIDE_UP",
+        animationSpeed = AnimationSpeed.FAST,
+        launchAnimation = LaunchAnimation.SLIDE_UP,
         hideStatusBar = true,
-        darkStatusIcons = "LIGHT",
+        darkStatusIcons = StatusBarIcons.LIGHT,
         transparentNav = false,
         homeRotation = true,
         homeOrientation = "LANDSCAPE",
@@ -233,8 +244,8 @@ class BackupRoundTripTest {
         // New prefs fall back to their declared defaults.
         assertEquals(false, decoded.prefs.themedIcons)
         assertEquals(false, decoded.prefs.folderBadges)
-        assertEquals("ACCESSIBILITY", decoded.prefs.lockMethod)
-        assertEquals("DEFAULT", decoded.prefs.animationSpeed)
+        assertEquals(LockMethod.ACCESSIBILITY, decoded.prefs.lockMethod)
+        assertEquals(com.supernova.launcher.ui.AnimationSpeed.DEFAULT, decoded.prefs.animationSpeed)
         assertEquals(0, decoded.prefs.dockPaddingH)
     }
 
@@ -269,12 +280,12 @@ class BackupRoundTripTest {
                 folderColumns = GridLimits.FOLDER_COLUMNS_BIG
             )
         )
-        assertEquals(GridLimits.DESKTOP_BIG, target[StoreKeys.gridRows])
-        assertEquals(16, target[StoreKeys.gridCols])
-        assertEquals(GridLimits.DOCK_BIG, target[StoreKeys.dockCount])
-        assertEquals(GridLimits.DRAWER_COLUMNS_BIG, target[StoreKeys.drawerColumns])
-        assertEquals(GridLimits.DRAWER_ROWS_BIG, target[StoreKeys.drawerRows])
-        assertEquals(GridLimits.FOLDER_COLUMNS_BIG, target[StoreKeys.folderColumns])
+        assertEquals(GridLimits.DESKTOP_BIG, target[Pref.gridRows.key])
+        assertEquals(16, target[Pref.gridCols.key])
+        assertEquals(GridLimits.DOCK_BIG, target[Pref.dockCount.key])
+        assertEquals(GridLimits.DRAWER_COLUMNS_BIG, target[Pref.drawerColumns.key])
+        assertEquals(GridLimits.DRAWER_ROWS_BIG, target[Pref.drawerRows.key])
+        assertEquals(GridLimits.FOLDER_COLUMNS_BIG, target[Pref.folderColumns.key])
     }
 
     @Test
@@ -283,21 +294,21 @@ class BackupRoundTripTest {
         val prefs = nonDefaultPrefs()
         LauncherPreferences.writeAll(target, prefs)
 
-        assertEquals(7, target[StoreKeys.gridRows])
-        assertEquals(6, target[StoreKeys.gridCols])
-        assertEquals(4, target[StoreKeys.dockCount])
-        assertEquals(1.25f, target[StoreKeys.iconScale])
-        assertEquals(false, target[StoreKeys.showLabels])
-        assertEquals(false, target[StoreKeys.wallpaperScroll])
-        assertEquals("com.example.iconpack", target[StoreKeys.iconPack])
-        assertEquals("CUBE", target[StoreKeys.scrollEffect])
-        assertEquals("HEXAGON", target[StoreKeys.iconShape])
-        assertEquals(true, target[StoreKeys.subgrid])
-        assertEquals(true, target[StoreKeys.badges])
-        assertEquals(true, target[StoreKeys.badgeCounts])
-        assertEquals(prefs.hiddenApps, target[StoreKeys.hiddenApps])
-        assertEquals(prefs.gestureBindings, target[StoreKeys.gestureBindings])
-        assertEquals(prefs.drawerGroups, target[StoreKeys.drawerGroups])
+        assertEquals(7, target[Pref.gridRows.key])
+        assertEquals(6, target[Pref.gridCols.key])
+        assertEquals(4, target[Pref.dockCount.key])
+        assertEquals(1.25f, target[Pref.iconScale.key])
+        assertEquals(false, target[Pref.showLabels.key])
+        assertEquals(false, target[Pref.wallpaperScroll.key])
+        assertEquals("com.example.iconpack", target[Pref.iconPack.key])
+        assertEquals("CUBE", target[Pref.scrollEffect.key])
+        assertEquals("HEXAGON", target[Pref.iconShape.key])
+        assertEquals(true, target[Pref.subgrid.key])
+        assertEquals(true, target[Pref.badges.key])
+        assertEquals(true, target[Pref.badgeCounts.key])
+        assertEquals(prefs.hiddenApps, target[Pref.hiddenApps.key])
+        assertEquals(prefs.gestureBindings, target[Pref.gestureBindings.key])
+        assertEquals(prefs.drawerGroups, target[Pref.drawerGroups.key])
     }
 
     @Test

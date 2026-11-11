@@ -106,20 +106,11 @@
 
                 <TextView
                     style="@style/SheetRowTitle"
-                    android:text="@string/change_icon" />
+                    android:text="@string/icon_row" />
 
                 <TextView
                     android:id="@+id/iconValue"
                     style="@style/SheetRowValue" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/photoRow"
-                style="@style/SheetRow">
-
-                <TextView
-                    style="@style/SheetRowTitle"
-                    android:text="@string/choose_photo" />
             </LinearLayout>
 
             <!-- Folders only, while a custom icon is chosen: off draws it

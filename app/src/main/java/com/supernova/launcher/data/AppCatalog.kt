@@ -18,6 +18,7 @@ import android.os.UserManager
 import android.provider.Settings
 import android.util.LruCache
 import androidx.core.graphics.drawable.toDrawable
+import com.supernova.launcher.runLogged
 
 sealed interface AppChange {
     data class Removed(val packageName: String, val userSerial: Long) : AppChange
@@ -132,12 +133,22 @@ class AppCatalog(
         return overrides["$userSerial/$packageName/$className"]
     }
 
-    // Resolves a drawable by name out of an arbitrary installed package.
+    // Resolves a drawable by name out of an arbitrary installed package, or
+    // an app's own icon for an AppIconSource pick.
     fun packDrawable(packPackage: String, drawableName: String): Drawable? = runCatching {
+        if (AppIconSource.isAppIcon(packPackage)) return@runCatching appIconDrawable(drawableName)
         val res = pm.getResourcesForApplication(packPackage)
         val id = res.getIdentifier(drawableName, "drawable", packPackage)
         if (id == 0) null else res.getDrawable(id, null)
     }.getOrNull()
+
+    // An installed app's own icon as the app ships it: no pack, no shape.
+    private fun appIconDrawable(name: String): Drawable? {
+        val app = AppIconSource.appOf(name) ?: return null
+        return userForSerial(app.userSerial)?.let { user ->
+            resolveActivity(app.packageName, app.className, user)?.getIcon(0)
+        }
+    }
 
     fun iconFor(app: LaunchableApp): Drawable? {
         val cacheKey = "${app.userSerial}/${app.packageName}/${app.className}"
@@ -174,11 +185,13 @@ class AppCatalog(
                 iconCache.get(calKey)?.let { return it }
                 val calendar = iconPacks.calendarDrawable(app.packageName, app.className, day)
                 if (calendar != null) {
-                    val rendered = runCatching {
+                    val rendered = runLogged("render calendar icon") {
                         iconRenderer.render(calendar, null, effectiveShape, customShapeSpec, IconGlass.OFF)
                     }.getOrNull()
                     if (rendered != null) {
-                        val badged = runCatching { pm.getUserBadgedIcon(rendered, user) }.getOrNull() ?: rendered
+                        val badged = runLogged("badge icon for its profile") {
+                            pm.getUserBadgedIcon(rendered, user)
+                        }.getOrNull() ?: rendered
                         iconCache.put(calKey, badged)
                         return badged
                     }
@@ -196,6 +209,9 @@ class AppCatalog(
             val custom = gallery ?: override?.iconPackPackage?.let { pack ->
                 override.iconDrawableName?.let { name -> packDrawable(pack, name) }
             }
+            // Another app's icon, picked in Edit, is drawn as that app's own
+            // icon is (shape, glass and all), not as a pack's finished art.
+            val pickedAppIcon = gallery == null && custom != null && AppIconSource.isAppIcon(override?.iconPackPackage)
 
             val source: Drawable
             val decoration: IconPackDecoration?
@@ -207,7 +223,8 @@ class AppCatalog(
             if (custom != null) {
                 source = custom
                 decoration = null
-                finishedArt = true
+                finishedArt = !pickedAppIcon
+                ownIcon = pickedAppIcon
             } else if (variant == "ORIGINAL") {
                 // The app's own icon with no pack plate and no shape clip.
                 source = resolveActivity(app.packageName, app.className, user)?.getIcon(0) ?: return null
@@ -233,7 +250,7 @@ class AppCatalog(
 
             // ORIGINAL is the app's own icon, glass and all left off.
             val glass = if (variant == "ORIGINAL" || finishedArt) IconGlass.OFF else iconRenderer.glass
-            val rendered = runCatching {
+            val rendered = runLogged("render icon") {
                 when {
                     gallery != null -> pickedPicture(gallery.bitmap, effectiveShape)
                     ownIcon -> iconRenderer.renderOwnIcon(source, effectiveShape, customShapeSpec, glass)
@@ -241,7 +258,9 @@ class AppCatalog(
                 }
             }.getOrNull() ?: return null
             dominantColorOf(IconRenderer.bitmapOf(rendered))?.let { dominantColors[cacheKey] = it }
-            val icon = runCatching { pm.getUserBadgedIcon(rendered, user) }.getOrNull() ?: return null
+            val icon = runLogged("badge icon for its profile") {
+                pm.getUserBadgedIcon(rendered, user)
+            }.getOrNull() ?: return null
             iconCache.put(cacheKey, icon)
             return icon
         }
@@ -382,7 +401,7 @@ class AppCatalog(
         val icon = resolveActivity(packageName, className, user)?.getIcon(0) ?: return null
         val mono = (icon as? android.graphics.drawable.AdaptiveIconDrawable)?.monochrome
         if (mono != null) {
-            return runCatching {
+            return runLogged("tint themed icon") {
                 val fg = (mono.constantState?.newDrawable()?.mutate() ?: mono).apply { setTint(themedIconFg) }
                 android.graphics.drawable.AdaptiveIconDrawable(
                     android.graphics.drawable.ColorDrawable(themedIconBg), fg
@@ -392,7 +411,7 @@ class AppCatalog(
         // Autogen (D8): no monochrome layer shipped - synthesize one from the
         // icon's silhouette. A per-app force also gets the synthetic layer.
         if (!themedIconsAutogen && !force) return null
-        return runCatching { autogenMonochrome(icon) }.getOrNull()
+        return runLogged("generate themed icon") { autogenMonochrome(icon) }.getOrNull()
     }
 
     // Rasterizes the adaptive foreground (or the whole legacy icon, inset
@@ -514,20 +533,46 @@ class AppCatalog(
     // global shape; used for custom folder icons.
     fun renderPackDrawable(packPackage: String, drawableName: String): Drawable? {
         val source = packDrawable(packPackage, drawableName) ?: return null
-        return runCatching { iconRenderer.render(source, null, iconShape, customShapeSpec, IconGlass.OFF) }.getOrNull()
+        return if (AppIconSource.isAppIcon(packPackage)) {
+            renderPickedAppIcon(source)
+        } else {
+            runLogged("render pack drawable") {
+                iconRenderer.render(source, null, iconShape, customShapeSpec, IconGlass.OFF)
+            }.getOrNull()
+        }
     }
 
     // Any drawable pushed through the shape pipeline so launcher-action tiles
     // and snapshotted activity/shortcut icons match every other icon's shape.
     fun renderThemedDrawable(source: Drawable): Drawable? = synchronized(renderLock) {
-        runCatching { iconRenderer.render(source, null, iconShape, customShapeSpec) }.getOrNull()
+        runLogged("render themed drawable") {
+            iconRenderer.render(source, null, iconShape, customShapeSpec)
+        }.getOrNull()
     }
 
     fun renderActionTile(tile: Drawable): Drawable = renderThemedDrawable(tile) ?: tile
 
+    // An app's icon as the launcher shows it everywhere else, for lists that
+    // name an app rather than one of its activities (the widget sheet): its
+    // launcher activity's icon with every customization - pack, shape, glass,
+    // Edit. An app with nothing to launch (a widget-only package) gets its
+    // plain icon through the same shape and glass.
+    fun appIconFor(packageName: String, userSerial: Long): Drawable? =
+        mainActivityFor(packageName, userSerial)?.let(::iconFor) ?: unlaunchableAppIcon(packageName, userSerial)
+
+    private fun unlaunchableAppIcon(packageName: String, userSerial: Long): Drawable? {
+        val user = userForSerial(userSerial) ?: return null
+        return runCatching { launcherApps.getApplicationInfo(packageName, 0, user).loadIcon(pm) }
+            .getOrNull()
+            ?.let { raw ->
+                val rendered = renderThemedDrawable(raw) ?: raw
+                runCatching { pm.getUserBadgedIcon(rendered, user) }.getOrDefault(rendered)
+            }
+    }
+
     // Art picked for a folder, under the icons' glass when that is on.
     fun renderFolderPicture(picture: android.graphics.Bitmap): Drawable? = synchronized(renderLock) {
-        runCatching {
+        runLogged("render shortcut picture") {
             if (iconRenderer.glass == IconGlass.OFF) {
                 pickedPicture(picture, iconShape)
             } else {
@@ -537,14 +582,24 @@ class AppCatalog(
     }
 
     fun renderFolderPack(packPackage: String, drawableName: String): Drawable? = synchronized(renderLock) {
-        if (iconRenderer.glass == IconGlass.OFF) return renderPackDrawable(packPackage, drawableName)
+        if (iconRenderer.glass == IconGlass.OFF || AppIconSource.isAppIcon(packPackage)) {
+            return renderPackDrawable(packPackage, drawableName)
+        }
         val source = packDrawable(packPackage, drawableName) ?: return null
-        runCatching { iconRenderer.renderFolderArt(source, iconShape, customShapeSpec) }.getOrNull()
+        runLogged("render folder art") { iconRenderer.renderFolderArt(source, iconShape, customShapeSpec) }.getOrNull()
+    }
+
+    // An app's icon picked for a folder or a launcher action, drawn as the
+    // app's own icon is on the home screen.
+    private fun renderPickedAppIcon(source: Drawable): Drawable? = synchronized(renderLock) {
+        runLogged("render picked app icon") {
+            iconRenderer.renderOwnIcon(source, iconShape, customShapeSpec, iconRenderer.glass)
+        }.getOrNull()
     }
 
     // A picture picked for a launcher action, as one picked for an app is drawn.
     fun renderPickedPicture(picture: android.graphics.Bitmap): Drawable? = synchronized(renderLock) {
-        runCatching { pickedPicture(picture, iconShape) }.getOrNull()
+        runLogged("render picked picture") { pickedPicture(picture, iconShape) }.getOrNull()
     }
 
     // A picked picture is finished as it is: drawn across the icon shape when
@@ -558,7 +613,7 @@ class AppCatalog(
     // An app shortcut's own picture (a contact's photo) across the icon
     // shape; null when it isn't one that fills its frame.
     fun renderShortcutPicture(picture: android.graphics.Bitmap): Drawable? = synchronized(renderLock) {
-        runCatching { iconRenderer.renderPicture(picture, iconShape, customShapeSpec) }.getOrNull()
+        runLogged("render picture") { iconRenderer.renderPicture(picture, iconShape, customShapeSpec) }.getOrNull()
     }
 
     fun launch(
@@ -610,6 +665,8 @@ class AppCatalog(
         }.getOrNull()
     }
 
+    fun hasPrivateSpace(): Boolean = privateSpaceUser() != null
+
     fun privateSpace(): PrivateSpace? {
         val user = privateSpaceUser() ?: return null
         val locked = runCatching { userManager.isQuietModeEnabled(user) }.getOrDefault(true)
@@ -626,7 +683,7 @@ class AppCatalog(
     // lock first, through the system's prompt.
     fun setPrivateSpaceLocked(locked: Boolean): Boolean {
         val user = privateSpaceUser() ?: return false
-        return runCatching { userManager.requestQuietModeEnabled(locked, user) }.getOrDefault(false)
+        return runLogged("lock private space") { userManager.requestQuietModeEnabled(locked, user) }.getOrDefault(false)
     }
 
     // Android 16 on; Android 15 offers launchers no way in.
@@ -714,6 +771,14 @@ class AppCatalog(
             activityInfoByKey = activityInfoByKey.filterKeys { !it.contains(marker) }
             iconCache.snapshot().keys.filter { it.contains(marker) }.forEach(iconCache::remove)
             dominantColors.keys.filter { it.contains(marker) }.forEach(dominantColors::remove)
+            // An app wearing this app's icon (picked in Edit) draws it afresh too.
+            overrides.filterValues { override ->
+                AppIconSource.isAppIcon(override.iconPackPackage) &&
+                    override.iconDrawableName?.let(AppIconSource::appOf)?.packageName == packageName
+            }.keys.forEach { key ->
+                iconCache.remove(key)
+                dominantColors.remove(key)
+            }
         }
     }
 

@@ -51,8 +51,9 @@ class WorkspaceStackingTest {
 
     @Test
     fun freePositionedIconsOverlapByTheirOneCellSquare() {
-        // An icon at a float centre covers the one-cell square around it.
-        val m = model(icon("a", 0, 0).copy(workspaceX = 0.3f, workspaceY = 0.25f), widget("w", 1, 1, 2, 2))
+        // An icon at a float centre (a half cell, by the subgrid) covers
+        // the one-cell square around it.
+        val m = model(icon("a", 1, 1).copy(workspaceX = 0.3f, workspaceY = 0.25f), widget("w", 1, 1, 2, 2))
         assertEquals(WorkspaceGeometry.Stacking(below = true, above = false), stacking(m, "w"))
     }
 

@@ -15,10 +15,20 @@ object AppMatcher {
     const val TIER_PREFIX = 0
     const val TIER_WORD_PREFIX = 1
     const val TIER_SUBSTRING = 2
-    // A run across word starts, or one typo: equal footing.
+    // A run across word starts.
     const val TIER_LOOSE = 3
+    // One typo off a word start.
+    const val TIER_TYPO = 4
 
     fun matches(label: String, query: String): Boolean = match(label, query) != null
+
+    // A filtered list (drawer, Select apps): typo matches only when nothing
+    // matches better, so "calc" lists Calculator without Calendar.
+    fun <T> filter(items: List<T>, query: String, label: (T) -> String): List<T> {
+        val found = items.mapNotNull { item -> match(label(item), query)?.let { item to it.tier } }
+        val exact = found.filter { it.second < TIER_TYPO }
+        return (exact.ifEmpty { found }).map { it.first }
+    }
 
     fun match(label: String, query: String): Match? {
         val q = query.trim().lowercase()
@@ -32,7 +42,7 @@ object AppMatcher {
         val at = l.indexOf(q)
         if (at >= 0) return Match(TIER_SUBSTRING, listOf(at until at + q.length))
         runsFrom(l, starts, 0, q, 0)?.let { return Match(TIER_LOOSE, it) }
-        if (q.length >= TYPO_MIN_CHARS) oneTypo(l, starts, q)?.let { return Match(TIER_LOOSE, listOf(it)) }
+        if (q.length >= TYPO_MIN_CHARS) oneTypo(l, starts, q)?.let { return Match(TIER_TYPO, listOf(it)) }
         return null
     }
 

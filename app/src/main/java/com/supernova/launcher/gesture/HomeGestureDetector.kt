@@ -24,7 +24,10 @@ class HomeGestureDetector(
     private val canScroll: (direction: Int) -> Boolean = { true },
     // Whether a press at this screen point lands on an item of its own - an
     // icon, folder or widget - rather than on empty home screen.
-    private val pressOnItem: (rawX: Float, rawY: Float) -> Boolean = { _, _ -> false }
+    private val pressOnItem: (rawX: Float, rawY: Float) -> Boolean = { _, _ -> false },
+    // Whether the pager scrolled under the current stream's finger: that
+    // stream is a page swipe, not a swipe up or down as well.
+    private val pageTookSwipe: () -> Boolean = { false }
 ) {
 
     // How far a finger travels before a press reads as a swipe.
@@ -140,7 +143,15 @@ class HomeGestureDetector(
                 else -> false
             }
         }
-    })
+    }).apply {
+        // The platform's "quick scale" reads a double tap held and dragged as
+        // a one-finger zoom, which is exactly a double-tap swipe: swiping down
+        // scaled up past the pinch-out threshold, so that binding ran too.
+        // A pinch here is two fingers. The stylus-button drag is the same
+        // kind of one-pointer zoom.
+        isQuickScaleEnabled = false
+        isStylusScaleEnabled = false
+    }
 
     fun onTouchEvent(event: MotionEvent): Boolean {
         scaleDetector.onTouchEvent(event)
@@ -244,18 +255,26 @@ class HomeGestureDetector(
         // The second tap of a double-tap lifts here too; that stream belongs
         // to DOUBLE_TAP / DOUBLE_TAP_SWIPE_*, which fire from the tap detector.
         if (doubleTapActive) return
+        val dx = event.x - swipeDownX
         val gesture = HomeSwipeClassifier.classify(
-            dx = event.x - swipeDownX,
+            dx = dx,
             dy = event.y - swipeDownY,
             minDistance = minSwipeDistance.toFloat(),
             bias = DIRECTION_BIAS,
             canScroll = canScroll
         ) ?: return
-        if (gesture == Gesture.SWIPE_UP && suppressUp) return
-        if (gesture == Gesture.SWIPE_DOWN && suppressDown) return
-        if ((gesture == Gesture.SWIPE_LEFT || gesture == Gesture.SWIPE_RIGHT) && suppressSideways) return
-        onGesture(gesture)
+        val claimed = when (gesture) {
+            Gesture.SWIPE_UP -> suppressUp || pageOwnsLift(dx)
+            Gesture.SWIPE_DOWN -> suppressDown || pageOwnsLift(dx)
+            else -> suppressSideways
+        }
+        if (!claimed) onGesture(gesture)
     }
+
+    // The pager scrolled under this finger and had a page to move to: the
+    // lift is a page swipe, not a swipe up or down as well (#82).
+    private fun pageOwnsLift(dx: Float): Boolean =
+        pageTookSwipe() && HomeSwipeClassifier.pageOwnsSwipe(dx, canScroll)
 
     private fun midpointY(event: MotionEvent): Float =
         (event.getY(0) + event.getY(1)) / 2f

@@ -31,6 +31,7 @@ import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.LauncherRepository
 import com.supernova.launcher.data.WorkspaceGeometry
 import com.supernova.launcher.databinding.ActivityLauncherBinding
+import com.supernova.launcher.runLogged
 import com.supernova.launcher.widget.SupernovaWidgetHost
 import com.supernova.launcher.widget.SupernovaWidgetHostView
 import com.supernova.launcher.widget.WidgetResizeFrame
@@ -80,8 +81,7 @@ class WidgetController(
         // return home. Listening is set up before the reply fails, and each
         // widget fills in on bind anyway, so it is let slide, as Launcher3
         // does.
-        runCatching { appWidgetHost.startListening() }
-            .onFailure { android.util.Log.w("Supernova", "Widget host startListening failed", it) }
+        runLogged("start widget host") { appWidgetHost.startListening() }
     }
 
     fun stopListening() = appWidgetHost.stopListening()
@@ -349,7 +349,9 @@ class WidgetController(
         slot.removeAllViews()
         // Guarded like every other widget view: a binder failure shows the
         // built-in bar this time rather than crashing.
-        val view = runCatching { appWidgetHost.createView(activity.applicationContext, id, info) }.getOrNull()
+        val view = runLogged("create search bar widget view") {
+            appWidgetHost.createView(activity.applicationContext, id, info)
+        }.getOrNull()
         if (view == null) {
             hostedSearchWidgetId = 0
             return null
@@ -377,7 +379,8 @@ class WidgetController(
                 info.widgetCategory and AppWidgetProviderInfo.WIDGET_CATEGORY_SEARCHBOX != 0
             },
             prefs = prefs,
-            onPicked = { info -> bind(info, Target.SearchBar) }
+            onPicked = { info -> bind(info, Target.SearchBar) },
+            icons = WidgetPickerIcons.of(viewModel.appCatalog())
         )
     }
 
@@ -449,7 +452,7 @@ class WidgetController(
                     widgetView.requestLayout()
                 }
             }
-            .show()
+            .showTracked()
             .window?.let { window ->
                 // In the half of the screen the widget isn't in, over a light
                 // dim, so the preview stays in view.
@@ -558,7 +561,7 @@ class WidgetController(
     // host through it so the activity.applicationContext inflation constraint and the
     // corner clip apply everywhere.
     private fun createWidgetHostView(widgetId: Int, info: AppWidgetProviderInfo): AppWidgetHostView? {
-        val hostView: AppWidgetHostView = runCatching {
+        val hostView: AppWidgetHostView = runLogged("create widget view") {
             // Never the activity context: AppCompat installs an inflater
             // factory that rewrites ImageView into AppCompatImageView, and
             // RemoteViews then refuses reflected calls on the substituted
@@ -617,7 +620,7 @@ class WidgetController(
     // tap to bind it again through the normal add flow, which asks for the
     // bind permission and runs the widget's own setup where it needs them.
     private fun fallbackWidgetView(item: LauncherItem): View {
-        val info = installedProvider(item.widgetProvider)
+        val info = installedProvider(item.widgetProvider, item.userSerial)
         return TextView(activity).apply {
             setBackgroundResource(R.drawable.bg_widget_fallback)
             gravity = Gravity.CENTER
@@ -639,11 +642,17 @@ class WidgetController(
         }
     }
 
-    private fun installedProvider(provider: String?): AppWidgetProviderInfo? {
+    // Looked up in the widget's own profile: a work widget's provider isn't
+    // among the personal ones.
+    private fun installedProvider(provider: String?, userSerial: Long = 0L): AppWidgetProviderInfo? {
         val component = provider?.let(ComponentName::unflattenFromString) ?: return null
-        return runCatching { appWidgetManager.getInstalledProviders() }.getOrNull()
+        val user = viewModel.appCatalog().userForSerial(userSerial) ?: android.os.Process.myUserHandle()
+        return runCatching { appWidgetManager.getInstalledProvidersForProfile(user) }.getOrNull()
             ?.firstOrNull { it.provider == component }
     }
+
+    private fun serialOf(user: android.os.UserHandle?): Long =
+        user?.let { activity.getSystemService(android.os.UserManager::class.java)?.getSerialNumberForUser(it) } ?: 0L
 
     // Widgets and cards a restore left without a live id get a new one where
     // that takes no asking: the bind permission held, no setup screen needed.
@@ -653,7 +662,7 @@ class WidgetController(
         model.items
             .filter { it.itemType == ItemType.WIDGET && it.appWidgetId == null }
             .forEach { item ->
-                rebindSilently(item.id, item.widgetProvider) { viewModel.setWidgetId(item.id, it) }
+                rebindSilently(item.id, item.widgetProvider, item.userSerial) { viewModel.setWidgetId(item.id, it) }
             }
         model.feedCards
             .filter { FeaturedType.fromName(it.featuredType) == FeaturedType.WIDGET && it.appWidgetId == null }
@@ -669,8 +678,8 @@ class WidgetController(
         return info.configure != null && !optional
     }
 
-    private fun rebindSilently(key: String, provider: String?, onBound: (Int) -> Unit) {
-        val info = if (rebindsTried.add(key)) installedProvider(provider) else null
+    private fun rebindSilently(key: String, provider: String?, userSerial: Long = 0L, onBound: (Int) -> Unit) {
+        val info = if (rebindsTried.add(key)) installedProvider(provider, userSerial) else null
         if (info == null || needsSetup(info)) return
         val widgetId = appWidgetHost.allocateAppWidgetId()
         // Not swept away before the model has it.
@@ -690,7 +699,8 @@ class WidgetController(
         WidgetPickerSheet.show(
             activity, cellWidth, cellHeight, prefs.gridCols, prefs.gridRows,
             filterPackage = packageName, prefs = prefs, onPicked = ::onWidgetPicked,
-            onPickShortcut = host::pickShortcutTarget
+            onPickShortcut = host::pickShortcutTarget,
+            icons = WidgetPickerIcons.of(viewModel.appCatalog())
         )
     }
 
@@ -749,7 +759,7 @@ class WidgetController(
         WidgetPickerSheet.show(
             activity, cellWidth, cellHeight, prefs.gridCols, prefs.gridRows,
             prefs = prefs, onPicked = { info -> onWidgetPickedForCard(info, cardId) },
-            renderTile = viewModel.appCatalog()::renderActionTile
+            icons = WidgetPickerIcons.of(viewModel.appCatalog())
         )
     }
 
@@ -834,7 +844,8 @@ class WidgetController(
                     label = info.loadLabel(activity.packageManager)?.toString().orEmpty().ifBlank { activity.getString(R.string.widget) },
                     spanX = spans.first,
                     spanY = spans.second,
-                    displace = target.displace
+                    displace = target.displace,
+                    userSerial = serialOf(info.profile)
                 )
             }
             is Target.Restored -> viewModel.setWidgetId(target.itemId, pending.widgetId)
