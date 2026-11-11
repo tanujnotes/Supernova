@@ -509,7 +509,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // only the media library.
     private val pickWallpaperFileLauncher =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri != null) cropAndSetWallpaper(uri)
+            if (uri != null) openWallpaperCrop(uri)
         }
 
     private val saveApkLauncher = registerForActivityResult(
@@ -1262,8 +1262,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         if (mode == WallpaperScrollMode.OFF) return
         val token = binding.root.windowToken ?: return
         val pages = workspaceAdapter.realPageCount
-        val forward = if (pages <= 1) 0.5f else (scrollPosition / (pages - 1)).coerceIn(0f, 1f)
-        val offset = if (mode == WallpaperScrollMode.REVERSE) 1f - forward else forward
+        val offset = mode.offset(scrollPosition, pages)
         runLogged("set wallpaper offset steps") {
             val manager = WallpaperManager.getInstance(this)
             // Steps depend only on the page count; sending them per scroll
@@ -4049,29 +4048,22 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             .showTracked()
     }
 
-    // A crop-and-set screen for the picked image, which sets it without the
-    // launcher holding SET_WALLPAPER: the system's own where there is one, as
-    // another launcher can take the action too. WallpaperManager's
-    // getCropAndSetWallpaperIntent finds none on One UI. Where there is no
-    // cropper at all, the apps that "Set as" an image take it.
-    private fun cropAndSetWallpaper(uri: android.net.Uri) {
-        val crop = Intent(android.app.WallpaperManager.ACTION_CROP_AND_SET_WALLPAPER)
-            .setDataAndType(uri, "image/*")
+    // The picked image opens in Supernova's own crop screen, which asks
+    // whether it goes on the home screen, the lock screen or both. With the
+    // wallpaper scrolling it is told where the home page sits across it, so
+    // the home page shows what is framed.
+    private fun openWallpaperCrop(uri: android.net.Uri) {
+        val state = viewModel.state.value
+        val mode = WallpaperScrollMode.fromPrefs(state.prefs)
+        val pages = workspaceAdapter.realPageCount
+        val homePage = state.model.defaultPage.coerceIn(0, (pages - 1).coerceAtLeast(0))
+        val intent = Intent(this, WallpaperCropActivity::class.java)
+            .setData(uri)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        val cropper = packageManager.queryIntentActivities(crop, 0)
-            .sortedByDescending { it.activityInfo.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM != 0 }
-            .firstOrNull()?.activityInfo
-        val started = cropper != null && runCatching {
-            startActivity(crop.setClassName(cropper.packageName, cropper.name))
-        }.isSuccess
-        if (started) return
-        val setAs = Intent(Intent.ACTION_ATTACH_DATA)
-            .setDataAndType(uri, "image/*")
-            .putExtra("mimeType", "image/*")
-            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        runLogged("open wallpaper chooser") {
-            startActivity(Intent.createChooser(setAs, getString(R.string.home_action_wallpaper)))
+        if (mode != WallpaperScrollMode.OFF) {
+            intent.putExtra(WallpaperCropActivity.EXTRA_HOME_OFFSET, mode.offset(homePage.toFloat(), pages))
         }
+        runLogged("open wallpaper crop") { startActivity(intent) }
             .onFailure { Toast.makeText(this, R.string.launch_failed, Toast.LENGTH_SHORT).show() }
     }
 

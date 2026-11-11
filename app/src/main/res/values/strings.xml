@@ -35,6 +35,15 @@
     <string name="home_action_wallpaper">Wallpapers</string>
     <string name="wallpaper_apps">Wallpaper apps</string>
     <string name="wallpaper_from_files">Image from files</string>
+    <!-- The crop screen an image from files opens in, and where Set
+         wallpaper can put it. -->
+    <string name="wallpaper_set">Set wallpaper</string>
+    <string name="wallpaper_crop_description">Wallpaper image. Drag to move it, pinch to zoom.</string>
+    <string name="wallpaper_target_home">Home screen</string>
+    <string name="wallpaper_target_lock">Lock screen</string>
+    <string name="wallpaper_target_both">Home and lock screen</string>
+    <string name="wallpaper_load_failed">Couldn\'t load image as wallpaper</string>
+    <string name="wallpaper_set_failed">Couldn\'t set the wallpaper</string>
     <string name="home_action_settings">Settings</string>
     <plurals name="widget_count">
         <item quantity="one">%1$d widget</item>

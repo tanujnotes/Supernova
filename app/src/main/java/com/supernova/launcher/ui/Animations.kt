@@ -129,9 +129,18 @@ enum class WallpaperScrollMode {
     REVERSE;
 
     companion object {
+        private const val ONE_PAGE_OFFSET = 0.5f
+
         // "" derives from the legacy wallpaperScroll flag.
         fun fromPrefs(prefs: LauncherPrefs): WallpaperScrollMode =
             entries.firstOrNull { it.name.equals(prefs.wallpaperScrollMode, ignoreCase = true) }
                 ?: if (prefs.wallpaperScroll) ON else OFF
+    }
+
+    // Where across the wallpaper (0..1) the screen sits at this scroll
+    // position, in pages: a one-page home screen sits in the middle.
+    fun offset(scrollPosition: Float, pages: Int): Float {
+        val forward = if (pages <= 1) ONE_PAGE_OFFSET else (scrollPosition / (pages - 1)).coerceIn(0f, 1f)
+        return if (this == REVERSE) 1f - forward else forward
     }
 }
