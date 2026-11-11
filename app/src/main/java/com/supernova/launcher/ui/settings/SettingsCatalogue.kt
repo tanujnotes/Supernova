@@ -1651,8 +1651,7 @@ object SettingsCatalogue {
                 )
             )
         ),
-        // Hidden Labs menu: holding volume down on the settings root
-        // shows or hides its row (SettingsActivity), and search never lists it.
+        // Labs: switches for unusual setups and icon theme makers.
         SettingsSection(
             R.string.labs,
             listOf(

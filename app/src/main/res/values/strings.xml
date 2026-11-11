@@ -572,8 +572,6 @@
     <string name="group_name_taken">A group with that name already exists</string>
     <string name="labs">Labs</string>
     <string name="section_labs_subtitle">Experiments and icon theme tools</string>
-    <string name="labs_enabled">Labs menu enabled</string>
-    <string name="labs_disabled">Labs menu disabled</string>
     <string name="labs_show_component">Show component in edit dialog</string>
     <string name="labs_show_component_summary">For icon theme makers: an app\'s edit sheet shows its component name</string>
     <string name="labs_big_grid">Big grid size options</string>

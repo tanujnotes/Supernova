@@ -628,46 +628,6 @@ class SettingsActivity : AppCompatActivity() {
         binding.settingsRecycler.invalidateItemDecorations()
     }
 
-    // The Labs switch: hold volume down on the settings root. A short
-    // press still turns the volume down, so the key is only taken there.
-    override fun onKeyDown(keyCode: Int, event: android.view.KeyEvent): Boolean {
-        if (keyCode == android.view.KeyEvent.KEYCODE_VOLUME_DOWN && labsKeyWatched()) {
-            event.startTracking()
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
-    }
-
-    override fun onKeyLongPress(keyCode: Int, event: android.view.KeyEvent): Boolean {
-        if (keyCode == android.view.KeyEvent.KEYCODE_VOLUME_DOWN && labsKeyWatched()) {
-            val enable = !viewModel.state.value.prefs.labsEnabled
-            viewModel.set(Pref.labsEnabled, enable)
-            Toast.makeText(
-                this, if (enable) R.string.labs_enabled else R.string.labs_disabled, Toast.LENGTH_SHORT
-            ).show()
-            return true
-        }
-        return super.onKeyLongPress(keyCode, event)
-    }
-
-    override fun onKeyUp(keyCode: Int, event: android.view.KeyEvent): Boolean {
-        if (keyCode == android.view.KeyEvent.KEYCODE_VOLUME_DOWN && event.isTracking && labsKeyWatched()) {
-            // A long press ends in a canceled up; anything else was a tap.
-            if (!event.isCanceled) {
-                getSystemService(android.media.AudioManager::class.java)?.adjustSuggestedStreamVolume(
-                    android.media.AudioManager.ADJUST_LOWER,
-                    android.media.AudioManager.USE_DEFAULT_STREAM_TYPE,
-                    android.media.AudioManager.FLAG_SHOW_UI
-                )
-            }
-            return true
-        }
-        return super.onKeyUp(keyCode, event)
-    }
-
-    private fun labsKeyWatched(): Boolean =
-        currentTab == Tab.SETTINGS && currentSection == null && !searchActive
-
     override fun onResume() {
         super.onResume()
         // The default-home row depends on role state that can change while
@@ -804,11 +764,6 @@ class SettingsActivity : AppCompatActivity() {
             onClick = {
                 currentSection = s
                 render()
-            },
-            visibleIf = if (s.title == R.string.labs) {
-                { prefs -> prefs.labsEnabled }
-            } else {
-                { true }
             }
         )
 

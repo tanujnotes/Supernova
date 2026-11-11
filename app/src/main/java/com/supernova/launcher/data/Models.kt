@@ -497,9 +497,11 @@ data class LauncherPrefs(
     // How many rows of suggested-shortcut pills the feed shows
     // ("Suggested shortcuts rows"), 1..3.
     val feedShortcutRows: Int = 1,
-    // A hidden Labs menu, shown by holding volume down on the settings
-    // root, and its switches.
+    // Labs used to be hidden until volume down was held on the settings
+    // root; it is always listed since 2026-11-11 and this is no longer read.
+    // Kept so the key 0.1.8 stored stays a known setting (PrefRegistryTest).
     val labsEnabled: Boolean = false,
+    // Labs' switches.
     // The app's component name in its edit sheet, for icon theme makers.
     val labsShowComponent: Boolean = false,
     // Export PNG in a desktop item's long-press menu.
