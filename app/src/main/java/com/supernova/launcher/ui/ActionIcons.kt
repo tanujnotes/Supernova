@@ -25,6 +25,7 @@ object ActionIcons {
         GestureAction.OPEN_FEED -> R.drawable.ic_action_feed
         GestureAction.ASSISTANT -> R.drawable.ic_action_assistant
         GestureAction.VOICE_SEARCH -> R.drawable.ic_action_voice
+        GestureAction.PRIVATE_SPACE -> R.drawable.ic_action_private_space
         GestureAction.SEARCH_QUERY -> R.drawable.ic_action_search
         // Not offered as standalone home icons (they need a specific gesture
         // context or a payload target), but map to something sensible.

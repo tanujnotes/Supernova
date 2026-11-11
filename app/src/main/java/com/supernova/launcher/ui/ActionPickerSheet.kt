@@ -101,7 +101,10 @@ class ActionPickerSheet private constructor(
 
     private fun launcherRows(): List<Row> {
         val none = Row(null, context.getString(R.string.swipe_none)) { picked(ActionPick.None) }
-        return listOf(none) + actions.map { action ->
+        val offered = com.supernova.launcher.gesture.ActionShortcut.offered(
+            actions, viewModel.appCatalog().hasPrivateSpace()
+        )
+        return listOf(none) + offered.map { action ->
             val label = context.getString(EnumLabels.of(action))
             // The same shaped tile the action gets as a home icon.
             val tile = AppCompatResources.getDrawable(context, ActionIcons.of(action))

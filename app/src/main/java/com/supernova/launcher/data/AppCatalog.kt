@@ -637,6 +637,8 @@ class AppCatalog(
         }.getOrNull()
     }
 
+    fun hasPrivateSpace(): Boolean = privateSpaceUser() != null
+
     fun privateSpace(): PrivateSpace? {
         val user = privateSpaceUser() ?: return null
         val locked = runCatching { userManager.isQuietModeEnabled(user) }.getOrDefault(true)

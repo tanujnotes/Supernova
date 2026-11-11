@@ -221,7 +221,11 @@ object WidgetPickerGroups {
     // The launcher's own row, listed first: every launcher action plus the Activities picker, as shortcuts.
     fun launcherGroup(context: Context, icons: WidgetPickerIcons): WidgetPickerGroup {
         val renderTile = icons.render
-        val actions = ActionShortcut.choices.map { action ->
+        val launcherApps = context.getSystemService(LauncherApps::class.java)
+        val hasPrivateSpace = launcherApps != null && runCatching {
+            launcherApps.profiles.any { isPrivateSpace(launcherApps, it) }
+        }.getOrDefault(false)
+        val actions = ActionShortcut.offered(ActionShortcut.choices, hasPrivateSpace).map { action ->
             WidgetPickerEntry.Shortcut(
                 packageName = context.packageName,
                 label = context.getString(EnumLabels.of(action)),

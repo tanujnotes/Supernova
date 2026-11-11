@@ -45,6 +45,9 @@ class ActionRunner(
         fun toggleDock()
         fun showDesktopPreviews()
         fun openFeed()
+        // The private space card, grown out of anchor (the action's home
+        // icon) or, with none, from the middle of the home screen.
+        fun openPrivateSpace(anchor: View?)
     }
 
     fun runGesture(gesture: Gesture): Boolean {
@@ -67,7 +70,8 @@ class ActionRunner(
 
     // The single action dispatcher. True when the action was taken up, so a
     // gesture bound to nothing falls through to whatever else wants it.
-    fun run(bound: GestureBinding): Boolean {
+    // anchor: the home icon that ran it, for the actions that open over it.
+    fun run(bound: GestureBinding, anchor: View? = null): Boolean {
         return when (bound.action) {
             GestureAction.NONE -> false
             GestureAction.OPEN_DRAWER -> {
@@ -143,6 +147,10 @@ class ActionRunner(
             }
             GestureAction.VOICE_SEARCH -> {
                 startVoiceSearch()
+                true
+            }
+            GestureAction.PRIVATE_SPACE -> {
+                host.openPrivateSpace(anchor)
                 true
             }
         }

@@ -161,6 +161,11 @@
     <string name="private_space_unlock">Unlock</string>
     <string name="private_space_install">Install</string>
     <string name="private_space_settings">Settings</string>
+    <!-- The Private space action's card (#75): its menu rows and the toast
+         when the phone has no private space to open. -->
+    <string name="private_space_install_apps">Install apps</string>
+    <string name="private_space_open_settings">Private space settings</string>
+    <string name="private_space_missing">No private space on this phone</string>
     <string name="group_name">Group name</string>
     <string name="delete_group">Delete group</string>
     <string name="edit_group_apps">Select apps</string>
@@ -683,6 +688,7 @@
     <string name="action_desktop_previews">Desktop previews</string>
     <string name="action_open_feed">Feed page</string>
     <string name="action_voice_search">Voice search</string>
+    <string name="action_private_space">Private space</string>
     <string name="settings_launcher_label">Supernova Settings</string>
     <string name="lock_method">Screen lock method</string>
     <string name="lock_method_accessibility">Accessibility service</string>

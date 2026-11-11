@@ -56,6 +56,15 @@
                 android:textSize="13sp"
                 android:visibility="gone" />
 
+            <!-- A text button the caller asks for (the private space
+                 card's Lock). Its top padding matches the title's, so the
+                 two sit on one line. -->
+            <TextView
+                android:id="@+id/folderAction"
+                style="@style/DrawerPrivateButton"
+                android:paddingTop="6dp"
+                android:visibility="gone" />
+
             <ImageView
                 android:id="@+id/folderEditButton"
                 android:layout_width="wrap_content"

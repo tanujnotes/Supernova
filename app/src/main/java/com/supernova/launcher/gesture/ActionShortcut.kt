@@ -45,6 +45,12 @@ object ActionShortcut {
         GestureAction.DESKTOP_PREVIEWS,
         GestureAction.OPEN_FEED,
         GestureAction.ASSISTANT,
-        GestureAction.VOICE_SEARCH
+        GestureAction.VOICE_SEARCH,
+        GestureAction.PRIVATE_SPACE
     )
+
+    // What a picker lists on this phone: the private space action only
+    // where there is a private space to open.
+    fun offered(actions: List<GestureAction>, hasPrivateSpace: Boolean): List<GestureAction> =
+        if (hasPrivateSpace) actions else actions - GestureAction.PRIVATE_SPACE
 }

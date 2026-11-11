@@ -77,6 +77,7 @@ object EnumLabels {
         GestureAction.DESKTOP_PREVIEWS -> R.string.action_desktop_previews
         GestureAction.OPEN_FEED -> R.string.action_open_feed
         GestureAction.VOICE_SEARCH -> R.string.action_voice_search
+        GestureAction.PRIVATE_SPACE -> R.string.action_private_space
         GestureAction.LAUNCH_INTENT -> R.string.action_launch_shortcut
     }
 

@@ -189,6 +189,72 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 override fun toggleDock() = this@LauncherActivity.toggleDock()
                 override fun showDesktopPreviews() = desktopPreviews.show()
                 override fun openFeed() = feed.open()
+                override fun openPrivateSpace(anchor: View?) = privateSpaceCard.open(anchor)
+            }
+        )
+    }
+
+    // The Private space action's card (#75), a folder card of the space's
+    // apps over the home screen.
+    private val privateSpaceCard by lazy {
+        com.supernova.launcher.ui.PrivateSpaceCard(
+            this, viewModel, folderPopup,
+            object : com.supernova.launcher.ui.PrivateSpaceCard.Host {
+                override val homeAnchor: View get() = binding.workspacePager
+
+                override fun homeIsClear(): Boolean =
+                    !drawer.isVisible && !search.isOpen && !feed.isOpen && !desktopPreviews.isShowing &&
+                        activeFolderPopup == null && drag.activeItemPopup == null && homeMenuDialog == null &&
+                        !(::editMode.isInitialized && editMode.isOpen)
+
+                override fun closeOtherCards() {
+                    activeFolderPopup?.dismiss()
+                    activeFolderPopup = null
+                }
+
+                override fun launchApp(app: LaunchableApp) = this@LauncherActivity.launchApp(app)
+
+                override fun holdApp(view: View, app: LaunchableApp, card: android.widget.PopupWindow?) {
+                    drag.arm(view, DragPayload.DrawerApp(app), window = card, draggable = false) {
+                        showDrawerItemMenu(view, app, source = card)
+                    }
+                }
+
+                override fun decorate(icon: android.graphics.drawable.Drawable?, item: LauncherItem) =
+                    itemIcons.withBadge(icon, item.packageName, item.className, item.userSerial)
+
+                override fun showMenu(anchor: View, rows: (SupernovaPopupMenu) -> Unit) {
+                    drag.activeItemPopup?.dismiss()
+                    val menu = newItemPopup()
+                    rows(menu)
+                    drag.activeItemPopup = menu
+                    menu.show(anchor)
+                    menu.makeModal()
+                }
+
+                // The interceptor routes the item gesture; taps still reach
+                // the card's own click listeners.
+                @android.annotation.SuppressLint("ClickableViewAccessibility")
+                override fun onShown(card: android.widget.PopupWindow, adapter: FolderMemberAdapter) {
+                    animateWallpaperZoom(1f)
+                    // As in a folder: a held app and its menu go through the
+                    // item gesture, the card being a window of its own.
+                    card.setTouchInterceptor { _, ev -> drag.routeGesture(ev, card) }
+                    activeFolderPopup = card
+                    activeFolderAdapter = adapter
+                }
+
+                override fun onClosed(card: android.widget.PopupWindow?) {
+                    // A menu open over the card closes with it.
+                    drag.activeItemPopup?.dismiss()
+                    drag.activeItemPopup = null
+                    drag.onWindowDismissed(card)
+                    if (activeFolderPopup === card) {
+                        activeFolderPopup = null
+                        activeFolderAdapter = null
+                    }
+                    animateWallpaperZoom(0f)
+                }
             }
         )
     }
@@ -808,6 +874,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // open when the screen went dark, as Launcher3 does.
     private val screenOffReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: android.content.Context, intent: Intent) {
+            privateSpaceCard.cancelPending()
             resetToHome(animate = false, keepDrawer = drawerKeptBehindLaunch)
         }
     }
@@ -2359,6 +2426,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // of it.
         // A sheet or dialog left open is one too: the Edit sheet stayed up
         // and the drawer opened behind it (#91). `or`, so both run.
+        // A private space card still waiting on its unlock is called off too.
+        privateSpaceCard.cancelPending()
         val closed = com.supernova.launcher.ui.OpenDialogs.dismissAll(this) or
             resetToHome(animate = true, keepDrawer = keepDrawerOpen)
         // The double-home action: pressing home when there was nothing to
@@ -2536,7 +2605,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 when {
                     uri != null -> {
                         val action = com.supernova.launcher.gesture.ActionShortcut.decode(uri)
-                        if (action != null) actions.run(action) else launchIntentUri(uri, anchor)
+                        if (action != null) actions.run(action, anchor) else launchIntentUri(uri, anchor)
                     }
                     item.packageName != null && item.shortcutId != null ->
                         launchShortcut(item.packageName, item.shortcutId, item.userSerial, anchor)
