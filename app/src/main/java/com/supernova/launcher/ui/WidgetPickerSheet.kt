@@ -39,6 +39,7 @@ object WidgetPickerSheet {
     ) {
         val binding = SheetWidgetPickerBinding.inflate(LayoutInflater.from(activity))
         val dialog = BottomSheetDialog(activity)
+        OpenDialogs.track(dialog)
         dialog.setContentView(binding.root)
         // Drawer surface on the sheet, and the dialog's nav bar painted to
         // match so the sheet appears to run under it. Opaque, whatever the

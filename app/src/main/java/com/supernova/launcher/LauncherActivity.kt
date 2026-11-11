@@ -41,6 +41,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.supernova.launcher.ui.ShortcutItem
 import com.supernova.launcher.ui.dp
+import com.supernova.launcher.ui.showTracked
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -156,6 +157,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     private val cards by lazy {
         com.supernova.launcher.ui.FeedCardRoutes(this, viewModel, { actions }, { cardActivation }, { widgets })
     }
+    // A swipe steeper than 60 degrees leaves the page where it is (#82).
+    private val pageSwipeGuard by lazy { com.supernova.launcher.ui.PageSwipeGuard(binding.workspacePager) }
+
     private val gestureDetector by lazy {
         HomeGestureDetector(this, { actions.runGesture(it) }, ::workspaceCanScroll, ::pressOnItem)
     }
@@ -850,6 +854,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        // Ahead of every route below: it has to see each stream's lift.
+        if (::binding.isInitialized) pageSwipeGuard.onTouch(ev)
         if (::pageDrag.isInitialized && pageDrag.isActive) {
             pageDrag.onTouch(ev)
             return true
@@ -2345,7 +2351,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // Whether this press had a job of its own. Anything dismissed by the
         // reset is what the press was for, so the home-button action stays out
         // of it.
-        val closed = resetToHome(animate = true, keepDrawer = keepDrawerOpen)
+        // A sheet or dialog left open is one too: the Edit sheet stayed up
+        // and the drawer opened behind it (#91). `or`, so both run.
+        val closed = com.supernova.launcher.ui.OpenDialogs.dismissAll(this) or
+            resetToHome(animate = true, keepDrawer = keepDrawerOpen)
         // The double-home action: pressing home when there was nothing to
         // close and nowhere to scroll runs the configured action instead of
         // no-opping. homeButtonAction supersedes the legacy homeSearch flag
@@ -3962,7 +3971,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                         .onFailure { Toast.makeText(this, R.string.launch_failed, Toast.LENGTH_SHORT).show() }
                 }
             }
-            .show()
+            .showTracked()
     }
 
     // A crop-and-set screen for the picked image, which sets it without the

@@ -88,6 +88,7 @@ class AppChecklist(
             .create()
         dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         dialog.show()
+        OpenDialogs.track(dialog)
         return dialog
     }
 

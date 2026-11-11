@@ -140,7 +140,7 @@ class ActionPickerSheet private constructor(
                 }
             }
             .setNegativeButton(R.string.cancel, null)
-            .show()
+            .showTracked()
     }
 
     private fun shortcutRows(): List<Row> {
@@ -167,7 +167,7 @@ class ActionPickerSheet private constructor(
             .setTitle(R.string.action_jump_to_page)
             .setItems(labels.toTypedArray()) { _, which -> onPage(which, labels[which]) }
             .setNegativeButton(R.string.cancel, null)
-            .show()
+            .showTracked()
     }
 
     private class RowAdapter(private val textColor: Int) : RecyclerView.Adapter<RowAdapter.Holder>() {

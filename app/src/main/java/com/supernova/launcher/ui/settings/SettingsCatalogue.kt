@@ -323,30 +323,34 @@ object SettingsCatalogue {
                     set = { viewModel.set(Pref.autoAddApps, it) }
                 ),
                 SettingItem.Header(R.string.group_animations),
-                rows.choice(
-                    R.string.scroll_effect, ScrollEffect.entries,
-                    { it.scrollEffect }, { EnumLabels.of(it) }
-                ) { viewModel.setScrollEffect(it) },
-                rows.choice(
-                    R.string.launch_animation, LaunchAnimation.entries,
-                    { it.launchAnimation }, { EnumLabels.of(it) },
-                    onPick = { viewModel.set(Pref.launchAnimation, it) }
-                ),
+                // The switch first, with what it turns off right under it:
+                // none of the three does anything while animations are off.
                 SettingItem.Toggle(
                     R.string.disable_animations,
                     get = { it.disableAnimations },
                     set = { viewModel.set(Pref.disableAnimations, it) }
-                ),
-                SettingItem.Toggle(
-                    R.string.drop_targets,
-                    get = { it.dropTargets },
-                    set = { viewModel.set(Pref.dropTargets, it) }
                 ),
                 rows.choice(
                     R.string.animation_speed, com.supernova.launcher.ui.AnimationSpeed.entries,
                     { it.animationSpeed }, { EnumLabels.of(it) },
                     visibleIf = { !it.disableAnimations }
                 ) { viewModel.set(Pref.animationSpeed, it) },
+                rows.choice(
+                    R.string.scroll_effect, ScrollEffect.entries,
+                    { it.scrollEffect }, { EnumLabels.of(it) },
+                    visibleIf = { !it.disableAnimations }
+                ) { viewModel.setScrollEffect(it) },
+                rows.choice(
+                    R.string.launch_animation, LaunchAnimation.entries,
+                    { it.launchAnimation }, { EnumLabels.of(it) },
+                    visibleIf = { !it.disableAnimations },
+                    onPick = { viewModel.set(Pref.launchAnimation, it) }
+                ),
+                SettingItem.Toggle(
+                    R.string.drop_targets,
+                    get = { it.dropTargets },
+                    set = { viewModel.set(Pref.dropTargets, it) }
+                ),
                 SettingItem.Toggle(
                     R.string.undo_remove,
                     get = { it.undoRemove },

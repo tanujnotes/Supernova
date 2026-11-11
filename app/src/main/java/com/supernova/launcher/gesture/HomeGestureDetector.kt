@@ -140,7 +140,15 @@ class HomeGestureDetector(
                 else -> false
             }
         }
-    })
+    }).apply {
+        // The platform's "quick scale" reads a double tap held and dragged as
+        // a one-finger zoom, which is exactly a double-tap swipe: swiping down
+        // scaled up past the pinch-out threshold, so that binding ran too.
+        // A pinch here is two fingers. The stylus-button drag is the same
+        // kind of one-pointer zoom.
+        isQuickScaleEnabled = false
+        isStylusScaleEnabled = false
+    }
 
     fun onTouchEvent(event: MotionEvent): Boolean {
         scaleDetector.onTouchEvent(event)

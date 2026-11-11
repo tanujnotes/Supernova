@@ -451,7 +451,7 @@ class WidgetController(
                     widgetView.requestLayout()
                 }
             }
-            .show()
+            .showTracked()
             .window?.let { window ->
                 // In the half of the screen the widget isn't in, over a light
                 // dim, so the preview stays in view.

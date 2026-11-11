@@ -1014,8 +1014,13 @@ class DrawerController(
     private fun showKeyboard() {
         if (!searchFieldVisible || searchGlobalOnTap) return
         if (!binding.drawerSearch.hasFocus()) binding.drawerSearch.requestFocus()
+        // An explicit request (flags 0), as a tap on the field makes. The
+        // implicit kind is one a keyboard may turn down - the platform's do
+        // whenever the phone reports a hardware keyboard of any sort - and
+        // then the drawer opened focused with no keyboard, a second tap on
+        // the field away from typing (#87).
         binding.root.context.getSystemService(InputMethodManager::class.java)
-            ?.showSoftInput(binding.drawerSearch, InputMethodManager.SHOW_IMPLICIT)
+            ?.showSoftInput(binding.drawerSearch, 0)
     }
 
     // Takes the keyboard down from outside - the item menu opens over it

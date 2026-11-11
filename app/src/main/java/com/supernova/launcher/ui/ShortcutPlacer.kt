@@ -73,7 +73,7 @@ class ShortcutPlacer(
                 showActivitiesForApp(apps[which])
             }
             .setNegativeButton(R.string.cancel, null)
-            .show()
+            .showTracked()
     }
 
     private fun showActivitiesForApp(app: LaunchableApp) {
@@ -112,7 +112,7 @@ class ShortcutPlacer(
                 addIntentItemAtFreeCell(intent.toUri(Intent.URI_INTENT_SCHEME), names[which], icon64)
             }
             .setNegativeButton(R.string.cancel, null)
-            .show()
+            .showTracked()
     }
 
     private fun handleCreateShortcutResult(data: Intent) {

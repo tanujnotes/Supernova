@@ -274,7 +274,7 @@ object IconPickerSheet {
                 .setTitle(R.string.change_icon)
                 .setItems(entries.map { it.first }.toTypedArray()) { _, which -> entries[which].second() }
                 .setNegativeButton(R.string.cancel, null)
-                .show()
+                .showTracked()
         }
     }
 
