@@ -187,9 +187,12 @@ class FeedController(
         pane.animate().cancel()
         if (Animations.enabled(viewModel.state.value.prefs)) {
             val duration = Animations.duration(viewModel.state.value.prefs, CLOSE_MS)
+            // Said outright: the view's animator keeps whichever interpolator
+            // it was last given, and that may be a swipe's settle.
             pane.animate()
                 .translationX(-width)
                 .setDuration(duration)
+                .setInterpolator(DecelerateInterpolator())
                 .withEndAction {
                     if (!isOpen && !dragging) pane.visibility = View.GONE
                 }
@@ -375,16 +378,24 @@ class FeedController(
             xVelocity < -minFlingVelocity -> false
             else -> pane.translationX > -width / 2f
         }
-        val duration = Animations.duration(viewModel.state.value.prefs, SETTLE_MS)
+        // The pane carries on from the finger's own speed rather than leaping
+        // into a fixed slide (SwipeSettle).
+        val nominal = Animations.duration(viewModel.state.value.prefs, SwipeSettle.NOMINAL_MS)
+        val settle = if (shouldOpen) {
+            SwipeSettle.of(-pane.translationX, xVelocity, nominal)
+        } else {
+            SwipeSettle.of(width + pane.translationX, -xVelocity, nominal)
+        }
+        val duration = settle.durationMs
         if (shouldOpen) {
             isOpen = true
             if (Animations.enabled(viewModel.state.value.prefs)) {
                 pane.animate()
                     .translationX(0f)
                     .setDuration(duration)
-                    .setInterpolator(DecelerateInterpolator())
+                    .setInterpolator(settle)
                     .start()
-                animateHomeFade(1f, duration, DecelerateInterpolator())
+                animateHomeFade(1f, duration, settle)
             } else {
                 pane.translationX = 0f
                 applyHomeFade(1f)
@@ -396,9 +407,10 @@ class FeedController(
                 pane.animate()
                     .translationX(-width)
                     .setDuration(duration)
+                    .setInterpolator(settle)
                     .withEndAction { if (!isOpen && !dragging) pane.visibility = View.GONE }
                     .start()
-                animateHomeFade(0f, duration, null)
+                animateHomeFade(0f, duration, settle)
             } else {
                 pane.translationX = -width
                 pane.visibility = View.GONE
@@ -799,7 +811,6 @@ class FeedController(
         const val EDGE_GUTTER_DP = 24
         const val OPEN_MS = 220L
         const val CLOSE_MS = 180L
-        const val SETTLE_MS = 160L
         // The feed page dims the wallpaper by about half.
         const val FEED_DIM = 0x80000000.toInt()
         // Pane text darker than this can't be read on FEED_DIM.

@@ -735,16 +735,15 @@ class DrawerController(
             velocityY > minFling -> false
             else -> sheet.translationY < height / 2f
         }
+        // The sheet carries on from the finger's own speed rather than
+        // leaping into a fixed slide (SwipeSettle).
+        val nominal = Animations.duration(prefs, SwipeSettle.NOMINAL_MS)
         if (open) {
-            // The fling settles in about a quarter second whatever is
-            // left to travel, decelerating; the pref-scaled slide matches.
-            animateProgress(
-                1f, Animations.duration(prefs, SLIDE_MS),
-                android.view.animation.DecelerateInterpolator()
-            ) { focusOnOpen(prefs, forSearch = false) }
+            val settle = SwipeSettle.of(sheet.translationY, -velocityY, nominal)
+            animateProgress(1f, settle.durationMs, settle) { focusOnOpen(prefs, forSearch = false) }
             onOpenStateChanged?.invoke(true)
         } else {
-            slideOut(prefs)
+            slideOut(prefs, settle = SwipeSettle.of(height - sheet.translationY, velocityY, nominal))
         }
     }
 
@@ -884,11 +883,17 @@ class DrawerController(
         onOpenStateChanged?.invoke(true)
     }
 
-    private fun slideOut(prefs: LauncherPrefs, instant: Boolean = false) {
+    // settle: the close is a let-go pull's, which comes to rest its own way.
+    private fun slideOut(prefs: LauncherPrefs, instant: Boolean = false, settle: SwipeSettle? = null) {
         binding.drawerSheet.animate().cancel()
         animateProgress(
-            0f, if (instant) 0L else Animations.duration(prefs, SLIDE_MS),
-            android.view.animation.AccelerateInterpolator()
+            0f,
+            when {
+                instant -> 0L
+                settle != null -> settle.durationMs
+                else -> Animations.duration(prefs, SLIDE_MS)
+            },
+            settle ?: android.view.animation.AccelerateInterpolator()
         ) {
             parkSheet()
             resetSearch()
