@@ -96,6 +96,7 @@ import com.supernova.launcher.ui.SwipeArrowDrawable
 import com.supernova.launcher.ui.FolderIconDrawable
 import com.supernova.launcher.ui.FolderMemberAdapter
 import com.supernova.launcher.ui.FolderPopup
+import com.supernova.launcher.ui.PendingStarts
 import com.supernova.launcher.ui.LauncherUiState
 import com.supernova.launcher.ui.LauncherViewModel
 import com.supernova.launcher.ui.BottomChrome
@@ -2711,7 +2712,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         SupernovaNotificationListener.previewsFor(packageName, user.hashCode()).forEach { preview ->
             menu.addNotification(preview.title, preview.text) {
                 // The app's own tap intent; a stale one just no-ops.
-                runLogged("open notification") { preview.contentIntent?.send() }
+                runLogged("open notification") { preview.contentIntent?.let(PendingStarts::send) }
             }
         }
     }

@@ -208,7 +208,7 @@ class PrivateSpaceCard(
     }
 
     private fun start(sender: IntentSender) {
-        runLogged("start private space sender") { activity.startIntentSender(sender, null, 0, 0, 0) }
+        runLogged("start private space sender") { PendingStarts.start(activity, sender) }
     }
 
     // In the order the card shows them: the drawer's, or A-Z with the

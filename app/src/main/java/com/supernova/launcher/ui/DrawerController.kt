@@ -1140,7 +1140,7 @@ class DrawerController(
     private fun startSender(sender: android.content.IntentSender?) {
         sender ?: return
         val activity = binding.root.context as? android.app.Activity ?: return
-        runLogged("start intent sender") { activity.startIntentSender(sender, null, 0, 0, 0) }
+        runLogged("start intent sender") { PendingStarts.start(activity, sender) }
     }
 
     private fun appsForTab(tab: Any?): List<LaunchableApp> = when (tab) {
