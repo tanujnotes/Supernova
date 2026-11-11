@@ -35,11 +35,12 @@ class SwipeSettle private constructor(
     private fun left(t: Float): Float = (1f + rate * t) * exp(-omega * t)
 
     companion object {
-        // How long a release from a standstill takes. Half the travel is done
-        // in under a quarter of it and nine tenths by half way; the rest is
-        // the ease into place. At 320 the sheet still peaked at the speed the
-        // old slide started at, and read as much the same snap.
-        const val NOMINAL_MS = 400L
+        // How long a release from a standstill takes: the same as the drawer's
+        // own slide (DrawerController.SLIDE_MS), at the user's request - 320
+        // and 400 were tried and read as slow. Half the travel is done in
+        // under a quarter of it and nine tenths by half way; the rest is the
+        // ease into place.
+        const val NOMINAL_MS = 240L
 
         private const val MS_PER_SECOND = 1000f
         // At rest once this share of the distance is left...
