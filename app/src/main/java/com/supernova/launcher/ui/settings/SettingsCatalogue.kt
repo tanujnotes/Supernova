@@ -640,31 +640,6 @@ object SettingsCatalogue {
                     visibleIf = { GestureDefaults.swipeUpOpensDrawer(it.gestureBindings) },
                     subtitle = R.string.drawer_swipe_haptic_summary
                 ),
-                rows.choice(
-                    R.string.drawer_tab_bar, DrawerTabBar.entries,
-                    { it.drawerTabBar }, { EnumLabels.of(it) },
-                    // Always listed, as the bar's place can be set before any
-                    // tab exists; until one does, the row says where tabs
-                    // come from.
-                    subtitle = { prefs ->
-                        val bar = prefs.drawerTabBar
-                        when {
-                            viewModel.drawerTabGroups().isEmpty() && !viewModel.hasWorkApps() -> context.getString(
-                                R.string.drawer_tab_bar_no_tabs, context.getString(EnumLabels.of(bar))
-                            )
-                            bar == DrawerTabBar.NONE -> context.getString(R.string.drawer_tab_bar_hidden_note)
-                            else -> context.getString(EnumLabels.of(bar))
-                        }
-                    }
-                ) { viewModel.set(Pref.drawerTabBar, it) },
-                rows.choice(
-                    R.string.drawer_tab_style, DrawerTabStyle.entries,
-                    { it.drawerTabStyle }, { EnumLabels.of(it) },
-                    visibleIf = {
-                        (viewModel.drawerTabGroups().isNotEmpty() || viewModel.hasWorkApps()) &&
-                            it.drawerTabBar != DrawerTabBar.NONE
-                    }
-                ) { viewModel.set(Pref.drawerTabStyle, it) },
                 SettingItem.Toggle(
                     R.string.drawer_frequent_row,
                     get = { it.drawerFrequentRow },
@@ -750,6 +725,31 @@ object SettingsCatalogue {
                     visibleIf = { it.drawerFastScroller }
                 ) { viewModel.set(Pref.drawerScrubberColor, it) },
                 SettingItem.Header(R.string.group_tabs),
+                rows.choice(
+                    R.string.drawer_tab_bar, DrawerTabBar.entries,
+                    { it.drawerTabBar }, { EnumLabels.of(it) },
+                    // Always listed, as the bar's place can be set before any
+                    // tab exists; until one does, the row says where tabs
+                    // come from.
+                    subtitle = { prefs ->
+                        val bar = prefs.drawerTabBar
+                        when {
+                            viewModel.drawerTabGroups().isEmpty() && !viewModel.hasWorkApps() -> context.getString(
+                                R.string.drawer_tab_bar_no_tabs, context.getString(EnumLabels.of(bar))
+                            )
+                            bar == DrawerTabBar.NONE -> context.getString(R.string.drawer_tab_bar_hidden_note)
+                            else -> context.getString(EnumLabels.of(bar))
+                        }
+                    }
+                ) { viewModel.set(Pref.drawerTabBar, it) },
+                rows.choice(
+                    R.string.drawer_tab_style, DrawerTabStyle.entries,
+                    { it.drawerTabStyle }, { EnumLabels.of(it) },
+                    visibleIf = {
+                        (viewModel.drawerTabGroups().isNotEmpty() || viewModel.hasWorkApps()) &&
+                            it.drawerTabBar != DrawerTabBar.NONE
+                    }
+                ) { viewModel.set(Pref.drawerTabStyle, it) },
                 SettingItem.Toggle(
                     R.string.drawer_work_tab,
                     get = { it.drawerWorkTab },
