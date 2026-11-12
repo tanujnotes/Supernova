@@ -177,50 +177,47 @@ class IconPackRepository(private val context: Context) {
     }
 
     // Lists a pack's pickable drawables without touching the loaded-pack
-    // state: drawables.xml when the pack ships one, else appfilter entries.
+    // state: the pack's own icon list (drawable.xml, which also carries the
+    // generic icons no app maps to; a few packs name it drawables.xml), else
+    // the appfilter entries.
     fun listDrawables(packageName: String): List<String> {
         val resources = runCatching { pm.getResourcesForApplication(packageName) }.getOrNull()
             ?: return emptyList()
         val names = linkedSetOf<String>()
-
-        val drawablesId = resources.getIdentifier("drawables", "xml", packageName)
-        if (drawablesId != 0) {
+        val collect: (XmlPullParser) -> Unit = { parser ->
             runLogged("read icon pack drawable list") {
-                val parser = resources.getXml(drawablesId)
-                try {
-                    while (parser.eventType != XmlPullParser.END_DOCUMENT) {
-                        if (parser.eventType == XmlPullParser.START_TAG && parser.name == "item") {
-                            parser.getAttributeValue(null, "drawable")?.let(names::add)
-                        }
-                        parser.next()
+                while (parser.eventType != XmlPullParser.END_DOCUMENT) {
+                    if (parser.eventType == XmlPullParser.START_TAG && parser.name == "item") {
+                        parser.getAttributeValue(null, "drawable")?.let(names::add)
                     }
-                } finally {
-                    parser.close()
+                    parser.next()
                 }
             }
         }
 
-        if (names.isEmpty()) {
-            readAppFilter(resources, packageName) { parser ->
-                runLogged("read icon pack drawable list") {
-                    while (parser.eventType != XmlPullParser.END_DOCUMENT) {
-                        if (parser.eventType == XmlPullParser.START_TAG && parser.name == "item") {
-                            parser.getAttributeValue(null, "drawable")?.let(names::add)
-                        }
-                        parser.next()
-                    }
-                }
-            }
+        for (list in DRAWABLE_LISTS) {
+            if (names.isNotEmpty()) break
+            readPackXml(resources, packageName, list, collect)
         }
+        if (names.isEmpty()) readPackXml(resources, packageName, "appfilter", collect)
 
         return names.filter { resources.getIdentifier(it, "drawable", packageName) != 0 }.sorted()
     }
 
-    // Runs block over the pack's appfilter and closes what it opened: a
-    // compiled resource's parser holds native memory, a raw asset a stream,
-    // until closed. Null when the pack has no appfilter.
-    private fun <T> readAppFilter(resources: Resources, packageName: String, block: (XmlPullParser) -> T): T? {
-        val xmlId = resources.getIdentifier("appfilter", "xml", packageName)
+    private fun <T> readAppFilter(resources: Resources, packageName: String, block: (XmlPullParser) -> T): T? =
+        readPackXml(resources, packageName, "appfilter", block)
+
+    // Runs block over one of the pack's xml files (name without ".xml") and
+    // closes what it opened: a compiled resource's parser holds native
+    // memory, a raw asset a stream, until closed. Null when the pack has no
+    // such file.
+    private fun <T> readPackXml(
+        resources: Resources,
+        packageName: String,
+        name: String,
+        block: (XmlPullParser) -> T
+    ): T? {
+        val xmlId = resources.getIdentifier(name, "xml", packageName)
         if (xmlId != 0) {
             val parser = runCatching { resources.getXml(xmlId) }.getOrNull() ?: return null
             return try {
@@ -229,8 +226,8 @@ class IconPackRepository(private val context: Context) {
                 parser.close()
             }
         }
-        // Some packs ship appfilter.xml as a raw asset instead of a compiled resource.
-        val stream = runCatching { resources.assets.open("appfilter.xml") }.getOrNull() ?: return null
+        // Some packs ship their xml as a raw asset instead of a compiled resource.
+        val stream = runCatching { resources.assets.open("$name.xml") }.getOrNull() ?: return null
         return stream.use { input ->
             val parser = runCatching {
                 android.util.Xml.newPullParser().apply { setInput(input, null) }
@@ -248,6 +245,9 @@ class IconPackRepository(private val context: Context) {
     }
 
     companion object {
+        // The pack's own icon list, under the names packs ship it as.
+        private val DRAWABLE_LISTS = listOf("drawable", "drawables")
+
         // Pack convention: the icon for day N is `prefix` + N (1..31).
         fun calendarDrawableName(prefix: String, dayOfMonth: Int): String = "$prefix$dayOfMonth"
 

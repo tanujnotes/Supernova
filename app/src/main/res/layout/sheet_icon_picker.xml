@@ -12,6 +12,24 @@
         style="@style/SheetTitle"
         android:text="@string/pick_icon" />
 
+    <EditText
+        android:id="@+id/iconSearch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_search_card"
+        android:hint="@string/search_icons_hint"
+        android:importantForAutofill="no"
+        android:imeOptions="actionSearch"
+        android:inputType="text"
+        android:maxLines="1"
+        android:paddingHorizontal="18dp"
+        android:paddingVertical="14dp"
+        android:textColor="@color/textPrimary"
+        android:textColorHint="@color/textSecondary"
+        android:textSize="16sp" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/iconGrid"
         android:layout_width="match_parent"

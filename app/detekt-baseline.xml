@@ -870,7 +870,7 @@
     <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$@Synchronized fun load(packageName: String?)</ID>
     <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$fun decoration(component: String? = null): IconPackDecoration?</ID>
     <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$fun themedIcon(packageName: String, className: String): Drawable?</ID>
-    <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$private fun &lt;T&gt; readAppFilter(resources: Resources, packageName: String, block: (XmlPullParser) -&gt; T): T?</ID>
+    <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$private fun &lt;T&gt; readPackXml( resources: Resources, packageName: String, name: String, block: (XmlPullParser) -&gt; T ): T?</ID>
     <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$private fun drawableByName(name: String, resources: Resources? = packResources): Drawable?</ID>
     <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$private fun normalizeComponent(raw: String): String?</ID>
     <ID>ReturnCount:IconRenderer.kt$IconRenderer$private fun drawableToBitmap(drawable: Drawable): Bitmap</ID>

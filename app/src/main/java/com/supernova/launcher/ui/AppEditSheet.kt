@@ -3,11 +3,13 @@ package com.supernova.launcher.ui
 import android.content.Context
 import android.view.LayoutInflater
 import android.widget.Toast
+import androidx.core.widget.doAfterTextChanged
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.supernova.launcher.R
 import com.supernova.launcher.data.AppIconSource
 import com.supernova.launcher.data.AppOverride
 import com.supernova.launcher.data.GalleryIconCodec
+import com.supernova.launcher.data.IconSearch
 import com.supernova.launcher.data.IconShape
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.databinding.SheetAppEditBinding
@@ -336,10 +338,18 @@ object IconPickerSheet {
         val dialog = com.supernova.launcher.ui.Sheets.open(context)
         dialog.setContentView(binding.root)
         binding.iconGrid.layoutManager = androidx.recyclerview.widget.GridLayoutManager(context, GRID_COLUMNS)
-        binding.iconGrid.adapter = IconChoiceAdapter(viewModel, grid) { name ->
+        val adapter = IconChoiceAdapter(viewModel, grid) { name ->
             onPick(grid.packPackage, name)
             dialog.dismiss()
         }
+        binding.iconGrid.adapter = adapter
+        // Filters as you type; a scan of names only, so a pack of
+        // thousands keeps up. The sheet sits above the keyboard.
+        binding.iconSearch.doAfterTextChanged { text ->
+            adapter.show(IconSearch.filter(grid.names, grid.labels, text?.toString().orEmpty()))
+            binding.iconGrid.scrollToPosition(0)
+        }
+        dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         dialog.show()
     }
 
@@ -360,14 +370,24 @@ object IconPickerSheet {
             return Holder(view)
         }
 
-        override fun getItemCount(): Int = grid.names.size
+        // Grid indices on show: all of them, or a search's matches.
+        private var shown: List<Int> = grid.names.indices.toList()
+
+        @android.annotation.SuppressLint("NotifyDataSetChanged")
+        fun show(indices: List<Int>) {
+            shown = indices
+            notifyDataSetChanged()
+        }
+
+        override fun getItemCount(): Int = shown.size
 
         override fun onBindViewHolder(holder: Holder, position: Int) {
-            val name = grid.names[position]
+            val index = shown[position]
+            val name = grid.names[index]
             // Lazy per-bind decode: the RecyclerView only materializes what
             // scrolls into view, so a 3,000-icon pack stays tractable.
             holder.view.setImageDrawable(viewModel.appCatalog().packDrawable(grid.packPackage, name))
-            grid.labels?.getOrNull(position)?.let { label ->
+            grid.labels?.getOrNull(index)?.let { label ->
                 holder.view.contentDescription = label
                 holder.view.tooltipText = label
             }
