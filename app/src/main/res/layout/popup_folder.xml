@@ -37,6 +37,7 @@
                 android:imeOptions="actionDone"
                 android:importantForAutofill="no"
                 android:inputType="textCapWords"
+                android:maxLength="@integer/label_max_length"
                 android:maxLines="1"
                 android:paddingHorizontal="8dp"
                 android:paddingTop="6dp"

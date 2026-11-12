@@ -1788,6 +1788,7 @@ class SettingsActivity : AppCompatActivity() {
     private fun promptRenameGroup(group: DrawerGroup) {
         val input = EditText(this).apply {
             hint = getString(R.string.group_name)
+            com.supernova.launcher.ui.LabelLimit.apply(this)
             setText(group.name)
         }
         MaterialAlertDialogBuilder(this)
@@ -1814,7 +1815,10 @@ class SettingsActivity : AppCompatActivity() {
     // Add drawer tab / Add drawer folder: a title, and whether the
     // group's apps stay in the main list as well (off by default).
     private fun promptNewGroup(type: DrawerGroupType) {
-        val input = EditText(this).apply { hint = getString(R.string.group_name) }
+        val input = EditText(this).apply {
+            hint = getString(R.string.group_name)
+            com.supernova.launcher.ui.LabelLimit.apply(this)
+        }
         val dialogBinding = com.supernova.launcher.databinding.DialogNewGroupBinding.inflate(layoutInflater)
         dialogBinding.newGroupField.addView(com.supernova.launcher.ui.DialogField.wrap(input))
         val keep = dialogBinding.newGroupKeep

@@ -3806,6 +3806,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     private fun promptEditTab(group: DrawerGroup) {
         val input = EditText(this).apply {
             hint = getString(R.string.group_name)
+            com.supernova.launcher.ui.LabelLimit.apply(this)
             setText(group.name)
             isSingleLine = true
             setPadding(dp(FIELD_PAD_H_DP), dp(FIELD_PAD_V_DP), dp(FIELD_PAD_H_DP), dp(FIELD_PAD_V_DP))

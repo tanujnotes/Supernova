@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The longest name an app, shortcut, folder, drawer tab or card can be
+         given. Code fields use ui.LabelLimit, which reads this. -->
+    <integer name="label_max_length">30</integer>
+</resources>
