@@ -161,17 +161,26 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
         val open = openHere
         val out = ArrayList<SettingItem>(items.size)
         var hidden = false
-        for (item in items) {
-            when (item) {
-                is SettingItem.Header, is SettingItem.Preview, is SettingItem.Accordion -> hidden = false
-                else -> {}
-            }
-            if (!hidden && item.visibleIf(prefs)) out.add(item)
+        for ((index, item) in items.withIndex()) {
+            val opensGroup = item is SettingItem.Header || item is SettingItem.Accordion
+            if (opensGroup || item is SettingItem.Preview) hidden = false
+            // A group label or accordion whose rows are all hidden would
+            // stand alone over nothing, so it goes with them.
+            val shown = item.visibleIf(prefs) && (!opensGroup || groupHasRows(index))
+            if (!hidden && shown) out.add(item)
             if (item is SettingItem.Accordion) hidden = item.title !in open
         }
         visible = out
         notifyDataSetChanged()
     }
+
+    // Whether the Header or Accordion at index has a row its prefs show,
+    // collapsed or not: its rows run to the next Header, Accordion or
+    // Preview.
+    private fun groupHasRows(index: Int): Boolean =
+        items.drop(index + 1)
+            .takeWhile { it !is SettingItem.Header && it !is SettingItem.Accordion && it !is SettingItem.Preview }
+            .any { it.visibleIf(prefs) }
 
     override fun getItemCount(): Int = visible.size
 

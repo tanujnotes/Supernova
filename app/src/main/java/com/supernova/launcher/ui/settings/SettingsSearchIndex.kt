@@ -5,7 +5,7 @@ import androidx.annotation.StringRes
 import com.supernova.launcher.ui.LauncherViewModel
 
 // A flat, resolved-string index over every catalogue row, built once and
-// searched by plain substring. Matching is title + section title only: the
+// searched by plain substring, word by word. Matching is title + section title only: the
 // catalogue's titles are already the user-facing vocabulary, so a keywords
 // side-channel wasn't worth threading through every SettingItem constructor.
 class SettingsSearchIndex private constructor(val entries: List<Entry>) {
@@ -16,16 +16,18 @@ class SettingsSearchIndex private constructor(val entries: List<Entry>) {
         val sectionLabel: String,
         val itemLabel: String,
         // Lowercased "item section" haystack, prepared once at build time so
-        // per-keystroke matching allocates nothing.
+        // per-keystroke matching allocates nothing per entry.
         val haystack: String
     )
 
     fun search(query: String, limit: Int = Int.MAX_VALUE): List<Entry> {
-        val needle = query.trim().lowercase()
-        if (needle.isEmpty()) return emptyList()
+        // Each word on its own, so "dock labels" finds the Dock page's
+        // Icon labels: a row's title doesn't repeat its page's name.
+        val words = query.trim().lowercase().split(' ').filter { it.isNotEmpty() }
+        if (words.isEmpty()) return emptyList()
         val matches = ArrayList<Entry>()
         for (entry in entries) {
-            if (entry.haystack.contains(needle)) {
+            if (words.all { entry.haystack.contains(it) }) {
                 matches.add(entry)
                 if (matches.size >= limit) break
             }
