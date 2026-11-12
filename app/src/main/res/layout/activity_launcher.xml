@@ -252,6 +252,25 @@
                 android:text="@string/private_space_lock" />
         </LinearLayout>
 
+        <!-- The Work tab's pause button while work apps are on;
+             DrawerController shows it while that tab is selected. -->
+        <LinearLayout
+            android:id="@+id/drawerWorkBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical|end"
+            android:minHeight="48dp"
+            android:orientation="horizontal"
+            android:paddingStart="20dp"
+            android:paddingEnd="8dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/drawerWorkTurnOff"
+                style="@style/DrawerPrivateButton"
+                android:text="@string/work_apps_turn_off" />
+        </LinearLayout>
+
         <!-- Activated custom cards (all conditions met) sit above the list;
              DrawerController fills and hides this. -->
         <LinearLayout
@@ -300,6 +319,46 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:visibility="gone" />
+
+            <!-- The Work tab while the work profile is paused: this card
+                 stands in for its apps. -->
+            <LinearLayout
+                android:id="@+id/drawerWorkPaused"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/drawerWorkPausedTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="40dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center"
+                    android:text="@string/work_apps_paused_title"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="18sp" />
+
+                <TextView
+                    android:id="@+id/drawerWorkPausedBody"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="24dp"
+                    android:gravity="center"
+                    android:text="@string/work_apps_paused_body"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/drawerWorkTurnOn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/work_apps_turn_on" />
+            </LinearLayout>
 
             <!-- The drawer search is the search window: while the field
                  holds a query this list - the search controller's results -

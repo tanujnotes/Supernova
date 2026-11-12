@@ -1684,7 +1684,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     // the settle animation's frames alone.
                     val last = lastRenderedState
                     lastRenderedState = state
-                    if (last != null && onlyPageMoved(last, state)) return@collect
+                    if (last != null && state.onlyPageMovedFrom(last)) return@collect
                     // Disable-animations forces the NONE transformer path.
                     applyScrollEffect(
                         if (Animations.enabled(state.prefs)) {
@@ -3022,10 +3022,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // finger lifts and the menu takes focus - the menu appearing to jump for
     // no reason the user can see. The drawer is adjustNothing, so nothing
     // under the menu moves when the keyboard goes.
-    private fun onlyPageMoved(last: LauncherUiState, state: LauncherUiState): Boolean =
-        last.model === state.model && last.prefs === state.prefs && last.apps === state.apps &&
-            last.iconGeneration == state.iconGeneration && last.privateSpace == state.privateSpace
-
     private fun longPressNewApp(view: View, app: LaunchableApp) {
         drawer.hideKeyboardIfShowing()
         // A private space app stays in the drawer: on the home screen it

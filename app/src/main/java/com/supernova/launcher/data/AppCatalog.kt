@@ -686,6 +686,25 @@ class AppCatalog(
         return runLogged("lock private space") { userManager.requestQuietModeEnabled(locked, user) }.getOrDefault(false)
     }
 
+    private fun workUsers(): List<UserHandle> = runCatching {
+        WorkProfiles.workUsers(launcherApps.profiles, android.os.Process.myUserHandle(), privateSpaceUser())
+    }.getOrDefault(emptyList())
+
+    private fun isPaused(user: UserHandle): Boolean =
+        runCatching { userManager.isQuietModeEnabled(user) }.getOrDefault(false)
+
+    // The serials of the work profiles whose apps are paused.
+    fun pausedWorkProfiles(): Set<Long> =
+        workUsers().filter(::isPaused).mapTo(mutableSetOf(), ::serialFor)
+
+    // Pausing takes effect at once; turning work apps on may ask for the
+    // work profile's own lock first, through the system's prompt.
+    fun setWorkPaused(paused: Boolean) {
+        WorkProfiles.toToggle(workUsers(), ::isPaused, paused).forEach { user ->
+            runLogged("pause work apps") { userManager.requestQuietModeEnabled(paused, user) }
+        }
+    }
+
     // Android 16 on; Android 15 offers launchers no way in.
     fun privateSpaceSettings(): IntentSender? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.BAKLAVA) return null

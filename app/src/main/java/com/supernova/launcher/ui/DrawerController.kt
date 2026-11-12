@@ -329,6 +329,7 @@ class DrawerController(
             binding.drawerTabs.visibility = View.VISIBLE
         }
         updatePrivateBar()
+        updateWorkViews()
     }
 
     // Exactly one of the three lists shows: the results while searching,
@@ -579,6 +580,8 @@ class DrawerController(
         binding.drawerPrivateInstall.setOnClickListener {
             startSender(viewModel.appCatalog().privateSpaceInstall())
         }
+        binding.drawerWorkTurnOff.setOnClickListener { viewModel.setWorkPaused(true) }
+        binding.drawerWorkTurnOn.setOnClickListener { viewModel.setWorkPaused(false) }
         binding.drawerFastScroller.attach(binding.drawerRecycler, binding.drawerFastScrollBubble)
         binding.drawerFastScroller.sections = { adapter.fastScrollSections() }
     }
@@ -1146,6 +1149,23 @@ class DrawerController(
         )
     }
 
+    // The Work tab's controls: a button that pauses work apps above them,
+    // or, while they are paused, the card that turns them back on in their
+    // place.
+    private fun updateWorkViews() {
+        val shown = WorkTabView.of(
+            onWorkTab = selectedTab === WorkTab,
+            searching = searchingExternally,
+            paused = viewModel.workPaused()
+        )
+        binding.drawerWorkBar.visibility = if (shown == WorkTabView.PAUSE_BUTTON) View.VISIBLE else View.GONE
+        val card = if (shown == WorkTabView.PAUSED_CARD) View.VISIBLE else View.GONE
+        if (binding.drawerWorkPaused.visibility != card) {
+            binding.drawerWorkPaused.visibility = card
+            updateFastScrollerVisibility()
+        }
+    }
+
     private fun startSender(sender: android.content.IntentSender?) {
         sender ?: return
         val activity = binding.root.context as? android.app.Activity ?: return
@@ -1161,7 +1181,8 @@ class DrawerController(
             val isolated = viewModel.isolatedTabKeys()
             if (isolated.isEmpty()) all else all.filterNot { viewModel.hiddenKey(it) in isolated }
         }
-        WorkTab -> viewModel.workApps()
+        // Paused work apps give way to the card that turns them back on.
+        WorkTab -> if (viewModel.workPaused()) emptyList() else viewModel.workApps()
         PrivateTab -> viewModel.privateApps()
         is DrawerGroup -> viewModel.appsInGroup(storedTab(tab))
         else -> viewModel.visibleApps()
@@ -1213,6 +1234,7 @@ class DrawerController(
         // The first apps make a tile measurable.
         if (adapter.tileHeightPx == 0) refreshGridRows(prefs)
         updatePrivateBar()
+        updateWorkViews()
         syncPages()
         updateFrequentRow()
     }
@@ -1583,6 +1605,10 @@ class DrawerController(
         // The group tabs follow the drawer palette too. The Tab type: a
         // short bar under the label (Classic) or a pill behind it (Bubble).
         tabs.setTabTextColors(withAlpha(resolvedForBar.text, TAB_TEXT_ALPHA), resolvedForBar.text)
+        // The paused Work tab's card and the pause button, on the drawer's colours.
+        binding.drawerWorkPausedTitle.setTextColor(resolvedForBar.text)
+        binding.drawerWorkPausedBody.setTextColor(withAlpha(resolvedForBar.text, TAB_TEXT_ALPHA))
+        binding.drawerWorkTurnOff.setTextColor(resolvedForBar.text)
         if (prefs.drawerTabStyle == DrawerTabStyle.BUBBLE) {
             val pill = GradientDrawable().apply {
                 cornerRadius = TAB_BUBBLE_RADIUS_DP * density
@@ -1736,7 +1762,8 @@ class DrawerController(
         val prefs = viewModel.state.value.prefs
         val searchEmpty = binding.drawerSearch.text.isNullOrBlank()
         val show = prefs.drawerFastScroller && searchEmpty &&
-            prefs.drawerStyle != DrawerStyle.PAGED_GRID
+            prefs.drawerStyle != DrawerStyle.PAGED_GRID &&
+            binding.drawerWorkPaused.visibility != View.VISIBLE
         binding.drawerFastScroller.visibility = if (show) View.VISIBLE else View.GONE
         // Its track stands in for the list's own scrollbar.
         binding.drawerRecycler.isVerticalScrollBarEnabled = !show

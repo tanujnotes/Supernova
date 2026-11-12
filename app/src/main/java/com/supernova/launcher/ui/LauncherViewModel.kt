@@ -76,6 +76,7 @@ class LauncherViewModel(
 
     private val appsFlow = MutableStateFlow(emptyList<LaunchableApp>())
     private val privateSpaceFlow = MutableStateFlow<PrivateSpace?>(null)
+    private val pausedWorkFlow = MutableStateFlow(emptySet<Long>())
     private val currentPageFlow = MutableStateFlow(0)
     // Launch counts for most-used sort; device-local, collected eagerly.
     private var launchCounts: Map<String, Int> = emptyMap()
@@ -109,15 +110,16 @@ class LauncherViewModel(
     val state = combine(
         repository.modelFlow,
         preferences.flow,
-        combine(appsFlow, privateSpaceFlow, ::Pair),
+        combine(appsFlow, privateSpaceFlow, pausedWorkFlow, ::Triple),
         currentPageFlow,
         iconGeneration
-    ) { model, prefs, (apps, privateSpace), page, generation ->
+    ) { model, prefs, (apps, privateSpace, pausedWork), page, generation ->
         LauncherUiState(
             model = model,
             prefs = prefs,
             apps = apps,
             privateSpace = privateSpace,
+            pausedWorkProfiles = pausedWork,
             currentPage = page,
             iconGeneration = generation,
             loaded = true,
@@ -379,6 +381,7 @@ class LauncherViewModel(
         // icon. The first-frame icons are cache hits here.
         val apps = catalog.listLaunchableApps()
         privateSpaceFlow.value = catalog.privateSpace()
+        pausedWorkFlow.value = catalog.pausedWorkProfiles()
         appsFlow.value = apps
         catalog.warmIcons(apps)
     }
@@ -395,26 +398,33 @@ class LauncherViewModel(
         }
     }
 
-    // The private space locking or unlocking, or coming or going: its apps
-    // show or vanish with it.
+    // The private space locking or unlocking, work apps pausing or turning
+    // back on, or either profile coming or going: their apps show or vanish
+    // with it.
     private val profileReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) = requestRefresh(immediate = true)
     }
 
     init {
-        // There is no private space before Android 15.
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            registerProfileReceiver()
-        }
+        registerProfileReceiver()
     }
 
-    @androidx.annotation.RequiresApi(android.os.Build.VERSION_CODES.VANILLA_ICE_CREAM)
     private fun registerProfileReceiver() {
         val filter = IntentFilter().apply {
-            addAction(Intent.ACTION_PROFILE_AVAILABLE)
-            addAction(Intent.ACTION_PROFILE_UNAVAILABLE)
-            addAction(Intent.ACTION_PROFILE_ADDED)
-            addAction(Intent.ACTION_PROFILE_REMOVED)
+            // The work profile's own broadcasts: Android 15's profile ones
+            // below only come with private space support, which not every
+            // phone has. Both arriving coalesce into one rescan or two.
+            addAction(Intent.ACTION_MANAGED_PROFILE_AVAILABLE)
+            addAction(Intent.ACTION_MANAGED_PROFILE_UNAVAILABLE)
+            addAction(Intent.ACTION_MANAGED_PROFILE_ADDED)
+            addAction(Intent.ACTION_MANAGED_PROFILE_REMOVED)
+            // There is no private space before Android 15.
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                addAction(Intent.ACTION_PROFILE_AVAILABLE)
+                addAction(Intent.ACTION_PROFILE_UNAVAILABLE)
+                addAction(Intent.ACTION_PROFILE_ADDED)
+                addAction(Intent.ACTION_PROFILE_REMOVED)
+            }
         }
         androidx.core.content.ContextCompat.registerReceiver(
             getApplication(), profileReceiver, filter, androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
@@ -430,6 +440,16 @@ class LauncherViewModel(
     }
 
     fun isPrivateSerial(userSerial: Long): Boolean = state.value.privateSpace?.userSerial == userSerial
+
+    // Work apps paused: the Work tab shows a card that turns them back on
+    // in their place.
+    fun workPaused(): Boolean = state.value.pausedWorkProfiles.isNotEmpty()
+
+    fun setWorkPaused(paused: Boolean) = viewModelScope.launch(Dispatchers.Default) {
+        catalog.setWorkPaused(paused)
+        // The broadcast follows; this covers a refused request too.
+        requestRefresh(immediate = true)
+    }
 
     override fun onCleared() {
         runCatching { getApplication<Application>().unregisterReceiver(profileReceiver) }
@@ -456,6 +476,7 @@ class LauncherViewModel(
         iconsStale = false
         val apps = catalog.listLaunchableApps()
         privateSpaceFlow.value = catalog.privateSpace()
+        pausedWorkFlow.value = catalog.pausedWorkProfiles()
         appsFlow.value = apps
         // Pre-warm off the main thread so binds become cache hits; the
         // render lock keeps this safe alongside main-thread misses.
@@ -1037,7 +1058,9 @@ class LauncherViewModel(
 
     fun workApps(): List<LaunchableApp> = visibleApps().filter { it.userSerial != 0L }
 
-    fun hasWorkApps(): Boolean = state.value.apps.any { it.userSerial != 0L && !it.privateSpace }
+    // A paused work profile counts too, so its tab stays to turn it back on.
+    fun hasWorkApps(): Boolean =
+        workPaused() || state.value.apps.any { it.userSerial != 0L && !it.privateSpace }
 
     fun drawerGroups(): List<DrawerGroup> =
         state.value.prefs.drawerGroups.mapNotNull(DrawerGroup::decode)

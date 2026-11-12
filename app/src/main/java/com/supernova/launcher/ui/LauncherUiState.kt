@@ -10,6 +10,8 @@ data class LauncherUiState(
     val prefs: LauncherPrefs = LauncherPrefs(),
     val apps: List<LaunchableApp> = emptyList(),
     val privateSpace: PrivateSpace? = null,
+    // The serials of the work profiles whose apps are paused.
+    val pausedWorkProfiles: Set<Long> = emptySet(),
     val currentPage: Int = 0,
     val iconGeneration: Int = 0,
     // False only for the stateIn placeholder; the collector skips rendering
@@ -25,4 +27,12 @@ data class LauncherUiState(
     // Chrome that needs no icons (theme, accent, system bars) keys off
     // loaded, so it still happens at once.
     val iconsReady: Boolean = false
-)
+) {
+    // Nothing but the current page differs from last, so the activity skips
+    // its page-agnostic work. Anything the drawer or the home screen shows
+    // has to be compared here, or a change to it alone never reaches them.
+    fun onlyPageMovedFrom(last: LauncherUiState): Boolean =
+        last.model === model && last.prefs === prefs && last.apps === apps &&
+            last.iconGeneration == iconGeneration && last.privateSpace == privateSpace &&
+            last.pausedWorkProfiles == pausedWorkProfiles
+}

@@ -170,6 +170,11 @@
     <string name="private_space_unlock">Unlock</string>
     <string name="private_space_install">Install</string>
     <string name="private_space_settings">Settings</string>
+    <!-- The Work tab while the work profile is paused, and its pause button. -->
+    <string name="work_apps_paused_title">Work apps are paused</string>
+    <string name="work_apps_paused_body">Your work apps can’t send you notifications, use your battery, or access your location</string>
+    <string name="work_apps_turn_on">Turn on work apps</string>
+    <string name="work_apps_turn_off">Turn off work apps</string>
     <!-- The Private space action's card (#75): its menu rows and the toast
          when the phone has no private space to open. -->
     <string name="private_space_install_apps">Install apps</string>
