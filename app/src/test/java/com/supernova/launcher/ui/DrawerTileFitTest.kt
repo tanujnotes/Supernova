@@ -51,31 +51,52 @@ class DrawerTileFitTest {
     fun thenTheLabelGoesToOneLine() {
         val fit = DrawerTileFit.of(220, pad, content, compact)
         assertTrue(fit.singleLine)
-        assertEquals(1f, fit.scale)
+        assertEquals(1f, fit.iconScale)
+        assertEquals(1f, fit.labelScale)
         assertEquals(0, fit.paddingPx)
     }
 
+    // The 48dp icon box in those: 135px of the 200px one-line tile.
+    private val icon = 135
+
     @Test
-    fun thenIconAndLabelShrinkToTheRow() {
-        val fit = DrawerTileFit.of(150, pad, content, compact)
+    fun thenTheIconAloneShrinks() {
+        val fit = DrawerTileFit.of(150, pad, content, compact, icon)
         assertTrue(fit.singleLine)
-        assertEquals(0.75f, fit.scale, 0.0001f)
+        assertEquals(1f, fit.labelScale)
+        // The 50px it is short comes off the icon.
+        assertEquals(85f, icon * fit.iconScale, 0.5f)
+    }
+
+    @Test
+    fun belowHalfAnIconTheLabelShrinksWithIt() {
+        val fit = DrawerTileFit.of(100, pad, content, compact, icon)
+        val rest = compact - icon
+        assertTrue(fit.labelScale < 1f)
+        assertEquals(DrawerTileFit.ICON_ALONE_MIN * fit.labelScale, fit.iconScale, 0.0001f)
         // Scaled, the one-line tile is the row's height.
-        assertEquals(150f, compact * fit.scale, 0.5f)
+        assertEquals(100f, icon * fit.iconScale + rest * fit.labelScale, 0.5f)
+    }
+
+    @Test
+    fun withoutTheIconBoxEverythingShrinksAlike() {
+        val fit = DrawerTileFit.of(150, pad, content, compact)
+        assertEquals(0.75f, fit.iconScale, 0.0001f)
+        assertEquals(0.75f, fit.labelScale, 0.0001f)
     }
 
     @Test
     fun oneLineLabelsShrinkStraightAway() {
         // Labels already on one line, or hidden: content and compact match.
         val fit = DrawerTileFit.of(100, pad, compact, compact)
-        assertEquals(0.5f, fit.scale, 0.0001f)
+        assertEquals(0.5f, fit.iconScale, 0.0001f)
     }
 
     @Test
     fun unmeasuredTileIsLeftAlone() {
         val fit = DrawerTileFit.of(100, pad, 0, 0)
         assertFalse(fit.singleLine)
-        assertEquals(1f, fit.scale)
+        assertEquals(1f, fit.iconScale)
         assertEquals(pad, fit.paddingPx)
     }
 }

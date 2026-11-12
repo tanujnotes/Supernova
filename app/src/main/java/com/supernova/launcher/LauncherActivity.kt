@@ -1388,8 +1388,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             cardBinder = cards.binder(afterLaunch = { search.hide() }),
             drawerColumns = { drawer.columns() },
             drawerTiles = { drawer.tileLook() },
+            onShown = ::holdHomeUnderSearch,
             // A widget card it showed took the feed card's widget view.
             onHidden = {
+                drawer.holdHomeForSearch(false)
                 if (::feed.isInitialized) {
                     feed.setBehindSearch(false)
                     if (feed.isOpen) feed.rebindCards()
@@ -3774,6 +3776,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         activeFolderAdapter = adapter
     }
 
+    // Full screen over the desktop, the search window keeps it faded as the
+    // drawer does; the feed hides it already when search opens there.
+    private fun holdHomeUnderSearch(fullScreen: Boolean) {
+        if (fullScreen && !(::feed.isInitialized && feed.isOpen)) drawer.holdHomeForSearch(true)
+    }
+
     // A drawer tab held, or tapped while it shows: a group tab's name and
     // Keep apps in main app tab (Edit tab) and its apps (Select apps); the
     // All tab's hidden apps, shown in its list for a moment (Show hidden
@@ -3782,7 +3790,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         drawer.hideKeyboardIfShowing()
         val menu = newItemPopup()
         if (group == null) {
-            menu.addRow(getString(R.string.show_hidden_apps), R.drawable.ic_menu_hide) { drawer.toggleHiddenApps() }
+            menu.addRow(getString(R.string.show_hidden_apps), R.drawable.ic_menu_show) { drawer.toggleHiddenApps() }
             menu.addRow(getString(R.string.hide_apps), R.drawable.ic_menu_hide) { showHiddenAppsChecklist() }
         } else {
             menu.addRow(getString(R.string.edit_tab), R.drawable.ic_menu_edit) { promptEditTab(group) }

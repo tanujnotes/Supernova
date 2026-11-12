@@ -144,12 +144,13 @@ class AppDrawerAdapter(
         return intArrayOf(content, measured())
     }
 
-    // How a grid tile sits in its row now.
-    private fun tileFit(density: Float): DrawerTileFit = DrawerTileFit.of(
+    // How a grid tile with an `iconPx` icon box sits in its row now.
+    private fun tileFit(density: Float, iconPx: Int): DrawerTileFit = DrawerTileFit.of(
         tileHeightPx,
         (TILE_PADDING_V_DP * density).toInt(),
         tileContentPx,
-        tileCompactPx
+        tileCompactPx,
+        iconPx
     )
 
     // A grid tile as the drawer draws it, for the search window's tiles,
@@ -163,7 +164,7 @@ class AppDrawerAdapter(
         val density = context.resources.displayMetrics.density
         val side = (TILE_PADDING_H_DP * density).toInt()
         val box = iconBoxPx((TILE_ICON_DP * density).roundToInt(), side, side, keepInsideTile = true)
-        return TileLook(tileHeightPx, box, tileFit(density))
+        return TileLook(tileHeightPx, box, tileFit(density, box))
     }
 
     // A grid's spare tiles: RecyclerView keeps five of a kind by default, and
@@ -447,7 +448,7 @@ class AppDrawerAdapter(
     private fun applyTileFit(tile: ItemDrawerAppBinding, baseIconPx: Int) {
         val root = tile.root
         val box = iconBoxPx(baseIconPx, root.paddingLeft, root.paddingRight, keepInsideTile = true)
-        DrawerTileFit.apply(tile, tileHeightPx, box, tileFit(root.resources.displayMetrics.density))
+        DrawerTileFit.apply(tile, tileHeightPx, box, tileFit(root.resources.displayMetrics.density, box))
     }
 
     // Hosts the drawer's header view; there is one such view, so a rebind

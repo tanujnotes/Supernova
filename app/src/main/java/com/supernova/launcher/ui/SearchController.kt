@@ -60,6 +60,8 @@ class SearchController(
     // fit), which the app tiles copy so their rows sit as close as the
     // drawer's; null keeps the tiles at their own height.
     private val drawerTiles: (() -> AppDrawerAdapter.TileLook?)? = null,
+    // The overlay has opened, full screen or as the inset window.
+    private val onShown: (fullScreen: Boolean) -> Unit = {},
     // The overlay has closed.
     private val onHidden: () -> Unit = {},
     // Long-presses on an app, an app shortcut or a drawer folder in the
@@ -160,6 +162,7 @@ class SearchController(
             return
         }
         isOpen = true
+        onShown(!windowMode())
         showZeroState()
         ui.root.visibility = View.VISIBLE
         ui.root.animate().cancel()

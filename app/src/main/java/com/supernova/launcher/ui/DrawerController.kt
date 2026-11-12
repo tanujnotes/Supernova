@@ -128,6 +128,11 @@ class DrawerController(
     // Last progress the desktop and scrim were drawn at, so a park from an
     // already-closed state leaves views something else may be animating alone.
     private var homeProgress = -1f
+    // The drawer's own part of that, and the search window's hold on it
+    // (holdHomeForSearch); the desktop is drawn at the larger.
+    private var drawerHomeProgress = 0f
+    private var searchHold = 0f
+    private var searchHoldAnimator: android.animation.ValueAnimator? = null
     // ZOOM/FADE park the sheet at STATE_EXPANDED and toggle its visibility
     // instead of sliding, so the settle we trigger to re-park must not read
     // as the drawer opening.
@@ -849,6 +854,36 @@ class DrawerController(
     // dims the wallpaper in step with it, so a translucent drawer opens onto
     // dimmed wallpaper rather than the home screen.
     private fun applyHome(p: Float) {
+        drawerHomeProgress = p
+        drawHome()
+    }
+
+    // The search window over the desktop wears the drawer's surface, so a
+    // translucent one needs what the drawer has under it: the desktop faded
+    // and the wallpaper dimmed. Held while it is up, whatever the drawer
+    // does meanwhile (pull to search closes the drawer under it).
+    fun holdHomeForSearch(hold: Boolean) {
+        val target = if (hold) 1f else 0f
+        searchHoldAnimator?.cancel()
+        searchHoldAnimator = null
+        val prefs = viewModel.state.value.prefs
+        if (searchHold == target || !Animations.enabled(prefs)) {
+            searchHold = target
+            drawHome()
+            return
+        }
+        searchHoldAnimator = android.animation.ValueAnimator.ofFloat(searchHold, target).apply {
+            duration = Animations.duration(prefs, SEARCH_HOLD_MS)
+            addUpdateListener { animator ->
+                searchHold = animator.animatedValue as Float
+                drawHome()
+            }
+            start()
+        }
+    }
+
+    private fun drawHome() {
+        val p = maxOf(drawerHomeProgress, searchHold)
         if (p == homeProgress) return
         homeProgress = p
         val alpha = DrawerOpenCurve.homeAlpha(p)
@@ -2031,6 +2066,8 @@ class DrawerController(
         const val INFINITE_LOOPS = 200
         const val TRANSITION_MS = 200L
         const val SLIDE_MS = 240L
+        // The search window's plate opens in 160 ms; the desktop goes with it.
+        const val SEARCH_HOLD_MS = 160L
         const val ZOOM_FROM = 0.92f
         const val PULL_TO_SEARCH_DP = 56f
     }

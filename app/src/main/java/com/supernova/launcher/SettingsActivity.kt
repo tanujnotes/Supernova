@@ -2130,6 +2130,8 @@ class SettingsActivity : AppCompatActivity() {
             choices.forEach { row ->
                 column.addView(android.widget.CheckBox(this).apply {
                     text = getString(EnumLabels.of(row))
+                    // The box drawable has no inset of its own.
+                    setPaddingRelative(dpPx(12), paddingTop, paddingEnd, paddingBottom)
                     isChecked = row in selected
                     setOnCheckedChangeListener { _, checked ->
                         if (checked) selected.add(row) else selected.remove(row)
