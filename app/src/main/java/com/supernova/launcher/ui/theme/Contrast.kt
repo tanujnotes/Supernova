@@ -10,6 +10,12 @@ import kotlin.math.pow
 // hue and saturation and only changes shade, lighter or darker.
 object Contrast {
 
+    // Whichever of `dark` and `light` stands further from the surface's tone.
+    fun readableOn(surface: Int, dark: Int, light: Int): Int {
+        val base = tone(surface)
+        return if (abs(tone(dark) - base) >= abs(tone(light) - base)) dark else light
+    }
+
     fun tone(argb: Int): Double {
         val y = 0.2126 * linear(argb shr 16 and 0xFF) +
             0.7152 * linear(argb shr 8 and 0xFF) +

@@ -53,6 +53,41 @@ object Styles {
 
     const val DOCK_BASE_RGB = 0x1A2230
     private const val DRAWER_FIELD_ALPHA = 0x24
+    // Below this opacity (above 70% transparency) the drawer's labels and
+    // text default to the wallpaper's light ones.
+    const val SEE_THROUGH_ALPHA = 0.3f
+    // The light theme's textPrimary, the dark text a light drawer gets in
+    // either theme.
+    const val DARK_TEXT = 0xFF11161D.toInt()
+
+    fun isSeeThrough(alpha: Float): Boolean = alpha < SEE_THROUGH_ALPHA
+
+    // The drawer's text with no text color set: read off the drawer's own
+    // color, dark on a light one and light on a dark one whatever the
+    // theme, or the wallpaper's (`onWallpaper`) when the drawer barely
+    // covers it. Before, it followed the theme alone, so a dark drawer
+    // color in light mode drew dark labels on it.
+    fun drawerText(surfaceBase: Int, alpha: Float, onWallpaper: Int): Int =
+        if (isSeeThrough(alpha)) onWallpaper else Contrast.readableOn(surfaceBase, DARK_TEXT, onWallpaper)
+
+    // A surface's default text from its color and effective alpha (`auto`),
+    // when it has one and the style sets no text color; null otherwise. It
+    // keeps the style's minimum contrast from the surface, except when it is
+    // read on the wallpaper the surface barely covers.
+    private fun autoText(
+        styled: Int?,
+        surfaceBase: Int,
+        alpha: Float?,
+        auto: ((surfaceBase: Int, alpha: Float) -> Int)?,
+        minContrast: Int?
+    ): Int? {
+        if (styled != null || auto == null) return null
+        val effective = alpha ?: (android.graphics.Color.alpha(surfaceBase) / MAX_ALPHA)
+        val text = auto(surfaceBase, effective)
+        return if (isSeeThrough(effective)) text else Contrast.ensure(text, surfaceBase, minContrast)
+    }
+
+    private const val MAX_ALPHA = 255f
 
     @Synchronized
     fun resolve(context: Context, prefs: LauncherPrefs): ResolvedStyles {
@@ -78,7 +113,10 @@ object Styles {
             defaultText: Int,
             // null keeps defaultSurface's own alpha channel.
             defaultAlpha: Float?,
-            defaultAccent: Int = accent
+            defaultAccent: Int = accent,
+            // The default text for the surface's color and effective alpha,
+            // in place of defaultText; null keeps defaultText.
+            textFor: ((surfaceBase: Int, alpha: Float) -> Int)? = null
         ): ResolvedSurface {
             val style = config.styleFor(id)
             val surfaceBase = colorFor(style.surface, palette) ?: defaultSurface
@@ -88,11 +126,11 @@ object Styles {
             } else {
                 surfaceBase
             }
+            val styledText = colorFor(style.text, palette)
             return ResolvedSurface(
                 surface = surface,
-                text = Contrast.ensure(
-                    colorFor(style.text, palette) ?: defaultText, surfaceBase, style.minContrast
-                ),
+                text = autoText(styledText, surfaceBase, alpha, textFor, style.minContrast)
+                    ?: Contrast.ensure(styledText ?: defaultText, surfaceBase, style.minContrast),
                 accent = colorFor(style.accent, palette) ?: defaultAccent,
                 // Only the folder window has a radius, on the Folders page. One
                 // an older Style tab stored for another surface goes unread.
@@ -113,7 +151,10 @@ object Styles {
             prefs.folderBgColor, themeSurface
         )
 
-        val drawer = resolved(SurfaceId.DRAWER, drawerLegacy, themeText, prefs.drawerBgOpacity)
+        val drawer = resolved(
+            SurfaceId.DRAWER, drawerLegacy, themeText, prefs.drawerBgOpacity,
+            textFor = { base, alpha -> drawerText(base, alpha, onWallpaper) }
+        )
 
         val styles = ResolvedStyles(
             mapOf(
