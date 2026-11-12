@@ -97,6 +97,7 @@ import com.supernova.launcher.ui.SwipeArrowDrawable
 import com.supernova.launcher.ui.FolderIconDrawable
 import com.supernova.launcher.ui.FolderMemberAdapter
 import com.supernova.launcher.ui.FolderPopup
+import com.supernova.launcher.ui.FolderReorderDrag
 import com.supernova.launcher.ui.PendingStarts
 import com.supernova.launcher.ui.LauncherUiState
 import com.supernova.launcher.ui.LauncherViewModel
@@ -3485,6 +3486,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     private fun showFolderPopup(anchor: View, folder: LauncherItem) {
         var folderAdapter: FolderMemberAdapter? = null
         var popup: android.widget.PopupWindow? = null
+        // Moving an app inside the card, before it is taken out past the
+        // card's edge (FolderReorderDrag).
+        var reorder: FolderReorderDrag? = null
         // A member's long-press menu, closed with the folder: Back, Home,
         // the screen going off and rotation all close the folder, and the
         // menu used to float on over the home screen, its rows still aimed
@@ -3519,8 +3523,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 launchItem(it)
             },
             // An app in a home folder is a home icon like any other: its
-            // menu while the finger is held, and a drag out onto
-            // the home screen or the dock once it moves. The card is its own
+            // menu while the finger is held, and a drag once it moves - to
+            // another place in the folder, or out past the card's edge onto
+            // the home screen or the dock. An A-Z folder has no order of its
+            // own to change, so its apps only come out. The card is its own
             // window, so the gesture's touches come in through its
             // interceptor (below), not dispatchTouchEvent.
             onLongPress = { memberView, member ->
@@ -3531,6 +3537,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                         memberMenu = it
                     }
                 }
+                reorder?.takeUnless { viewModel.state.value.prefs.folderSortAz }?.let(drag::armWindowDrag)
             }
         )
         adapter.decorateIcon = { icon, member ->
@@ -3607,6 +3614,11 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // makeModal), and the card's window is the host here: the activity
         // never sees taps in a folder.
         popup?.let { window -> window.setTouchInterceptor { _, ev -> drag.routeGesture(ev, window) } }
+        reorder = (popup?.contentView as? ViewGroup)?.let { content ->
+            FolderReorderDrag(content, adapter, { viewModel.state.value.prefs }) { order ->
+                viewModel.reorderFolder(folder.id, order)
+            }
+        }
         activeFolderPopup = popup
         activeFolderAdapter = adapter
     }

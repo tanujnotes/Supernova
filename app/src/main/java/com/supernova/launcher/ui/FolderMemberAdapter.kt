@@ -47,6 +47,24 @@ class FolderMemberAdapter(
         notifyDataSetChanged()
     }
 
+    // The member being moved inside the folder (FolderReorderDrag): its tile
+    // is the empty place the picture will settle into, whichever view
+    // happens to hold it.
+    var hiddenItemId: String? = null
+
+    val members: List<LauncherItem> get() = items.toList()
+
+    fun positionOf(itemId: String): Int = items.indexOfFirst { it.id == itemId }
+
+    // One member to a new place; the others shift toward the gap, animated.
+    fun move(from: Int, to: Int) {
+        val reordered = FolderReorderMath.moved(items, from, to)
+        if (reordered === items) return
+        items.clear()
+        items.addAll(reordered)
+        notifyItemMoved(from, to)
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MemberViewHolder {
         val binding = ItemIconBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         // Fill the grid cell so the tile centres in it; the shared item_icon
@@ -68,6 +86,7 @@ class FolderMemberAdapter(
         private val baseIconPx = binding.icon.layoutParams.width
 
         fun bind(item: LauncherItem) {
+            binding.root.alpha = if (item.id == hiddenItemId) 0f else 1f
             binding.label.text = item.label
             labelPrefs?.let { LabelStyler.apply(binding.label, it, onWallpaper = false, context = LabelContext.FOLDER) }
             binding.label.visibility = if (showLabels) View.VISIBLE else View.GONE

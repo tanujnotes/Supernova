@@ -709,6 +709,11 @@ class LauncherRepository(private val context: Context) {
         mutate { FolderSort.sorted(it, folderId) }
     }
 
+    // An app moved inside the open folder: the members in the order it shows.
+    suspend fun reorderFolder(folderId: String, orderedIds: List<String>) {
+        mutate { FolderSort.reordered(it, folderId, orderedIds) }
+    }
+
     suspend fun setFolderIconRaw(folderId: String, raw: Boolean) {
         mutate { current ->
             current.copy(items = current.items.map { item ->

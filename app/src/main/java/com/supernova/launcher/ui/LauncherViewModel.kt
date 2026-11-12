@@ -738,6 +738,9 @@ class LauncherViewModel(
 
     fun sortFolder(folderId: String) = persist { repository.sortFolder(folderId) }
 
+    fun reorderFolder(folderId: String, orderedIds: List<String>) =
+        persist { repository.reorderFolder(folderId, orderedIds) }
+
     fun addWidget(
         page: Int,
         cellX: Int,

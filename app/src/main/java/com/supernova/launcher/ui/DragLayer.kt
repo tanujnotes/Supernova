@@ -73,8 +73,9 @@ class DragLayer @JvmOverloads constructor(
         grabY = grabY.coerceIn(0f, bitmap.height.toFloat())
         // A picture drawn larger than what it was lifted from (a search pill's
         // small icon, drawn at desktop size) starts at the source's size, over
-        // it, and grows with the pickup.
-        val startScale = if (source != null && source.width() > 0 && source.width() < bitmap.width) {
+        // it, and grows with the pickup. So does one taken over from a
+        // folder's own drag, already lifted, whatever its size there.
+        val startScale = if (source != null && source.width() > 0 && source.width() != bitmap.width) {
             source.width() / bitmap.width.toFloat()
         } else {
             1f

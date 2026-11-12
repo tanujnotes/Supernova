@@ -149,6 +149,33 @@ class LiveDragController(
 
     }
 
+    // A drag that stays in the window its item was pressed in for as long as
+    // the finger does: an open folder's apps move about inside its card
+    // (FolderReorderDrag). The finger leaving that area for
+    // WINDOW_EXIT_DELAY_MS, or
+    // letting go outside it, carries the drag on to the home screen from
+    // where the window's picture was last seen.
+    interface WindowDrag {
+        // Past the drag threshold; the picture is held at the grab point.
+        // False: nothing to move here, and the home drag starts at once.
+        fun begin(anchor: View, grabRawX: Float, grabRawY: Float, rawX: Float, rawY: Float): Boolean
+
+        // The finger moved: true while it is over the window's own area.
+        fun move(rawX: Float, rawY: Float): Boolean
+
+        // Let go over the window's own area.
+        fun drop()
+
+        // Called off (the window closed, the gesture cancelled): everything
+        // as it was before the pickup.
+        fun cancel()
+
+        // Where the window's picture is seen on screen, for the home drag's
+        // to take over from; then handOff, which drops it.
+        fun pictureRect(): RectF?
+        fun handOff()
+    }
+
     private val context: Context get() = binding.root.context
 
     private val desktopLocked: Boolean
@@ -156,7 +183,7 @@ class LiveDragController(
 
     // A press is armed (menu up, finger still down); a drag is in flight.
     val isArmed: Boolean get() = pendingDrag != null
-    val isActive: Boolean get() = activeDragPayload != null
+    val isActive: Boolean get() = activeDragPayload != null || windowDrag != null
     val isDragging: Boolean get() = dragLayer.isDragging
 
     // The window an armed press or its drag was taken from has closed under
@@ -166,7 +193,9 @@ class LiveDragController(
         if (pendingDragWindow === window) {
             pendingDrag = null
             pendingDragWindow = null
+            pendingWindowDrag = null
         }
+        windowDrag?.takeIf { it.window === window }?.let(::callOffWindowDrag)
         if (dragWindow === window) {
             dragWindow = null
             cancel()
@@ -213,6 +242,20 @@ class LiveDragController(
     // routeItemGesture). Null for the activity's own window.
     private var pendingDragWindow: android.widget.PopupWindow? = null
     private var dragWindow: android.widget.PopupWindow? = null
+    // The armed press's own drag in its window, if it has one (arm), and
+    // that drag once under way. The last move it saw is kept for a hand-off
+    // the exit delay makes with no touch event of its own.
+    private var pendingWindowDrag: WindowDrag? = null
+    private class WindowDragState(
+        val drag: WindowDrag,
+        val anchor: View,
+        val payload: DragPayload,
+        val window: PopupWindow
+    )
+    private var windowDrag: WindowDragState? = null
+    private var windowDragEvent: MotionEvent? = null
+    private var windowExitPending = false
+    private val windowExit = Runnable { handOffWindowDrag(null) }
     // Payload of the in-flight drag session, for the drop-target bar.
     private var activeDragPayload: DragPayload? = null
 
@@ -270,7 +313,8 @@ class LiveDragController(
         // A second finger in another window (split touch) while one window's
         // item is held or dragged: that window's gesture keeps its press point.
         val otherWindowsGesture = (pendingDrag != null && pendingDragWindow !== window) ||
-            (dragLayer.isDragging && dragWindow !== window)
+            (dragLayer.isDragging && dragWindow !== window) ||
+            (windowDrag != null && windowDrag?.window !== window)
         // Where the press that is about to open a menu landed. Item menus are
         // opened from a long-press callback that is handed the view but not
         // the touch, and a drawer row in list style is as wide as the screen,
@@ -290,6 +334,11 @@ class LiveDragController(
                 pendingDragWindow = null
                 activeItemPopup?.makeModal()
             }
+        }
+        // A drag still inside its own window owns the stream the same way.
+        windowDrag?.let { state ->
+            if (state.window === window) routeWindowDrag(state, ev)
+            return true
         }
         // A live drag owns the whole stream: the picture follows the finger
         // and nothing underneath sees the gesture (the hierarchy was sent a
@@ -372,9 +421,13 @@ class LiveDragController(
                     ) {
                         pendingDrag = null
                         pendingDragWindow = null
+                        val inWindow = pendingWindowDrag
+                        pendingWindowDrag = null
                         // No picture to lift (an icon not found in the
                         // view): the menu stays, as after a lift.
-                        if (beginLiveDrag(anchor, payload, ev, window)) {
+                        if (beginWindowDrag(inWindow, anchor, payload, ev, window) ||
+                            beginLiveDrag(anchor, payload, ev, window)
+                        ) {
                             // Not a menu the drag came out of: its window
                             // carries the rest of the gesture, and closes
                             // with the drop (releaseDragWindow).
@@ -407,6 +460,118 @@ class LiveDragController(
         return false
     }
 
+    // The picture is held where the finger that lifted it pressed: the
+    // gesture's own press point when it is the gesture's first finger, else
+    // where it was as it started to move. dragPointerId must be set.
+    private fun grabPoint(): Pair<Float, Float> =
+        if (dragPointerId == downPointerId || pendingDragStartX.isNaN()) {
+            pressRawX to pressRawY
+        } else {
+            pendingDragStartX to pendingDragStartY
+        }
+
+    // The dragging finger's screen position in this event.
+    private fun fingerAt(ev: MotionEvent): Pair<Float, Float> {
+        val index = ev.findPointerIndex(dragPointerId).takeIf { it >= 0 } ?: 0
+        return ev.getX(index) + (ev.rawX - ev.x) to ev.getY(index) + (ev.rawY - ev.y)
+    }
+
+    private fun roundedRect(rect: RectF): Rect =
+        Rect(rect.left.roundToInt(), rect.top.roundToInt(), rect.right.roundToInt(), rect.bottom.roundToInt())
+
+    // The window's own drag takes the gesture past the threshold (see
+    // WindowDrag). Its hierarchy lets go of the press, as for a home drag.
+    private fun beginWindowDrag(
+        drag: WindowDrag?,
+        anchor: View,
+        payload: DragPayload,
+        ev: MotionEvent,
+        window: PopupWindow?
+    ): Boolean {
+        if (drag == null || window == null) return false
+        dragPointerId = pendingDragPointerId.takeIf { ev.findPointerIndex(it) >= 0 } ?: ev.getPointerId(0)
+        val (grabX, grabY) = grabPoint()
+        val (rawX, rawY) = fingerAt(ev)
+        val began = drag.begin(anchor, grabX, grabY, rawX, rawY)
+        if (began) {
+            windowDrag = WindowDragState(drag, anchor, payload, window)
+            keepWindowDragEvent(ev)
+            val cancel = MotionEvent.obtain(ev)
+            cancel.action = MotionEvent.ACTION_CANCEL
+            window.contentView?.dispatchTouchEvent(cancel)
+            cancel.recycle()
+        }
+        return began
+    }
+
+    private fun routeWindowDrag(state: WindowDragState, ev: MotionEvent) {
+        val (rawX, rawY) = fingerAt(ev)
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_MOVE -> {
+                keepWindowDragEvent(ev)
+                if (state.drag.move(rawX, rawY)) {
+                    edgeFlipHandler.removeCallbacks(windowExit)
+                    windowExitPending = false
+                } else if (!windowExitPending) {
+                    windowExitPending = true
+                    edgeFlipHandler.postDelayed(windowExit, WINDOW_EXIT_DELAY_MS)
+                }
+            }
+            MotionEvent.ACTION_UP -> releaseWindowDrag(state, ev, rawX, rawY)
+            MotionEvent.ACTION_POINTER_UP ->
+                if (ev.getPointerId(ev.actionIndex) == dragPointerId) releaseWindowDrag(state, ev, rawX, rawY)
+            MotionEvent.ACTION_CANCEL -> callOffWindowDrag(state)
+            else -> Unit
+        }
+    }
+
+    // Let go over the window's own area, the drop is the window's; outside
+    // it, the home screen takes it there and then.
+    private fun releaseWindowDrag(state: WindowDragState, ev: MotionEvent, rawX: Float, rawY: Float) {
+        if (state.drag.move(rawX, rawY)) {
+            endWindowDrag()
+            state.drag.drop()
+            return
+        }
+        handOffWindowDrag(ev)
+        if (dragLayer.isDragging) onLiveDragRelease(rawX, rawY)
+        if (!dragLayer.isDragging) releaseDragWindow()
+    }
+
+    // The window's drag becomes the home drag, its picture taking over from
+    // where the window's was seen. ev: the touch that does it, or null for
+    // the exit delay running out, which uses the last move seen.
+    private fun handOffWindowDrag(ev: MotionEvent?) {
+        val state = windowDrag ?: return
+        val event = ev ?: windowDragEvent?.let { MotionEvent.obtain(it) }
+        endWindowDrag()
+        if (event == null) return state.drag.cancel()
+        val seen = state.drag.pictureRect()
+        if (beginLiveDrag(state.anchor, state.payload, event, state.window, seen)) {
+            state.drag.handOff()
+        } else {
+            state.drag.cancel()
+        }
+        if (ev == null) event.recycle()
+    }
+
+    private fun callOffWindowDrag(state: WindowDragState) {
+        endWindowDrag()
+        state.drag.cancel()
+    }
+
+    private fun endWindowDrag() {
+        windowDrag = null
+        edgeFlipHandler.removeCallbacks(windowExit)
+        windowExitPending = false
+        keepWindowDragEvent(null)
+    }
+
+    private fun keepWindowDragEvent(ev: MotionEvent?) {
+        windowDragEvent?.recycle()
+        windowDragEvent = ev?.let { MotionEvent.obtain(it) }
+    }
+
     // A drag taken from another window is over (or cancelled): that window,
     // hidden since the pickup, closes.
     private fun releaseDragWindow() {
@@ -419,7 +584,8 @@ class LiveDragController(
     // or a drag lifted out of it. A menu's own window hands its touches over
     // only then, so taps on its rows stay its own.
     fun ownsGestureIn(window: android.widget.PopupWindow): Boolean =
-        (pendingDrag != null && pendingDragWindow === window) || (dragLayer.isDragging && dragWindow === window)
+        (pendingDrag != null && pendingDragWindow === window) || (dragLayer.isDragging && dragWindow === window) ||
+            windowDrag?.window === window
 
     // Menu first: show the menu now (non-touch-modal - see the popup), arm
     // the gesture, and let dispatchTouchEvent start the real drag only when
@@ -436,6 +602,7 @@ class LiveDragController(
         draggable: Boolean = true,
         menu: (() -> SupernovaPopupMenu)?
     ) {
+        pendingWindowDrag = null
         activeItemPopup = menu?.invoke()
         // Ancestors (workspace pager, drawer list, the drawer sheet's own
         // drag-to-close) must not steal the held gesture for a scroll: before
@@ -453,6 +620,13 @@ class LiveDragController(
         pendingDragStartX = Float.NaN
         pendingDragStartY = Float.NaN
         pendingDragPointerId = -1
+    }
+
+    // The window's own drag for the press just armed in it (WindowDrag),
+    // offered right after arm: it has the gesture first once the finger
+    // moves. Nothing for a press that is menu-only, or not in a window.
+    fun armWindowDrag(drag: WindowDrag) {
+        if (pendingDrag != null && pendingDragWindow != null) pendingWindowDrag = drag
     }
 
     // The pointer on the view, or the one nearest it: the finger that
@@ -514,7 +688,10 @@ class LiveDragController(
         anchor: View,
         payload: DragPayload,
         ev: MotionEvent,
-        window: android.widget.PopupWindow? = null
+        window: android.widget.PopupWindow? = null,
+        // Where a window's own drag last showed its picture (handOffWindowDrag):
+        // this drag's starts there, held at the finger as it is now.
+        lifted: RectF? = null
     ): Boolean {
         val picture = dragPicture(anchor, payload) ?: return false
         // The last drop may still be settling: it finishes first, on its own
@@ -530,14 +707,7 @@ class LiveDragController(
         activeDragPayload = payload
         dragPointerId = pendingDragPointerId.takeIf { ev.findPointerIndex(it) >= 0 } ?: ev.getPointerId(0)
         dragTarget = DragTarget.None
-        // The picture is held where that finger pressed: the gesture's own
-        // press point when it is the gesture's first finger, else where it
-        // was as it started to move.
-        val (grabX, grabY) = if (dragPointerId == downPointerId || pendingDragStartX.isNaN()) {
-            pressRawX to pressRawY
-        } else {
-            pendingDragStartX to pendingDragStartY
-        }
+        val (grabX, grabY) = if (lifted != null) fingerAt(ev) else grabPoint()
         // Release the hierarchy: the anchor drops its press, and the pager or
         // list under it never reads the movement as a scroll. The gesture
         // detector saw the same down, so it lets go too.
@@ -563,7 +733,7 @@ class LiveDragController(
         cancel.recycle()
 
         dragLayer.begin(
-            picture.bitmap, grabX, grabY, picture.source,
+            picture.bitmap, grabX, grabY, lifted?.let(::roundedRect) ?: picture.source,
             if (isWidgetPayload(payload)) 1f else DRAG_PICKUP_SCALE,
             Animations.duration(prefs, DRAG_PICKUP_MS)
         )
@@ -1208,6 +1378,7 @@ class LiveDragController(
     // Home button, an incoming call, onStop: the picture disappears and the
     // source comes back where it was.
     fun cancel() {
+        windowDrag?.let(::callOffWindowDrag)
         // A card the drag came from, invisible since the pickup, would stand
         // over everything, taking every touch.
         releaseDragWindow()
@@ -1452,6 +1623,9 @@ class LiveDragController(
         private const val EDGE_FLIP_DP = 22
         private const val EDGE_FLIP_DELAY_MS = 450L
         private const val EDGE_FLIP_REPEAT_MS = 750L
+        // How long a drag inside a window (an open folder) may stay past its
+        // edge before it leaves for the home screen.
+        private const val WINDOW_EXIT_DELAY_MS = 400L
 
         private const val ICON_ITEM_PADDING_DP = 4
     }
