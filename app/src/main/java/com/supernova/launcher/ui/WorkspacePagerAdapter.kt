@@ -359,7 +359,10 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
         state.model.items
             .filter { it.container == ContainerType.FOLDER && it.folderId == folderId }
             .sortedBy { it.rank }
-            .joinToString(",", prefix = "[", postfix = "]") { "${it.id}:${it.packageName}/${it.className}" }
+            .joinToString(",", prefix = "[", postfix = "]") {
+                // A shortcut member's Edit changes its tile in the preview.
+                "${it.id}:${it.packageName}/${it.className}/${it.shortcutEdit?.hashCode()}"
+            }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)

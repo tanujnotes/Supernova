@@ -93,7 +93,13 @@ data class LauncherItem(
     val iconBase64: String? = null,
     // Folders only, Edit's Reshape switched off: the custom icon (a pack
     // drawable or a photo) is drawn as it is, not fitted to the icon shape.
-    val iconRaw: Boolean = false
+    val iconRaw: Boolean = false,
+    // Shortcuts that aren't launcher actions: what the item's own Edit
+    // changed - hidden label, a custom icon (pack drawable, app icon or
+    // photo), shape and style. Its label stays in `label`; the shortcut's
+    // own picture stays in iconBase64 and comes back when the custom icon
+    // is reset.
+    val shortcutEdit: AppOverride? = null
 )
 
 // Per-app customization, keyed "userSerial/pkg/cls" in LauncherModel so one

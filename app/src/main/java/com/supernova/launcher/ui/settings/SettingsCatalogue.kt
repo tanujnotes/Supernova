@@ -1441,6 +1441,9 @@ object SettingsCatalogue {
                                 },
                                 count.folders.takeIf { it > 0 }?.let {
                                     context.resources.getQuantityString(R.plurals.custom_icon_folders, it, it)
+                                },
+                                count.shortcuts.takeIf { it > 0 }?.let {
+                                    context.resources.getQuantityString(R.plurals.custom_icon_shortcuts, it, it)
                                 }
                             ).joinToString(", ")
                         }

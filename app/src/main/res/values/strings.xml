@@ -92,8 +92,8 @@
     <string name="icon_shape">Icon shape</string>
     <string name="reset_custom_icons">Reset custom icons</string>
     <string name="reset_custom_icons_none">None set</string>
-    <string name="reset_custom_icons_none_toast">No app or folder has a custom icon</string>
-    <string name="reset_custom_icons_message">Every app and folder icon you changed goes back to the default, with any shape or style picked for it. Names and swipe actions stay.</string>
+    <string name="reset_custom_icons_none_toast">No app, folder or shortcut has a custom icon</string>
+    <string name="reset_custom_icons_message">Every app, folder and shortcut icon you changed goes back to the default, with any shape or style picked for it. Names and swipe actions stay.</string>
     <plurals name="custom_icon_apps">
         <item quantity="one">%d app</item>
         <item quantity="other">%d apps</item>
@@ -101,6 +101,10 @@
     <plurals name="custom_icon_folders">
         <item quantity="one">%d folder</item>
         <item quantity="other">%d folders</item>
+    </plurals>
+    <plurals name="custom_icon_shortcuts">
+        <item quantity="one">%d shortcut</item>
+        <item quantity="other">%d shortcuts</item>
     </plurals>
     <string name="gestures">Gestures</string>
     <string name="accessibility_description">Lets Supernova lock the screen from a gesture. Optional; no screen content is read.</string>

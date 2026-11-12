@@ -158,6 +158,24 @@ class BackupRoundTripTest {
         labsBigGrid = true
     )
 
+    // A pinned app shortcut with its own Edit: hidden label and a picked
+    // icon ride along with its own picture.
+    private val editedShortcut = LauncherItem(
+        id = "pinned",
+        itemType = ItemType.SHORTCUT,
+        container = ContainerType.FOLDER,
+        folderId = "folder",
+        label = "Call Mum",
+        packageName = "com.d",
+        className = "com.d.Main",
+        shortcutId = "contact-7",
+        iconBase64 = "BBBB",
+        shortcutEdit = AppOverride(
+            hideLabel = true, iconShape = "CIRCLE", iconPackPackage = "com.pack", iconDrawableName = "phone",
+            iconVariant = "THEMED"
+        )
+    )
+
     private fun sampleModel() = LauncherModel(
         version = CURRENT_MODEL_VERSION,
         items = listOf(
@@ -215,7 +233,7 @@ class BackupRoundTripTest {
                 intentUri = "intent:#Intent;component=com.x/.Act;end",
                 iconBase64 = "AAAA"
             )
-        ),
+        ) + editedShortcut,
         pageCount = 3,
         defaultPage = 1
     )

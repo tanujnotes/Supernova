@@ -60,6 +60,7 @@ import com.supernova.launcher.ui.currentWorkspaceCanvas
 import com.supernova.launcher.ui.screenRect
 import com.supernova.launcher.ui.toLaunchableApp
 import com.supernova.launcher.ui.WorkspaceCanvas
+import com.supernova.launcher.data.AppOverride
 import com.supernova.launcher.data.ContainerType
 import com.supernova.launcher.data.DrawerGroup
 import com.supernova.launcher.data.ItemType
@@ -1973,7 +1974,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 // dock items themselves, or from its own custom icon.
                 if (item.itemType == ItemType.FOLDER) {
                     viewModel.folderMembers(item.id)
-                        .joinToString(",", "[", "]") { "${it.id}:${it.packageName}/${it.className}" }
+                        .joinToString(",", "[", "]") {
+                            "${it.id}:${it.packageName}/${it.className}/${it.shortcutEdit?.hashCode()}"
+                        }
                 } else {
                     ""
                 }
@@ -3210,19 +3213,22 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
     private fun showAppEditSheet(item: LauncherItem, allowSwipe: Boolean) {
         val app = item.toLaunchableApp()
-        // Anything but an app icon edits its own label, not its app's.
-        val itemLabel = if (item.itemType == ItemType.APP) {
+        // Anything but an app icon edits its own name, label and icon, not
+        // its app's.
+        val shortcut = if (item.itemType == ItemType.APP) {
             null
         } else {
-            AppEditSheet.ItemLabel(item.label) { viewModel.renameShortcut(item.id, it) }
+            AppEditSheet.ShortcutEdit(
+                item.label, item.shortcutEdit ?: AppOverride(), pinnedShortcutLabel(item)
+            ) { label, edit -> viewModel.editShortcut(item.id, label, edit) }
         }
-        if (app == null && itemLabel == null) return
+        if (app == null && shortcut == null) return
         if (!allowSwipe) {
-            AppEditSheet.show(this, lifecycleScope, viewModel, app, ::pickPhoto, itemLabel = itemLabel)
+            AppEditSheet.show(this, lifecycleScope, viewModel, app, ::pickPhoto, shortcut = shortcut)
             return
         }
         AppEditSheet.show(
-            this, lifecycleScope, viewModel, app, ::pickPhoto, itemLabel = itemLabel,
+            this, lifecycleScope, viewModel, app, ::pickPhoto, shortcut = shortcut,
             // Read live so a re-open (or a just-committed pick) shows the
             // current binding, not the snapshot captured when the menu opened.
             swipeLabels = { down ->
@@ -3231,6 +3237,15 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             },
             onEditSwipe = { down, onPicked -> showSwipeActionPicker(item, down) { onPicked(it) } }
         )
+    }
+
+    // The name an app gives its pinned shortcut, for Edit's Reset; null when
+    // the item isn't one or the app no longer has it.
+    private fun pinnedShortcutLabel(item: LauncherItem): String? {
+        val id = item.shortcutId
+        val info = item.packageName?.takeIf { id != null }
+            ?.let { pkg -> shortcutsFor(pkg, item.userSerial).firstOrNull { it.id == id } }
+        return (info?.shortLabel ?: info?.longLabel)?.toString()?.takeIf { it.isNotBlank() }
     }
 
     // Widgets are exempt from undo: their host id is deleted on removal and

@@ -25,18 +25,23 @@ import kotlinx.coroutines.withContext
 // identity.
 object AppEditSheet {
 
-    // A placed item that isn't an app icon - a pinned shortcut, a launcher
-    // action, a picked activity - edits its own label. The app-level rows
-    // (hide label, shape, icon, photo, reset) are the app's and go; a
-    // shortcut used to open its app's sheet, so renaming it renamed the app
-    // everywhere, and an item with no app opened nothing at all.
-    class ItemLabel(val label: String, val onSave: (String) -> Unit)
+    // A placed shortcut - a pinned app shortcut, a picked activity - edits
+    // its own name, hidden label, icon, shape and style, saved on the item
+    // rather than the app: a shortcut used to open its app's sheet, so
+    // renaming it renamed the app everywhere. `originalLabel` is the name
+    // Reset puts back, when it is known.
+    class ShortcutEdit(
+        val label: String,
+        val edit: AppOverride,
+        val originalLabel: String?,
+        val onSave: (label: String, edit: AppOverride) -> Unit
+    )
 
     fun show(
         context: Context,
         scope: CoroutineScope,
         viewModel: LauncherViewModel,
-        // Null only with itemLabel, for an item with no app behind it.
+        // Null only with shortcut, for one with no app behind it.
         app: LaunchableApp?,
         // Host-provided photo picker (the ActivityResult launcher must be
         // registered on the activity); null hides the photo options.
@@ -48,15 +53,15 @@ object AppEditSheet {
         // async model write.
         swipeLabels: ((down: Boolean) -> String?)? = null,
         onEditSwipe: ((down: Boolean, onPicked: (String?) -> Unit) -> Unit)? = null,
-        itemLabel: ItemLabel? = null
+        shortcut: ShortcutEdit? = null
     ) {
-        if (app == null && itemLabel == null) return
+        if (app == null && shortcut == null) return
         val binding = SheetAppEditBinding.inflate(LayoutInflater.from(context))
         val dialog = com.supernova.launcher.ui.Sheets.open(context)
         dialog.setContentView(binding.root)
 
-        val rawLabel = itemLabel?.label ?: app?.let(viewModel::rawLabelOf).orEmpty()
-        val current = if (itemLabel == null && app != null) viewModel.overrideFor(app) else AppOverride()
+        val rawLabel = shortcut?.label ?: app?.let(viewModel::rawLabelOf).orEmpty()
+        val current = shortcut?.edit ?: app?.let(viewModel::overrideFor) ?: AppOverride()
         var chosenShape: String? = current.iconShape
         var chosenPack: String? = current.iconPackPackage
         var chosenIcon: String? = current.iconDrawableName
@@ -64,7 +69,7 @@ object AppEditSheet {
         var chosenVariant: String? = current.iconVariant
 
         binding.editTitle.text = rawLabel
-        if (viewModel.state.value.prefs.labsShowComponent && app != null) {
+        if (viewModel.state.value.prefs.labsShowComponent && app != null && shortcut == null) {
             binding.editComponent.text = "${app.packageName}/${app.className}"
             binding.editComponent.visibility = android.view.View.VISIBLE
         }
@@ -197,14 +202,23 @@ object AppEditSheet {
             }
         }
 
-        if (itemLabel != null) {
-            listOf(
-                binding.hideLabelRow, binding.shapeRow, binding.variantRow,
-                binding.iconRow, binding.resetButton
-            ).forEach { it.visibility = android.view.View.GONE }
+        if (shortcut != null) {
+            binding.resetButton.setOnClickListener {
+                shortcut.onSave(shortcut.originalLabel ?: shortcut.label, AppOverride())
+                dialog.dismiss()
+            }
             binding.saveButton.setOnClickListener {
-                val typed = binding.editLabel.text?.toString().orEmpty().trim()
-                if (typed.isNotEmpty() && typed != itemLabel.label) itemLabel.onSave(typed)
+                shortcut.onSave(
+                    binding.editLabel.text?.toString().orEmpty(),
+                    AppOverride(
+                        hideLabel = binding.hideLabelSwitch.isChecked,
+                        iconShape = chosenShape,
+                        iconPackPackage = if (chosenIcon != null) chosenPack else null,
+                        iconDrawableName = chosenIcon,
+                        iconBase64 = chosenPhoto,
+                        iconVariant = chosenVariant
+                    )
+                )
                 dialog.dismiss()
             }
             dialog.show()

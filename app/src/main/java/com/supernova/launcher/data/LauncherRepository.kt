@@ -418,6 +418,15 @@ class LauncherRepository(private val context: Context) {
         }
     }
 
+    // A shortcut's own Edit, saved in one write: its name (blank keeps the
+    // one it has), hidden label, custom icon, shape and style. An empty edit
+    // is stored as none.
+    suspend fun editShortcut(itemId: String, label: String, edit: AppOverride) {
+        mutate { current ->
+            current.copy(items = current.items.map { ShortcutEdits.apply(it, itemId, label, edit) })
+        }
+    }
+
     suspend fun removeItem(itemId: String) {
         mutate { current ->
             val removedItem = current.items.firstOrNull { it.id == itemId }

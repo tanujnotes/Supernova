@@ -360,8 +360,11 @@ class FolderIconDrawable(
         // What a folder's own icon is drawn from, for the page and dock
         // signatures: a custom icon, or Reshape turned off for one, changes
         // nothing else they look at, and the old icon stayed on screen.
+        // What an item's icon is drawn from beyond its app: a folder's or a
+        // launcher action's picked icon, a shortcut's picture and its Edit.
         fun customIconKey(folder: com.supernova.launcher.data.LauncherItem): String =
-            "${folder.customIconPack}/${folder.customIconName}/${folder.iconBase64?.hashCode()}/${folder.iconRaw}"
+            "${folder.customIconPack}/${folder.customIconName}/${folder.iconBase64?.hashCode()}/${folder.iconRaw}" +
+                "/${folder.shortcutEdit?.hashCode()}"
 
         // The plate's shape: the folder's own pick, else the icons' -
         // "" (Default) follows the icon shape.

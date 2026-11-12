@@ -401,25 +401,31 @@ class AppCatalog(
             android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU
         ) return null
         val icon = resolveActivity(packageName, className, user)?.getIcon(0) ?: return null
-        val mono = (icon as? android.graphics.drawable.AdaptiveIconDrawable)?.monochrome
-        if (mono != null) {
-            return runLogged("tint themed icon") {
-                val fg = (mono.constantState?.newDrawable()?.mutate() ?: mono).apply { setTint(themedIconFg) }
-                android.graphics.drawable.AdaptiveIconDrawable(
-                    android.graphics.drawable.ColorDrawable(themedIconBg), fg
-                )
-            }.getOrNull()
-        }
         // Autogen (D8): no monochrome layer shipped - synthesize one from the
         // icon's silhouette. A per-app force also gets the synthetic layer.
-        if (!themedIconsAutogen && !force) return null
-        return runLogged("generate themed icon") { autogenMonochrome(icon) }.getOrNull()
+        val shipsMono = (icon as? android.graphics.drawable.AdaptiveIconDrawable)?.monochrome != null
+        if (!shipsMono && !themedIconsAutogen && !force) return null
+        return runLogged("tint themed icon") { themedLayer(icon) }.getOrNull()
+    }
+
+    // Any icon's themed look: its monochrome layer in the themed colours
+    // when it ships one, else its silhouette (for `ink`, the ink of a solid
+    // tile: see SilhouetteMask).
+    private fun themedLayer(icon: Drawable, ink: Boolean = false): Drawable {
+        val mono = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            (icon as? android.graphics.drawable.AdaptiveIconDrawable)?.monochrome
+        } else {
+            null
+        }
+        mono ?: return autogenMonochrome(icon, ink)
+        val fg = (mono.constantState?.newDrawable()?.mutate() ?: mono).apply { setTint(themedIconFg) }
+        return android.graphics.drawable.AdaptiveIconDrawable(android.graphics.drawable.ColorDrawable(themedIconBg), fg)
     }
 
     // Rasterizes the adaptive foreground (or the whole legacy icon, inset
     // toward the safe zone so the mask doesn't crop it), keeps only its
     // alpha, and tints that silhouette like a real monochrome layer.
-    private fun autogenMonochrome(icon: Drawable): Drawable {
+    private fun autogenMonochrome(icon: Drawable, ink: Boolean = false): Drawable {
         val adaptive = icon as? android.graphics.drawable.AdaptiveIconDrawable
         val source = adaptive?.foreground ?: icon
         val size = 192
@@ -434,7 +440,7 @@ class AppCatalog(
             source.setBounds(0, 0, size, size)
         }
         source.draw(canvas)
-        val alpha = silhouette.extractAlpha()
+        val alpha = (if (ink) inkOf(silhouette) else null) ?: silhouette.extractAlpha()
         val tinted = android.graphics.Bitmap.createBitmap(
             size, size, android.graphics.Bitmap.Config.ARGB_8888
         )
@@ -626,6 +632,36 @@ class AppCatalog(
     fun renderShortcutPicture(picture: android.graphics.Bitmap): Drawable? = synchronized(renderLock) {
         runLogged("render picture") { iconRenderer.renderPicture(picture, iconShape, customShapeSpec) }.getOrNull()
     }
+
+    // The ink of a solid tile as an alpha-only bitmap; null when it isn't one.
+    private fun inkOf(picture: android.graphics.Bitmap): android.graphics.Bitmap? {
+        val (w, h) = picture.width to picture.height
+        val pixels = IntArray(w * h).also { picture.getPixels(it, 0, w, 0, 0, w, h) }
+        val mask = SilhouetteMask.of(pixels, w, h) ?: return null
+        val argb = IntArray(mask.size) { mask[it] shl ALPHA_SHIFT }
+        return android.graphics.Bitmap.createBitmap(argb, w, h, android.graphics.Bitmap.Config.ARGB_8888).extractAlpha()
+    }
+
+    // A shortcut's icon as its Edit left it (see ShortcutIcons), from its
+    // stored picture `own`; null when the edit changes no icon, or there is
+    // nothing to draw. Themed asks the app for the shortcut's icon: the
+    // stored picture is flattened, so it has no layer to theme.
+    fun renderShortcutIcon(item: LauncherItem, own: android.graphics.Bitmap?): Drawable? {
+        val edit = item.shortcutEdit?.takeIf(ShortcutIcons::changesIcon) ?: return null
+        val live = if (edit.iconVariant == "THEMED" && !ShortcutIcons.hasPickedIcon(edit)) liveIcon(item) else null
+        return synchronized(renderLock) {
+            runLogged("render shortcut icon") {
+                ShortcutIcons(iconRenderer, customShapeSpec, iconShape, ::packDrawable, ::pickedPicture) {
+                    themedLayer(it, ink = true)
+                }.draw(edit, live ?: own?.toDrawable(context.resources), own.takeIf { item.shortcutId != null })
+            }.getOrNull()
+        }
+    }
+
+    private fun liveIcon(item: LauncherItem): Drawable? =
+        item.packageName?.takeIf { item.shortcutId != null }
+            ?.let { pkg -> shortcutsFor(pkg, item.userSerial).firstOrNull { it.id == item.shortcutId } }
+            ?.let(::shortcutIcon)
 
     fun launch(
         app: LaunchableApp,
@@ -837,5 +873,8 @@ class AppCatalog(
     companion object {
         // The size charged for a cached icon that reports none of its own.
         private const val FALLBACK_ICON_PX = 192
+
+        // An ARGB int's alpha byte.
+        private const val ALPHA_SHIFT = 24
     }
 }

@@ -945,7 +945,8 @@ class LauncherViewModel(
     fun overrideFor(item: LauncherItem): AppOverride? {
         // An app's rename and hidden label are the app icon's. A pinned
         // shortcut carries the same package and class, and took the app's
-        // new name with them.
+        // new name with them; its hidden label and icon are its own.
+        if (item.itemType == ItemType.SHORTCUT) return item.shortcutEdit
         if (item.itemType != ItemType.APP) return null
         val pkg = item.packageName ?: return null
         val cls = item.className ?: return null
@@ -963,6 +964,9 @@ class LauncherViewModel(
         }?.label ?: app.label
 
     fun renameShortcut(itemId: String, label: String) = persist { repository.renameShortcut(itemId, label) }
+
+    fun editShortcut(itemId: String, label: String, edit: AppOverride) =
+        persist { repository.editShortcut(itemId, label, edit) }
 
     fun setAppOverride(app: LaunchableApp, transform: (AppOverride) -> AppOverride) {
         val key = hiddenKey(app)

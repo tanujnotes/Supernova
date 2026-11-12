@@ -182,9 +182,15 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
 
     // Icon for a SHORTCUT item carrying an intentUri: a launcher-action tile by
     // action, or the snapshot icon activities/legacy shortcuts stored. Null for
-    // a plain app shortcut, which falls back to the app's own icon.
+    // a plain app shortcut, which falls back to the app's own icon. An icon
+    // picked in the shortcut's Edit, or its picture in the shape and style
+    // picked there, outranks both, drawn as an app's is.
     fun intentItemIcon(item: LauncherItem): Drawable? {
         val catalog = viewModel.appCatalog()
+        if (item.shortcutEdit != null) {
+            val own = item.iconBase64?.takeIf { it.isNotEmpty() }?.let { GalleryIconCodec.decode(it) }
+            catalog.renderShortcutIcon(item, own)?.let { return it }
+        }
         item.intentUri?.let { uri ->
             ActionShortcut.decode(uri)?.let { binding ->
                 customFolderIcon(item.iconBase64, item.customIconPack, item.customIconName, item.iconRaw)
