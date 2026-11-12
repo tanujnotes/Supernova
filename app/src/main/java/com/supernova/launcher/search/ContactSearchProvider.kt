@@ -34,43 +34,49 @@ class ContactSearchProvider(
 
     override fun search(query: String): List<SearchResult> {
         val trimmed = query.trim()
-        if (trimmed.isEmpty()) return emptyList()
-        if (context.checkSelfPermission(Manifest.permission.READ_CONTACTS) !=
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            return emptyList()
+        if (trimmed.isEmpty() || !contactsGranted()) return emptyList()
+        val withNumbers = withPhoneNumbers()
+        // Ranked before the cap: the provider's own order says nothing about
+        // how well a name matches. Photos and numbers only for the rows shown.
+        return ContactRanking.top(matches(trimmed), trimmed, MAX_RESULTS).map { contact ->
+            SearchResult.Contact(
+                contactId = contact.contactId,
+                lookupKey = contact.lookupKey,
+                name = contact.name,
+                photo = circularPhoto(contact.photoUri) ?: LetterTileDrawable(contact.name.first()),
+                phoneNumber = if (withNumbers) firstPhoneNumber(contact.contactId) else null
+            )
         }
+    }
 
-        val uri = Uri.withAppendedPath(
-            ContactsContract.Contacts.CONTENT_FILTER_URI, Uri.encode(trimmed)
-        )
-        val projection = arrayOf(
-            ContactsContract.Contacts._ID,
-            ContactsContract.Contacts.LOOKUP_KEY,
-            ContactsContract.Contacts.DISPLAY_NAME,
-            ContactsContract.Contacts.PHOTO_THUMBNAIL_URI
-        )
-        val results = mutableListOf<SearchResult>()
+    private fun contactsGranted(): Boolean =
+        context.checkSelfPermission(Manifest.permission.READ_CONTACTS) ==
+            PackageManager.PERMISSION_GRANTED
+
+    // Every contact the provider's filter matches (name, nickname,
+    // organization), unranked.
+    private fun matches(query: String): List<ContactRanking.Candidate> {
+        val uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_FILTER_URI, Uri.encode(query))
+        val candidates = mutableListOf<ContactRanking.Candidate>()
         runLogged("search contacts") {
-            context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
-                while (cursor.moveToNext() && results.size < MAX_RESULTS) {
-                    val name = cursor.getString(2)?.takeIf { it.isNotBlank() } ?: continue
-                    val lookupKey = cursor.getString(1) ?: continue
-                    val contactId = cursor.getLong(0)
-                    results.add(
-                        SearchResult.Contact(
-                            contactId = contactId,
+            context.contentResolver.query(uri, PROJECTION, null, null, null)?.use { cursor ->
+                while (cursor.moveToNext()) {
+                    val name = cursor.getString(COLUMN_NAME)
+                    val lookupKey = cursor.getString(COLUMN_LOOKUP_KEY)
+                    if (name.isNullOrBlank() || lookupKey == null) continue
+                    candidates.add(
+                        ContactRanking.Candidate(
+                            contactId = cursor.getLong(COLUMN_ID),
                             lookupKey = lookupKey,
                             name = name,
-                            photo = circularPhoto(cursor.getString(3))
-                                ?: LetterTileDrawable(name.first()),
-                            phoneNumber = if (withPhoneNumbers()) firstPhoneNumber(contactId) else null
+                            photoUri = cursor.getString(COLUMN_PHOTO),
+                            starred = cursor.getInt(COLUMN_STARRED) != 0
                         )
                     )
                 }
             }
         }
-        return results
+        return candidates
     }
 
     private fun firstPhoneNumber(contactId: Long): String? = runLogged("read contact number") {
@@ -100,6 +106,19 @@ class ContactSearchProvider(
     companion object {
         const val ID = "contacts"
         private const val MAX_RESULTS = 8
+
+        private val PROJECTION = arrayOf(
+            ContactsContract.Contacts._ID,
+            ContactsContract.Contacts.LOOKUP_KEY,
+            ContactsContract.Contacts.DISPLAY_NAME,
+            ContactsContract.Contacts.PHOTO_THUMBNAIL_URI,
+            ContactsContract.Contacts.STARRED
+        )
+        private const val COLUMN_ID = 0
+        private const val COLUMN_LOOKUP_KEY = 1
+        private const val COLUMN_NAME = 2
+        private const val COLUMN_PHOTO = 3
+        private const val COLUMN_STARRED = 4
     }
 }
 

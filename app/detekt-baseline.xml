@@ -197,7 +197,6 @@
     <ID>LongParameterList:WorkspaceReorderTest.kt$WorkspaceReorderTest$( model: LauncherModel, cellX: Int, cellY: Int, spanX: Int = 1, spanY: Int = 1, cols: Int = 5, rows: Int = 5, exclude: Set&lt;String&gt; = emptySet() )</ID>
     <ID>LongParameterList:WorkspaceStackingTest.kt$WorkspaceStackingTest$(id: String, cellX: Int, cellY: Int, spanX: Int, spanY: Int, page: Int = 0)</ID>
     <ID>LoopWithTooManyJumpStatements:Calculator.kt$Calculator$while</ID>
-    <ID>LoopWithTooManyJumpStatements:ContactSearchProvider.kt$ContactSearchProvider$while</ID>
     <ID>LoopWithTooManyJumpStatements:FlowLayout.kt$FlowLayout$for</ID>
     <ID>LoopWithTooManyJumpStatements:SettingsSearchIndex.kt$SettingsSearchIndex.Companion$for</ID>
     <ID>LoopWithTooManyJumpStatements:ShortcutSearchProvider.kt$ShortcutSearchProvider$for</ID>
@@ -293,7 +292,6 @@
     <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$4</ID>
     <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$8</ID>
     <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$96</ID>
-    <ID>MagicNumber:ContactSearchProvider.kt$ContactSearchProvider$3</ID>
     <ID>MagicNumber:Contrast.kt$Contrast$0.04045</ID>
     <ID>MagicNumber:Contrast.kt$Contrast$0.055</ID>
     <ID>MagicNumber:Contrast.kt$Contrast$0.0722</ID>
@@ -853,7 +851,6 @@
     <ID>ReturnCount:Calculator.kt$Calculator$private fun toRpn(tokens: List&lt;Token&gt;): List&lt;Token&gt;?</ID>
     <ID>ReturnCount:Calculator.kt$Calculator$private fun tokenize(text: String): List&lt;Token&gt;?</ID>
     <ID>ReturnCount:CardVisibility.kt$CardVisibility$private fun dayTimeHolds(condition: CardCondition, env: Environment): Boolean</ID>
-    <ID>ReturnCount:ContactSearchProvider.kt$ContactSearchProvider$override fun search(query: String): List&lt;SearchResult&gt;</ID>
     <ID>ReturnCount:ContactSearchProvider.kt$ContactSearchProvider$private fun circularPhoto(photoUri: String?): Drawable?</ID>
     <ID>ReturnCount:Contrast.kt$Contrast$fun ensure(text: Int, surface: Int, minimum: Int?): Int</ID>
     <ID>ReturnCount:CustomCardEditorSheet.kt$CustomCardEditorSheet$internal fun iconForTarget(viewModel: LauncherViewModel, target: String): android.graphics.drawable.Drawable?</ID>
