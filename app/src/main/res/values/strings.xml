@@ -956,6 +956,7 @@
     <!-- Add to home surface (Phase 1) -->
     <string name="add_category_activities">Activities</string>
     <string name="no_activities">No activities</string>
+    <string name="search_activities_hint">Search activities</string>
     <!-- Under an app in the Activities picker: how many of its activities it offers. -->
     <plurals name="activity_count">
         <item quantity="one">%d activity</item>

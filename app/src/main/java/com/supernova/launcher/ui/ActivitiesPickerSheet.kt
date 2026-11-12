@@ -9,9 +9,12 @@ import android.util.LruCache
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.ImageView
 import androidx.activity.ComponentActivity
+import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
+import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -24,6 +27,7 @@ import com.supernova.launcher.databinding.ItemWidgetPickerHeaderBinding
 import com.supernova.launcher.databinding.ItemWidgetPickerShortcutBinding
 import com.supernova.launcher.databinding.SheetActivitiesPickerBinding
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -34,7 +38,8 @@ data class ActivityPick(val component: ComponentName, val label: String)
 // The Activities picker (the widget sheet's Activities row): every
 // installed app, launcher icon or not, as the widget sheet's collapsible
 // cards with its count of activities; a card opens into the activities, each
-// with its icon, its name and its class. A tap on one hands it back.
+// with its icon, its name and its class. A tap on one hands it back. The
+// search field above narrows the list as the widget sheet's does.
 class ActivitiesPickerSheet private constructor(
     private val activity: ComponentActivity,
     private val icons: WidgetPickerIcons,
@@ -53,9 +58,10 @@ class ActivitiesPickerSheet private constructor(
     private fun show() {
         // Most of the window: the list runs to every installed package.
         val window = activity.resources.displayMetrics.heightPixels
-        binding.activitiesFrame.updateLayoutParams {
-            height = (window - activity.dp(CHROME_DP)).coerceAtLeast(activity.dp(MIN_LIST_DP))
-        }
+        val listHeight = (window - activity.dp(CHROME_DP)).coerceAtLeast(activity.dp(MIN_LIST_DP))
+        binding.activitiesFrame.updateLayoutParams { height = listHeight }
+        fitAboveKeyboard(listHeight)
+        binding.activitiesSearch.doAfterTextChanged { adapter.filter(it?.toString().orEmpty()) }
         binding.activitiesRecycler.layoutManager = LinearLayoutManager(sheet.context)
         binding.activitiesRecycler.adapter = adapter
         binding.activitiesFastScroller.attach(binding.activitiesRecycler, binding.activitiesFastScrollBubble)
@@ -73,9 +79,31 @@ class ActivitiesPickerSheet private constructor(
             val apps = withContext(Dispatchers.IO) { ActivityCatalog.load(pm) }
             if (!sheet.isShowing) return@launch
             binding.activitiesProgress.visibility = View.GONE
-            binding.activitiesEmpty.visibility = if (apps.isEmpty()) View.VISIBLE else View.GONE
-            binding.activitiesFastScroller.visibility = if (apps.isEmpty()) View.GONE else View.VISIBLE
             adapter.submit(apps)
+        }
+    }
+
+    // A new list in place: back to its top for a new query, and "No
+    // activities" for a list with none or a search that matched none.
+    private fun listChanged(newQuery: Boolean) {
+        if (newQuery) binding.activitiesRecycler.scrollToPosition(0)
+        val empty = adapter.rows.isEmpty()
+        binding.activitiesEmpty.isVisible = empty
+        binding.activitiesFastScroller.isVisible = !empty
+    }
+
+    // The window shrinks over the keyboard (the widget sheet's way), and the
+    // list with it, so the search field stays in sight while typing.
+    private fun fitAboveKeyboard(listHeight: Int) {
+        sheet.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        val parent = sheet.findViewById<View>(com.google.android.material.R.id.coordinator) ?: return
+        parent.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            if (bottom - top == oldBottom - oldTop) return@addOnLayoutChangeListener
+            val frame = binding.activitiesFrame
+            val chrome = binding.root.height - frame.height
+            val fits = (bottom - top - chrome - activity.dp(KEYBOARD_GAP_DP))
+                .coerceIn(activity.dp(MIN_TYPING_LIST_DP), listHeight)
+            if (frame.layoutParams.height != fits) frame.post { frame.updateLayoutParams { height = fits } }
         }
     }
 
@@ -119,25 +147,71 @@ class ActivitiesPickerSheet private constructor(
 
     private inner class RowAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
+        private var search = ActivityRows.Search(emptyList())
+        private var query = ""
+        // What the list shows: every app, or what the search left of them.
         private var apps: List<ActivityApp> = emptyList()
+        // Cards opened while browsing; and cards closed while searching,
+        // where every match starts open, as in the widget sheet. A new query
+        // opens them all again.
         private val expanded = mutableSetOf<String>()
+        private val closedInSearch = mutableSetOf<String>()
         var rows: List<ActivityRows.Row> = emptyList()
             private set
 
+        private var pending: Job? = null
+
         // The whole list arrives at once, after the load.
-        @SuppressLint("NotifyDataSetChanged")
         fun submit(list: List<ActivityApp>) {
-            apps = list
-            rows = ActivityRows.flatten(apps, expanded)
-            notifyDataSetChanged()
+            search = ActivityRows.Search(list)
+            rebuild(newQuery = false)
         }
 
+        fun filter(text: String) {
+            val q = text.trim()
+            if (q == query) return
+            query = q
+            closedInSearch.clear()
+            rebuild(newQuery = true)
+        }
+
+        // The match runs off the main thread, so typing stays smooth over a
+        // few thousand activities; a newer keystroke's match replaces an
+        // older one still running.
+        @SuppressLint("NotifyDataSetChanged")
+        private fun rebuild(newQuery: Boolean) {
+            pending?.cancel()
+            val search = search
+            val q = query
+            val browseOpen = expanded.toSet()
+            val searchClosed = closedInSearch.toSet()
+            pending = activity.lifecycleScope.launch {
+                val (matched, flat) = withContext(Dispatchers.Default) {
+                    val matched = search.matching(q)
+                    matched to ActivityRows.flatten(matched, openCards(q, matched, browseOpen, searchClosed))
+                }
+                apps = matched
+                rows = flat
+                notifyDataSetChanged()
+                listChanged(newQuery)
+            }
+        }
+
+        private fun openCards(q: String, shown: List<ActivityApp>, browseOpen: Set<String>, searchClosed: Set<String>) =
+            if (q.isEmpty()) browseOpen else shown.mapTo(HashSet()) { it.packageName } - searchClosed
+
+        private fun flatten(): List<ActivityRows.Row> =
+            ActivityRows.flatten(apps, openCards(query, apps, expanded, closedInSearch))
+
         // Opens or closes one card, its activities sliding in or out under it.
+        // A tap while a match is still running waits for its list.
         fun toggle(position: Int) {
+            if (pending?.isActive == true) return
             val row = rows.getOrNull(position) as? ActivityRows.Row.App ?: return
             val count = row.app.activities.size
-            if (!expanded.remove(row.app.packageName)) expanded += row.app.packageName
-            rows = ActivityRows.flatten(apps, expanded)
+            val flipped = if (query.isEmpty()) expanded else closedInSearch
+            if (!flipped.remove(row.app.packageName)) flipped += row.app.packageName
+            rows = flatten()
             notifyItemChanged(position)
             if (row.expanded) {
                 notifyItemRangeRemoved(position + 1, count)
@@ -203,10 +277,14 @@ class ActivitiesPickerSheet private constructor(
         private const val TYPE_ACTIVITY = 1
         private const val EXPANDED_CHEVRON = 180f
         private const val ICON_CACHE_SIZE = 120
-        // The window less the status bar, the sheet's handle and title, and a
-        // gap above the sheet; and the least the list gets, in landscape.
-        private const val CHROME_DP = 200
+        // The window less the status bar, the sheet's handle, title and search
+        // field, and a gap above the sheet; and the least the list gets, in landscape.
+        private const val CHROME_DP = 266
         private const val MIN_LIST_DP = 240
+        // Over the keyboard: the gap left above the sheet, and the least the
+        // list keeps.
+        private const val KEYBOARD_GAP_DP = 24
+        private const val MIN_TYPING_LIST_DP = 120
         // The drawer's track: its text colour at Launcher3's 30/255.
         private const val FAST_SCROLL_TRACK_ALPHA = 30
 

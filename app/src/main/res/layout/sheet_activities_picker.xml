@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The Activities picker: every installed app as a collapsible card, each
-     opening into the activities it lets other apps start. The list frame's
-     height is set from the window's in ActivitiesPickerSheet. -->
+     opening into the activities it lets other apps start, under the widget
+     sheet's search field. The list frame's height is set from the window's
+     in ActivitiesPickerSheet. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -13,6 +14,28 @@
         style="@style/SheetTitle"
         android:paddingBottom="12dp"
         android:text="@string/add_category_activities" />
+
+    <!-- The widget sheet's search field. No saved state, as with drawerSearch. -->
+    <EditText
+        android:id="@+id/activitiesSearch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/bg_search_card"
+        android:drawableStart="@drawable/ic_search"
+        android:drawablePadding="12dp"
+        android:hint="@string/search_activities_hint"
+        android:importantForAutofill="no"
+        android:imeOptions="actionSearch"
+        android:inputType="text"
+        android:maxLines="1"
+        android:paddingHorizontal="18dp"
+        android:paddingVertical="14dp"
+        android:saveEnabled="false"
+        android:textColor="@color/textPrimary"
+        android:textColorHint="@color/textSecondary"
+        android:textSize="16sp" />
 
     <FrameLayout
         android:id="@+id/activitiesFrame"
