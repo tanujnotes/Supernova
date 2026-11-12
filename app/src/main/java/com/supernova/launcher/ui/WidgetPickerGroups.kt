@@ -13,6 +13,7 @@ import com.supernova.launcher.R
 import com.supernova.launcher.gesture.ActionShortcut
 import com.supernova.launcher.gesture.GestureAction
 import com.supernova.launcher.ui.settings.EnumLabels
+import com.supernova.launcher.widget.WidgetFeatures
 import com.supernova.launcher.widget.WidgetSizing
 
 // One app's worth of addable things: its widgets and its
@@ -109,6 +110,7 @@ object WidgetPickerGroups {
         val grid = CellGrid(cellWidthPx, cellHeightPx, cols, rows)
         val providers = AppWidgetManager.getInstance(context)
             .getInstalledProvidersForProfile(me)
+            .filter(WidgetFeatures::listable)
             .filter { filterPackage == null || it.provider.packageName == filterPackage }
             .filter { filter == null || filter(it) }
 
@@ -177,6 +179,7 @@ object WidgetPickerGroups {
             val serial = userManager.getSerialNumberForUser(user)
             runCatching { AppWidgetManager.getInstance(context).getInstalledProvidersForProfile(user) }
                 .getOrDefault(emptyList())
+                .filter(WidgetFeatures::listable)
                 .filter { filterPackage == null || it.provider.packageName == filterPackage }
                 .filter { filter == null || filter(it) }
                 .groupBy { it.provider.packageName }

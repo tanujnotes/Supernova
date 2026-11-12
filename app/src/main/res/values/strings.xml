@@ -52,6 +52,7 @@
     <string name="no_room_on_page">No room on this page</string>
     <string name="widget_span">%1$d × %2$d</string>
     <string name="widget_add_interrupted">Widget setup was interrupted, please try again</string>
+    <string name="widget_settings">Widget settings</string>
     <string name="widget_configure_failed">Couldn\'t open widget settings</string>
     <string name="widget_provider_missing">Widget is no longer available</string>
     <string name="widget_finish_setup">%1$s\nTap to finish setup</string>

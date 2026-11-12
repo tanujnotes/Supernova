@@ -8,7 +8,6 @@ import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Rect
-import android.os.Build
 import android.util.SizeF
 import android.view.Gravity
 import android.view.MotionEvent
@@ -34,6 +33,7 @@ import com.supernova.launcher.databinding.ActivityLauncherBinding
 import com.supernova.launcher.runLogged
 import com.supernova.launcher.widget.SupernovaWidgetHost
 import com.supernova.launcher.widget.SupernovaWidgetHostView
+import com.supernova.launcher.widget.WidgetFeatures
 import com.supernova.launcher.widget.WidgetResizeFrame
 import com.supernova.launcher.widget.WidgetSizing
 import kotlinx.coroutines.launch
@@ -672,15 +672,9 @@ class WidgetController(
             }
     }
 
-    private fun needsSetup(info: AppWidgetProviderInfo): Boolean {
-        val optional = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            info.widgetFeatures and AppWidgetProviderInfo.WIDGET_FEATURE_CONFIGURATION_OPTIONAL != 0
-        return info.configure != null && !optional
-    }
-
     private fun rebindSilently(key: String, provider: String?, userSerial: Long = 0L, onBound: (Int) -> Unit) {
         val info = if (rebindsTried.add(key)) installedProvider(provider, userSerial) else null
-        if (info == null || needsSetup(info)) return
+        if (info == null || WidgetFeatures.needsSetup(info)) return
         val widgetId = appWidgetHost.allocateAppWidgetId()
         // Not swept away before the model has it.
         reboundIds += widgetId
@@ -765,7 +759,7 @@ class WidgetController(
 
     private fun proceedToConfigure(info: AppWidgetProviderInfo) {
         val pending = pendingWidget ?: return
-        if (info.configure == null) {
+        if (!WidgetFeatures.needsSetup(info)) {
             finalizeWidget()
             return
         }
@@ -790,23 +784,35 @@ class WidgetController(
         }
         if (plainLaunch.isSuccess) return
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            info.widgetFeatures and AppWidgetProviderInfo.WIDGET_FEATURE_CONFIGURATION_OPTIONAL != 0
-        ) {
-            finalizeWidget()
-        } else {
-            abortPendingWidget()
-            Toast.makeText(activity, R.string.widget_configure_failed, Toast.LENGTH_SHORT).show()
-        }
+        abortPendingWidget()
+        Toast.makeText(activity, R.string.widget_configure_failed, Toast.LENGTH_SHORT).show()
     }
 
     // The configure screen launched with the host's token answers through the
     // activity's onActivityResult (the host API predates contracts). True
     // when the result was this flow's.
-    fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
-        if (requestCode != REQUEST_CONFIGURE_WIDGET) return false
-        handleConfigureResult(resultCode, data)
-        return true
+    fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean = when (requestCode) {
+        REQUEST_CONFIGURE_WIDGET -> {
+            handleConfigureResult(resultCode, data)
+            true
+        }
+        // A placed widget's settings change only the widget itself: it
+        // stays whatever the screen answers.
+        REQUEST_RECONFIGURE_WIDGET -> true
+        else -> false
+    }
+
+    fun isReconfigurable(item: LauncherItem): Boolean =
+        item.appWidgetId?.let(appWidgetManager::getAppWidgetInfo)?.let(WidgetFeatures::reconfigurable) == true
+
+    fun openWidgetSettings(item: LauncherItem) {
+        val widgetId = item.appWidgetId ?: return
+        val opened = runCatching {
+            appWidgetHost.startAppWidgetConfigureActivityForResult(
+                activity, widgetId, 0, REQUEST_RECONFIGURE_WIDGET, null
+            )
+        }.isSuccess
+        if (!opened) Toast.makeText(activity, R.string.widget_configure_failed, Toast.LENGTH_SHORT).show()
     }
 
     private fun handleConfigureResult(resultCode: Int, data: Intent?) {
@@ -882,6 +888,7 @@ class WidgetController(
 
     companion object {
         private const val REQUEST_CONFIGURE_WIDGET = 4001
+        private const val REQUEST_RECONFIGURE_WIDGET = 4002
         // Widget resize: each snap to a new cell edge eases there.
         private const val RESIZE_SNAP_MS = 120L
         // The dim behind the padding dialog, which previews on the home screen.

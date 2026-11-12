@@ -3137,6 +3137,13 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                         viewModel.appCatalog().openAppInfo(provider.packageName, provider.className, item.userSerial)
                     }
                 }
+                // The widget's own settings screen, for widgets that offer it
+                // after they are placed.
+                if (widgets.isReconfigurable(item)) {
+                    menu.addRow(getString(R.string.widget_settings), R.drawable.ic_menu_edit) {
+                        widgets.openWidgetSettings(item)
+                    }
+                }
                 val widgetLabel = item.appWidgetId?.let(widgets::label)
                 addExportPngRow(menu, anchor, widgetLabel ?: item.label)
             }
