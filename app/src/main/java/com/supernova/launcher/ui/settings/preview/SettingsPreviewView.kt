@@ -847,6 +847,8 @@ class SettingsPreviewView @JvmOverloads constructor(
         text.text = label
         text.maxLines = labelLines
         text.gravity = Gravity.CENTER_HORIZONTAL
+        // The real labels' sides (item_icon.xml, item_drawer_app.xml).
+        text.setPadding(dp(2), 0, dp(2), 0)
         labelViews += text
         column.addView(
             text,

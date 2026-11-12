@@ -127,7 +127,7 @@ class FrequentAppsRowView @JvmOverloads constructor(
                     textSize = 12f
                     maxLines = 1
                     gravity = android.view.Gravity.CENTER_HORIZONTAL
-                    setPadding(0, dp(6), 0, 0)
+                    setPadding(dp(LABEL_SIDE_PADDING_DP), dp(6), dp(LABEL_SIDE_PADDING_DP), 0)
                     look?.styleLabel?.invoke(this)
                 },
                 LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
@@ -150,5 +150,7 @@ class FrequentAppsRowView @JvmOverloads constructor(
         const val LABELED_ICON_DP = 56
         const val LABELED_CELL_DP = 88
         const val LABELED_ROW_VERTICAL_DP = 12
+        // As item_icon.xml and item_drawer_app.xml give their labels.
+        const val LABEL_SIDE_PADDING_DP = 2
     }
 }
