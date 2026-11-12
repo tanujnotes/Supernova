@@ -242,12 +242,19 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     animateWallpaperZoom(1f)
                     // As in a folder: a held app and its menu go through the
                     // item gesture, the card being a window of its own.
-                    card.setTouchInterceptor { _, ev -> drag.routeGesture(ev, card) }
+                    cardSwipeClose.onCardShown()
+                    card.setTouchInterceptor { _, ev ->
+                        cardSwipeClose.onTouch(ev.actionMasked)
+                        drag.routeGesture(ev, card)
+                    }
                     activeFolderPopup = card
                     activeFolderAdapter = adapter
                 }
 
                 override fun onClosed(card: android.widget.PopupWindow?) {
+                    cardSwipeClose.onCardClosed(
+                        SystemClock.uptimeMillis(), carried = card != null && drag.ownsGestureIn(card)
+                    )
                     // A menu open over the card closes with it.
                     drag.activeItemPopup?.dismiss()
                     drag.activeItemPopup = null
@@ -309,6 +316,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     private var activeFolderPopup: android.widget.PopupWindow? = null
     // The open folder's members, so a badge moving redraws them too.
     private var activeFolderAdapter: FolderMemberAdapter? = null
+    // A home folder's card, or the private space's, closed by the press the
+    // system's home swipe began with: that swipe's home press counts it.
+    private val cardSwipeClose = com.supernova.launcher.ui.CardSwipeClose()
     // True from onStart until the activity is resumed. Pressing home in
     // another app restarts the launcher, so onStart runs before the home
     // intent is delivered; pressing home on the launcher itself only pauses
@@ -2436,10 +2446,14 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // of it.
         // A sheet or dialog left open is one too: the Edit sheet stayed up
         // and the drawer opened behind it (#91). `or`, so both run.
-        // A private space card still waiting on its unlock is called off too.
-        privateSpaceCard.cancelPending()
+        // A private space card still waiting on its unlock is called off too,
+        // and a swipe home over its unlock prompt is that prompt's close.
+        val promptClosed = privateSpaceCard.cancelPending()
+        // A folder card the same swipe closed on its first touch (#110), read
+        // after the reset, whose own closes don't count twice.
         val closed = com.supernova.launcher.ui.OpenDialogs.dismissAll(this) or
-            resetToHome(animate = true, keepDrawer = keepDrawerOpen)
+            resetToHome(animate = true, keepDrawer = keepDrawerOpen) or
+            cardSwipeClose.takeFor(SystemClock.uptimeMillis()) or promptClosed
         // The double-home action: pressing home when there was nothing to
         // close and nowhere to scroll runs the configured action instead of
         // no-opping. homeButtonAction supersedes the legacy homeSearch flag
@@ -3595,6 +3609,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 memberMenu = menu
             },
             onDismiss = {
+                cardSwipeClose.onCardClosed(
+                    SystemClock.uptimeMillis(), carried = popup?.let(drag::ownsGestureIn) == true
+                )
                 memberMenu?.dismiss()
                 memberMenu = null
                 // Closed under a held app or its drag (a home press, Back, a
@@ -3612,7 +3629,13 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // lands on. A modal menu leaves outside taps to its host (see
         // makeModal), and the card's window is the host here: the activity
         // never sees taps in a folder.
-        popup?.let { window -> window.setTouchInterceptor { _, ev -> drag.routeGesture(ev, window) } }
+        cardSwipeClose.onCardShown()
+        popup?.let { window ->
+            window.setTouchInterceptor { _, ev ->
+                cardSwipeClose.onTouch(ev.actionMasked)
+                drag.routeGesture(ev, window)
+            }
+        }
         reorder = (popup?.contentView as? ViewGroup)?.let { content ->
             FolderReorderDrag(content, adapter, { viewModel.state.value.prefs }) { order ->
                 viewModel.reorderFolder(folder.id, order)

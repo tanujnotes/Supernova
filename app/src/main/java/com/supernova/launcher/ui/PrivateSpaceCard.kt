@@ -7,6 +7,8 @@ import android.view.ViewGroup
 import android.widget.PopupWindow
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.withResumed
 import com.supernova.launcher.R
@@ -65,6 +67,18 @@ class PrivateSpaceCard(
 
     private var unlockWait: Job? = null
 
+    // The system's unlock prompt asked for, and the home screen not back in
+    // front since: the prompt is what is showing.
+    private var promptUp = false
+
+    init {
+        activity.lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onResume(owner: LifecycleOwner) {
+                promptUp = false
+            }
+        })
+    }
+
     // The card showing, and its apps by member id: one card at a time.
     private var card: PopupWindow? = null
     private var appsById: Map<String, LaunchableApp> = emptyMap()
@@ -84,6 +98,7 @@ class PrivateSpaceCard(
         // apps, and the page can be bound afresh under the one tapped.
         val itemId = anchor?.getTag(R.id.tag_item_id) as? String
         viewModel.setPrivateSpaceLocked(false)
+        promptUp = true
         unlockWait = activity.lifecycleScope.launch {
             withTimeoutOrNull(UNLOCK_WAIT_MS) {
                 viewModel.state.first { it.privateSpace?.locked == false }
@@ -106,10 +121,15 @@ class PrivateSpaceCard(
     }
 
     // A home press or the screen going off calls off a card still waiting
-    // on its unlock.
-    fun cancelPending() {
+    // on its unlock. Returns whether its unlock prompt was what was showing:
+    // a home press that swipes the prompt away has done its job then, and
+    // must not go on to the home button's action (#110).
+    fun cancelPending(): Boolean {
+        val prompting = unlockWait != null && promptUp
         unlockWait?.cancel()
         unlockWait = null
+        promptUp = false
+        return prompting
     }
 
     private fun show(anchor: View) {
