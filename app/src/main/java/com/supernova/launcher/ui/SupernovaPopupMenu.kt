@@ -329,7 +329,9 @@ class SupernovaPopupMenu(
         beginGroup(Group.SHORTCUT)
         val image = ImageView(context).apply {
             icon?.let(::setImageDrawable)
-            layoutParams = LinearLayout.LayoutParams(context.dp(24), context.dp(24)).apply { marginEnd = context.dp(14) }
+            layoutParams = LinearLayout.LayoutParams(context.dp(24), context.dp(24)).apply {
+                marginEnd = labelGap(context.dp(24))
+            }
         }
         val row = buildRow(label, image, sub = false, onClick)
         if (onLongPress != null) {
@@ -367,16 +369,23 @@ class SupernovaPopupMenu(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         ).apply {
-            leftMargin = context.dp(8)
-            rightMargin = context.dp(8)
+            leftMargin = context.dp(GROUP_INSET_DP)
+            rightMargin = context.dp(GROUP_INSET_DP)
             topMargin = if (content.childCount > 0) context.dp(6) else 0
             bottomMargin = context.dp(2)
         }
         content.addView(this)
     }
 
+    // A row inside the shortcut card or a tile group gives back the group's
+    // inset, so its icon and label line up with the slab's own rows.
     private fun addGroupRow(row: View, parent: LinearLayout) {
         val tiles = tileGroup
+        if (tiles != null || parent === shortcutCard) {
+            row.setPaddingRelative(
+                row.paddingStart - context.dp(GROUP_INSET_DP), row.paddingTop, row.paddingEnd, row.paddingBottom
+            )
+        }
         if (tiles == null) {
             parent.addView(row)
             return
@@ -401,8 +410,8 @@ class SupernovaPopupMenu(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         ).apply {
-            leftMargin = context.dp(8)
-            rightMargin = context.dp(8)
+            leftMargin = context.dp(GROUP_INSET_DP)
+            rightMargin = context.dp(GROUP_INSET_DP)
             topMargin = context.dp(6)
             bottomMargin = context.dp(2)
         }
@@ -514,9 +523,13 @@ class SupernovaPopupMenu(
             setImageResource(icon)
             imageTintList = ColorStateList.valueOf(textColor)
             layoutParams = LinearLayout.LayoutParams(sizePx, sizePx).apply {
-                marginEnd = context.dp(24) - (sizePx - context.dp(18)) / 2
+                marginEnd = labelGap(sizePx)
             }
         }
+
+    // Every row centres its icon on one line (ICON_CENTER_DP) and starts its
+    // label on another (LABEL_START_DP), whatever the icon's size.
+    private fun labelGap(iconPx: Int): Int = context.dp(LABEL_START_DP - ICON_CENTER_DP) - iconPx / 2
 
     private fun buildRow(
         label: CharSequence,
@@ -528,7 +541,10 @@ class SupernovaPopupMenu(
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             val vPad = if (style == PopupMenuStyle.ANDROID12) 13 else 11
-            setPadding(context.dp(18), context.dp(vPad), context.dp(18), context.dp(vPad))
+            setPaddingRelative(
+                context.dp(ICON_CENTER_DP) - icon.layoutParams.width / 2, context.dp(vPad),
+                context.dp(18), context.dp(vPad)
+            )
             if (style == PopupMenuStyle.PILLS) {
                 background = GradientDrawable().apply {
                     setColor(surfaceColor)
@@ -602,5 +618,10 @@ class SupernovaPopupMenu(
         private const val ACTION_ICON_DP = 48
         private const val ACTION_ICON_PAD_DP = 14
         private const val ACTION_ICONS_PER_ROW = 5
+        // Row geometry from the menu's edge: the icons' centre line, the
+        // labels' start, and how far the shortcut card and tile groups sit in.
+        private const val ICON_CENTER_DP = 28
+        private const val LABEL_START_DP = 61
+        private const val GROUP_INSET_DP = 8
     }
 }
