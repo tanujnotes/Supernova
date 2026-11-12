@@ -50,6 +50,9 @@ class DrawerController(
     private val onFolderClick: (View, DrawerGroup, List<LaunchableApp>) -> Unit,
     // A folder long-pressed: its menu, and a drag to the home screen.
     private val onFolderLongPress: (View, DrawerGroup, List<LaunchableApp>) -> Unit,
+    // A tab's menu, anchored to the tab: a group tab's (its group as
+    // stored), or the All tab's (null).
+    private val onTabMenu: (View, DrawerGroup?) -> Unit = { _, _ -> },
     // Activated custom cards above the list (the drawer cards); null
     // leaves the slot empty.
     private val cards: CardHost? = null
@@ -561,7 +564,11 @@ class DrawerController(
 
             override fun onTabUnselected(tab: TabLayout.Tab) = Unit
 
-            override fun onTabReselected(tab: TabLayout.Tab) = Unit
+            // A tap on the tab already showing opens its menu, as holding
+            // it does.
+            override fun onTabReselected(tab: TabLayout.Tab) {
+                openTabMenu(tab)
+            }
         })
         binding.drawerPrivateLock.setOnClickListener {
             viewModel.privateSpace()?.let { viewModel.setPrivateSpaceLocked(!it.locked) }
@@ -912,6 +919,8 @@ class DrawerController(
     // Clears the query once the sheet is off screen, so the next open starts
     // on the full list.
     private fun resetSearch() {
+        // The All tab's hidden-apps peek ends with the drawer, as a query does.
+        showHiddenApps(false)
         if (cardsShown) {
             cardsShown = false
             cards?.onHidden()
@@ -1145,7 +1154,10 @@ class DrawerController(
 
     private fun appsForTab(tab: Any?): List<LaunchableApp> = when (tab) {
         null -> {
-            val all = if (workTabActive()) viewModel.personalApps() else viewModel.visibleApps()
+            // Show hidden apps: every app but the private space's, hidden
+            // ones too.
+            val pool = if (hiddenAppsShown) viewModel.appsForPicking() else viewModel.visibleApps()
+            val all = if (workTabActive()) pool.filter { it.userSerial == 0L } else pool
             val isolated = viewModel.isolatedTabKeys()
             if (isolated.isEmpty()) all else all.filterNot { viewModel.hiddenKey(it) in isolated }
         }
@@ -1332,6 +1344,47 @@ class DrawerController(
         }
     }
 
+    // The All tab and the group tabs have a menu; the work and private tabs
+    // have nothing in it to edit. A tab held while another shows becomes the
+    // one showing first, so the list under the menu is the one it edits.
+    private fun openTabMenu(tab: TabLayout.Tab): Boolean {
+        val tag = tab.tag
+        if (tag != null && tag !is DrawerGroup) return false
+        if (!tab.isSelected) tab.select()
+        // The tab holds its group as it was when the bar was built.
+        val group = (tag as? DrawerGroup)?.let { held ->
+            viewModel.drawerTabGroups().firstOrNull { it.name == held.name } ?: held
+        }
+        onTabMenu(tab.view, group)
+        return true
+    }
+
+    // The All tab's Show hidden apps: its list takes in the hidden apps too
+    // until it is picked again or the drawer closes, and its name carries a
+    // star meanwhile.
+    var hiddenAppsShown = false
+        private set
+
+    fun toggleHiddenApps() = showHiddenApps(!hiddenAppsShown)
+
+    private fun showHiddenApps(show: Boolean) {
+        if (show == hiddenAppsShown) return
+        hiddenAppsShown = show
+        val tabs = binding.drawerTabs
+        (0 until tabs.tabCount).mapNotNull { tabs.getTabAt(it) }.firstOrNull { it.tag == null }?.setText(allTabLabel())
+        if (populated) submit() else needsRefresh = true
+    }
+
+    private fun allTabLabel(): String =
+        binding.root.context.getString(R.string.drawer_all) + if (hiddenAppsShown) "*" else ""
+
+    // A tab renamed from its menu: the bar rebuilds once the change is
+    // stored and keeps the tab the user is on by its name, the new one now.
+    fun followTabRename(from: String, to: String) {
+        val tab = selectedTab as? DrawerGroup ?: return
+        if (tab.name == from) selectedTab = tab.copy(name = to)
+    }
+
     private fun rebuildTabs(prefs: LauncherPrefs) {
         val tabBarMode = prefs.drawerTabBar
         val groups = viewModel.drawerTabGroups()
@@ -1372,7 +1425,7 @@ class DrawerController(
         // it adds, and the listener then overwrote selectedTab mid-rebuild,
         // so every rebuild landed on the default tab.
         if (!hideAll) {
-            tabs.addTab(tabs.newTab().setText(R.string.drawer_all).also { it.tag = null }, false)
+            tabs.addTab(tabs.newTab().setText(allTabLabel()).also { it.tag = null }, false)
         }
         if (workTab && !tabsOff) {
             tabs.addTab(tabs.newTab().setText(R.string.drawer_work).also { it.tag = WorkTab }, false)
@@ -1384,6 +1437,12 @@ class DrawerController(
         }
         if (privateTab) {
             tabs.addTab(tabs.newTab().setText(R.string.drawer_private).also { it.tag = PrivateTab }, false)
+        }
+        // Held, a tab opens its menu. Every view, reused ones too: TabLayout
+        // pools them, and a reused one keeps the listener of the tab it had.
+        for (i in 0 until tabs.tabCount) {
+            val tab = tabs.getTabAt(i) ?: continue
+            tab.view.setOnLongClickListener { openTabMenu(tab) }
         }
 
         // The tab the user was on, else the default tab pref, else the first.

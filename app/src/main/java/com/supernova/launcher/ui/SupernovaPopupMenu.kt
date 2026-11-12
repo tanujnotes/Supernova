@@ -452,7 +452,12 @@ class SupernovaPopupMenu(
         val cardLeft = (touchX?.toInt() ?: location[0])
             .coerceIn(edge, maxOf(edge, window.width - cardWidth - edge))
         val gap = context.dp(2)
-        val spaceBelow = window.height - (location[1] + anchor.height)
+        // The window runs under the navigation bar, whose buttons draw over
+        // anything there: a menu reaching into it (one off the drawer's
+        // bottom tab bar) had its last row under them.
+        val navBar = androidx.core.view.ViewCompat.getRootWindowInsets(anchor)
+            ?.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+        val spaceBelow = window.height - navBar - (location[1] + anchor.height)
         val cardTop =
             if (spaceBelow < cardHeight + gap) location[1] - cardHeight - gap
             else location[1] + anchor.height + gap

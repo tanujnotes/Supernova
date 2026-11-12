@@ -388,6 +388,9 @@
     <string name="group_convert_to_folder">Convert to folder</string>
     <string name="group_convert_to_tab">Convert to tab</string>
     <string name="new_tab">New tab</string>
+    <string name="edit_tab">Edit tab</string>
+    <string name="show_hidden_apps">Show hidden apps</string>
+    <string name="hide_apps">Hide apps</string>
     <string name="new_folder_group">New folder</string>
     <string name="group_tabs_header">Tabs</string>
     <string name="group_folders_header">Folders</string>

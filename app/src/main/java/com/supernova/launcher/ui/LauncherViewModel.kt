@@ -18,6 +18,7 @@ import com.supernova.launcher.data.CustomIcons
 import com.supernova.launcher.data.CustomShapeSpec
 import com.supernova.launcher.data.DeviceProfile
 import com.supernova.launcher.data.DrawerGroup
+import com.supernova.launcher.data.DrawerGroupEdit
 import com.supernova.launcher.data.DrawerGroupType
 import com.supernova.launcher.data.IconPack
 import com.supernova.launcher.data.IconShape
@@ -1089,26 +1090,26 @@ class LauncherViewModel(
 
     // The name the group goes by afterwards (unchanged for an empty or
     // same name), or null, and nothing renamed, when another group has the
-    // name: saving it would replace that group.
-    fun renameGroup(group: DrawerGroup, newName: String): String? {
-        val name = groupName(newName)
-        if (name.isEmpty() || name == group.name) return group.name
-        if (drawerGroups().any { it.name == name }) return null
-        viewModelScope.launch {
-            // One edit, so the group is never briefly missing (the drawer's
-            // tabs would rebuild without it), and checked again inside it
-            // for a group that took the name meanwhile.
-            preferences.updateDrawerGroups { groups ->
-                if (groups.any { it.name == name }) {
-                    groups
-                } else {
-                    // A renamed smart folder is the user's now, and
-                    // regenerating the smart ones leaves it be.
-                    groups.map { if (it.name == group.name) it.copy(name = name, smart = false) else it }
+    // name: saving it would replace that group. keepInMain, when given, is
+    // the group's Keep apps in main app tab choice, saved with the name (a
+    // tab's Edit dialog).
+    fun renameGroup(group: DrawerGroup, newName: String, keepInMain: Boolean? = null): String? {
+        val name = groupName(newName).ifEmpty { group.name }
+        val keptNow = !leavesMainList(group)
+        val keep = keepInMain?.takeIf { it != keptNow }
+        val renamed = name != group.name
+        if (renamed && drawerGroups().any { it.name == name }) return null
+        if (renamed || keep != null) {
+            viewModelScope.launch {
+                // One edit, so the group is never briefly missing (the
+                // drawer's tabs would rebuild without it), and checked again
+                // inside it for a group that took the name meanwhile.
+                preferences.updateDrawerGroups { groups ->
+                    DrawerGroupEdit.apply(groups, group.name, name, keep) ?: groups
                 }
-            }
-            if (state.value.prefs.drawerDefaultTab == group.name) {
-                preferences.set(Pref.drawerDefaultTab, name)
+                if (renamed && state.value.prefs.drawerDefaultTab == group.name) {
+                    preferences.set(Pref.drawerDefaultTab, name)
+                }
             }
         }
         return name

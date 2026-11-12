@@ -22,6 +22,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.view.WindowManager
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.core.graphics.Insets
@@ -1303,6 +1304,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             decorateFolderIcon = itemIcons::withFolderBadge,
             onFolderClick = { view, group, members -> showDrawerFolderPopup(view, group, members) },
             onFolderLongPress = ::longPressDrawerFolder,
+            onTabMenu = ::showDrawerTabMenu,
             cards = object : DrawerController.CardHost {
                 // Launches from a drawer card close the drawer like an app tap.
                 private val binder = cards.binder(afterLaunch = { hideDrawer() })
@@ -3763,6 +3765,65 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         activeFolderAdapter = adapter
     }
 
+    // A drawer tab held, or tapped while it shows: a group tab's name and
+    // Keep apps in main app tab (Edit tab) and its apps (Select apps); the
+    // All tab's hidden apps, shown in its list for a moment (Show hidden
+    // apps) or picked (Hide apps).
+    private fun showDrawerTabMenu(anchor: View, group: DrawerGroup?) {
+        drawer.hideKeyboardIfShowing()
+        val menu = newItemPopup()
+        if (group == null) {
+            menu.addRow(getString(R.string.show_hidden_apps), R.drawable.ic_menu_hide) { drawer.toggleHiddenApps() }
+            menu.addRow(getString(R.string.hide_apps), R.drawable.ic_menu_hide) { showHiddenAppsChecklist() }
+        } else {
+            menu.addRow(getString(R.string.edit_tab), R.drawable.ic_menu_edit) { promptEditTab(group) }
+            menu.addRow(getString(R.string.select_apps), R.drawable.ic_menu_select_apps) {
+                showDrawerGroupChecklist(group)
+            }
+        }
+        menu.show(anchor)
+    }
+
+    // The tab's name and whether its apps stay in the All list too, the two
+    // things the Add drawer tab dialog asks, saved together.
+    private fun promptEditTab(group: DrawerGroup) {
+        val input = EditText(this).apply {
+            hint = getString(R.string.group_name)
+            setText(group.name)
+            isSingleLine = true
+            setPadding(dp(FIELD_PAD_H_DP), dp(FIELD_PAD_V_DP), dp(FIELD_PAD_H_DP), dp(FIELD_PAD_V_DP))
+        }
+        val content = com.supernova.launcher.databinding.DialogNewGroupBinding.inflate(layoutInflater)
+        content.newGroupField.addView(com.supernova.launcher.ui.DialogField.wrap(input))
+        content.newGroupKeep.isChecked = !viewModel.leavesMainList(group)
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.edit_tab)
+            .setView(content.root)
+            .setPositiveButton(R.string.save) { _, _ ->
+                val typed = input.text?.toString().orEmpty()
+                val renamed = viewModel.renameGroup(group, typed, content.newGroupKeep.isChecked)
+                if (renamed == null) {
+                    Toast.makeText(this, R.string.group_name_taken, Toast.LENGTH_SHORT).show()
+                } else {
+                    drawer.followTabRename(group.name, renamed)
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .showTracked()
+    }
+
+    // Settings' Hidden apps picker, from the All tab's menu.
+    private fun showHiddenAppsChecklist() {
+        val apps = viewModel.state.value.apps
+        val checked = apps.map { viewModel.isAppHidden(it) }.toBooleanArray()
+        val checklist = com.supernova.launcher.ui.AppChecklist(
+            this, apps, checked.copyOf(), viewModel.appCatalog()::iconFor
+        )
+        checklist.show(getString(R.string.hidden_apps)) { ticks ->
+            apps.indices.filter { ticks[it] != checked[it] }.forEach { viewModel.setAppHidden(apps[it], ticks[it]) }
+        }
+    }
+
     private fun showDrawerGroupChecklist(group: DrawerGroup, name: String = group.name) {
         // A folder on the personal list offers no work apps while they have
         // their own tab.
@@ -4371,5 +4432,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // the display's short edge: wide enough to use the extra room, narrow
         // enough that five dock icons still read as a row.
         private const val LANDSCAPE_CHROME_WIDTH = 1.35f
+
+        // The space inside a dialog's outlined name field, as the app
+        // checklist's search field has: the box draws none of its own.
+        private const val FIELD_PAD_H_DP = 16
+        private const val FIELD_PAD_V_DP = 14
     }
 }
