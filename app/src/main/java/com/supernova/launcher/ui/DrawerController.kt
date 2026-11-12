@@ -1163,20 +1163,28 @@ class DrawerController(
         }
         WorkTab -> viewModel.workApps()
         PrivateTab -> viewModel.privateApps()
-        // The tab holds the group as it was when the bar was built, and picking
-        // its apps doesn't rebuild the bar: read the members from what is stored,
-        // or an app just added leaves All without showing up here.
-        is DrawerGroup -> viewModel.appsInGroup(viewModel.drawerTabGroups().firstOrNull { it.name == tab.name } ?: tab)
+        is DrawerGroup -> viewModel.appsInGroup(storedTab(tab))
         else -> viewModel.visibleApps()
     }
+
+    // The tab holds the group as it was when the bar was built, and picking
+    // its apps doesn't rebuild the bar: read the members from what is stored,
+    // or an app just added leaves All without showing up here.
+    private fun storedTab(tab: DrawerGroup): DrawerGroup =
+        viewModel.drawerTabGroups().firstOrNull { it.name == tab.name } ?: tab
 
     private fun submit() {
         val prefs = viewModel.state.value.prefs
         val tab = selectedTab
-        // FOLDER-type groups render on the All (or Personal) list only; their
-        // member apps leave the flat list and live inside the folder.
-        val folderGroups = if (tab == null) viewModel.drawerFolderGroups() else emptyList()
-        val folders = folderGroups.mapNotNull { group ->
+        // FOLDER-type groups render on the All (or Personal) list and in the
+        // tabs that hold them (TabFolders); a tab that takes its apps out of
+        // the main list takes its folders too.
+        val shownFolders = when (tab) {
+            null -> viewModel.drawerFoldersFor(null)
+            is DrawerGroup -> viewModel.drawerFoldersFor(storedTab(tab))
+            else -> emptyList()
+        }
+        val folders = shownFolders.mapNotNull { group ->
             val members = viewModel.drawerFolderApps(group)
             if (members.isEmpty()) {
                 null
@@ -1184,8 +1192,16 @@ class DrawerController(
                 AppDrawerAdapter.FolderEntry(group, buildFolderIcon(group, members), members)
             }
         }
-        // Unless the folder keeps its apps in the main list too.
-        val excluded = folderGroups.filter { viewModel.leavesMainList(it) }.flatMapTo(mutableSetOf()) { it.members }
+        // On the main list a folder's apps leave the flat list and live inside
+        // it, unless it keeps its apps in the main list too - also while a tab
+        // holds the folder. A tab lists exactly the apps it holds.
+        val excluded = if (tab == null) {
+            viewModel.drawerFolderGroups()
+                .filter { viewModel.leavesMainList(it) }
+                .flatMapTo(mutableSetOf()) { it.members }
+        } else {
+            emptySet()
+        }
         val apps = if (excluded.isEmpty()) {
             appsForTab(tab)
         } else {

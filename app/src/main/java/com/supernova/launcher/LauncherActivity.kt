@@ -3631,7 +3631,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             .toBooleanArray()
 
         val checklist = com.supernova.launcher.ui.AppChecklist(
-            this, apps, checked.copyOf(), viewModel.appCatalog()::iconFor
+            this, apps, checked.copyOf(), viewModel.appCatalog()::iconFor, LaunchableApp::label
         )
         checklist.show(folder.label.ifBlank { getString(R.string.folder) }) { ticks ->
             val added = ArrayList<LaunchableApp>()
@@ -3817,7 +3817,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         val apps = viewModel.state.value.apps
         val checked = apps.map { viewModel.isAppHidden(it) }.toBooleanArray()
         val checklist = com.supernova.launcher.ui.AppChecklist(
-            this, apps, checked.copyOf(), viewModel.appCatalog()::iconFor
+            this, apps, checked.copyOf(), viewModel.appCatalog()::iconFor, LaunchableApp::label
         )
         checklist.show(getString(R.string.hidden_apps)) { ticks ->
             apps.indices.filter { ticks[it] != checked[it] }.forEach { viewModel.setAppHidden(apps[it], ticks[it]) }
@@ -3829,16 +3829,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // their own tab.
         val personalOnly = group.type == com.supernova.launcher.data.DrawerGroupType.FOLDER && viewModel.workTabActive()
         val apps = if (personalOnly) viewModel.personalApps() else viewModel.visibleApps()
-        if (apps.isEmpty()) return
-        val checked = apps.map { viewModel.isInGroup(it, group) }.toBooleanArray()
-        val checklist = com.supernova.launcher.ui.AppChecklist(
-            this, apps, checked.copyOf(), viewModel.appCatalog()::iconFor
-        )
-        checklist.show(name) { ticks ->
-            val changes = apps.indices.filter { ticks[it] != checked[it] }.associate { apps[it] to ticks[it] }
-            // By the name it is stored under, which a rename just changed.
-            if (changes.isNotEmpty()) viewModel.setGroupMembership(name, changes)
-        }
+        // By the name it is stored under, which a rename just changed.
+        com.supernova.launcher.ui.GroupChecklist(this, viewModel, itemIcons).show(group, apps, name)
     }
 
     private fun shortcutsFor(packageName: String, userSerial: Long): List<ShortcutInfo> {

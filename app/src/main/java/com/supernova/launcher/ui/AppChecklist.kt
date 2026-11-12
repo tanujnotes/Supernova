@@ -16,19 +16,19 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.widget.doAfterTextChanged
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.supernova.launcher.R
-import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.search.AppMatcher
 
 // Every app checklist (Select apps for home, dock and drawer folders, a
-// drawer group's apps, Hidden apps, Badged apps): a search field over the
-// apps, the ticked ones first, then a divider and the rest. The order is set
-// as the list opens, so a tick doesn't move its row. checked is indexed as
-// apps is, and holds every tick, filtered out of view or not.
-class AppChecklist(
+// drawer group's apps and folders, Hidden apps, Badged apps): a search field
+// over the rows, the ticked ones first, then a divider and the rest. The
+// order is set as the list opens, so a tick doesn't move its row. checked is
+// indexed as apps is, and holds every tick, filtered out of view or not.
+class AppChecklist<T>(
     private val context: Context,
-    private val apps: List<LaunchableApp>,
+    private val apps: List<T>,
     private val checked: BooleanArray,
-    private val iconFor: (LaunchableApp) -> Drawable?
+    private val iconFor: (T) -> Drawable?,
+    private val labelOf: (T) -> String
 ) {
     private val inFolder = apps.indices.filter { checked[it] }
     private val others = apps.indices.filterNot { checked[it] }
@@ -95,7 +95,7 @@ class AppChecklist(
     // Matched across all apps at once, so a typo match in one group drops
     // out when the other has a real one.
     private fun arrange(query: String?): List<Int> {
-        val matched = query?.let { AppMatcher.filter(apps.indices.toList(), it) { i -> apps[i].label }.toHashSet() }
+        val matched = query?.let { AppMatcher.filter(apps.indices.toList(), it) { i -> labelOf(apps[i]) }.toHashSet() }
         val first = if (matched == null) inFolder else inFolder.filter { it in matched }
         val rest = if (matched == null) others else others.filter { it in matched }
         return if (first.isNotEmpty() && rest.isNotEmpty()) first + DIVIDER + rest else first + rest
@@ -119,7 +119,7 @@ class AppChecklist(
             val app = apps[index]
             row.findViewById<ImageView>(R.id.folderCheckIcon).setImageDrawable(iconFor(app))
             row.findViewById<CheckedTextView>(R.id.folderCheckLabel).apply {
-                text = app.label
+                text = labelOf(app)
                 isChecked = checked[index]
                 // A row reused for another app shows its tick at once: the
                 // box's own animation would play the old app's untick.

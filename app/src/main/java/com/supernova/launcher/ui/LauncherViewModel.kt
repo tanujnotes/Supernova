@@ -20,6 +20,7 @@ import com.supernova.launcher.data.DeviceProfile
 import com.supernova.launcher.data.DrawerGroup
 import com.supernova.launcher.data.DrawerGroupEdit
 import com.supernova.launcher.data.DrawerGroupType
+import com.supernova.launcher.data.GroupPick
 import com.supernova.launcher.data.IconPack
 import com.supernova.launcher.data.IconShape
 import com.supernova.launcher.data.ItemType
@@ -32,6 +33,7 @@ import com.supernova.launcher.data.LauncherRepository
 import com.supernova.launcher.data.Pref
 import com.supernova.launcher.data.PrefSpec
 import com.supernova.launcher.data.PrivateSpace
+import com.supernova.launcher.data.TabFolders
 import com.supernova.launcher.data.WorkspaceGeometry
 import com.supernova.launcher.gesture.Gesture
 import com.supernova.launcher.gesture.GestureBinding
@@ -1054,11 +1056,19 @@ class LauncherViewModel(
             DrawerGroupType.TAB -> state.value.prefs.drawerIsolateTabs
         }
 
-    // Every key a TAB-type group takes out of the All/Personal list.
+    // Every key a TAB-type group takes out of the All/Personal list: its
+    // apps', and its drawer folders' (TabFolders).
     fun isolatedTabKeys(): Set<String> =
         drawerGroups()
             .filter { it.type == DrawerGroupType.TAB && leavesMainList(it) }
             .flatMapTo(mutableSetOf()) { it.members }
+
+    // The drawer folders a list shows: a tab's own, or for the main list
+    // (null) every folder no tab took out of it.
+    fun drawerFoldersFor(tab: DrawerGroup?): List<DrawerGroup> {
+        val folders = drawerFolderGroups()
+        return if (tab == null) TabFolders.onMainList(folders, isolatedTabKeys()) else TabFolders.inTab(tab, folders)
+    }
 
     // Like any edit, it makes a smart folder the user's: regenerating the
     // smart ones would otherwise put the folder back without the choice.
@@ -1103,9 +1113,15 @@ class LauncherViewModel(
             viewModelScope.launch {
                 // One edit, so the group is never briefly missing (the
                 // drawer's tabs would rebuild without it), and checked again
-                // inside it for a group that took the name meanwhile.
+                // inside it for a group that took the name meanwhile. The
+                // tabs holding a renamed folder follow the new name.
                 preferences.updateDrawerGroups { groups ->
-                    DrawerGroupEdit.apply(groups, group.name, name, keep) ?: groups
+                    val edited = DrawerGroupEdit.apply(groups, group.name, name, keep)
+                    when {
+                        edited == null -> groups
+                        renamed -> TabFolders.renamed(edited, group.name, name)
+                        else -> edited
+                    }
                 }
                 if (renamed && state.value.prefs.drawerDefaultTab == group.name) {
                     preferences.set(Pref.drawerDefaultTab, name)
@@ -1141,7 +1157,24 @@ class LauncherViewModel(
         return visible.filter { hiddenKey(it) in group.members }
     }
 
-    fun isInGroup(app: LaunchableApp, group: DrawerGroup): Boolean = hiddenKey(app) in group.members
+    // A group's Select apps rows: [apps], and first for a tab the drawer
+    // folders it can hold - each one with apps to show, and any it already
+    // holds, so an emptied one can still be let go.
+    fun groupPicks(group: DrawerGroup, apps: List<LaunchableApp>): List<GroupPick> {
+        val folders = if (group.type == DrawerGroupType.TAB) {
+            drawerFolderGroups().filter { drawerFolderApps(it).isNotEmpty() || isPicked(GroupPick.Folder(it), group) }
+        } else {
+            emptyList()
+        }
+        return folders.map(GroupPick::Folder) + apps.map(GroupPick::App)
+    }
+
+    fun isPicked(pick: GroupPick, group: DrawerGroup): Boolean = memberKey(pick) in group.members
+
+    private fun memberKey(pick: GroupPick): String = when (pick) {
+        is GroupPick.App -> hiddenKey(pick.app)
+        is GroupPick.Folder -> TabFolders.keyOf(pick.group.name)
+    }
 
     fun workTabActive(): Boolean = state.value.prefs.drawerWorkTab && hasWorkApps()
 
@@ -1154,9 +1187,9 @@ class LauncherViewModel(
 
     // A checklist's Save: every changed tick in one write. Picking a smart
     // folder's apps makes it the user's, as a retype does.
-    fun setGroupMembership(groupName: String, changes: Map<LaunchableApp, Boolean>) {
-        val add = changes.filterValues { it }.keys.map(::hiddenKey).toSet()
-        val remove = changes.filterValues { !it }.keys.map(::hiddenKey).toSet()
+    fun setGroupMembership(groupName: String, changes: Map<GroupPick, Boolean>) {
+        val add = changes.filterValues { it }.keys.map(::memberKey).toSet()
+        val remove = changes.filterValues { !it }.keys.map(::memberKey).toSet()
         editGroup(groupName) { it.copy(members = it.members - remove + add, smart = false) }
     }
 
@@ -1174,7 +1207,10 @@ class LauncherViewModel(
     fun removeGroup(name: String) {
         val smart = drawerGroups().firstOrNull { it.name == name }?.smart == true
         viewModelScope.launch {
-            preferences.removeDrawerGroup(name)
+            // One edit: the group goes, and so does its place in any tab.
+            preferences.updateDrawerGroups { groups ->
+                TabFolders.forgotten(groups.filterNot { it.name == name }, name)
+            }
             // A smart folder the user deleted stays deleted as apps install.
             if (smart) preferences.dismissSmartGroup(name)
         }

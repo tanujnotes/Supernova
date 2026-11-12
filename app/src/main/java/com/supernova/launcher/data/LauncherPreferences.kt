@@ -95,14 +95,6 @@ class LauncherPreferences(private val context: Context) {
         }
     }
 
-    suspend fun removeDrawerGroup(name: String) {
-        context.supernovaStore.edit { prefs ->
-            prefs[Pref.drawerGroups.key] = prefs[Pref.drawerGroups.key].orEmpty()
-                .filterNot { DrawerGroup.decode(it)?.name == name }
-                .toSet()
-        }
-    }
-
     suspend fun setGestureBinding(gesture: String, encoded: String) {
         context.supernovaStore.edit { prefs ->
             val current = prefs[Pref.gestureBindings.key].orEmpty()

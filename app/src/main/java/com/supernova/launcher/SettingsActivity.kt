@@ -35,6 +35,7 @@ import com.supernova.launcher.data.DrawerGroupType
 import com.supernova.launcher.data.IconShape
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.data.LauncherPrefs
+import com.supernova.launcher.data.TabFolders
 import com.supernova.launcher.databinding.ActivitySettingsBinding
 import com.supernova.launcher.databinding.DialogCustomShapeBinding
 import com.supernova.launcher.databinding.ItemIconShapeBinding
@@ -76,6 +77,8 @@ class SettingsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySettingsBinding
     private val viewModel: LauncherViewModel by viewModels { LauncherViewModel.Factory(appGraph) }
+    // Folder icons for a tab's Select apps.
+    private val itemIcons by lazy { com.supernova.launcher.ui.ItemIcons(this, viewModel) }
     private lateinit var adapter: SettingsAdapter
 
     // The settings row last tapped, and so what a choice menu opens under.
@@ -1679,7 +1682,9 @@ class SettingsActivity : AppCompatActivity() {
             groups.filter { it.type == DrawerGroupType.FOLDER }.forEach { add(GroupRow.Group(it)) }
             add(GroupRow.Add(DrawerGroupType.FOLDER))
         }
-        val labelsByKey = viewModel.state.value.apps.associate { viewModel.hiddenKey(it) to it.label }
+        // A tab's line names the drawer folders it holds as well as its apps.
+        val labelsByKey = viewModel.state.value.apps.associate { viewModel.hiddenKey(it) to it.label } +
+            groups.filter { it.type == DrawerGroupType.FOLDER }.associate { TabFolders.keyOf(it.name) to it.name }
         val adapter = object : android.widget.BaseAdapter() {
             override fun getCount() = rows.size
             override fun getItem(position: Int) = rows[position]
@@ -1838,12 +1843,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun showGroupEditor(group: DrawerGroup) {
-        showAppChecklist(
-            title = group.name,
-            apps = viewModel.visibleApps(),
-            checked = { viewModel.isInGroup(it, group) },
-            onSave = { changes -> viewModel.setGroupMembership(group.name, changes) }
-        )
+        com.supernova.launcher.ui.GroupChecklist(this, viewModel, itemIcons).show(group, viewModel.visibleApps())
     }
 
     // The app pickers: search, ticked apps first, and nothing applied until
@@ -1856,7 +1856,7 @@ class SettingsActivity : AppCompatActivity() {
     ) {
         val states = apps.map(checked).toBooleanArray()
         val checklist = com.supernova.launcher.ui.AppChecklist(
-            this, apps, states.copyOf(), viewModel.appCatalog()::iconFor
+            this, apps, states.copyOf(), viewModel.appCatalog()::iconFor, LaunchableApp::label
         )
         checklist.show(title) { ticks ->
             val changes = apps.indices.filter { ticks[it] != states[it] }.associate { apps[it] to ticks[it] }
