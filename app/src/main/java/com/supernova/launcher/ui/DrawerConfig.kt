@@ -21,13 +21,36 @@ enum class DrawerSort {
     ALPHA,
     ALPHA_REVERSE,
     INSTALL_DATE,
-    MOST_USED;
+    MOST_USED,
+    RECENTLY_USED,
+    APP_SIZE;
+
+    // Only the name orders have letters to scroll by.
+    val byName: Boolean get() = this == ALPHA || this == ALPHA_REVERSE
 
     // Its name in the store and in a backup, read back leniently.
     object Names : SettingEnumSerializer<DrawerSort>("DrawerSort", entries, ALPHA)
 
     companion object {
         fun fromName(name: String): DrawerSort = Names.parse(name)
+    }
+}
+
+// Which apps the drawer's top row shows, and in what order. ALPHA keeps
+// the recently used apps and puts them in name order, so the row stays put
+// while its apps change.
+@kotlinx.serialization.Serializable(with = TopRowSort.Names::class)
+enum class TopRowSort {
+    RECENTLY_USED,
+    MOST_USED,
+    INSTALL_DATE,
+    ALPHA;
+
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<TopRowSort>("TopRowSort", entries, RECENTLY_USED)
+
+    companion object {
+        fun fromName(name: String): TopRowSort = Names.parse(name)
     }
 }
 

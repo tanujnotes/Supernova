@@ -126,7 +126,13 @@
     <string name="tab_bar_none">Hidden</string>
     <string name="drawer_tab_bar_hidden_note">Hidden — the drawer shows all apps</string>
     <string name="drawer_tab_bar_no_tabs">%1$s · add tabs in Drawer groups</string>
-    <string name="drawer_frequent_row">Recently opened apps</string>
+    <string name="drawer_frequent_row">Top row</string>
+    <string name="drawer_frequent_row_summary">A row of apps above the app list</string>
+    <string name="drawer_top_row_sort">Top row order</string>
+    <string name="drawer_sort_buttons">Sort buttons</string>
+    <string name="drawer_sort_buttons_summary">Change the order from the top of the app list and the top row</string>
+    <string name="drawer_sort_apps_desc">App order: %1$s</string>
+    <string name="drawer_sort_top_row_desc">Top row order: %1$s</string>
     <string name="drawer_remember_position">Remember scroll position</string>
     <string name="drawer_auto_close">Close drawer after launching</string>
     <string name="drawer_folders_first">Show drawer folders first</string>
@@ -148,6 +154,8 @@
     <string name="sort_alpha_reverse">Reverse alphabetical</string>
     <string name="sort_install">Newest installed</string>
     <string name="sort_most_used">Most used</string>
+    <string name="sort_recently_used">Recently used</string>
+    <string name="sort_app_size">App size</string>
     <string name="drawer_work_tab">Separate Work tab</string>
     <string name="drawer_default_tab">Default tab</string>
     <string name="drawer_hide_all_tab">Hide the All tab</string>

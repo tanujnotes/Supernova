@@ -1026,34 +1026,17 @@ class LauncherViewModel(
     // labels, which left a renamed app filed under its old name - and out
     // of the A-Z rail's reach.
     private fun sortedApps(apps: List<LaunchableApp>): List<LaunchableApp> =
-        when (state.value.prefs.drawerSort) {
-            DrawerSort.ALPHA -> byLabel(apps, descending = false)
-            DrawerSort.ALPHA_REVERSE -> byLabel(apps, descending = true)
-            DrawerSort.INSTALL_DATE -> apps.sortedByDescending { it.installTime }
-            DrawerSort.MOST_USED -> apps.sortedWith(
-                compareByDescending<LaunchableApp> { launchCounts[hiddenKey(it)] ?: 0 }
-                    .then(LabelOrder.by { it.label })
-            )
-        }
+        DrawerOrder.sorted(apps, state.value.prefs.drawerSort, usage())
 
-    // In the device language's alphabet (LabelOrder), each label keyed
-    // once: this runs on the main thread for every list the drawer builds.
-    private fun byLabel(apps: List<LaunchableApp>, descending: Boolean): List<LaunchableApp> =
-        LabelOrder.sorted(apps, descending) { it.label }
+    private fun usage(): AppUsage = AppUsage(launchCounts, recentLaunches, ::hiddenKey)
 
-    // The row over the app list: the apps opened most recently. Until
-    // there is any recency to go on, the most-launched stand in.
-    fun recentApps(limit: Int): List<LaunchableApp> {
-        val visible = visibleApps()
-        if (recentLaunches.isNotEmpty()) {
-            val byKey = visible.associateBy(::hiddenKey)
-            val recent = recentLaunches.mapNotNull { byKey[it] }
-            if (recent.isNotEmpty()) return recent.take(limit)
-        }
-        return visible.filter { (launchCounts[hiddenKey(it)] ?: 0) > 0 }
-            .sortedByDescending { launchCounts[hiddenKey(it)] ?: 0 }
-            .take(limit)
-    }
+    // The apps opened most recently (search's row of them). Until there is
+    // any recency to go on, the most-launched stand in.
+    fun recentApps(limit: Int): List<LaunchableApp> = DrawerOrder.recentRow(visibleApps(), usage(), limit)
+
+    // The drawer's top row, in its own order (drawerTopRowSort).
+    fun topRowApps(limit: Int): List<LaunchableApp> =
+        DrawerOrder.topRow(visibleApps(), state.value.prefs.drawerTopRowSort, usage(), limit)
 
     fun noteLaunch(app: LaunchableApp) = persist { preferences.recordLaunch(hiddenKey(app)) }
 

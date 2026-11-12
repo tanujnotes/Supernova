@@ -43,6 +43,7 @@ import com.supernova.launcher.ui.LabelOverride
 import com.supernova.launcher.ui.LabelStyler
 import com.supernova.launcher.ui.LaunchAnimation
 import com.supernova.launcher.ui.StatusBarIcons
+import com.supernova.launcher.ui.TopRowSort
 import com.supernova.launcher.ui.theme.AccentColor
 import com.supernova.launcher.ui.theme.PaletteSourceMode
 import com.supernova.launcher.ui.theme.SurfaceId
@@ -601,6 +602,12 @@ object SettingsCatalogue {
                     R.string.drawer_sort, DrawerSort.entries,
                     { it.drawerSort }, { EnumLabels.of(it) }
                 ) { viewModel.set(Pref.drawerSort, it) },
+                SettingItem.Toggle(
+                    R.string.drawer_sort_buttons,
+                    get = { it.drawerSortButtons },
+                    set = { viewModel.set(Pref.drawerSortButtons, it) },
+                    subtitle = R.string.drawer_sort_buttons_summary
+                ),
                 rows.choice(
                     R.string.drawer_transition, com.supernova.launcher.ui.DrawerTransition.entries,
                     { it.drawerTransition }, { EnumLabels.of(it) }
@@ -643,8 +650,14 @@ object SettingsCatalogue {
                 SettingItem.Toggle(
                     R.string.drawer_frequent_row,
                     get = { it.drawerFrequentRow },
-                    set = { viewModel.set(Pref.drawerFrequentRow, it) }
+                    set = { viewModel.set(Pref.drawerFrequentRow, it) },
+                    subtitle = R.string.drawer_frequent_row_summary
                 ),
+                rows.choice(
+                    R.string.drawer_top_row_sort, TopRowSort.entries,
+                    { it.drawerTopRowSort }, { EnumLabels.of(it) },
+                    visibleIf = { it.drawerFrequentRow }
+                ) { viewModel.set(Pref.drawerTopRowSort, it) },
                 // Horizontal Scroll group: paged style only.
                 SettingItem.Toggle(
                     R.string.drawer_infinite_scroll,

@@ -3,6 +3,7 @@ package com.supernova.launcher.data
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.supernova.launcher.search.WebProvider
 import com.supernova.launcher.ui.AnimationSpeed
+import com.supernova.launcher.ui.DrawerSort
 import com.supernova.launcher.ui.DrawerTabBar
 import com.supernova.launcher.ui.FolderMode
 import com.supernova.launcher.ui.FolderScroll
@@ -11,6 +12,7 @@ import com.supernova.launcher.ui.LaunchAnimation
 import com.supernova.launcher.ui.PopupMenuStyle
 import com.supernova.launcher.ui.ScrollEffect
 import com.supernova.launcher.ui.StatusBarIcons
+import com.supernova.launcher.ui.TopRowSort
 import com.supernova.launcher.ui.theme.PaletteSourceMode
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
@@ -59,6 +61,9 @@ class BackupRoundTripTest {
         drawerAutoKeyboard = true,
         drawerTabBar = DrawerTabBar.BOTTOM,
         drawerFrequentRow = true,
+        drawerSort = DrawerSort.RECENTLY_USED,
+        drawerTopRowSort = TopRowSort.INSTALL_DATE,
+        drawerSortButtons = false,
         drawerRememberPosition = true,
         drawerAutoClose = false,
         drawerFoldersFirst = false,

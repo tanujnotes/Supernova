@@ -18,6 +18,7 @@ import com.supernova.launcher.ui.LaunchAnimation
 import com.supernova.launcher.ui.PopupMenuStyle
 import com.supernova.launcher.ui.ScrollEffect
 import com.supernova.launcher.ui.StatusBarIcons
+import com.supernova.launcher.ui.TopRowSort
 import com.supernova.launcher.ui.theme.AccentColor
 import com.supernova.launcher.ui.theme.PaletteSourceMode
 import com.supernova.launcher.ui.theme.ThemeMode
@@ -225,7 +226,8 @@ data class LauncherPrefs(
     val drawerTabStyle: DrawerTabStyle = DrawerTabStyle.CLASSIC,
     // Isolate tabs: a sideways swipe on the list stays on the tab.
     val drawerTabsNoSwipe: Boolean = false,
-    // Horizontal most-launched strip pinned above the drawer list.
+    // The top row over the drawer list (recently opened apps by default,
+    // drawerTopRowSort).
     val drawerFrequentRow: Boolean = true,
     // Keep the scroll position across close/reopen instead of resetting to top.
     val drawerRememberPosition: Boolean = false,
@@ -273,6 +275,10 @@ data class LauncherPrefs(
     // isolation); folder-type groups always did.
     val drawerIsolateTabs: Boolean = false,
     val drawerSort: DrawerSort = DrawerSort.ALPHA,
+    // The drawer top row's apps and order; recently used by default.
+    val drawerTopRowSort: TopRowSort = TopRowSort.RECENTLY_USED,
+    // The sort pickers at the top of the drawer's list and its top row.
+    val drawerSortButtons: Boolean = true,
     // On by default; it only shows with a work profile.
     val drawerWorkTab: Boolean = true,
     // Name of the group tab selected on open ("" = All), and whether the
@@ -631,6 +637,9 @@ data class LaunchableApp(
     val label: String,
     val userSerial: Long = 0L,
     val installTime: Long = 0L,
+    // The app's installed files (its APKs), for the size order. Readable
+    // without any permission, unlike its data and cache.
+    val sizeBytes: Long = 0L,
     // Resolved from the app's override so list surfaces can honor it.
     val hideLabel: Boolean = false,
     // In the private space: drawer and search only, never the home screen.

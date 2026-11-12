@@ -410,15 +410,19 @@ class DrawerController(
     // stay put above the pages. Built with the controller, before init: taken
     // out of the sheet on first use instead, as it once was, that could land
     // inside the sheet's view-state restore and crash it.
+    // The sort pickers ride in the same header: one over the row, one (with
+    // the hairline) over the list.
+    private val sortBars = DrawerSortBars(context, binding.drawerFrequentDivider, viewModel)
+
     private val listHeader: LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
         layoutParams = ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
         )
         binding.drawerSheet.removeView(binding.drawerFrequentRow)
-        binding.drawerSheet.removeView(binding.drawerFrequentDivider)
+        addView(sortBars.topBar)
         addView(binding.drawerFrequentRow)
-        addView(binding.drawerFrequentDivider)
+        addView(sortBars.listBar)
     }
 
     init {
@@ -639,10 +643,10 @@ class DrawerController(
             cardsShown = true
             cards?.onShown()
         }
-        // Most-used ordering shifts with every launch; those changes no longer
+        // Usage orders shift with every launch; those changes no longer
         // re-emit state, so refresh the ordering as the drawer opens.
-        val mostUsed = prefs.drawerSort == DrawerSort.MOST_USED
-        if (!populated || needsRefresh || mostUsed) {
+        val byUsage = prefs.drawerSort == DrawerSort.MOST_USED || prefs.drawerSort == DrawerSort.RECENTLY_USED
+        if (!populated || needsRefresh || byUsage) {
             populated = true
             needsRefresh = false
             submit()
@@ -1287,11 +1291,13 @@ class DrawerController(
         when (prefs.drawerSort) {
             DrawerSort.ALPHA -> AppDrawerAdapter.Order.A_Z
             DrawerSort.ALPHA_REVERSE -> AppDrawerAdapter.Order.Z_A
-            DrawerSort.INSTALL_DATE, DrawerSort.MOST_USED -> AppDrawerAdapter.Order.UNSORTED
+            // Already in order, and no letters to scroll by.
+            DrawerSort.INSTALL_DATE, DrawerSort.MOST_USED, DrawerSort.RECENTLY_USED,
+            DrawerSort.APP_SIZE -> AppDrawerAdapter.Order.UNSORTED
         }
 
-    // The most-launched strip above the list: All tab only, hidden while a
-    // query filters, rebound only when its membership or the icons change.
+    // The top row above the list: All tab only, hidden while a query
+    // filters, rebound only when its membership or the icons change.
     private var frequentRowKey: String? = null
     // Last icon generation the list was bound at; a change means per-app
     // icons moved even though the app list is identical (DiffUtil would skip).
@@ -1300,21 +1306,20 @@ class DrawerController(
     private fun updateFrequentRow() {
         updateCards()
         val prefs = viewModel.state.value.prefs
-        if (!prefs.drawerFrequentRow || selectedTab != null ||
-            !binding.drawerSearch.text.isNullOrBlank()
-        ) {
-            setFrequentRowVisible(false)
+        val searching = !binding.drawerSearch.text.isNullOrBlank()
+        if (!prefs.drawerFrequentRow || selectedTab != null || searching) {
+            setFrequentRowVisible(prefs, false, list = !searching)
             return
         }
-        // The recents row: the recently opened apps, labelled, one per grid
-        // column.
+        // The top row: apps in its own order (recently opened by default),
+        // labelled, one per grid column.
         val columns = columnCount(prefs)
-        val apps = viewModel.recentApps(columns)
+        val apps = viewModel.topRowApps(columns)
         if (apps.isEmpty()) {
-            setFrequentRowVisible(false)
+            setFrequentRowVisible(prefs, false, list = true)
             return
         }
-        setFrequentRowVisible(true)
+        setFrequentRowVisible(prefs, true, list = true)
         val textColor = Styles.resolve(context, prefs).of(SurfaceId.DRAWER).text
         // The icon box the list under it draws (AppDrawerAdapter.sizeIcon):
         // the style's base icon at the drawer's icon scale, kept inside one
@@ -1400,12 +1405,12 @@ class DrawerController(
     fun refreshFrequentRow() = updateFrequentRow()
 
     // The strip and its rule are one unit: a bare divider above the list
-    // reads as a stray line.
-    private fun setFrequentRowVisible(visible: Boolean) {
-        val state = if (visible) View.VISIBLE else View.GONE
-        binding.drawerFrequentRow.visibility = state
-        binding.drawerFrequentDivider.visibility = state
-        headerVisible = visible
+    // reads as a stray line. The list's sort button shows with or without
+    // them (list: no query is filtering the list).
+    private fun setFrequentRowVisible(prefs: LauncherPrefs, visible: Boolean, list: Boolean) {
+        binding.drawerFrequentRow.visibility = if (visible) View.VISIBLE else View.GONE
+        sortBars.show(prefs, topRow = visible, list = list)
+        headerVisible = visible || sortBars.listBar.visibility == View.VISIBLE
         placeListHeader()
     }
 
@@ -1781,6 +1786,7 @@ class DrawerController(
         // track the drawer text at Launcher3's 30/255.
         (binding.drawerFrequentDivider.background?.mutate() as? GradientDrawable)
             ?.setColor((0x33 shl 24) or (resolvedDrawer.text and 0xFFFFFF))
+        sortBars.applyColors(resolvedDrawer.text)
         binding.drawerFastScroller.setColors(
             thumb = LabelStyler.parseColor(prefs.drawerScrubberColor, resolvedDrawer.accent),
             track = (FAST_SCROLL_TRACK_ALPHA shl 24) or (resolvedDrawer.text and 0xFFFFFF),

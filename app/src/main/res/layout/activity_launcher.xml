@@ -281,8 +281,9 @@
             android:paddingHorizontal="12dp"
             android:visibility="gone" />
 
-        <!-- Frequent apps strip pinned above the list (drawerFrequentRow),
-             with a short centred rule separating it from the list. -->
+        <!-- The top row of apps (drawerFrequentRow), with a short centred
+             rule separating it from the list. DrawerController moves both
+             into the list's header, the rule into DrawerSortBars' strip. -->
         <com.supernova.launcher.ui.FrequentAppsRowView
             android:id="@+id/drawerFrequentRow"
             android:layout_width="match_parent"

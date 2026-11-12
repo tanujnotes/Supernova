@@ -25,6 +25,7 @@ import com.supernova.launcher.ui.LaunchAnimation
 import com.supernova.launcher.ui.PopupMenuStyle
 import com.supernova.launcher.ui.ScrollEffect
 import com.supernova.launcher.ui.StatusBarIcons
+import com.supernova.launcher.ui.TopRowSort
 import com.supernova.launcher.ui.theme.AccentColor
 import com.supernova.launcher.ui.theme.PaletteSourceMode
 import com.supernova.launcher.ui.theme.ThemeMode
@@ -212,6 +213,8 @@ object Pref {
     val drawerActionButtons = text("drawer_action_buttons")
     val drawerIsolateTabs = bool("drawer_isolate_tabs")
     val drawerSort = choice("drawer_sort", DrawerSort.entries)
+    val drawerTopRowSort = choice("drawer_top_row_sort", TopRowSort.entries)
+    val drawerSortButtons = bool("drawer_sort_buttons")
     val drawerWorkTab = bool("drawer_work_tab")
     val drawerDefaultTab = text("drawer_default_tab")
     val drawerHideAllTab = bool("drawer_hide_all_tab")

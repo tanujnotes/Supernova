@@ -24,7 +24,8 @@ class LauncherPreferences(private val context: Context) {
     }
 
     companion object {
-        private const val RECENT_LAUNCHES_MAX = 12
+        // Enough to put most of a phone's apps in Recently used order.
+        private const val RECENT_LAUNCHES_MAX = 100
         const val MAX_RECENT_SEARCHES = 8
 
         // Every LauncherPrefs field to its key (see Pref), so a setting that

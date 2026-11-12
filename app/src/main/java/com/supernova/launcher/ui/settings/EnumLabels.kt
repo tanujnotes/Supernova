@@ -25,6 +25,7 @@ import com.supernova.launcher.ui.LaunchAnimation
 import com.supernova.launcher.ui.PopupExtraRow
 import com.supernova.launcher.ui.ScrollEffect
 import com.supernova.launcher.ui.StatusBarIcons
+import com.supernova.launcher.ui.TopRowSort
 import com.supernova.launcher.ui.WallpaperScrollMode
 import com.supernova.launcher.data.IconGlass
 import com.supernova.launcher.data.ReshapeLegacy
@@ -263,6 +264,16 @@ object EnumLabels {
         DrawerSort.ALPHA_REVERSE -> R.string.sort_alpha_reverse
         DrawerSort.INSTALL_DATE -> R.string.sort_install
         DrawerSort.MOST_USED -> R.string.sort_most_used
+        DrawerSort.RECENTLY_USED -> R.string.sort_recently_used
+        DrawerSort.APP_SIZE -> R.string.sort_app_size
+    }
+
+    @StringRes
+    fun of(sort: TopRowSort): Int = when (sort) {
+        TopRowSort.RECENTLY_USED -> R.string.sort_recently_used
+        TopRowSort.MOST_USED -> R.string.sort_most_used
+        TopRowSort.INSTALL_DATE -> R.string.sort_install
+        TopRowSort.ALPHA -> R.string.sort_alpha
     }
 
     @StringRes
