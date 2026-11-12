@@ -251,9 +251,7 @@ class SearchResultsAdapter(
             TYPE_TOP -> TopHitHolder(ItemSearchTopHitBinding.inflate(inflater, parent, false))
             TYPE_HEADER -> HeaderHolder(ItemSearchHeaderBinding.inflate(inflater, parent, false))
             TYPE_DIVIDER -> DividerHolder(ItemSearchDividerBinding.inflate(inflater, parent, false))
-            TYPE_GRID -> GridHolder(fullWidth(SearchGridView(parent.context).apply {
-                setPadding((8 * density).toInt(), 0, (8 * density).toInt(), 0)
-            }) as SearchGridView)
+            TYPE_GRID -> GridHolder(fullWidth(SearchGridView(parent.context)) as SearchGridView)
             TYPE_SHORTCUTS -> ShortcutsHolder(fullWidth(FlowLayout(parent.context).apply {
                 maxLines = 1
                 setPadding((16 * density).toInt(), (4 * density).toInt(), (16 * density).toInt(), 0)
@@ -359,6 +357,10 @@ class SearchResultsAdapter(
     private inner class GridHolder(private val grid: SearchGridView) : RecyclerView.ViewHolder(grid) {
         fun bind(apps: List<SearchResult.App>, folders: List<SearchResult.Folder>) {
             grid.columns = columns
+            // The drawer's side padding once it is wider than the grid's own,
+            // so the tiles sit in the drawer's columns.
+            val side = (gridSideDp() * grid.resources.displayMetrics.density).toInt()
+            if (grid.paddingLeft != side || grid.paddingRight != side) grid.setPadding(side, 0, side, 0)
             // The tiles already there are bound again rather than replaced
             // (see rowIds): one taken out from under a finger took its
             // long-press with it.
@@ -624,12 +626,16 @@ class SearchResultsAdapter(
                         callbacks.onFrequentApp(anchor, app)
                     }
                 },
-                textColor, columns, sidePaddingDp = 8
+                textColor, columns, sidePaddingDp = gridSideDp()
             )
         }
     }
 
+    // The app grid's sides, and the frequent row's that lines up with it.
+    private fun gridSideDp(): Int = maxOf(GRID_SIDE_DP, prefs?.drawerPaddingH ?: 0)
+
     private companion object {
+        const val GRID_SIDE_DP = 8
         const val ACTION_TAG = "contact-action"
         const val TYPE_ROW = 0
         const val TYPE_CALC = 1

@@ -685,6 +685,22 @@ object SettingsCatalogue {
                     visibleIf = { !it.drawerMatchDesktop }
                 ),
                 SettingItem.Slider(
+                    R.string.drawer_padding_h,
+                    min = 0, max = 48,
+                    step = 2,
+                    get = { it.drawerPaddingH },
+                    set = { viewModel.set(Pref.drawerPaddingH, it) },
+                    display = { context.getString(R.string.padding_dp_value, it) }
+                ),
+                SettingItem.Slider(
+                    R.string.drawer_padding_v,
+                    min = 0, max = 48,
+                    step = 2,
+                    get = { it.drawerPaddingV },
+                    set = { viewModel.set(Pref.drawerPaddingV, it) },
+                    display = { context.getString(R.string.padding_dp_value, it) }
+                ),
+                SettingItem.Slider(
                     R.string.drawer_bg_opacity,
                     min = 20, max = 100,
                     step = 5,

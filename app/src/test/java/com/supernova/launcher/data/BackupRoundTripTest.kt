@@ -89,6 +89,8 @@ class BackupRoundTripTest {
         dockRememberPosition = true,
         dockPaddingH = 8,
         dockPaddingV = 4,
+        drawerPaddingH = 16,
+        drawerPaddingV = 10,
         searchWebProvider = WebProvider.DUCKDUCKGO,
         searchContacts = true,
         searchShortcuts = false,
@@ -247,6 +249,8 @@ class BackupRoundTripTest {
         assertEquals(LockMethod.ACCESSIBILITY, decoded.prefs.lockMethod)
         assertEquals(com.supernova.launcher.ui.AnimationSpeed.DEFAULT, decoded.prefs.animationSpeed)
         assertEquals(0, decoded.prefs.dockPaddingH)
+        assertEquals(0, decoded.prefs.drawerPaddingH)
+        assertEquals(0, decoded.prefs.drawerPaddingV)
     }
 
     @Test

@@ -199,6 +199,8 @@ object Pref {
     val smartFolders = bool("smart_folders")
     val smartFoldersDismissed = textSet("smart_folders_dismissed")
     val drawerIconScale = float("drawer_icon_scale", ICON_SCALE_MIN..ICON_SCALE_MAX)
+    val drawerPaddingH = int("drawer_padding_h", 0..DESKTOP_PADDING_MAX)
+    val drawerPaddingV = int("drawer_padding_v", 0..DESKTOP_PADDING_MAX)
     val drawerMatchDesktop = bool("drawer_match_desktop")
     val drawerBgOpacity = float("drawer_bg_opacity", DRAWER_OPACITY_MIN..1f)
     val drawerFastScroller = bool("drawer_fast_scroller")

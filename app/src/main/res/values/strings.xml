@@ -492,6 +492,8 @@
     <string name="opacity_percent">%1$d%%</string>
     <string name="dock_padding_h">Dock horizontal padding</string>
     <string name="dock_padding_v">Dock vertical padding</string>
+    <string name="drawer_padding_h">Drawer horizontal padding</string>
+    <string name="drawer_padding_v">Drawer vertical padding</string>
     <string name="desktop_padding_h">Horizontal page padding</string>
     <string name="desktop_padding_v">Vertical page padding</string>
     <string name="padding_dp_value">%1$d dp</string>

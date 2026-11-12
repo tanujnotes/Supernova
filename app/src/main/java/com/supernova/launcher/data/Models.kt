@@ -242,6 +242,11 @@ data class LauncherPrefs(
     // Folders on again clears it.
     val smartFoldersDismissed: Set<String> = emptySet(),
     val drawerIconScale: Float = 1f,
+    // Extra padding around the drawer's app list, in dp per axis: the
+    // columns share out what the sides leave, the rows what top and bottom
+    // leave.
+    val drawerPaddingH: Int = 0,
+    val drawerPaddingV: Int = 0,
     // When on, the drawer follows iconScale and its scale slider hides. On
     // by default.
     val drawerMatchDesktop: Boolean = true,

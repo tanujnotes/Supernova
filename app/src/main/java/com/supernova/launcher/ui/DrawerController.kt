@@ -368,14 +368,22 @@ class DrawerController(
         val rowOnNavBar = rowBelowList && keyboardInset == 0
         val listInset = if (rowBelowList) 0 else barInsets.bottom
         val liftedRow = if (searchRowLifted) context.dp(SEARCH_ROW_HEIGHT_DP) else 0
+        // The drawer's own padding settings: the sides pull the columns in,
+        // top and bottom the rows (the share-out in refreshGridRows and the
+        // page cut in pageRows both measure inside it).
+        val prefs = viewModel.state.value.prefs
+        val sidePad = context.dp(prefs.drawerPaddingH)
+        val endPad = context.dp(prefs.drawerPaddingV)
         binding.drawerSheet.setPadding(barInsets.left, barInsets.top + liftedRow, barInsets.right, keyboardInset)
         binding.drawerSearchResults.setPadding(0, 0, 0, context.dp(18) + listInset)
         // clipToPadding is false, so the list scrolls under the navigation bar
         // and comes to rest above it.
-        binding.drawerRecycler.setPadding(0, 0, 0, context.dp(18) + listInset)
+        binding.drawerRecycler.setPadding(sidePad, endPad, sidePad, context.dp(18) + listInset + endPad)
         // A page doesn't scroll, so the paged style keeps its pages where the
-        // list comes to rest, and cuts them to fit there (syncPages).
-        binding.drawerPager.setPadding(0, 0, 0, context.dp(18) + listInset)
+        // list comes to rest, and cuts them to fit there (syncPages). The
+        // sides pad each page instead (PageHolder), so a page effect still
+        // runs edge to edge.
+        binding.drawerPager.setPadding(0, endPad, 0, context.dp(18) + listInset + endPad)
         // Rows fade out towards both ends of the list. The bottom fade takes
         // in the navigation bar the list scrolls under, so a row is all but
         // gone by the time it is behind the buttons.
@@ -383,7 +391,7 @@ class DrawerController(
             list.fadeTop = context.dp(LIST_FADE_DP)
             list.fadeBottom = context.dp(LIST_FADE_DP) + listInset
         }
-        binding.drawerFastScroller.setPadding(0, context.dp(12), 0, context.dp(12) + listInset)
+        binding.drawerFastScroller.setPadding(0, context.dp(12) + endPad, 0, context.dp(12) + listInset + endPad)
         // A 44dp field, on the line the old 52dp one was centred on.
         binding.drawerSearchRow.setPadding(
             context.dp(16),
@@ -1551,7 +1559,8 @@ class DrawerController(
             prefs.drawerSort,
             // The automatic column count and the page rows follow the icon
             // size (columnCount, syncPages).
-            iconScale(prefs)
+            iconScale(prefs),
+            prefs.drawerPaddingH, prefs.drawerPaddingV
         )
         if (key == appliedStyle) return
         appliedStyle = key
@@ -1810,14 +1819,19 @@ class DrawerController(
     // Width the grid actually gets: the sheet once it has been laid out,
     // else the window. In landscape the two differ by the side insets, and
     // sizing off the raw display width there hands out a column that lives
-    // under the navigation bar.
-    private fun gridWidthPx(): Int {
+    // under the navigation bar. The drawer's side padding comes off both
+    // edges, unless `padded` is false: the column count is taken without
+    // it, so padding pulls the columns in rather than dropping one.
+    private fun gridWidthPx(padded: Boolean = true): Int {
+        val sides = if (padded) 2 * sidePaddingPx() else 0
         val laidOut = binding.drawerSheet.width - binding.drawerSheet.paddingLeft -
             binding.drawerSheet.paddingRight
-        if (laidOut > 0) return laidOut
+        if (laidOut > 0) return (laidOut - sides).coerceAtLeast(1)
         val metrics = context.resources.displayMetrics
-        return (metrics.widthPixels - barInsets.left - barInsets.right).coerceAtLeast(1)
+        return (metrics.widthPixels - barInsets.left - barInsets.right - sides).coerceAtLeast(1)
     }
+
+    private fun sidePaddingPx(): Int = context.dp(viewModel.state.value.prefs.drawerPaddingH)
 
     // Columns for the current window. A count the user set is a PORTRAIT
     // count: honouring it literally in landscape stretches four columns over
@@ -1831,7 +1845,7 @@ class DrawerController(
         // sheet, not a drawer.
         val baseCellDp = if (com.supernova.launcher.data.DeviceProfile.isWide(context)) WIDE_CELL_DP else MIN_CELL_DP
         val minCellPx = (metrics.density * baseCellDp * iconScale(prefs).coerceAtLeast(1f)).toInt().coerceAtLeast(1)
-        val width = gridWidthPx()
+        val width = gridWidthPx(padded = false)
         if (prefs.drawerColumns <= 0) return (width / minCellPx).coerceAtLeast(3)
         if (!isLandscape()) return prefs.drawerColumns
         // The portrait window is the short edge of this display, minus the
@@ -1918,6 +1932,8 @@ class DrawerController(
 
         fun bind(items: List<Any>, columns: Int) {
             (recycler.layoutManager as GridLayoutManager).spanCount = columns
+            val side = sidePaddingPx()
+            if (recycler.paddingLeft != side || recycler.paddingRight != side) recycler.setPadding(side, 0, side, 0)
             pageAdapter.displayMode = AppDrawerAdapter.DisplayMode.TILE
             pageAdapter.tileWidthPx = gridWidthPx() / columns
             lastDisplay?.let { pageAdapter.setDisplay(it.first, it.second, it.third) }
@@ -2017,7 +2033,7 @@ class DrawerController(
         // Or the count runs a row past the page.
         val rowHeight = minTileHeightPx(prefs)
         // The pager's bottom padding keeps the navigation bar's strip.
-        val fits = ((pager.height - pager.paddingBottom) / rowHeight).coerceAtLeast(2)
+        val fits = ((pager.height - pager.paddingTop - pager.paddingBottom) / rowHeight).coerceAtLeast(2)
         return prefs.drawerRows.takeIf { it > 0 }
             ?.let { if (isLandscape()) minOf(it, fits) else it }
             ?: fits.coerceAtLeast(3)
