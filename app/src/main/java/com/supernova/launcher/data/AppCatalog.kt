@@ -649,6 +649,16 @@ class AppCatalog(
         }
     }
 
+    // The activity an icon brought in from elsewhere should launch: the one
+    // it names while the app still has it, else the app's first launcher
+    // activity. An app that is not here keeps what it names.
+    fun launchActivity(packageName: String, className: String?, userSerial: Long): String? {
+        val user = userForSerial(userSerial) ?: return className
+        val activities = runCatching { launcherApps.getActivityList(packageName, user) }.getOrDefault(emptyList())
+            .map { it.componentName.className }
+        return className?.takeIf { activities.isEmpty() || it in activities } ?: activities.firstOrNull()
+    }
+
     fun isInstalled(packageName: String, userSerial: Long): Boolean {
         val user = userForSerial(userSerial) ?: return false
         return runCatching { launcherApps.isPackageEnabled(packageName, user) }.getOrDefault(false)

@@ -1591,7 +1591,11 @@ object SettingsCatalogue {
             R.string.settings_section_backup,
             listOf(
                 SettingItem.Row(R.string.export_backup, onClick = actions.exportBackup),
-                SettingItem.Row(R.string.import_backup, onClick = actions.importBackup),
+                SettingItem.Row(
+                    R.string.import_backup,
+                    subtitle = { context.getString(R.string.import_backup_subtitle) },
+                    onClick = actions.importBackup
+                ),
                 SettingItem.Row(R.string.share_backup, onClick = actions.shareBackup),
                 SettingItem.Row(R.string.auto_backups, onClick = actions.showAutoBackups),
                 SettingItem.Row(

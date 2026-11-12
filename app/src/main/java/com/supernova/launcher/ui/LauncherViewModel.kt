@@ -35,6 +35,9 @@ import com.supernova.launcher.data.PrefSpec
 import com.supernova.launcher.data.PrivateSpace
 import com.supernova.launcher.data.TabFolders
 import com.supernova.launcher.data.WorkspaceGeometry
+import com.supernova.launcher.data.imports.BackupFiles
+import com.supernova.launcher.data.imports.LayoutConverter
+import com.supernova.launcher.data.imports.PickedBackup
 import com.supernova.launcher.gesture.Gesture
 import com.supernova.launcher.gesture.GestureBinding
 import com.supernova.launcher.gesture.GestureDefaults
@@ -1406,19 +1409,54 @@ class LauncherViewModel(
     // Off the main thread: the decode, an install check per item and the
     // snapshot write are no work for it.
     suspend fun importBackup(raw: String): LauncherRepository.ImportResult = withContext(Dispatchers.IO) {
+        repository.importBackup(raw, preferences.snapshot(), ::isInstalled, widgetBoundCheck())
+    }
+
+    // A backup file the user picked: Supernova's own, or another launcher's,
+    // whose home screen is brought over.
+    suspend fun importBackupFile(uri: android.net.Uri): LauncherRepository.ImportResult = withContext(Dispatchers.IO) {
+        when (val picked = BackupFiles.read(getApplication(), uri)) {
+            is PickedBackup.Own -> importBackup(picked.json)
+            is PickedBackup.Other -> repository.importLayout(
+                picked.layout,
+                preferences.snapshot(),
+                LayoutConverter.Phone(
+                    activityFor = catalog::launchActivity,
+                    encodeIcon = { bytes ->
+                        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                            ?.let(com.supernova.launcher.data.GalleryIconCodec::encode)
+                    },
+                    widgetName = ::widgetName
+                ),
+                ::isInstalled,
+                widgetBoundCheck()
+            )
+        }
+    }
+
+    private fun isInstalled(packageName: String, userSerial: Long): Boolean =
+        catalog.isInstalled(packageName, userSerial)
+
+    // The name of an installed widget, by its provider's "package/class".
+    private fun widgetName(provider: String, userSerial: Long): String? {
+        val component = android.content.ComponentName.unflattenFromString(provider)
+        val app = getApplication<Application>()
+        return catalog.userForSerial(userSerial)
+            ?.let { android.appwidget.AppWidgetManager.getInstance(app).getInstalledProvidersForProfile(it) }
+            ?.firstOrNull { it.provider == component }
+            ?.loadLabel(app.packageManager)
+    }
+
+    // Whether a widget id is still bound here, to that provider.
+    private fun widgetBoundCheck(): (Int, String?) -> Boolean {
         val manager = android.appwidget.AppWidgetManager.getInstance(getApplication())
         val hostIds = com.supernova.launcher.widget.SupernovaWidgetHost(
             getApplication(), com.supernova.launcher.widget.SupernovaWidgetHost.HOST_ID
         ).appWidgetIds.toSet()
-        repository.importBackup(
-            raw,
-            preferences.snapshot(),
-            isInstalled = { pkg, userSerial -> catalog.isInstalled(pkg, userSerial) },
-            widgetBound = { id, provider ->
-                id in hostIds && provider != null &&
-                    manager.getAppWidgetInfo(id)?.provider?.flattenToString() == provider
-            }
-        )
+        return { id, provider ->
+            id in hostIds && provider != null &&
+                manager.getAppWidgetInfo(id)?.provider?.flattenToString() == provider
+        }
     }
 
     // Null when the page has no free area of the requested size.

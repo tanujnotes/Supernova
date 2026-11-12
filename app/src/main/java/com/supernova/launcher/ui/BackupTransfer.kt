@@ -14,6 +14,8 @@ import kotlinx.coroutines.withContext
 // Backup export and import through the system file picker, for every screen
 // that offers them (Settings, the first-run wizard). A field of the activity,
 // so both pickers are registered before it starts.
+// An import takes Supernova's own backup or another launcher's backup file,
+// told apart by what is inside.
 //
 // Both run to the end even if the screen is recreated meanwhile (a rotation,
 // a dark-mode switch while a cloud file downloads): cancelled, an import
@@ -38,7 +40,9 @@ class BackupTransfer(
 
     fun pickExportFile() = exportLauncher.launch("supernova-backup-${System.currentTimeMillis()}.json")
 
-    fun pickImportFile() = importLauncher.launch(arrayOf("application/json", "text/plain"))
+    // Any file: another launcher's backup has an extension of its own, which
+    // the picker knows no type for.
+    fun pickImportFile() = importLauncher.launch(arrayOf("*/*"))
 
     private fun export(uri: Uri) {
         val app = activity.applicationContext
@@ -67,10 +71,7 @@ class BackupTransfer(
         activity.lifecycleScope.launch {
             val outcome = withContext(NonCancellable) {
                 runCatching {
-                    val raw = withContext(Dispatchers.IO) {
-                        app.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }.orEmpty()
-                    }
-                    viewModel().importBackup(raw)
+                    viewModel().importBackupFile(uri)
                 }
             }
             outcome.onSuccess { result ->

@@ -57,6 +57,7 @@
     <string name="widget_finish_setup">%1$s\nTap to finish setup</string>
     <string name="export_backup">Export Backup</string>
     <string name="import_backup">Import Backup</string>
+    <string name="import_backup_subtitle">A Supernova backup, or a backup file from another launcher</string>
     <string name="backup_exported">Backup exported</string>
     <plurals name="backup_imported_count">
         <item quantity="one">Restored %1$d item</item>
@@ -69,6 +70,10 @@
     <plurals name="backup_widgets_rebind">
         <item quantity="one">, %1$d widget may need setting up again</item>
         <item quantity="other">, %1$d widgets may need setting up again</item>
+    </plurals>
+    <plurals name="backup_left_out">
+        <item quantity="one">, left out %1$d item Supernova has no place for</item>
+        <item quantity="other">, left out %1$d items Supernova has no place for</item>
     </plurals>
     <string name="backup_export_failed">Export failed: %1$s</string>
     <string name="backup_import_failed">Import failed: %1$s</string>
