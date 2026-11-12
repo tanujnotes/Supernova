@@ -3463,9 +3463,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         addExportPngRow(menu, memberView, member.label)
         member.packageName?.let { pkg ->
             shortcutsFor(pkg, member.userSerial).take(4).forEach { shortcut ->
+                // Held, a row drags out onto the home screen or the dock, as
+                // from a home icon's menu; the card closes as the drag starts.
                 menu.addShortcut(
                     shortcut.shortLabel ?: shortcut.longLabel ?: shortcut.id,
-                    shortcutIcon(shortcut)
+                    shortcutIcon(shortcut),
+                    onLongPress = shortcutDrag(menu, pkg, shortcut, member.userSerial).takeUnless { locked }
                 ) {
                     closeFolder()
                     launchShortcut(pkg, shortcut.id, member.userSerial)
@@ -3609,10 +3612,15 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 memberMenu = menu
             },
             onDismiss = {
+                // A shortcut being dragged out of a member's menu closes the
+                // card too, and that close is the drag's as well.
+                val menuCarried = memberMenu?.let { drag.ownsGestureIn(it.window) } == true
                 cardSwipeClose.onCardClosed(
-                    SystemClock.uptimeMillis(), carried = popup?.let(drag::ownsGestureIn) == true
+                    SystemClock.uptimeMillis(), carried = popup?.let(drag::ownsGestureIn) == true || menuCarried
                 )
-                memberMenu?.dismiss()
+                // That menu carries the rest of the gesture, and closes with
+                // its drop.
+                if (!menuCarried) memberMenu?.dismiss()
                 memberMenu = null
                 // Closed under a held app or its drag (a home press, Back, a
                 // rotation): the rest of that gesture would only ever have
