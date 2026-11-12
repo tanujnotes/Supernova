@@ -121,12 +121,11 @@ class FrequentAppsRowView @JvmOverloads constructor(
             }
             cell.addView(icon, LayoutParams(iconSize, iconSize))
             cell.addView(
-                android.widget.TextView(context).apply {
+                FadingTextView(context).apply {
                     text = entry.label
                     setTextColor(textColor)
                     textSize = 12f
                     maxLines = 1
-                    ellipsize = android.text.TextUtils.TruncateAt.END
                     gravity = android.view.Gravity.CENTER_HORIZONTAL
                     setPadding(0, dp(6), 0, 0)
                     look?.styleLabel?.invoke(this)

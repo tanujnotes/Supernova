@@ -8,7 +8,6 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.text.SpannableStringBuilder
 import android.text.Spanned
-import android.text.TextUtils
 import android.text.style.StyleSpan
 import android.util.TypedValue
 import android.view.Gravity
@@ -555,10 +554,9 @@ class SupernovaPopupMenu(
         }
         row.addView(icon)
         row.addView(
-            TextView(context).apply {
+            FadingTextView(context).apply {
                 text = label
                 maxLines = 1
-                ellipsize = TextUtils.TruncateAt.END
                 maxWidth = context.dp(220)
                 setTextColor(if (sub) subTextColor else textColor)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, if (sub) 13f else 14f)

@@ -47,7 +47,7 @@ internal fun iconFitScale(cellW: Int, cellH: Int, needW: Int, needH: Int): Float
 //
 // Icons carry a normalized centre (IconParams) and are laid out on it here,
 // at least a cell wide: an icon owns its cell, so its label runs the
-// cell's width before it ellipsizes, not just the icon's. An icon that needs
+// cell's width before it fades out, not just the icon's. An icon that needs
 // more room than its cell shrinks into it (IconFit), as the cell's size is
 // only known here: a cold start binds the page before the canvas has one.
 // Widgets carry their cells

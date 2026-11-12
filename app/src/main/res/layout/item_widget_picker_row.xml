@@ -28,12 +28,11 @@
             android:contentDescription="@string/widget"
             android:scaleType="fitCenter" />
 
-        <TextView
+        <com.supernova.launcher.ui.FadingTextView
             android:id="@+id/labelA"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:ellipsize="end"
             android:gravity="center"
             android:maxLines="1"
             android:textColor="@color/textPrimary"
@@ -47,11 +46,10 @@
             android:textColor="@color/textSecondary"
             android:textSize="14sp" />
 
-        <TextView
+        <com.supernova.launcher.ui.FadingTextView
             android:id="@+id/providerA"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:ellipsize="end"
             android:gravity="center"
             android:maxLines="1"
             android:textColor="@color/textSecondary"
@@ -75,12 +73,11 @@
             android:contentDescription="@string/widget"
             android:scaleType="fitCenter" />
 
-        <TextView
+        <com.supernova.launcher.ui.FadingTextView
             android:id="@+id/labelB"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:ellipsize="end"
             android:gravity="center"
             android:maxLines="1"
             android:textColor="@color/textPrimary"
@@ -94,11 +91,10 @@
             android:textColor="@color/textSecondary"
             android:textSize="14sp" />
 
-        <TextView
+        <com.supernova.launcher.ui.FadingTextView
             android:id="@+id/providerB"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:ellipsize="end"
             android:gravity="center"
             android:maxLines="1"
             android:textColor="@color/textSecondary"

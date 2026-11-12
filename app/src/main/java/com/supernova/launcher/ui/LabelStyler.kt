@@ -2,7 +2,6 @@ package com.supernova.launcher.ui
 
 import android.graphics.Color
 import android.graphics.Typeface
-import android.text.TextUtils
 import android.util.TypedValue
 import android.widget.TextView
 import com.supernova.launcher.R
@@ -80,7 +79,6 @@ object LabelStyler {
             ?: view.maxLines.also { view.setTag(R.id.tag_default_max_lines, it) }
         val targetMax = if (singleLineFor(context, prefs)) 1 else surfaceMax
         if (view.maxLines != targetMax) view.maxLines = targetMax
-        if (view.ellipsize != TextUtils.TruncateAt.END) view.ellipsize = TextUtils.TruncateAt.END
         if (override.shadow ?: prefs.labelShadow) {
             view.setShadowLayer(3f, 0f, 1f, 0xB3000000.toInt())
         } else {
@@ -91,7 +89,7 @@ object LabelStyler {
     // Whether a surface draws its labels on one line. The dock is a row of
     // narrow slots sized to fit however many icons the dockCount pref asks
     // for, so a wrapped label there reads as a broken word ("Chro" over "me")
-    // and doubles the dock's height; it defaults to one ellipsized line while
+    // and doubles the dock's height; it defaults to one line while
     // every other surface follows the global labelSingleLine pref. An explicit
     // per-context override still wins over both, so the two-line dock is a
     // switch away. Settings reads the same function, so the toggle it shows is

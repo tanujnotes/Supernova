@@ -11,20 +11,18 @@
     android:paddingHorizontal="20dp"
     android:paddingVertical="14dp">
 
-    <TextView
+    <com.supernova.launcher.ui.FadingTextView
         android:id="@+id/calcExpression"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:ellipsize="end"
         android:maxLines="1"
         android:textColor="@color/textSecondary"
         android:textSize="13sp" />
 
-    <TextView
+    <com.supernova.launcher.ui.FadingTextView
         android:id="@+id/calcResult"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:ellipsize="end"
         android:maxLines="1"
         android:textColor="@color/textPrimary"
         android:textSize="26sp"

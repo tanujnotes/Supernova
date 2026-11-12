@@ -752,11 +752,10 @@ class SettingsPreviewView @JvmOverloads constructor(
             imageTintList = android.content.res.ColorStateList.valueOf(resolved.text)
         }
         row.addView(icon, LinearLayout.LayoutParams(dp(22), dp(22)).apply { marginEnd = dp(10) })
-        val text = TextView(context).apply {
+        val text = com.supernova.launcher.ui.FadingTextView(context).apply {
             this.text = label
             setTextColor(resolved.text)
             maxLines = 1
-            ellipsize = android.text.TextUtils.TruncateAt.END
         }
         row.addView(text)
         return row
@@ -844,10 +843,9 @@ class SettingsPreviewView @JvmOverloads constructor(
             image,
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
         )
-        val text = TextView(context)
+        val text = com.supernova.launcher.ui.FadingTextView(context)
         text.text = label
         text.maxLines = labelLines
-        text.ellipsize = android.text.TextUtils.TruncateAt.END
         text.gravity = Gravity.CENTER_HORIZONTAL
         labelViews += text
         column.addView(

@@ -159,7 +159,7 @@ class FeedAdapter(
                     binding.calendarGrantButton.visibility = View.GONE
                     val context = binding.root.context
                     state.events.forEach { event ->
-                        val row = TextView(context).apply {
+                        val row = FadingTextView(context).apply {
                             text = buildString {
                                 append(dayLabel(event.beginMs))
                                 if (!event.allDay) {
@@ -176,7 +176,6 @@ class FeedAdapter(
                             setTextColor(textColor)
                             textSize = 14f
                             maxLines = 1
-                            ellipsize = android.text.TextUtils.TruncateAt.END
                             setPadding(0, dp(6), 0, dp(6))
                             setOnClickListener { callbacks.onOpenEvent(event.eventId) }
                         }

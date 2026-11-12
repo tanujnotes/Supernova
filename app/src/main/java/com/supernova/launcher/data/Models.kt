@@ -372,7 +372,7 @@ data class LauncherPrefs(
     val wallpaperZoom: Boolean = true,
     val autoAddApps: Boolean = false,
     val labelFont: LabelFont = LabelFont.DEFAULT,
-    // One ellipsized line everywhere by default: a wrapped name reads as a
+    // One line everywhere by default: a wrapped name reads as a
     // broken word ("OpenWeathe" over "r"). Per-surface overrides in
     // labelConfig can still allow two lines.
     val labelSingleLine: Boolean = true,
