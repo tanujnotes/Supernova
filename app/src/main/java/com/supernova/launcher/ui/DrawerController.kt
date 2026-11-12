@@ -1084,7 +1084,8 @@ class DrawerController(
         pullToSearch = state.prefs.drawerPullToSearch
         val drawerScale = iconScale(state.prefs)
         lastDisplay = Triple(drawerScale, state.prefs.drawerLabels, state.prefs)
-        adapter.setDisplay(drawerScale, state.prefs.drawerLabels, state.prefs)
+        // A tile's content height follows the icon size and the labels.
+        if (adapter.setDisplay(drawerScale, state.prefs.drawerLabels, state.prefs)) refreshGridRows(state.prefs)
         rebuildTabs(state.prefs)
         val iconsChanged = state.iconGeneration != lastIconGeneration
         lastIconGeneration = state.iconGeneration
@@ -1693,6 +1694,7 @@ class DrawerController(
                 adapter.displayMode = AppDrawerAdapter.DisplayMode.TILE
                 val columns = columnCount(prefs)
                 adapter.tileWidthPx = gridWidthPx() / columns
+                adapter.sizePool(recycler.recycledViewPool, columns)
                 refreshGridRows(prefs)
                 // Before the first layout there is no height to share out.
                 if (prefs.drawerRows > 0 && recycler.height == 0) {
@@ -1809,6 +1811,10 @@ class DrawerController(
 
     // For search's app tiles, which line up with the drawer's grid.
     fun columns(): Int = columnCount(viewModel.state.value.prefs)
+
+    // And sit in rows as close as its own (the vertical grid with Rows set).
+    fun tileLook(): AppDrawerAdapter.TileLook? =
+        if (currentStyle == DrawerStyle.VERTICAL_GRID) adapter.tileLook(context) else null
 
     // The drawer's own icon size, or the desktop's when it follows that.
     private fun iconScale(prefs: LauncherPrefs): Float =
@@ -1946,24 +1952,28 @@ class DrawerController(
     }
 
     // The vertical grid with Rows set: the list's height shared out between
-    // them, as the paged style cuts its pages, so more rows sit closer
-    // together. They may take up a tile's padding, down to icon and label
-    // touching the next row; Auto (and anything not yet measurable) keeps
+    // them (DrawerTileFit.rowHeight), as the paged style cuts its pages, so
+    // more rows sit closer together. A row too short for its tile fits the
+    // tile into it: the padding goes, then the label's second line, then
+    // icon and label shrink. Auto (and anything not yet measurable) keeps
     // tiles at their own height.
     private fun refreshGridRows(prefs: LauncherPrefs) {
         if (currentStyle != DrawerStyle.VERTICAL_GRID) return
         val recycler = binding.drawerRecycler
         val rows = prefs.drawerRows
         val height = recycler.height - recycler.paddingTop - recycler.paddingBottom
-        val natural = if (rows > 0 && height > 0) adapter.naturalTileHeightPx(recycler) else 0
-        val rowHeight = if (natural > 0) {
-            maxOf(height / rows, natural - 2 * context.dp(AppDrawerAdapter.TILE_PADDING_V_DP))
-        } else {
-            0
+        val measured = if (rows > 0 && height > 0) adapter.measureTile(recycler) else null
+        val content = measured?.get(0) ?: 0
+        val compact = measured?.get(1) ?: 0
+        val rowHeight = if (measured == null) 0 else DrawerTileFit.rowHeight(height, rows, compact, isLandscape())
+        if (rowHeight == adapter.tileHeightPx && content == adapter.tileContentPx &&
+            compact == adapter.tileCompactPx
+        ) {
+            return
         }
-        if (rowHeight == adapter.tileHeightPx && natural == adapter.tileNaturalPx) return
         adapter.tileHeightPx = rowHeight
-        adapter.tileNaturalPx = natural
+        adapter.tileContentPx = content
+        adapter.tileCompactPx = compact
         adapter.notifyItemRangeChanged(0, adapter.itemCount)
     }
 

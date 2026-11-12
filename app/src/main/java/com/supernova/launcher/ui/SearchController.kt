@@ -56,6 +56,10 @@ class SearchController(
     // The drawer's column count, which the app tiles share so they line up
     // with the drawer's grid in either orientation.
     private val drawerColumns: (() -> Int)? = null,
+    // The drawer's grid tile with Rows set (its row height, icon box and
+    // fit), which the app tiles copy so their rows sit as close as the
+    // drawer's; null keeps the tiles at their own height.
+    private val drawerTiles: (() -> AppDrawerAdapter.TileLook?)? = null,
     // The overlay has closed.
     private val onHidden: () -> Unit = {},
     // Long-presses on an app, an app shortcut or a drawer folder in the
@@ -377,6 +381,8 @@ class SearchController(
     private fun styleSurface(surface: Surface) {
         val prefs = viewModel.state.value.prefs
         val columns = gridColumns()
+        // Not in the key: the submit that follows every call rebinds the tiles.
+        surface.adapter.tileLook = drawerTiles?.invoke()
         val key = listOf(
             prefs.styleConfig, prefs.paletteSource, prefs.paletteSeed, prefs.accentColor,
             prefs.labelSize, prefs.labelColor, prefs.labelFont, prefs.labelConfig, columns

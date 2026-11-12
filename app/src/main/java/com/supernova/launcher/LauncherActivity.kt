@@ -1387,6 +1387,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             // A card launch from search hides the overlay, as every result does.
             cardBinder = cards.binder(afterLaunch = { search.hide() }),
             drawerColumns = { drawer.columns() },
+            drawerTiles = { drawer.tileLook() },
             // A widget card it showed took the feed card's widget view.
             onHidden = {
                 if (::feed.isInitialized) {

@@ -23,6 +23,7 @@ import com.supernova.launcher.databinding.ItemSearchRowBinding
 import com.supernova.launcher.databinding.ItemSearchTopHitBinding
 import com.supernova.launcher.search.SearchChip
 import com.supernova.launcher.search.SearchResult
+import kotlin.math.roundToInt
 
 // The search window's list. Empty query: suggested-shortcut
 // pills, the recently opened apps, a hairline, then the drawer's folders and
@@ -107,6 +108,9 @@ class SearchResultsAdapter(
     // Grid columns for the app tiles; the controller derives it from the
     // drawer's column setting.
     var columns: Int = 4
+    // The drawer's grid tile when its Rows are set: the app tiles take its
+    // row height and fit. Null keeps them at their own height.
+    var tileLook: AppDrawerAdapter.TileLook? = null
 
     init {
         setHasStableIds(true)
@@ -375,6 +379,7 @@ class SearchResultsAdapter(
                 }
                 tile.appLabel.text = folder.label
                 tile.appLabel.setTextColor(textColor)
+                fitTile(tile)
                 tile.root.contentDescription = grid.context.getString(R.string.folder_desc, folder.label)
                 tile.root.setOnClickListener { callbacks.onFolder(folder) }
                 tile.root.setOnLongClickListener {
@@ -393,6 +398,7 @@ class SearchResultsAdapter(
                 }
                 tile.appLabel.text = highlighted(app.label, result.highlight)
                 tile.appLabel.setTextColor(textColor)
+                fitTile(tile)
                 tile.root.contentDescription = app.label
                 tile.root.setOnClickListener { callbacks.onApp(it, app) }
                 tile.root.setOnLongClickListener {
@@ -401,6 +407,25 @@ class SearchResultsAdapter(
                 }
             }
         }
+    }
+
+    // A tile in the drawer's row and fit, or back at its own height. The
+    // icon stays inside this grid's cell, which a windowed search makes
+    // narrower than the drawer's.
+    private fun fitTile(tile: ItemDrawerAppBinding) {
+        val density = tile.root.resources.displayMetrics.density
+        val look = tileLook
+        if (look == null) {
+            val pad = (AppDrawerAdapter.TILE_PADDING_V_DP * density).toInt()
+            val icon = (AppDrawerAdapter.TILE_ICON_DP * density).roundToInt()
+            DrawerTileFit.apply(tile, 0, icon, DrawerTileFit.of(0, pad, 0, 0))
+            return
+        }
+        val grid = tile.root.parent as? SearchGridView
+        val cell = grid?.let { (it.width - it.paddingLeft - it.paddingRight) / columns } ?: 0
+        val room = cell - tile.root.paddingLeft - tile.root.paddingRight
+        val icon = if (room > 0) minOf(look.iconPx, room) else look.iconPx
+        DrawerTileFit.apply(tile, look.rowPx, icon, look.fit)
     }
 
     private inner class ShortcutsHolder(private val flow: FlowLayout) : RecyclerView.ViewHolder(flow) {

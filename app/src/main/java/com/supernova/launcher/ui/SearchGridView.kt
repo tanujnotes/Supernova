@@ -5,7 +5,8 @@ import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
 
-// A fixed-column grid of equal-width cells, wrapping its rows' heights. The
+// A fixed-column grid of equal-width cells, wrapping its rows' heights (or
+// a child's own height, when its layout params set one). The
 // search window's app tiles use it in place of a nested RecyclerView: a
 // query yields a handful of tiles and the zero state a few dozen, so there
 // is nothing to recycle and everything to gain from a layout that knows its
@@ -29,9 +30,14 @@ class SearchGridView @JvmOverloads constructor(
         for (index in 0 until childCount) {
             val child = getChildAt(index)
             if (child.visibility == View.GONE) continue
+            val fixed = child.layoutParams?.height ?: 0
             child.measure(
                 MeasureSpec.makeMeasureSpec(cell, MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+                if (fixed > 0) {
+                    MeasureSpec.makeMeasureSpec(fixed, MeasureSpec.EXACTLY)
+                } else {
+                    MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+                }
             )
             rowHeight = maxOf(rowHeight, child.measuredHeight)
             if ((index + 1) % columns == 0 || index == childCount - 1) {
