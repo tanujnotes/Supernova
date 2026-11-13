@@ -364,26 +364,6 @@
         <item name="android:textColor">@color/textPrimary</item>
     </style>
 
-    <!-- The group switch (the Label card's header) is Material 3's, the
-         thumb riding inside a wide track that the accent fills when on. It
-         reads M3 color roles this MaterialComponents theme doesn't define,
-         so the overlay maps them onto the settings palette. -->
-    <style name="Widget.Supernova.MaterialSwitch" parent="Widget.Material3.CompoundButton.MaterialSwitch">
-        <item name="materialThemeOverlay">@style/ThemeOverlay.Supernova.MaterialSwitch</item>
-        <item name="android:textAppearance">@style/TextAppearance.MaterialComponents.Body2</item>
-        <item name="android:minHeight">48dp</item>
-    </style>
-
-    <style name="ThemeOverlay.Supernova.MaterialSwitch" parent="">
-        <item name="colorOutline">@color/textSecondary</item>
-        <item name="colorOnSurfaceVariant">@color/textSecondary</item>
-        <item name="colorSurfaceContainerHighest">@color/settingsPillBg</item>
-        <!-- The thumb while pressed on; M3's own tint would all but vanish
-             into the accent track. -->
-        <item name="colorPrimaryContainer">@color/onAccent</item>
-        <item name="colorOnPrimaryContainer">?attr/colorPrimary</item>
-    </style>
-
     <!-- Text fields: outlined, rounded to match the plates they sit on. -->
     <style name="Widget.Supernova.TextInput" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
         <item name="boxCornerRadiusTopStart">14dp</item>
@@ -482,11 +462,30 @@
     </style>
 
     <!-- The big page titles of the first run. -->
-    <style name="OnboardingTitle" parent="">
-        <item name="android:layout_marginTop">36dp</item>
-        <item name="android:layout_marginBottom">20dp</item>
-        <item name="android:textColor">@android:color/white</item>
-        <item name="android:textSize">34sp</item>
+    <!-- First run: the white pill along the bottom (Design my homescreen,
+         Next, Set as my home screen), and the plain text buttons. -->
+    <style name="OnboardingPrimaryButton" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">52dp</item>
+        <item name="android:background">@drawable/bg_onboarding_primary</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@color/onboardingBackground</item>
+        <item name="android:textSize">16sp</item>
         <item name="android:textStyle">bold</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+    </style>
+
+    <style name="OnboardingTextButton" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingHorizontal">12dp</item>
+        <item name="android:textColor">@color/onboardingText</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
     </style>
 </resources>

@@ -23,6 +23,12 @@ class LauncherPreferences(private val context: Context) {
         context.supernovaStore.edit { spec.write(it, value) }
     }
 
+    // Several settings in one edit, as the first run's looks write them.
+    suspend fun setAll(writes: List<PrefWrite<*>>) {
+        if (writes.isEmpty()) return
+        context.supernovaStore.edit { target -> writes.forEach { it.into(target) } }
+    }
+
     companion object {
         // Enough to put most of a phone's apps in Recently used order.
         private const val RECENT_LAUNCHES_MAX = 100

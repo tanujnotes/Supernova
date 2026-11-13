@@ -953,6 +953,14 @@ class LauncherRepository(private val context: Context) {
         mutate { current -> if (current.items.isEmpty()) current.copy(items = items) else current }
     }
 
+    // The first run's grid step: the planted layout again, built for the
+    // grid just picked. Only ever over the layout the wizard planted, which
+    // nobody can have touched under it.
+    suspend fun replantDefaultLayout(items: List<LauncherItem>) {
+        if (items.isEmpty()) return
+        mutate { current -> current.copy(items = items) }
+    }
+
     // Settings > Reset to default. The auto-backup snapshot goes first so the
     // reset itself is recoverable from Automatic backups; then one atomic edit
     // replaces the model document and every LauncherPrefs key. Device-local

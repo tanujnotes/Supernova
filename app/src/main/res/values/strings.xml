@@ -971,49 +971,52 @@
     <string name="today">Today</string>
     <string name="tomorrow">Tomorrow</string>
 
-    <!-- Onboarding: the first run - welcome, Search, App drawer, Icon
-         style, All done. -->
+    <!-- Onboarding: the first run - welcome, then six choices over a live
+         preview of the home screen, then the finished home. -->
     <string name="onboarding_welcome_to">Welcome to</string>
-    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_tagline">Infinitely customisable homescreen</string>
+    <string name="onboarding_design_home">Design my homescreen</string>
     <string name="onboarding_restore_backup">Restore backup</string>
     <string name="onboarding_skip_setup">Skip setup</string>
     <string name="onboarding_skip_hint">To skip setting up Supernova, tap \'Skip setup\'</string>
     <string name="onboarding_previous">Previous</string>
-    <string name="onboarding_search">Search</string>
-    <string name="onboarding_mode">Mode</string>
-    <string name="onboarding_shortcut_search">Shortcut Search</string>
-    <string name="onboarding_shortcut_search_summary">Local on-device indexing of app shortcuts and contacts allowing fast and private universal search</string>
-    <string name="onboarding_contact_search">Contact Search</string>
-    <string name="onboarding_contact_search_summary">Get contact results in search by granting Contact permission. Search is done locally and your contacts information never leaves the device.</string>
-    <string name="onboarding_home_screen">Home screen</string>
-    <string name="onboarding_app_drawer">App drawer</string>
-    <string name="onboarding_search_bar_placement">Search bar placement</string>
-    <string name="onboarding_placement_none">None</string>
-    <string name="onboarding_placement_dock_above">Dock (Above icons)</string>
-    <string name="onboarding_placement_dock_below">Dock (Below icons)</string>
-    <string name="onboarding_placement_persistent">Persistent</string>
-    <string name="onboarding_drawer_bar_top">Top</string>
-    <string name="onboarding_drawer_bar_bottom">Bottom</string>
-    <string name="onboarding_drawer_style">App drawer style</string>
-    <string name="onboarding_drawer_vertical">Vertical</string>
-    <string name="onboarding_drawer_list">List</string>
-    <string name="onboarding_drawer_horizontal">Horizontal</string>
-    <string name="onboarding_show_keyboard">Show Keyboard</string>
-    <string name="onboarding_show_keyboard_summary">Immediately show keyboard when the drawer is opened</string>
-    <string name="onboarding_frequent_apps">Frequently used apps</string>
-    <string name="onboarding_frequent_apps_summary">Keep commonly used apps in the top row for quick access</string>
-    <string name="onboarding_smart_folders">Smart Folders</string>
-    <string name="onboarding_smart_folders_summary">Automatically organize my apps into folders</string>
-    <string name="onboarding_icon_style">Icon style</string>
-    <string name="onboarding_shape_default">Default</string>
-    <string name="onboarding_shape_round">Round</string>
-    <string name="onboarding_shape_more">More</string>
-    <string name="onboarding_more_shapes">More shapes</string>
-    <string name="onboarding_all_done">All done!</string>
-    <string name="onboarding_setup_finished">Setup is finished</string>
-    <string name="onboarding_go_home">Go home</string>
-    <!-- A dropdown's value as a screen reader reads it: the row's title, then the value. -->
-    <string name="onboarding_dropdown_description">%1$s: %2$s</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_look_title">Pick a starting point</string>
+    <string name="onboarding_look_summary">One tap restyles the whole screen. Refine it on the next steps.</string>
+    <string name="onboarding_look_classic">Classic</string>
+    <string name="onboarding_look_glass">Glass</string>
+    <string name="onboarding_look_quiet">Quiet</string>
+    <string name="onboarding_look_bold">Bold</string>
+    <string name="onboarding_shuffle">Shuffle a look nobody else has</string>
+    <string name="onboarding_color_title">Choose your color</string>
+    <string name="onboarding_color_summary">It tints search, menus and tinted icons.</string>
+    <string name="onboarding_shape_title">Shape your icons</string>
+    <string name="onboarding_finish_title">Pick a finish</string>
+    <string name="onboarding_finish_summary">Glass lets your wallpaper show through.</string>
+    <string name="onboarding_finish_original">Original</string>
+    <string name="onboarding_finish_tinted">Tinted</string>
+    <string name="onboarding_density_title">How much fits on a page?</string>
+    <string name="onboarding_density_summary">Fewer, bigger icons or more, smaller ones.</string>
+    <string name="onboarding_density_roomy">Roomy</string>
+    <string name="onboarding_density_balanced">Balanced</string>
+    <string name="onboarding_density_packed">Packed</string>
+    <!-- A grid's size: columns by rows. -->
+    <string name="onboarding_grid_size">%1$d × %2$d</string>
+    <string name="onboarding_names_title">Name your apps</string>
+    <string name="onboarding_names_summary">Pick a lettering, or hide the names.</string>
+    <string name="onboarding_names_standard">Standard</string>
+    <string name="onboarding_names_narrow">Narrow</string>
+    <string name="onboarding_names_serif">Serif</string>
+    <string name="onboarding_names_mono">Mono</string>
+    <string name="onboarding_names_hidden">Hidden</string>
+    <!-- The sample a lettering is shown with. -->
+    <string name="onboarding_names_sample">Aa</string>
+    <string name="onboarding_done_title">That\'s your home.</string>
+    <string name="onboarding_done_later">Change any of it later in Settings, under Quick start.</string>
+    <string name="onboarding_set_home">Set as my home screen</string>
+    <string name="onboarding_done_rerun">Done</string>
+    <!-- One choice in a step's list, as a screen reader reads it. -->
+    <string name="onboarding_selected">%1$s, selected</string>
     <string name="next">Next</string>
 
     <!-- Phase 8: backup extras -->

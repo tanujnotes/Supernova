@@ -143,6 +143,21 @@ class LauncherViewModel(
     // need more than their own key written keep a function of their own.
     fun <T : Any> set(spec: PrefSpec<T>, value: T) = persist { preferences.set(spec, value) }
 
+    // Several settings in one write (the first run's looks). With replant,
+    // the planted first-run layout is built again for the grid they set.
+    fun setAll(writes: List<com.supernova.launcher.data.PrefWrite<*>>, replant: Boolean = false) = persist {
+        preferences.setAll(writes)
+        if (replant) {
+            val prefs = preferences.snapshot()
+            val items = withContext(Dispatchers.Default) {
+                DefaultLayoutBuilder.buildItems(
+                    getApplication(), catalog, prefs.gridCols, prefs.gridRows, prefs.dockCount
+                )
+            }
+            repository.replantDefaultLayout(items)
+        }
+    }
+
     private var appliedIconPack: String? = null
     private var appliedIconShape: IconShape? = null
     private var appliedIconShapeCustom: String? = null

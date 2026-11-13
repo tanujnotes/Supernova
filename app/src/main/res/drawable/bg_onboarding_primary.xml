@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The first run's main button: a white pill with a dark press ripple. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#33000000">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/white" />
+            <corners android:radius="26dp" />
+        </shape>
+    </item>
+</ripple>

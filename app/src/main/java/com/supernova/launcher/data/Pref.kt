@@ -41,6 +41,12 @@ import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
 
+// One setting's new value, for writing several in a single store edit
+// (LauncherPreferences.setAll): one emission, so the icons re-render once.
+class PrefWrite<T : Any>(val spec: PrefSpec<T>, val value: T) {
+    internal fun into(target: MutablePreferences) = spec.write(target, value)
+}
+
 // A setting as it is stored. It fills the LauncherPrefs field named after
 // its key ("grid_rows" is gridRows), and its default is that field's own.
 sealed class PrefSpec<T : Any> {
