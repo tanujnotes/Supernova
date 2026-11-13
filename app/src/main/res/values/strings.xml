@@ -759,6 +759,8 @@
     <!-- Phase 6: gestures -->
     <string name="gesture_swipe_left">Swipe left</string>
     <string name="gesture_swipe_right">Swipe right</string>
+    <string name="gesture_left_right_conflict">Swipe left/right</string>
+    <string name="gesture_left_right_conflict_summary">These gestures don\'t work with infinite scroll on the home screen</string>
     <string name="gesture_double_tap_swipe_up">Double tap &amp; swipe up</string>
     <string name="gesture_double_tap_swipe_down">Double tap &amp; swipe down</string>
     <string name="gesture_rotate_cw">Two-finger rotate clockwise</string>

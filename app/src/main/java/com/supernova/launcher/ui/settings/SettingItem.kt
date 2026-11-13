@@ -67,12 +67,14 @@ sealed class SettingItem {
     // action that runs on the tap; a warning (a card that needs access),
     // which tints the tile; and a status that reads as good news (a granted
     // permission), which colours the value under the title when it holds.
+    // A notice (tappable = false) only explains; it takes no taps.
     class RowLook(
         @DrawableRes val icon: Int = 0,
         val swatch: ((LauncherPrefs) -> Int?)? = null,
         val chevron: Boolean = true,
         val warn: Boolean = false,
-        val positive: (() -> Boolean)? = null
+        val positive: (() -> Boolean)? = null,
+        val tappable: Boolean = true
     )
 
     // An entry on the root list: a leading icon, a larger title,

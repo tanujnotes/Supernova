@@ -193,14 +193,18 @@ object SettingsCatalogue {
 
         // A gesture's row: its name, what it does now (a launch shows its
         // target), and the action picker on tap.
-        fun gestureRow(gesture: Gesture): SettingItem.Row = SettingItem.Row(
+        fun gestureRow(
+            gesture: Gesture,
+            visibleIf: (LauncherPrefs) -> Boolean = { true }
+        ): SettingItem.Row = SettingItem.Row(
             EnumLabels.of(gesture),
             subtitle = { prefs ->
                 val binding = GestureDefaults.decode(prefs.gestureBindings)[gesture]
                     ?: com.supernova.launcher.gesture.GestureBinding(GestureAction.NONE)
                 binding.label ?: context.getString(EnumLabels.of(binding.action))
             },
-            onClick = { actions.editGesture(gesture) }
+            onClick = { actions.editGesture(gesture) },
+            visibleIf = visibleIf
         )
 
         // Every row on a search bar's page edits one field of its slice of
@@ -1616,8 +1620,19 @@ object SettingsCatalogue {
                     },
                     subtitle = R.string.swipe_down_haptic_summary
                 ),
-                rows.gestureRow(Gesture.SWIPE_LEFT),
-                rows.gestureRow(Gesture.SWIPE_RIGHT),
+                // Every sideways swipe turns the page with infinite scroll
+                // on, so these never fire: one notice stands in for both
+                // rows (#122). Their bindings stay for when it's off.
+                rows.gestureRow(Gesture.SWIPE_LEFT, visibleIf = { !it.infiniteScroll }),
+                rows.gestureRow(Gesture.SWIPE_RIGHT, visibleIf = { !it.infiniteScroll }),
+                SettingItem.Row(
+                    0,
+                    subtitle = { context.getString(R.string.gesture_left_right_conflict_summary) },
+                    onClick = {},
+                    visibleIf = { it.infiniteScroll },
+                    titleText = context.getString(R.string.gesture_left_right_conflict),
+                    look = SettingItem.RowLook(tappable = false)
+                ),
                 rows.gestureRow(Gesture.DOUBLE_TAP),
                 rows.gestureRow(Gesture.DOUBLE_TAP_SWIPE_UP),
                 rows.gestureRow(Gesture.DOUBLE_TAP_SWIPE_DOWN),

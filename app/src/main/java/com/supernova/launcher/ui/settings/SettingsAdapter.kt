@@ -392,15 +392,21 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             }
             val density = binding.root.resources.displayMetrics.density
             bindTile(item.look)
-            binding.groupRowChevron.visibility = if (item.look.chevron) View.VISIBLE else View.INVISIBLE
+            binding.groupRowChevron.visibility =
+                if (item.look.chevron && item.look.tappable) View.VISIBLE else View.INVISIBLE
             val twoLines = bindValue(item, prefs)
             // Two lines get the taller row's padding: 64dp, as on the root list.
             val vertical = ((if (twoLines) TWO_LINE_PADDING_DP else ONE_LINE_PADDING_DP) * density).toInt()
             val start = if (item.look.icon == 0 && tiled) GROUP_TEXT_START_DP else GROUP_SIDE_DP
             binding.root.setPaddingRelative((start * density).toInt(), vertical, binding.root.paddingEnd, vertical)
-            binding.root.setOnClickListener {
-                onTap(it)
-                item.onClick()
+            if (item.look.tappable) {
+                binding.root.setOnClickListener {
+                    onTap(it)
+                    item.onClick()
+                }
+            } else {
+                binding.root.setOnClickListener(null)
+                binding.root.isClickable = false
             }
         }
 
