@@ -138,6 +138,32 @@ class BackupFilesTest {
         assertEquals(0L, layout.items[1].userSerial)
     }
 
+    // Drawer folders kept in a second database, an entry with no ".db".
+    @Test
+    fun drawerFoldersInAPreferencesDatabaseAreRead() {
+        val layoutDb = database(
+            listOf(
+                "CREATE TABLE favorites (_id INTEGER PRIMARY KEY, title TEXT, intent TEXT, container INTEGER, " +
+                    "screen INTEGER, cellX INTEGER, cellY INTEGER, spanX INTEGER, spanY INTEGER, itemType INTEGER)",
+                "INSERT INTO favorites VALUES (1, 'Mail', '$app', -100, 0, 0, 0, 1, 1, 0)"
+            )
+        )
+        val prefsDb = database(
+            listOf(
+                "CREATE TABLE Folders (id INTEGER PRIMARY KEY, title TEXT, hide INTEGER, rank INTEGER, timestamp INTEGER)",
+                "CREATE TABLE FolderItems (id INTEGER PRIMARY KEY, folderId INTEGER, rank INTEGER, item_info TEXT, " +
+                    "timestamp INTEGER)",
+                "INSERT INTO Folders VALUES (1, 'Tools', 0, 0, 0)",
+                "INSERT INTO FolderItems VALUES (1, 1, 0, 'com.m/com.m.Main#0', 0)"
+            )
+        )
+        val layout = other(archive("launcher.db" to layoutDb, "preferences" to prefsDb))
+        assertEquals(1, layout.items.size)
+        val folder = layout.groups.single()
+        assertEquals("Tools", folder.title)
+        assertEquals("com.m", folder.apps.single().packageName)
+    }
+
     @Test
     fun splitTablesAreRead() {
         val db = database(

@@ -41,6 +41,8 @@ internal object LayoutConverter {
         val encodeIcon: (ByteArray) -> String? = { null },
         // The widget's name, null where its app is not installed.
         val widgetName: (provider: String, userSerial: Long) -> String? = { provider, _ -> provider },
+        // Whether the app is on this phone, for the drawer's tabs and folders.
+        val installed: (packageName: String, userSerial: Long) -> Boolean = { _, _ -> true },
         val newId: () -> String = { UUID.randomUUID().toString() }
     )
 
@@ -104,7 +106,8 @@ internal object LayoutConverter {
                 subgrid = base.subgrid || grid.subgrid || halfCells,
                 drawerColumns = grid.drawerCols?.let { Pref.drawerColumns.clamped(max(1, it)) } ?: base.drawerColumns,
                 drawerRows = grid.drawerRows?.let { Pref.drawerRows.clamped(max(1, it)) } ?: base.drawerRows,
-                folderColumns = grid.folderCols?.let { Pref.folderColumns.clamped(max(1, it)) } ?: base.folderColumns
+                folderColumns = grid.folderCols?.let { Pref.folderColumns.clamped(max(1, it)) } ?: base.folderColumns,
+                drawerGroups = DrawerGroupConverter.merged(layout.groups, base.drawerGroups, maker.phone)
             )
         }
 

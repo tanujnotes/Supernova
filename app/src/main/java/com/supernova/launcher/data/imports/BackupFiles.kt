@@ -74,7 +74,9 @@ internal object BackupFiles {
 
         fun take(name: String, stream: InputStream) {
             when {
-                name.endsWith(".db") && databases.size < DATABASE_COUNT -> {
+                // A database is named "something.db", or for one of
+                // preferences kept as tables, just that.
+                (name.endsWith(".db") || name == PREFS_DATABASE) && databases.size < DATABASE_COUNT -> {
                     val file = File(dir, "layout-${databases.size}.db")
                     file.outputStream().use { copy(stream, it, DATABASE_LIMIT) }
                     databases += file
@@ -136,6 +138,7 @@ internal object BackupFiles {
 
     // A zip archive's first bytes.
     private val ARCHIVE_MARK = "PK\u0003\u0004".toByteArray(Charsets.ISO_8859_1)
+    private const val PREFS_DATABASE = "preferences"
     private const val BUFFER = 64 * 1024
     private const val OWN_LIMIT = 64L * 1024 * 1024
     private const val DATABASE_LIMIT = 64L * 1024 * 1024

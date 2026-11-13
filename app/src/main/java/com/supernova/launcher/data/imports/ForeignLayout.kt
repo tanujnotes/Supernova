@@ -61,7 +61,28 @@ internal data class ForeignGrid(
     val subgrid: Boolean = false
 )
 
-internal class ForeignLayout(
+// An app a drawer group holds; the activity may be unnamed.
+internal data class ForeignApp(val packageName: String, val className: String?, val userSerial: Long = 0L)
+
+// One of the launcher's own groupings of its app drawer: a tab (or a
+// category) the drawer can be filtered to, or a folder in the drawer's list.
+internal data class ForeignGroup(
+    val id: Long,
+    val title: String,
+    val folder: Boolean,
+    // Place among the launcher's tabs, or among its folders.
+    val order: Int,
+    // Whether the main list keeps the group's apps too; null where the
+    // launcher has no such choice.
+    val keepInMain: Boolean? = null,
+    val apps: List<ForeignApp> = emptyList(),
+    // Ids of the drawer folders a tab holds.
+    val folders: List<Long> = emptyList(),
+    // A folder's own icon, as an image file's bytes.
+    val icon: ByteArray? = null
+)
+
+internal data class ForeignLayout(
     val items: List<ForeignItem>,
     val grid: ForeignGrid,
     // Page numbers are the launcher's own and count empty pages; off, they
@@ -70,5 +91,7 @@ internal class ForeignLayout(
     // The page the home button lands on, in the launcher's numbering.
     val homePage: Int = 0,
     // Rows the backup holds that are nothing Supernova knows.
-    val unread: Int = 0
+    val unread: Int = 0,
+    // The app drawer's tabs and folders.
+    val groups: List<ForeignGroup> = emptyList()
 )

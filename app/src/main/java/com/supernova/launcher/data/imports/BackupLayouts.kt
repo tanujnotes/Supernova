@@ -24,17 +24,19 @@ internal class BackupContents(
 // launchers grown from it; and placed items split from what they launch.
 internal object BackupLayouts {
 
-    // Tables that mark an archive as a layout this can read.
-    val TABLES = setOf(FavoritesLayout.TABLE) + SplitLayout.TABLES
+    // Tables that mark an archive as a layout this can read, and those of
+    // the app drawer's tabs and folders.
+    val TABLES = setOf(FavoritesLayout.TABLE) + SplitLayout.TABLES + DrawerGroupTables.TABLES
 
     // Null when the archive holds no layout table this knows.
     fun layout(contents: BackupContents): ForeignLayout? {
         val favorites = contents.tables[FavoritesLayout.TABLE]
-        return when {
+        val layout = when {
             favorites != null -> FavoritesLayout.read(favorites, contents)
             SplitLayout.TABLES.take(2).all { it in contents.tables } -> SplitLayout(contents).read()
             else -> null
         }
+        return layout?.copy(groups = DrawerGroupTables.read(contents))
     }
 
     // A work profile carries its serial number; anything below 1 is the

@@ -1429,7 +1429,8 @@ class LauncherViewModel(
                         android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                             ?.let(com.supernova.launcher.data.GalleryIconCodec::encode)
                     },
-                    widgetName = ::widgetName
+                    widgetName = ::widgetName,
+                    installed = ::isInstalled
                 ),
                 ::isInstalled,
                 widgetBoundCheck()
