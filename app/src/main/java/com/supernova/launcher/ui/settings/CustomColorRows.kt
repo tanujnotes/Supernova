@@ -2,7 +2,6 @@ package com.supernova.launcher.ui.settings
 
 import android.content.Context
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.text.Editable
 import android.text.InputFilter
@@ -17,6 +16,7 @@ import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.annotation.StringRes
+import androidx.core.graphics.drawable.toDrawable
 import com.supernova.launcher.R
 import com.supernova.launcher.ui.dp
 import java.util.Locale
@@ -138,7 +138,7 @@ class CustomColorRows(
         val track = View(context)
         val seek = SeekBar(context).apply {
             this.max = max
-            progressDrawable = ColorDrawable(Color.TRANSPARENT)
+            progressDrawable = Color.TRANSPARENT.toDrawable()
             setPadding(context.dp(THUMB_DP), 0, context.dp(THUMB_DP), 0)
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {

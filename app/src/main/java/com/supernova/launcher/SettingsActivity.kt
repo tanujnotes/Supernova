@@ -15,6 +15,7 @@ import androidx.activity.viewModels
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.drawable.toDrawable
+import androidx.core.graphics.toColorInt
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -1446,7 +1447,7 @@ class SettingsActivity : AppCompatActivity() {
             android.graphics.Color.red(color), android.graphics.Color.green(color), android.graphics.Color.blue(color)
         )
         val named = SettingsCatalogue.CURATED_COLORS.firstOrNull {
-            it.second.isNotEmpty() && android.graphics.Color.parseColor(it.second) == rgb
+            it.second.isNotEmpty() && it.second.toColorInt() == rgb
         }
         val name = named?.let { getString(it.first) } ?: String.format(java.util.Locale.ROOT, "#%06X", rgb and 0xFFFFFF)
         val opacity = ColorSheet.percent(color)

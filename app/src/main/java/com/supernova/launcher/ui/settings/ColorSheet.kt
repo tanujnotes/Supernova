@@ -1,11 +1,11 @@
 package com.supernova.launcher.ui.settings
 
 import android.content.Context
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.SeekBar
 import androidx.annotation.StringRes
+import androidx.core.graphics.toColorInt
 import com.supernova.launcher.R
 import com.supernova.launcher.databinding.SheetStylePickerBinding
 import com.supernova.launcher.ui.Sheets
@@ -45,7 +45,7 @@ class ColorSheet(
 
     fun show(@StringRes title: Int, current: String, onPick: (String) -> Unit) {
         this.onPick = onPick
-        val stored = current.takeIf { it.isNotEmpty() }?.let { runCatching { Color.parseColor(it) }.getOrNull() }
+        val stored = current.takeIf { it.isNotEmpty() }?.let { runCatching { it.toColorInt() }.getOrNull() }
         if (stored != null) {
             rgb = stored or OPAQUE
             opacity = percent(stored)
@@ -87,7 +87,7 @@ class ColorSheet(
     private fun value(): String = if (isDefault()) "" else String.format(Locale.ROOT, "#%08X", color())
 
     private fun specColor(spec: ColorSpec): Int? = when {
-        spec.fixed != null -> Color.parseColor(spec.fixed) or OPAQUE
+        spec.fixed != null -> spec.fixed.toColorInt() or OPAQUE
         spec.role != null && spec.tone != null -> palette.tone(spec.role, spec.tone) or OPAQUE
         else -> null
     }

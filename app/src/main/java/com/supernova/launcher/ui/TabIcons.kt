@@ -11,6 +11,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.DrawableWrapper
 import androidx.annotation.DrawableRes
+import androidx.appcompat.content.res.AppCompatResources
 import com.supernova.launcher.R
 import com.supernova.launcher.data.SmartCategory
 import com.supernova.launcher.ui.settings.EnumLabels
@@ -34,7 +35,7 @@ object TabIcons {
     val PRIVATE = R.drawable.tab_glyph_private
 
     fun glyph(context: Context, @DrawableRes res: Int): Drawable =
-        checkNotNull(context.getDrawable(res)).mutate()
+        checkNotNull(AppCompatResources.getDrawable(context, res)).mutate()
 
     // A group tab with no picked icon.
     fun groupGlyph(context: Context, name: String): Drawable {
