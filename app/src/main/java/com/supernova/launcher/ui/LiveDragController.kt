@@ -209,7 +209,15 @@ class LiveDragController(
             val page = pendingDragPageFlip
             pendingDragPageFlip = -1
             if (dragLayer.isDragging) {
-                binding.workspacePager.setCurrentItem(host.workspaceAdapter.centerPosition(page), true)
+                // With infinite scroll every copy grew by a page, so the
+                // position the pager kept now shows another page: back onto
+                // the last old page first (before any frame), then slide on.
+                val adapter = host.workspaceAdapter
+                val pager = binding.workspacePager
+                if (adapter.realPage(pager.currentItem) != page) {
+                    pager.setCurrentItem(adapter.centerPosition(page - 1), false)
+                }
+                pager.setCurrentItem(adapter.centerPosition(page), true)
             }
         }
     }
@@ -1082,7 +1090,7 @@ class LiveDragController(
 
     // Edge hover: a finger held in the band along either side of the
     // workspace flips a page after a short pause, and keeps flipping while it
-    // stays. Past the last page (not looping) a fresh page opens.
+    // stays. Past the last page a fresh page opens, infinite scroll or not.
     // A second finger swiping across the screen while the first holds the
     // picture turns the page, one page per swipe: left for the next page,
     // right for the one before, as a swipe on the pages does.
@@ -1137,10 +1145,14 @@ class LiveDragController(
     private fun flipPageForDrag(direction: Int): Boolean {
         if (direction == 0) return false
         val pager = binding.workspacePager
+        val adapter = host.workspaceAdapter
         val next = pager.currentItem + direction
-        // Edit mode's add-page slot is not a page to flip onto: off the end
-        // of the real pages a fresh one is asked for instead.
-        if (next in 0 until host.workspaceAdapter.itemCount && !host.workspaceAdapter.isAddPage(next)) {
+        // A drag never wraps round, infinite scroll or not: past the last
+        // page is where a new page opens (#120), and before the first is the
+        // end. Edit mode's add-page slot is not a page to flip onto either.
+        val page = adapter.realPage(pager.currentItem)
+        val wraps = page + direction !in 0 until adapter.realPageCount
+        if (!wraps && next in 0 until adapter.itemCount && !adapter.isAddPage(next)) {
             drops.cancelReorderPreview(animate = false)
             hideDragGrid(animate = true)
             pager.setCurrentItem(next, true)
