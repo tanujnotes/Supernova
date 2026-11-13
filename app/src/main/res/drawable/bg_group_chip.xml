@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A pill on the Drawer groups page: a tab in the tab bar preview, a
+     row's Default or Smart tag. White, so the tint it is always given
+     shows at its own strength. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="16dp" />
+    <solid android:color="#FFFFFFFF" />
+</shape>

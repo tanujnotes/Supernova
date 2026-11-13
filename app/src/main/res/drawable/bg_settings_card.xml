@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A settings card that is a view of its own (the Drawer groups pages),
+     as the list pages' decoration draws theirs. Tinted to the page's card
+     colour in code. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="20dp" />
+    <solid android:color="@color/surface" />
+</shape>

@@ -49,6 +49,7 @@ import com.supernova.launcher.ui.theme.PaletteSourceMode
 import com.supernova.launcher.ui.theme.SurfaceId
 import com.supernova.launcher.ui.theme.ThemeMode
 import com.supernova.launcher.ui.LauncherViewModel
+import com.supernova.launcher.ui.settings.groups.GroupListBuilder
 import com.supernova.launcher.ui.ScrollEffect
 
 // The single registry of every setting, grouped into sections. Adding a
@@ -74,7 +75,6 @@ object SettingsCatalogue {
         val editGesture: (Gesture) -> Unit = {},
         val pickLockMethod: () -> Unit = {},
         val editHiddenApps: () -> Unit = {},
-        val editDrawerGroups: () -> Unit = {},
         val editSearchChips: () -> Unit = {},
         val pickDrawerGrid: () -> Unit = {},
         val editFolderIcon: () -> Unit = {},
@@ -808,7 +808,13 @@ object SettingsCatalogue {
                     visibleIf = { viewModel.drawerTabGroups().isNotEmpty() }
                 ),
                 SettingItem.Row(R.string.hidden_apps, onClick = actions.editHiddenApps),
-                SettingItem.Row(R.string.drawer_groups, onClick = actions.editDrawerGroups),
+                // A page of its own (ui/settings/groups); the row counts
+                // what it holds.
+                SettingItem.Row(
+                    R.string.drawer_groups,
+                    subtitle = { GroupListBuilder(context, viewModel).summary() },
+                    onClick = { actions.openSection(R.string.drawer_groups) }
+                ),
                 // Isolate tabs. Whether a group's apps also stay in
                 // All is the group's own choice now (Keep apps in main app
                 // tab); the old switch of that name only still decides it
@@ -965,6 +971,10 @@ object SettingsCatalogue {
                 )
             )
         ),
+        // The Drawer groups page, opened from the App drawer page's row;
+        // back returns there. It has no rows of its own: SettingsActivity
+        // shows DrawerGroupsPane in the list's place.
+        SettingsSection(R.string.drawer_groups, emptyList()),
         // The Desktop search bar's own page, opened from the Search page's
         // Search bars group (and the bar's long-press menu); back returns there.
         SettingsSection(

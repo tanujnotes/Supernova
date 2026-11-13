@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Drawer groups page's preview: the drawer's tab bar as the groups
+     below make it, the tab it opens on picked out, over a few of that tab's
+     apps. With the tab bar hidden it says so instead. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_settings_preview"
+    android:orientation="vertical"
+    android:paddingVertical="16dp">
+
+    <HorizontalScrollView
+        android:id="@+id/previewScroll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:clipToPadding="false"
+        android:paddingStart="16dp"
+        android:paddingEnd="8dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/previewTabs"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
+
+    <LinearLayout
+        android:id="@+id/previewApps"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:baselineAligned="false"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp" />
+
+    <TextView
+        android:id="@+id/previewNotice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:lineSpacingExtra="2sp"
+        android:paddingHorizontal="16dp"
+        android:text="@string/group_tab_bar_hidden"
+        android:textColor="@color/settingsWarn"
+        android:textSize="14sp"
+        android:visibility="gone" />
+</LinearLayout>

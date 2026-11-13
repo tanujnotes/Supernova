@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A tab in the Drawer groups page's tab bar preview; selected, the tab
+     the drawer opens on. -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="32dp"
+    android:layout_marginEnd="8dp"
+    android:background="@drawable/bg_group_chip"
+    android:backgroundTint="@color/group_chip_background"
+    android:fontFamily="sans-serif-medium"
+    android:gravity="center"
+    android:maxLines="1"
+    android:paddingHorizontal="13dp"
+    android:textColor="@color/group_chip_text"
+    android:textSize="13sp" />

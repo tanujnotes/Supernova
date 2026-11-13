@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- An app tile in the Drawer groups page's empty-state pictures. White,
+     so each tile's tint shows at its own strength. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="10dp" />
+    <solid android:color="#FFFFFFFF" />
+</shape>

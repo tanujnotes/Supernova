@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A tab or folder on the Drawer groups page: a picture of its apps, its
+     name (and a Default or Smart tag), what it holds, and the handle that
+     drags it to a new place. The handle sits in the 48dp control slot that
+     ends 4dp in from the card, as every settings row's control does. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:foreground="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:minHeight="68dp"
+    android:orientation="horizontal"
+    android:paddingStart="16dp"
+    android:paddingEnd="4dp">
+
+    <ImageView
+        android:id="@+id/groupIcon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginEnd="16dp"
+        android:importantForAccessibility="no" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingVertical="12dp">
+
+        <!-- The tag keeps to the name's side, and a long name gives way
+             to it. -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/groupName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:textColor="@color/textPrimary"
+                android:textSize="16sp"
+                app:layout_constrainedWidth="true"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/groupTag"
+                app:layout_constraintHorizontal_bias="0"
+                app:layout_constraintHorizontal_chainStyle="packed"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/groupTag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_group_chip"
+                android:backgroundTint="@color/group_chip_background"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp"
+                android:textColor="@color/group_chip_text"
+                android:textSize="11sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/groupName"
+                app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <TextView
+            android:id="@+id/groupSummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/textSecondary"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/groupHandle"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:contentDescription="@string/card_reorder"
+        android:padding="12dp"
+        android:src="@drawable/ic_drag_handle"
+        app:tint="@color/textSecondary" />
+</LinearLayout>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- New tab / New folder, the last row of its card on the Drawer groups
+     page: text only, starting where the rows' names start. -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/groupAdd"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fontFamily="sans-serif-medium"
+    android:foreground="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:minHeight="52dp"
+    android:paddingStart="72dp"
+    android:paddingEnd="16dp"
+    android:textColor="?attr/colorAccentOnRaised"
+    android:textSize="15sp" />

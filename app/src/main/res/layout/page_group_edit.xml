@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One drawer group's page: its name, whether it shows as a tab or a
+     folder (and a folder's icon), its apps, where its apps stay and whether
+     the drawer opens on it, and Delete. Everything commits as it changes.
+     The cards are the settings pages' cards, here as views: 16dp in, 24dp
+     apart, their rows 16dp in with the control in the 48dp slot that ends
+     4dp from the card. -->
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:fillViewport="false">
+
+    <!-- Focusable, so the page takes focus as it opens rather than the
+         name field: a restored page put the keyboard up over it. -->
+    <LinearLayout
+        android:id="@+id/groupEditContent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:orientation="vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="24dp">
+
+        <LinearLayout
+            android:id="@+id/groupMainCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_settings_card"
+            android:orientation="vertical">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="16dp"
+                android:hint="@string/group_name">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/groupNameField"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:imeOptions="actionDone"
+                    android:importantForAutofill="no"
+                    android:inputType="text"
+                    android:maxLength="@integer/label_max_length"
+                    android:maxLines="1" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="20dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="@string/group_show_as"
+                android:textColor="@color/textSecondary"
+                android:textSize="13sp" />
+
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/groupType"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="8dp"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <Button
+                    android:id="@+id/groupTypeTab"
+                    style="@style/Widget.Supernova.Button.Segment"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/group_type_tab" />
+
+                <Button
+                    android:id="@+id/groupTypeFolder"
+                    style="@style/Widget.Supernova.Button.Segment"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/folder" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+            <TextView
+                android:id="@+id/groupTypeHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="16dp"
+                android:textColor="@color/textSecondary"
+                android:textSize="13sp" />
+
+            <!-- A folder's own icon, under a hairline from the text line. -->
+            <LinearLayout
+                android:id="@+id/groupIconRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="72dp"
+                    android:background="@color/settingsDivider" />
+
+                <LinearLayout
+                    android:id="@+id/groupIconButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:gravity="center_vertical"
+                    android:minHeight="64dp"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp">
+
+                    <ImageView
+                        android:id="@+id/groupIconPreview"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:importantForAccessibility="no" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_weight="1"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="@string/group_folder_icon"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="@string/group_folder_icon_change"
+                        android:textColor="?attr/colorAccentOnRaised"
+                        android:textSize="15sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- The Apps label, as a settings page's group label, with the
+             count at the card's other edge. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="24dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.015"
+                android:text="@string/picker_tab_apps"
+                android:textColor="@color/textSecondary"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/groupAppsCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="@color/textSecondary"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/groupAppsCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_settings_card"
+            android:orientation="vertical">
+
+            <GridLayout
+                android:id="@+id/groupApps"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:columnCount="4"
+                android:foreground="?attr/selectableItemBackground"
+                android:paddingHorizontal="8dp"
+                android:paddingTop="16dp"
+                android:paddingBottom="4dp" />
+
+            <TextView
+                android:id="@+id/groupAppsEmpty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:minHeight="56dp"
+                android:paddingHorizontal="16dp"
+                android:text="@string/group_empty"
+                android:textColor="@color/textSecondary"
+                android:textSize="14sp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="16dp"
+                android:background="@color/settingsDivider" />
+
+            <TextView
+                android:id="@+id/groupSelectApps"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:foreground="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:minHeight="52dp"
+                android:paddingHorizontal="16dp"
+                android:text="@string/edit_group_apps"
+                android:textColor="?attr/colorAccentOnRaised"
+                android:textSize="15sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/groupOptionsCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:background="@drawable/bg_settings_card"
+            android:orientation="vertical"
+            android:paddingVertical="4dp">
+
+            <include
+                android:id="@+id/groupKeep"
+                layout="@layout/item_setting_toggle" />
+
+            <View
+                android:id="@+id/groupDefaultDivider"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="16dp"
+                android:background="@color/settingsDivider" />
+
+            <include
+                android:id="@+id/groupDefault"
+                layout="@layout/item_setting_toggle" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/groupDelete"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:background="@drawable/bg_settings_card"
+            android:fontFamily="sans-serif-medium"
+            android:foreground="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:minHeight="56dp"
+            android:textColor="@color/accentRedText"
+            android:textSize="15sp" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

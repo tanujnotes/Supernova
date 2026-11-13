@@ -22,8 +22,6 @@
     <string name="folder">Folder</string>
     <string name="folder_name">Folder name</string>
     <string name="remove_from_folder">Move to Home</string>
-    <string name="move_up">Move Up</string>
-    <string name="move_down">Move Down</string>
     <string name="widget">Widget</string>
     <string name="widget_resize">Resize</string>
     <string name="padding">Padding</string>
@@ -164,7 +162,6 @@
     <string name="drawer_work_tab">Separate Work tab</string>
     <string name="drawer_default_tab">Default tab</string>
     <string name="drawer_hide_all_tab">Hide the All tab</string>
-    <string name="group_rename">Rename group</string>
     <string name="edit">Edit</string>
     <string name="hide_label">Hide label</string>
     <string name="change_icon">Change icon</string>
@@ -200,7 +197,6 @@
     <string name="private_space_open_settings">Private space settings</string>
     <string name="private_space_missing">No private space on this phone</string>
     <string name="group_name">Group name</string>
-    <string name="delete_group">Delete group</string>
     <string name="edit_group_apps">Select apps</string>
     <string name="hide_app">Hide from drawer</string>
     <string name="unhide_app">Unhide</string>
@@ -219,7 +215,6 @@
     <string name="photo_from_gallery">Photo from gallery</string>
     <string name="photo_from_files">Photo from files</string>
     <string name="photo_load_failed">Couldn\'t load that image</string>
-    <string name="done">Done</string>
     <string name="icon_pack_system">System default</string>
     <string name="icon_pack_none_installed">No icon packs installed</string>
     <string name="icon_pack_apply">Apply</string>
@@ -407,10 +402,44 @@
     <string name="tab_style_classic">Classic</string>
     <string name="tab_style_bubble">Bubble</string>
     <string name="group_keep_in_main">Keep apps in main app tab</string>
-    <string name="group_keep_in_main_on">Keep apps in main app tab: on</string>
-    <string name="group_keep_in_main_off">Keep apps in main app tab: off</string>
-    <string name="group_convert_to_folder">Convert to folder</string>
-    <string name="group_convert_to_tab">Convert to tab</string>
+    <string name="group_keep_in_main_summary">Its apps also stay in the main tab</string>
+    <string name="group_kept_in_main">kept in main tab</string>
+    <!-- The Drawer groups page: its list, a group's own page, and the New
+         tab / New folder sheet. -->
+    <plurals name="group_apps_count">
+        <item quantity="one">%d app</item>
+        <item quantity="other">%d apps</item>
+    </plurals>
+    <plurals name="group_folders_count">
+        <item quantity="one">%d folder</item>
+        <item quantity="other">%d folders</item>
+    </plurals>
+    <plurals name="group_tabs_count">
+        <item quantity="one">%d tab</item>
+        <item quantity="other">%d tabs</item>
+    </plurals>
+    <string name="move_up">Move up</string>
+    <string name="move_down">Move down</string>
+    <string name="group_default_tag">Default</string>
+    <string name="group_smart_tag">Smart</string>
+    <string name="group_tab_hint">Drag a row to set the order in the tab bar.</string>
+    <string name="group_folder_hint">Folders sit in the app list, in this order.</string>
+    <string name="group_tab_bar_hidden">The tab bar is hidden, so tabs don\'t show in the drawer. Set Tab bar position on the App drawer page to bring them back.</string>
+    <string name="groups_intro">Sort the app drawer your way. A group is a set of apps shown as a tab or as a folder.</string>
+    <string name="groups_tabs_blurb">Pages of the drawer you swipe between, such as Games or Travel.</string>
+    <string name="groups_folders_blurb">Related apps tucked into one tile in the app list.</string>
+    <string name="group_show_as">Show as</string>
+    <string name="group_type_tab">Tab</string>
+    <string name="group_type_tab_hint">Sits in the drawer\'s tab bar.</string>
+    <string name="group_type_folder_hint">Sits in the app list as one tile.</string>
+    <string name="group_folder_icon">Folder icon</string>
+    <string name="group_folder_icon_change">Change</string>
+    <string name="group_more_apps">+%d</string>
+    <string name="group_default_tab_summary">The drawer opens on this tab</string>
+    <string name="delete_tab">Delete tab</string>
+    <string name="delete_folder_group">Delete folder</string>
+    <string name="group_deleted">%1$s deleted</string>
+    <string name="group_name_required">Enter a name</string>
     <string name="new_tab">New tab</string>
     <string name="edit_tab">Edit tab</string>
     <string name="show_hidden_apps">Show hidden apps</string>

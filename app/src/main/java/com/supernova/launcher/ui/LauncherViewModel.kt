@@ -19,6 +19,7 @@ import com.supernova.launcher.data.CustomShapeSpec
 import com.supernova.launcher.data.DeviceProfile
 import com.supernova.launcher.data.DrawerGroup
 import com.supernova.launcher.data.DrawerGroupEdit
+import com.supernova.launcher.data.DrawerGroupOrder
 import com.supernova.launcher.data.DrawerGroupType
 import com.supernova.launcher.data.GroupPick
 import com.supernova.launcher.data.IconPack
@@ -1164,6 +1165,21 @@ class LauncherViewModel(
                 groups[index] = groups[target].also { groups[target] = groups[index] }
                 groups.mapIndexed { position, group -> group.copy(order = position) }
             }
+        }
+    }
+
+    // A drag on the Drawer groups page: one type's groups in a new order.
+    fun setGroupOrder(type: DrawerGroupType, names: List<String>) {
+        viewModelScope.launch {
+            preferences.updateDrawerGroups { DrawerGroupOrder.reordered(it, type, names) }
+        }
+    }
+
+    // Undo of a delete on the Drawer groups page: the group back out of
+    // before, the list as it stood when it was deleted.
+    fun restoreGroup(before: List<DrawerGroup>, name: String) {
+        viewModelScope.launch {
+            preferences.updateDrawerGroups { DrawerGroupOrder.restored(it, before, name) }
         }
     }
 

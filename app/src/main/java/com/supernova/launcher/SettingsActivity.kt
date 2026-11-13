@@ -79,6 +79,28 @@ class SettingsActivity : AppCompatActivity() {
     private val viewModel: LauncherViewModel by viewModels { LauncherViewModel.Factory(appGraph) }
     // Folder icons for a tab's Select apps.
     private val itemIcons by lazy { com.supernova.launcher.ui.ItemIcons(this, viewModel) }
+
+    // The Drawer groups page, in place of the list while it is open; made
+    // on its first showing.
+    private var groupsPane: com.supernova.launcher.ui.settings.groups.DrawerGroupsPane? = null
+
+    // The group whose page was open before a recreate, to open again.
+    private var restoredGroup: String? = null
+
+    // A drawer folder's icon, from its page under Drawer groups: the gallery
+    // and file pickers its Edit sheet asks for. Registered up front; the
+    // sheet's callback is parked here until one answers.
+    private var photoPickCallback: ((android.net.Uri?) -> Unit)? = null
+    private val pickPhotoLauncher =
+        registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            photoPickCallback?.invoke(uri)
+            photoPickCallback = null
+        }
+    private val pickPhotoFileLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            photoPickCallback?.invoke(uri)
+            photoPickCallback = null
+        }
     private lateinit var adapter: SettingsAdapter
 
     // The settings row last tapped, and so what a choice menu opens under.
@@ -278,15 +300,16 @@ class SettingsActivity : AppCompatActivity() {
     private val backCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
             val parent = currentSection?.title?.let(subPageParents::get)
-            if (searchActive) {
-                setSearchActive(false)
-            } else if (parent != null) {
+            when {
+                searchActive -> setSearchActive(false)
+                // From a group's own page back to the groups.
+                onGroupsPage() && groupsPane?.handleBack() == true -> Unit
                 // Back onto the row that opened the page, not the top.
-                val child = currentSection?.title ?: 0
-                navigateTo(parent, child, flash = false)
-            } else {
-                currentSection = null
-                render()
+                parent != null -> navigateTo(parent, currentSection?.title ?: 0, flash = false)
+                else -> {
+                    currentSection = null
+                    render()
+                }
             }
         }
     }
@@ -347,7 +370,7 @@ class SettingsActivity : AppCompatActivity() {
         // setPadding is absolute, not additive.
         val sideInsetViews = listOf(
             binding.settingsToolbar, binding.previewFrame, binding.rootTitle, binding.rootSearch,
-            binding.settingsRecycler, binding.settingsTabs
+            binding.settingsRecycler, binding.groupsPane, binding.settingsTabs
         )
         val basePadding = sideInsetViews.map { Triple(it.paddingLeft, it.paddingRight, it.paddingBottom) }
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
@@ -408,7 +431,6 @@ class SettingsActivity : AppCompatActivity() {
             editGesture = ::showActionPicker,
             pickLockMethod = ::showLockMethodPicker,
             editHiddenApps = ::showHiddenAppsPicker,
-            editDrawerGroups = ::showDrawerGroups,
             exportBackup = backup::pickExportFile,
             importBackup = backup::pickImportFile,
             shareBackup = ::shareBackup,
@@ -498,6 +520,7 @@ class SettingsActivity : AppCompatActivity() {
             currentTab = if (state.getString(STATE_TAB) == Tab.STYLE.name) Tab.STYLE else Tab.SETTINGS
             val sectionTitle = state.getInt(STATE_SECTION, 0)
             currentSection = sections.firstOrNull { it.title == sectionTitle && sectionTitle != 0 }
+            restoredGroup = state.getString(STATE_GROUP)
             // Where it was on the page, too. The list and the app bar bring
             // back their own scroll, which a first showing of the page would
             // reset to the top.
@@ -600,6 +623,7 @@ class SettingsActivity : AppCompatActivity() {
                         if (!searchActive) render()
                     }
                     adapter.updatePrefs(state.prefs)
+                    groupsPane?.refresh()
                     bindPreviewPane(currentSection)
                     applySettingsSurface(state.prefs)
                     // Night mode recreates activities on its own; an accent
@@ -629,6 +653,7 @@ class SettingsActivity : AppCompatActivity() {
         }
         groupCards.dividerColor = getColor(R.color.settingsDivider)
         binding.settingsRecycler.invalidateItemDecorations()
+        groupsPane?.cardColor = groupCards.cardColor
     }
 
     override fun onResume() {
@@ -642,6 +667,7 @@ class SettingsActivity : AppCompatActivity() {
         super.onSaveInstanceState(outState)
         outState.putString(STATE_TAB, currentTab.name)
         currentSection?.let { outState.putInt(STATE_SECTION, it.title) }
+        groupsPane?.editing?.let { outState.putString(STATE_GROUP, it) }
         outState.putIntArray(STATE_OPEN_ACCORDIONS, adapter.openAccordions)
     }
 
@@ -654,8 +680,55 @@ class SettingsActivity : AppCompatActivity() {
     // and the page that row is on: back returns there.
     private val subPageParents = mapOf(
         R.string.desktop_search_bar to R.string.settings_section_search,
-        R.string.drawer_search_bar to R.string.settings_section_search
+        R.string.drawer_search_bar to R.string.settings_section_search,
+        R.string.drawer_groups to R.string.settings_section_drawer
     )
+
+    // The Drawer groups page is the pane's, not the list's. A search from
+    // its toolbar shows results in the list, and Back returns to the pane.
+    private fun onGroupsPage(): Boolean =
+        currentSection?.title == R.string.drawer_groups && !searchActive && currentTab == Tab.SETTINGS
+
+    private fun showGroupsPane(visible: Boolean) {
+        binding.settingsRecycler.isVisible = !visible
+        if (!visible) {
+            // Left for another page, it opens on the groups next time.
+            val stays = currentSection?.title == R.string.drawer_groups
+            groupsPane?.let { it.show(false, it.editing.takeIf { stays }) }
+            return
+        }
+        val pane = groupsPane ?: com.supernova.launcher.ui.settings.groups.DrawerGroupsPane(
+            this, binding.groupsPane, viewModel, itemIcons,
+            onTitleChanged = ::applyGroupsTitle,
+            editFolderIcon = { group ->
+                com.supernova.launcher.ui.FolderEditSheet
+                    .showDrawerFolder(this, lifecycleScope, viewModel, group, ::pickPhoto)
+            }
+        ).also {
+            groupsPane = it
+            it.cardColor = groupCards.cardColor
+        }
+        pane.show(true, restoredGroup ?: pane.editing)
+        restoredGroup = null
+    }
+
+    // A group's own page goes by the group's name.
+    private fun applyGroupsTitle() {
+        if (onGroupsPage()) binding.settingsTitle.text = groupsPane?.editing ?: getString(R.string.drawer_groups)
+    }
+
+    private fun pickPhoto(fromFiles: Boolean, onPicked: (android.net.Uri?) -> Unit) {
+        photoPickCallback = onPicked
+        runLogged("open photo picker") {
+            if (fromFiles) {
+                pickPhotoFileLauncher.launch(arrayOf("image/*"))
+            } else {
+                pickPhotoLauncher.launch(
+                    androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            }
+        }.onFailure { Toast.makeText(this, R.string.launch_failed, Toast.LENGTH_SHORT).show() }
+    }
 
     private fun render() {
         binding.tabSettings.isSelected = currentTab == Tab.SETTINGS
@@ -671,6 +744,7 @@ class SettingsActivity : AppCompatActivity() {
             }
 
         applyHeader(section)
+        showGroupsPane(onGroupsPage())
 
         // Search mode replaces whatever list was showing with flat results;
         // the rows are plain Rows, so the ordinary adapter renders them. Each
@@ -691,6 +765,7 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         if (section != null) binding.settingsTitle.text = getString(section.title)
+        applyGroupsTitle()
 
         val items = if (section == null) {
             rootItems()
@@ -1662,194 +1737,6 @@ class SettingsActivity : AppCompatActivity() {
             .show()
     }
 
-    // One line of the Drawer groups page: a section header, a group, or
-    // the section's add row.
-    private sealed class GroupRow {
-        class Header(@androidx.annotation.StringRes val title: Int) : GroupRow()
-        class Group(val group: DrawerGroup) : GroupRow()
-        class Add(val type: DrawerGroupType) : GroupRow()
-    }
-
-    // The Drawer groups page: Tabs, then Folders, each group with the
-    // apps it holds under its name, and an add row per section.
-    private fun showDrawerGroups() {
-        val groups = viewModel.drawerGroups()
-        val rows = buildList {
-            add(GroupRow.Header(R.string.group_tabs_header))
-            groups.filter { it.type == DrawerGroupType.TAB }.forEach { add(GroupRow.Group(it)) }
-            add(GroupRow.Add(DrawerGroupType.TAB))
-            add(GroupRow.Header(R.string.group_folders_header))
-            groups.filter { it.type == DrawerGroupType.FOLDER }.forEach { add(GroupRow.Group(it)) }
-            add(GroupRow.Add(DrawerGroupType.FOLDER))
-        }
-        // A tab's line names the drawer folders it holds as well as its apps.
-        val labelsByKey = viewModel.state.value.apps.associate { viewModel.hiddenKey(it) to it.label } +
-            groups.filter { it.type == DrawerGroupType.FOLDER }.associate { TabFolders.keyOf(it.name) to it.name }
-        val adapter = object : android.widget.BaseAdapter() {
-            override fun getCount() = rows.size
-            override fun getItem(position: Int) = rows[position]
-            override fun getItemId(position: Int) = position.toLong()
-            override fun areAllItemsEnabled() = false
-            override fun isEnabled(position: Int) = rows[position] !is GroupRow.Header
-            override fun getViewTypeCount() = GROUP_ROW_TYPES
-            override fun getItemViewType(position: Int) = when (rows[position]) {
-                is GroupRow.Header -> 0
-                is GroupRow.Group -> 1
-                is GroupRow.Add -> 2
-            }
-
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View =
-                when (val row = rows[position]) {
-                    is GroupRow.Header -> (convertView ?: inflate(R.layout.row_group_header, parent)).apply {
-                        (this as TextView).setText(row.title)
-                    }
-                    is GroupRow.Group -> (convertView ?: inflate(R.layout.row_group, parent)).apply {
-                        findViewById<TextView>(R.id.groupName).text = row.group.name
-                        findViewById<TextView>(R.id.groupSummary).text = groupSummary(row.group, labelsByKey)
-                    }
-                    is GroupRow.Add -> (convertView ?: inflate(R.layout.row_group_add, parent)).apply {
-                        (this as TextView).setText(
-                            if (row.type == DrawerGroupType.TAB) R.string.new_tab else R.string.new_folder_group
-                        )
-                    }
-                }
-        }
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.drawer_groups)
-            .setAdapter(adapter) { _, which ->
-                when (val row = rows[which]) {
-                    is GroupRow.Group -> showGroupActions(row.group)
-                    is GroupRow.Add -> promptNewGroup(row.type)
-                    is GroupRow.Header -> Unit
-                }
-            }
-            .setPositiveButton(R.string.done, null)
-            .show()
-    }
-
-    private fun inflate(layout: Int, parent: ViewGroup): View = layoutInflater.inflate(layout, parent, false)
-
-    // "Maps, Rapido, Uber", the line under a group; "Empty" for none.
-    private fun groupSummary(group: DrawerGroup, labelsByKey: Map<String, String>): String {
-        val names = com.supernova.launcher.data.LabelOrder.sorted(group.members.mapNotNull { labelsByKey[it] }) { it }
-        if (names.isEmpty()) return getString(R.string.group_empty)
-        val shown = names.take(GROUP_SUMMARY_NAMES).joinToString(", ")
-        return if (names.size > GROUP_SUMMARY_NAMES) "$shown, …" else shown
-    }
-
-    // The menu on a group: its apps, its name, whether its apps stay in
-    // the main list too, tab or folder, its place, and deleting it.
-    private fun showGroupActions(group: DrawerGroup) {
-        val keep = !viewModel.leavesMainList(group)
-        val actions = listOf(
-            getString(R.string.edit_group_apps),
-            getString(R.string.group_rename),
-            getString(if (keep) R.string.group_keep_in_main_on else R.string.group_keep_in_main_off),
-            getString(
-                if (group.type == DrawerGroupType.TAB) {
-                    R.string.group_convert_to_folder
-                } else {
-                    R.string.group_convert_to_tab
-                }
-            ),
-            getString(R.string.move_up),
-            getString(R.string.move_down),
-            getString(R.string.delete_group)
-        )
-
-        showChoice(group.name, actions, -1) { which ->
-            when (which) {
-                0 -> showGroupEditor(group)
-                1 -> promptRenameGroup(group)
-                2 -> {
-                    viewModel.setGroupKeepInMain(group, !keep)
-                    reopenGroupsSoon()
-                }
-                3 -> {
-                    viewModel.setGroupType(
-                        group,
-                        if (group.type == DrawerGroupType.TAB) DrawerGroupType.FOLDER else DrawerGroupType.TAB
-                    )
-                    reopenGroupsSoon()
-                }
-                4 -> {
-                    viewModel.moveGroup(group.name, -1)
-                    reopenGroupsSoon()
-                }
-                5 -> {
-                    viewModel.moveGroup(group.name, 1)
-                    reopenGroupsSoon()
-                }
-                6 -> viewModel.removeGroup(group.name)
-            }
-        }
-    }
-
-    private fun promptRenameGroup(group: DrawerGroup) {
-        val input = EditText(this).apply {
-            hint = getString(R.string.group_name)
-            com.supernova.launcher.ui.LabelLimit.apply(this)
-            setText(group.name)
-        }
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.group_rename)
-            .setView(com.supernova.launcher.ui.DialogField.wrap(input))
-            .setPositiveButton(R.string.save) { _, _ ->
-                if (viewModel.renameGroup(group, input.text?.toString().orEmpty()) == null) {
-                    Toast.makeText(this, R.string.group_name_taken, Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
-    }
-
-    // Group mutations round-trip through DataStore; reopen the list after a
-    // short beat so it reflects the new order.
-    private fun reopenGroupsSoon() {
-        lifecycleScope.launch {
-            delay(150)
-            showDrawerGroups()
-        }
-    }
-
-    // Add drawer tab / Add drawer folder: a title, and whether the
-    // group's apps stay in the main list as well (off by default).
-    private fun promptNewGroup(type: DrawerGroupType) {
-        val input = EditText(this).apply {
-            hint = getString(R.string.group_name)
-            com.supernova.launcher.ui.LabelLimit.apply(this)
-        }
-        val dialogBinding = com.supernova.launcher.databinding.DialogNewGroupBinding.inflate(layoutInflater)
-        dialogBinding.newGroupField.addView(com.supernova.launcher.ui.DialogField.wrap(input))
-        val keep = dialogBinding.newGroupKeep
-        val content = dialogBinding.root
-        MaterialAlertDialogBuilder(this)
-            .setTitle(if (type == DrawerGroupType.TAB) R.string.new_tab else R.string.new_folder_group)
-            .setView(content)
-            .setPositiveButton(R.string.save) { _, _ ->
-                val name = input.text?.toString().orEmpty().trim()
-                if (name.isEmpty()) return@setPositiveButton
-                val created = viewModel.createGroup(name, type, keep.isChecked)
-                if (created == null) {
-                    Toast.makeText(this, R.string.group_name_taken, Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-                // Group starts empty; go straight to picking its apps. By the
-                // stored name, which differs from the typed one for a name
-                // with a '|' in it.
-                lifecycleScope.launch {
-                    delay(120)
-                    viewModel.drawerGroups().firstOrNull { it.name == created }?.let(::showGroupEditor)
-                }
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
-    }
-
-    private fun showGroupEditor(group: DrawerGroup) {
-        com.supernova.launcher.ui.GroupChecklist(this, viewModel, itemIcons).show(group, viewModel.visibleApps())
-    }
-
     // The app pickers: search, ticked apps first, and nothing applied until
     // Save, which hands over only the ticks that changed.
     private fun showAppChecklist(
@@ -2186,12 +2073,9 @@ class SettingsActivity : AppCompatActivity() {
         // The folder icon dialog's live preview, on its 128dp card.
         private const val FOLDER_PREVIEW_DP = 80
 
-        // Member names shown under a drawer group before "…".
-        private const val GROUP_SUMMARY_NAMES = 3
 
-        // GroupRow's kinds: header, group, add row.
-        private const val GROUP_ROW_TYPES = 3
         private const val STATE_SECTION = "settings_section"
+        private const val STATE_GROUP = "settings_group"
         private const val STATE_OPEN_ACCORDIONS = "settings_open_accordions"
 
         // How many of a pack's drawables the icon pack picker samples per row.

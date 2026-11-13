@@ -209,6 +209,14 @@
                 android:clipToPadding="false"
                 android:paddingBottom="24dp" />
 
+            <!-- The Drawer groups page (DrawerGroupsPane), in the list's place
+                 while it is open. -->
+            <FrameLayout
+                android:id="@+id/groupsPane"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone" />
+
             <!-- The Cards page adds cards from a FAB; shown on that page only. -->
             <com.google.android.material.floatingactionbutton.FloatingActionButton
                 android:id="@+id/cardsFab"

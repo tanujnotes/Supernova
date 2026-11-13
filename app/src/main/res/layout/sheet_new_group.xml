@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- New tab / New folder, from the Drawer groups page: the name, whether
+     the group shows as a tab or a folder, whether its apps stay in the main
+     tab as well, and on to picking its apps. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="16dp">
+
+    <include layout="@layout/sheet_handle" />
+
+    <TextView
+        android:id="@+id/newGroupTitle"
+        style="@style/SheetTitle" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/newGroupNameLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="12dp"
+        android:hint="@string/group_name">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/newGroupName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:imeOptions="actionDone"
+            android:importantForAutofill="no"
+            android:inputType="text"
+            android:maxLength="@integer/label_max_length"
+            android:maxLines="1" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="16dp"
+        android:fontFamily="sans-serif-medium"
+        android:text="@string/group_show_as"
+        android:textColor="@color/textSecondary"
+        android:textSize="13sp" />
+
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/newGroupType"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="8dp"
+        app:selectionRequired="true"
+        app:singleSelection="true">
+
+        <Button
+            android:id="@+id/newGroupTab"
+            style="@style/Widget.Supernova.Button.Segment"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/group_type_tab" />
+
+        <Button
+            android:id="@+id/newGroupFolder"
+            style="@style/Widget.Supernova.Button.Segment"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/folder" />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+    <TextView
+        android:id="@+id/newGroupHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="8dp"
+        android:textColor="@color/textSecondary"
+        android:textSize="13sp" />
+
+    <!-- The box sits in line with the field's edge; its text 12dp on. -->
+    <CheckBox
+        android:id="@+id/newGroupKeep"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="20dp"
+        android:minHeight="48dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="0dp"
+        android:text="@string/group_keep_in_main"
+        android:textColor="@color/textPrimary"
+        android:textSize="15sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="end"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp">
+
+        <Button
+            android:id="@+id/newGroupCancel"
+            style="@style/Widget.Supernova.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cancel" />
+
+        <!-- The sheet's one filled button, as Save is on the Edit sheets. -->
+        <Button
+            android:id="@+id/newGroupCreate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/edit_group_apps"
+            tools:ignore="ButtonStyle" />
+    </LinearLayout>
+</LinearLayout>
