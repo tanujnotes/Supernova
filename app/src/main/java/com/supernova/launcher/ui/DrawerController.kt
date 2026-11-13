@@ -469,6 +469,14 @@ class DrawerController(
                 if (currentStyle == DrawerStyle.PAGED_GRID && pageRows(prefs) != cutRows) syncPages()
             }
         }
+        // The top row takes one app per grid column, counted from the sheet's
+        // width. A rotation reaches the row before the sheet's new layout, so
+        // it kept the old count (five portrait columns stretched over a
+        // landscape row); a change of width counts again.
+        binding.drawerSheet.addOnLayoutChangeListener { sheet, left, _, right, _, oldLeft, _, oldRight, _ ->
+            if (right - left == oldRight - oldLeft) return@addOnLayoutChangeListener
+            sheet.post { updateFrequentRow() }
+        }
         // Paging is the paged style's scrolling, so it does the same.
         binding.drawerPager.registerOnPageChangeCallback(
             object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
