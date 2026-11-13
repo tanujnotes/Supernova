@@ -2785,6 +2785,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // What a new item's menu closes as it sends the item home, and what its
     // drag leaves for the home screen: the drawer, the search window, and the
     // feed that search was opened over - the item lands on a home page.
+    private fun placeTapped(page: Int, add: (LauncherViewModel.FreeSpot) -> Unit) =
+        com.supernova.launcher.ui.TappedPlacement.place(viewModel, page, add = add)
+
     override fun closeItemSources() {
         // A folder card is a window of its own: a shortcut dragged out of a
         // member's menu left it standing over the home screen. Not the card
@@ -2878,12 +2881,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         val homeClosed = desktopLocked || app.privateSpace
         if (!homeClosed) {
             menu.addRow(getString(R.string.add_to_home), R.drawable.ic_menu_add) {
-                val page = viewModel.state.value.currentPage
-                val free = viewModel.firstFreeWorkspaceCell(page)
-                if (free == null) {
-                    Toast.makeText(this, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
-                } else {
-                    viewModel.addAppToWorkspace(app, page, free.first, free.second)
+                placeTapped(viewModel.state.value.currentPage) { spot ->
+                    viewModel.addAppToWorkspace(app, spot.page, spot.cellX, spot.cellY)
                     source?.dismiss()
                     closeItemSources()
                 }
@@ -2932,18 +2931,14 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     if (::search.isInitialized && search.isOpen) search.hide()
                     return@addShortcut
                 }
-                val page = viewModel.state.value.currentPage
-                val free = viewModel.firstFreeWorkspaceCell(page)
-                if (free == null) {
-                    Toast.makeText(this, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
-                } else {
+                placeTapped(viewModel.state.value.currentPage) { spot ->
                     viewModel.addShortcutToWorkspace(
                         app = app,
                         shortcutId = shortcut.id,
                         label = shortcut.shortLabel?.toString() ?: app.label,
-                        page = page,
-                        cellX = free.first,
-                        cellY = free.second,
+                        page = spot.page,
+                        cellX = spot.cellX,
+                        cellY = spot.cellY,
                         iconBase64 = shortcutOwnIcon(shortcut)?.let { com.supernova.launcher.data.GalleryIconCodec.encode(it) }
                     )
                     pinShortcut(app.packageName, shortcut.id, app.userSerial)
@@ -2962,14 +2957,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         val menu = newItemPopup()
         if (!desktopLocked && !viewModel.isPrivateSerial(shortcut.userSerial)) {
             menu.addRow(getString(R.string.add_to_home), R.drawable.ic_menu_add) {
-                val page = viewModel.state.value.currentPage
-                val free = viewModel.firstFreeWorkspaceCell(page)
-                if (free == null) {
-                    Toast.makeText(this, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
-                } else {
+                placeTapped(viewModel.state.value.currentPage) { spot ->
                     val item = shortcutItem(shortcut)
                     viewModel.addShortcutToWorkspace(
-                        item.owner, shortcut.shortcutId, shortcut.label, page, free.first, free.second,
+                        item.owner, shortcut.shortcutId, shortcut.label, spot.page, spot.cellX, spot.cellY,
                         iconBase64 = item.iconBase64
                     )
                     closeItemSources()
@@ -2992,12 +2983,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         val menu = newItemPopup()
         if (!desktopLocked && apps.isNotEmpty()) {
             menu.addRow(getString(R.string.add_to_home), R.drawable.ic_menu_add) {
-                val page = viewModel.state.value.currentPage
-                val free = viewModel.firstFreeWorkspaceCell(page)
-                if (free == null) {
-                    Toast.makeText(this, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
-                } else {
-                    viewModel.addFolderToWorkspace(group.name, apps, page, free.first, free.second)
+                placeTapped(viewModel.state.value.currentPage) { spot ->
+                    viewModel.addFolderToWorkspace(group.name, apps, spot.page, spot.cellX, spot.cellY)
                     closeItemSources()
                 }
             }
@@ -3264,18 +3251,11 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         return (info?.shortLabel ?: info?.longLabel)?.toString()?.takeIf { it.isNotBlank() }
     }
 
-    // Widgets are exempt from undo: their host id is deleted on removal and
-    // cannot be restored, so undoing would resurrect a dead placeholder.
+    // A widget's host id is kept while the Undo bar shows, so Undo brings the
+    // same widget back; it is deleted once the bar goes without an Undo.
     override fun removeItemWithUndo(item: LauncherItem) {
-        if (item.itemType == ItemType.WIDGET) {
-            // Its resize frame goes now rather than at the rebind: after a
-            // drop on Remove the widget stays hidden, and a write landing
-            // after the drag's end would bring the frame back around nothing.
-            widgets.onWidgetItemRemoved(item)
-            viewModel.removeItem(item.id)
-            removeEmptyPages(emptied = item.desktopPage())
-            return
-        }
+        val widget = item.itemType == ItemType.WIDGET
+        if (widget) widgets.onWidgetItemRemoved(item)
         // Capture before removal: the exact item plus folder members, so undo
         // restores the same ids into the same cells (or the nearest free).
         val members = if (item.itemType == ItemType.FOLDER) {
@@ -3285,6 +3265,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         }
         viewModel.removeItem(item.id)
         if (!viewModel.state.value.prefs.undoRemove) {
+            if (widget) widgets.releaseWidget(item)
             removeEmptyPages(emptied = item.desktopPage())
             return
         }
@@ -3296,6 +3277,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         }
         snackbar.addCallback(object : Snackbar.Callback() {
             override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+                // Before the check below: a bar replaced by the next removal's
+                // is final too.
+                if (widget && event != DISMISS_EVENT_ACTION) widgets.releaseWidget(item)
                 if (undoSnackbar !== transientBottomBar) return
                 undoSnackbar = null
                 if (event != DISMISS_EVENT_ACTION) removeEmptyPages(emptied = item.desktopPage())
@@ -3516,15 +3500,11 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         applied: (com.supernova.launcher.data.LauncherModel) -> Unit
     ) {
         menu.addRow(getString(R.string.remove_from_folder), R.drawable.ic_menu_add) {
-            val page = pageForFolderMembers(folder)
-            val free = viewModel.firstFreeWorkspaceCell(page)
-            if (free == null) {
-                Toast.makeText(this, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
-            } else {
+            placeTapped(pageForFolderMembers(folder)) { spot ->
                 val before = viewModel.state.value.model
                 // The move a drag onto that free cell makes, so a folder
                 // left with one app gives way to it here too.
-                viewModel.moveItemToWorkspace(member.id, page, free.first, free.second, mergeFolders = false)
+                viewModel.moveItemToWorkspace(member.id, spot.page, spot.cellX, spot.cellY, mergeFolders = false)
                 applied(before)
             }
         }

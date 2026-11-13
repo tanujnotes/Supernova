@@ -102,8 +102,15 @@ object StylePickerSheet {
         fun renderStrip() {
             // Styles memoizes on the config string, so resolving a candidate
             // copy is how the strip previews the edit end to end.
+            // The Dock's and drawer's opacity is a pref, not the style: the
+            // bar's position stands in for the write still on its way.
+            val base = if (SurfaceOpacity.handles(surfaceId)) {
+                SurfaceOpacity.preview(prefs, surfaceId, binding.opacitySeek.progress)
+            } else {
+                prefs
+            }
             val resolved = Styles.resolve(
-                context, prefs.copy(styleConfig = config.with(surfaceId, style).encode())
+                context, base.copy(styleConfig = config.with(surfaceId, style).encode())
             ).of(surfaceId)
             binding.stripSurface.background = SurfaceShapes.background(
                 resolved.surface,
@@ -201,7 +208,13 @@ object StylePickerSheet {
         if (surfaceId in OPACITY_SURFACES) {
             // The resolved surface's alpha channel already folds style.alpha
             // over the legacy per-surface opacity default.
-            val initial = (Styles.resolve(context, prefs).of(surfaceId).surface ushr 24) * 100 / 255
+            val shared = SurfaceOpacity.handles(surfaceId)
+            val initial = if (shared) {
+                SurfaceOpacity.effective(prefs, surfaceId)
+            } else {
+                (Styles.resolve(context, prefs).of(surfaceId).surface ushr 24) * 100 / 255
+            }
+            binding.opacitySeek.min = SurfaceOpacity.min(surfaceId)
             binding.opacitySeek.progress = initial
             binding.opacityValue.text = context.getString(R.string.opacity_percent, initial)
             binding.opacitySeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -212,7 +225,14 @@ object StylePickerSheet {
                 override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
 
                 override fun onStopTrackingTouch(seekBar: SeekBar) {
-                    style = style.copy(alpha = seekBar.progress / 100f)
+                    if (shared) {
+                        // The page's own slider holds it; one stored here
+                        // before goes, or it would override that for good.
+                        SurfaceOpacity.setPref(viewModel, surfaceId, seekBar.progress)
+                        style = style.copy(alpha = null)
+                    } else {
+                        style = style.copy(alpha = seekBar.progress / 100f)
+                    }
                     persist()
                     renderStrip()
                 }

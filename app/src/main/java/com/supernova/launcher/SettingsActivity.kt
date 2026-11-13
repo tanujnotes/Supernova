@@ -163,9 +163,7 @@ class SettingsActivity : AppCompatActivity() {
         val granted = permission.granted(this)
         when (permission) {
             com.supernova.launcher.ui.settings.LabsPermission.NOTIFICATIONS ->
-                runLogged("open notification access settings") {
-                    startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-                }
+                com.supernova.launcher.ui.PermissionPrompts.openNotificationAccess(this)
             com.supernova.launcher.ui.settings.LabsPermission.ACCESSIBILITY ->
                 runLogged("open accessibility settings") {
                     startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
@@ -449,13 +447,15 @@ class SettingsActivity : AppCompatActivity() {
             restartLauncher = ::restartLauncher,
             showCrashLog = ::showCrashLog,
             onBadgesEnabled = {
-                if (!SupernovaNotificationListener.isEnabled(this)) {
-                    Toast.makeText(this, R.string.badges_need_access, Toast.LENGTH_LONG).show()
-                    runLogged("open notification access settings") {
-                        startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-                    }
-                }
+                com.supernova.launcher.ui.PermissionPrompts
+                    .explainNotificationAccess(this, R.string.notification_access_badges)
             },
+            onPopupNotificationsEnabled = {
+                com.supernova.launcher.ui.PermissionPrompts
+                    .explainNotificationAccess(this, R.string.notification_access_popup)
+            },
+            explainAccessibility = { com.supernova.launcher.ui.PermissionPrompts.explainAccessibility(this) },
+            requestDeviceAdmin = ::launchDeviceAdminRequest,
             onSearchContactsEnabled = {
                 if (checkSelfPermission(android.Manifest.permission.READ_CONTACTS) !=
                     android.content.pm.PackageManager.PERMISSION_GRANTED
@@ -482,11 +482,7 @@ class SettingsActivity : AppCompatActivity() {
                 com.supernova.launcher.ui.CustomCardEditorSheet.show(this, viewModel, card)
             },
             openCards = { navigateTo(R.string.settings_section_cards, 0) },
-            openNotificationAccess = {
-                runLogged("open notification access settings") {
-                    startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-                }
-            },
+            openNotificationAccess = { com.supernova.launcher.ui.PermissionPrompts.openNotificationAccess(this) },
             cardPreview = { card, parent ->
                 // The feed's own binder, inert: no launches, no menu, and a
                 // widget-featured card shows without its widget.
@@ -1462,23 +1458,35 @@ class SettingsActivity : AppCompatActivity() {
         )
         val current = methods.indexOf(viewModel.state.value.prefs.lockMethod).coerceAtLeast(0)
         showChoice(R.string.lock_method, labels, current) { which ->
-            viewModel.set(Pref.lockMethod, methods[which])
-            // Selecting device admin sends the user to grant it (a no-op if
-            // already active); the actual lock happens on the gesture.
-            if (methods[which] == LockMethod.DEVICE_ADMIN && !SupernovaDeviceAdmin.isActive(this)) {
-                val intent = android.content.Intent(
-                    android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN
-                ).putExtra(
-                    android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN,
-                    SupernovaDeviceAdmin.component(this)
-                ).putExtra(
-                    android.app.admin.DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                    getString(R.string.lock_admin_explanation)
-                )
-                runLogged("ask for device admin") { startActivity(intent) }
-                Toast.makeText(this, R.string.lock_admin_note, Toast.LENGTH_LONG).show()
+            if (methods[which] != LockMethod.DEVICE_ADMIN || SupernovaDeviceAdmin.isActive(this)) {
+                viewModel.set(Pref.lockMethod, methods[which])
+                return@showChoice
             }
+            // Device admin's catch is said before the system screen, and the
+            // method is kept only once the admin is really on.
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.device_admin_confirm_title)
+                .setMessage(R.string.lock_admin_note)
+                .setPositiveButton(R.string.continue_label) { _, _ -> launchDeviceAdminRequest() }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
         }
+    }
+
+    private val deviceAdminLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            if (SupernovaDeviceAdmin.isActive(this)) viewModel.set(Pref.lockMethod, LockMethod.DEVICE_ADMIN)
+            render()
+        }
+
+    private fun launchDeviceAdminRequest() {
+        val intent = Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+            .putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, SupernovaDeviceAdmin.component(this))
+            .putExtra(
+                android.app.admin.DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                getString(R.string.lock_admin_explanation)
+            )
+        runLogged("ask for device admin") { deviceAdminLauncher.launch(intent) }
     }
 
     private fun showAutoBackups() {
@@ -1680,10 +1688,8 @@ class SettingsActivity : AppCompatActivity() {
     // access, so that is asked for first, as switching badges on does.
     private fun postTestBadge() {
         if (!SupernovaNotificationListener.isEnabled(this)) {
-            Toast.makeText(this, R.string.badges_need_access, Toast.LENGTH_LONG).show()
-            runLogged("open notification access settings") {
-                startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-            }
+            com.supernova.launcher.ui.PermissionPrompts
+                .explainNotificationAccess(this, R.string.notification_access_badges)
             return
         }
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&

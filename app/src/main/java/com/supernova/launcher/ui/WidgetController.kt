@@ -95,16 +95,23 @@ class WidgetController(
     fun label(widgetId: Int): String? =
         runCatching { appWidgetManager.getAppWidgetInfo(widgetId)?.loadLabel(activity.packageManager)?.toString() }.getOrNull()
 
-    // A widget item is leaving the model: its host id goes with it (widgets
-    // are exempt from undo), and so do its cached view and size.
+    // A widget item is leaving the model. Its host id and cached view stay
+    // until releaseWidget, so Undo can put the same widget back as it was.
     fun onWidgetItemRemoved(item: LauncherItem) {
         // Its resize frame goes now rather than at the rebind: after a drop
         // on Remove the widget stays hidden, and a write landing after the
         // drag's end would bring the frame back around nothing.
         if (activeResizeFrame?.itemId == item.id) dismissResizeFrame()
-        item.appWidgetId?.let(appWidgetHost::deleteAppWidgetId)
-        item.appWidgetId?.let(lastReportedSizes::remove)
-        item.appWidgetId?.let(widgetHostViews::remove)
+    }
+
+    // The removal is final (no Undo, or the Undo bar went): the host id goes,
+    // and so do its cached view and size. One left behind by a recreate or a
+    // process death in between is reclaimed by sweepOrphanIds.
+    fun releaseWidget(item: LauncherItem) {
+        val id = item.appWidgetId ?: return
+        appWidgetHost.deleteAppWidgetId(id)
+        lastReportedSizes.remove(id)
+        widgetHostViews.remove(id)
     }
 
     // One host view per card widget, reused on every bind. The feed rebinds
@@ -717,14 +724,12 @@ class WidgetController(
         val (cellWidth, cellHeight) = host.currentCellSizePx()
         val spans = WidgetSizing.defaultSpans(activity, info, cellWidth, cellHeight, prefs.gridCols, prefs.gridRows)
 
-        // Widgets need a free area of their real span, checked before any id
-        // is allocated so cancelling costs nothing.
-        val free = viewModel.firstFreeWorkspaceCell(page, spans.first, spans.second)
-        if (free == null) {
-            Toast.makeText(activity, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
-            return
+        // Widgets need a free area of their real span, found before any id is
+        // allocated so cancelling costs nothing: this page, else the next
+        // with room, else a new one.
+        TappedPlacement.place(viewModel, page, spans.first, spans.second) { spot ->
+            bind(info, Target.Workspace(spot.page, spot.cellX, spot.cellY))
         }
-        bind(info, Target.Workspace(page, free.first, free.second))
     }
 
     // Widget-featured custom card: bind into the card instead of a cell.

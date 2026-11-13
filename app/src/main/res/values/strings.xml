@@ -48,6 +48,8 @@
         <item quantity="other">%1$d widgets</item>
     </plurals>
     <string name="no_room_on_page">No room on this page</string>
+    <string name="no_room_anywhere">No room on any page</string>
+    <string name="added_to_page">Added to page %1$d</string>
     <string name="widget_span">%1$d × %2$d</string>
     <string name="widget_add_interrupted">Widget setup was interrupted, please try again</string>
     <string name="widget_settings">Widget settings</string>
@@ -86,7 +88,21 @@
     <string name="wallpaper_scroll">Scroll wallpaper with pages</string>
     <string name="subgrid">Subgrid positioning (half cells)</string>
     <string name="badges">Notification badges</string>
-    <string name="badges_need_access">Grant notification access to show badges</string>
+    <string name="badges_need_access_summary">Tap to grant it, so badges can show</string>
+    <string name="popup_needs_access_summary">Tap to grant it, so the menu can list notifications</string>
+    <string name="notification_access_title">Allow notification access</string>
+    <string name="notification_access_badges">Badges are counted from your notifications, so Supernova needs notification access. They are read on this phone only.</string>
+    <string name="notification_access_popup">The long-press menu lists an app\'s notifications, so Supernova needs notification access. They are read on this phone only.</string>
+    <string name="open_settings">Open settings</string>
+    <string name="not_now">Not now</string>
+    <string name="continue_label">Continue</string>
+    <string name="accessibility_needed_title">Turn on the accessibility service</string>
+    <string name="accessibility_needed_message">Lock screen, Recent apps and Quick settings need Supernova\'s accessibility service. Supernova uses it only for these actions.</string>
+    <string name="gestures_need_accessibility">Needs the accessibility service</string>
+    <string name="gestures_need_accessibility_summary">Some of these gestures do nothing until it is on. Tap to turn it on</string>
+    <string name="device_admin_confirm_title">Lock with device admin?</string>
+    <string name="device_admin_inactive">Device admin is off</string>
+    <string name="device_admin_inactive_summary">Lock screen does nothing until it is on. Tap to turn it on</string>
     <string name="icon_pack">Icon pack</string>
     <string name="scroll_effect">Page scroll effect</string>
     <string name="icon_shape">Icon shape</string>
@@ -108,7 +124,6 @@
     </plurals>
     <string name="gestures">Gestures</string>
     <string name="accessibility_description">Lets Supernova lock the screen from a gesture. Optional; no screen content is read.</string>
-    <string name="lock_needs_accessibility">Enable Supernova in Accessibility settings to lock the screen</string>
     <string name="hidden_apps">Hidden apps</string>
     <string name="drawer_groups">Drawer groups</string>
     <string name="drawer_style">Drawer style</string>
@@ -318,6 +333,8 @@
     <string name="auto_backups">Automatic backups</string>
     <string name="no_auto_backups">No automatic backups yet</string>
     <string name="restore_backup_q">Restore this backup?</string>
+    <string name="import_confirm_own">This replaces your home screen and all settings with the ones in the backup. Your current setup is saved under Automatic backups first.</string>
+    <string name="import_confirm_other">This replaces your home screen with the layout from another launcher\'s backup. Your other settings stay. Your current setup is saved under Automatic backups first.</string>
     <string name="restore">Restore</string>
     <string name="settings_section_backup">Backup</string>
     <string name="back">Back</string>
@@ -342,7 +359,6 @@
     <string name="action_assistant">Assistant</string>
     <string name="action_launch_app">Launch app</string>
     <string name="action_launch_shortcut">Launch shortcut</string>
-    <string name="action_needs_accessibility">Enable Supernova in Accessibility settings for this action</string>
     <string name="assistant_unavailable">No assistant app available</string>
     <string name="pick_shortcut">Choose a shortcut</string>
     <string name="no_shortcuts">This app has no shortcuts</string>

@@ -99,6 +99,11 @@ object SettingsCatalogue {
         // Fired only on a genuine user enable, so the activity can route to
         // the notification-access screen when permission is missing.
         val onBadgesEnabled: () -> Unit = {},
+        val onPopupNotificationsEnabled: () -> Unit = {},
+        // Gestures that need the accessibility service, and the device-admin
+        // lock method: why, then the system screen.
+        val explainAccessibility: () -> Unit = {},
+        val requestDeviceAdmin: () -> Unit = {},
         // Fired on a genuine user enable, so the activity can run the
         // READ_CONTACTS runtime request when it isn't granted yet.
         val onSearchContactsEnabled: () -> Unit = {},
@@ -132,6 +137,16 @@ object SettingsCatalogue {
         private val viewModel: LauncherViewModel,
         private val actions: Actions
     ) {
+        // Under a switch that needs notification access: shown while the
+        // switch is on and the access is missing, and a tap goes to grant it.
+        fun needsNotificationAccess(
+            @StringRes summary: Int,
+            on: (LauncherPrefs) -> Boolean
+        ): SettingItem.Row =
+            warningRow(context, R.string.feed_media_needs_access, summary, actions.openNotificationAccess) {
+                on(it) && !com.supernova.launcher.notification.SupernovaNotificationListener.isEnabled(context)
+            }
+
         // One of `values`, each named by a string resource; the subtitle is
         // the current value's name unless given.
         fun <T> choice(
@@ -500,10 +515,10 @@ object SettingsCatalogue {
                     R.string.dock_bg_opacity,
                     min = 0, max = 100,
                     step = 5,
-                    get = { (it.dockBgOpacity * 100f).roundToInt() },
-                    set = { viewModel.set(Pref.dockBgOpacity, it / 100f) },
+                    get = { SurfaceOpacity.effective(it, SurfaceId.DOCK) },
+                    set = { SurfaceOpacity.set(viewModel, SurfaceId.DOCK, it) },
                     display = { context.getString(R.string.opacity_percent, it) },
-                    preview = { p, v -> p.copy(dockBgOpacity = v / 100f) },
+                    preview = { p, v -> SurfaceOpacity.preview(p, SurfaceId.DOCK, v) },
                     visibleIf = { it.dockEnabled && it.dockBgStyle != DockBgStyle.NONE }
                 ),
                 SettingItem.Toggle(
@@ -723,10 +738,10 @@ object SettingsCatalogue {
                     R.string.drawer_bg_opacity,
                     min = 20, max = 100,
                     step = 5,
-                    get = { (it.drawerBgOpacity * 100f).roundToInt() },
-                    set = { viewModel.set(Pref.drawerBgOpacity, it / 100f) },
+                    get = { SurfaceOpacity.effective(it, SurfaceId.DRAWER) },
+                    set = { SurfaceOpacity.set(viewModel, SurfaceId.DRAWER, it) },
                     display = { context.getString(R.string.opacity_percent, it) },
-                    preview = { p, v -> p.copy(drawerBgOpacity = v / 100f) }
+                    preview = { p, v -> SurfaceOpacity.preview(p, SurfaceId.DRAWER, v) }
                 ),
                 SettingItem.Toggle(
                     R.string.drawer_labels,
@@ -1223,17 +1238,7 @@ object SettingsCatalogue {
                 ),
                 // Honest note when the media card can't work: notification
                 // access gates getActiveSessions, same as badges.
-                SettingItem.Row(
-                    R.string.feed_media_needs_access,
-                    subtitle = { context.getString(R.string.feed_media_needs_access_summary) },
-                    onClick = actions.openNotificationAccess,
-                    look = SettingItem.RowLook(icon = R.drawable.ic_settings_warn, warn = true),
-                    visibleIf = {
-                        it.feedShowMedia &&
-                            !com.supernova.launcher.notification.SupernovaNotificationListener
-                                .isEnabled(context)
-                    }
-                )
+                rows.needsNotificationAccess(R.string.feed_media_needs_access_summary) { it.feedShowMedia }
             )
         ),
         SettingsSection(
@@ -1488,6 +1493,7 @@ object SettingsCatalogue {
                         if (enabled) actions.onBadgesEnabled()
                     }
                 ),
+                rows.needsNotificationAccess(R.string.badges_need_access_summary) { it.badges },
                 rows.choice(
                     R.string.badge_style, listOf(BadgeStyle.DYNAMIC, BadgeStyle.DOTS, BadgeStyle.NUMERIC),
                     { BadgeStyle.effective(it) }, { EnumLabels.of(it) },
@@ -1574,8 +1580,12 @@ object SettingsCatalogue {
                 SettingItem.Toggle(
                     R.string.popup_notifications,
                     get = { it.popupNotifications },
-                    set = { viewModel.set(Pref.popupNotifications, it) }
+                    set = { enabled ->
+                        viewModel.set(Pref.popupNotifications, enabled)
+                        if (enabled) actions.onPopupNotificationsEnabled()
+                    }
                 ),
+                rows.needsNotificationAccess(R.string.popup_needs_access_summary) { it.popupNotifications },
                 rows.choice(
                     R.string.popup_style, com.supernova.launcher.ui.PopupMenuStyle.entries,
                     { it.popupStyle }, { EnumLabels.of(it) },
@@ -1606,6 +1616,15 @@ object SettingsCatalogue {
                 // One row per gesture, its action as the subtitle: a
                 // single "Gestures" row opening a list of
                 // "gesture - action" lines read as a menu, not settings.
+                warningRow(
+                    context,
+                    R.string.gestures_need_accessibility,
+                    R.string.gestures_need_accessibility_summary,
+                    actions.explainAccessibility
+                ) {
+                    com.supernova.launcher.ui.PermissionPrompts.gesturesNeedAccessibility(it) &&
+                        !com.supernova.launcher.SupernovaAccessibilityService.isEnabled(context)
+                },
                 SettingItem.Header(R.string.group_one_finger),
                 rows.gestureRow(Gesture.SWIPE_UP),
                 rows.gestureRow(Gesture.SWIPE_DOWN),
@@ -1654,7 +1673,16 @@ object SettingsCatalogue {
                         )
                     },
                     onClick = actions.pickLockMethod
-                )
+                ),
+                warningRow(
+                    context,
+                    R.string.device_admin_inactive,
+                    R.string.device_admin_inactive_summary,
+                    actions.requestDeviceAdmin
+                ) {
+                    it.lockMethod == LockMethod.DEVICE_ADMIN &&
+                        !com.supernova.launcher.SupernovaDeviceAdmin.isActive(context)
+                }
             )
         ),
         SettingsSection(
@@ -1841,6 +1869,22 @@ object SettingsCatalogue {
         )
     )
     }
+
+    // A row saying what a setting still needs (a permission, a service):
+    // shown while it is missing, and a tap goes to grant it.
+    private fun warningRow(
+        context: Context,
+        @StringRes title: Int,
+        @StringRes summary: Int,
+        onClick: () -> Unit,
+        visibleIf: (LauncherPrefs) -> Boolean
+    ): SettingItem.Row = SettingItem.Row(
+        title,
+        subtitle = { context.getString(summary) },
+        onClick = onClick,
+        look = SettingItem.RowLook(icon = R.drawable.ic_settings_warn, warn = true),
+        visibleIf = visibleIf
+    )
 
     private fun formatMinute(minute: Int): String =
         "%d:%02d".format(minute / 60, minute % 60)
