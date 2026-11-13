@@ -1,6 +1,8 @@
-# Supernova Launcher
+# Supernova Launcher 📱
 
-#### Infinitely Customizable Android Homescreen
+#### Infinitely Customizable Android Homescreen.
+
+You can bring your settings from other launchers to get started quickly.
 
 [<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
     alt="Get it on F-Droid"
