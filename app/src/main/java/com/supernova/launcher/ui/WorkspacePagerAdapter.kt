@@ -343,6 +343,9 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
             "${prefs.folderIconShape},${prefs.folderIconOutline},${prefs.folderClipToBg}," +
             "${prefs.folderMatchWindowColor},${prefs.folderPlateColor}," +
             "${prefs.folderPrioritizeFirst},${prefs.folderBgColor}," +
+            // The window's order and columns pick the preview's members.
+            "${prefs.folderSortAz},${prefs.folderColumns},${prefs.folderMode}," +
+            "${prefs.folderIconScale},${prefs.folderMatchDesktop}," +
             "${prefs.styleConfig}|" +
             "${prefs.badgeTextColor},${prefs.badgeCornerRadius},${prefs.badgeOutline}|" +
             // The rest of the badge settings belong here too. They were

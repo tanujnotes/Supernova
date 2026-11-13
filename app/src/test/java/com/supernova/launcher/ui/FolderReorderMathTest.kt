@@ -34,32 +34,34 @@ class FolderReorderMathTest {
         Slot(p, left, top, left + 100f, top + (heights[p] ?: 120f))
     }
 
-    // Filled column by column (a paged folder), `rows` tall.
-    private fun columns(count: Int, rows: Int) = (0 until count).map { p ->
-        val left = (p / rows) * 100f
-        val top = (p % rows) * 120f
+    // A paged folder: pages `columns` x `rows`, 300 wide, side by side,
+    // each filled row by row.
+    private fun pages(count: Int, columns: Int, rows: Int) = (0 until count).map { p ->
+        val inPage = p % (columns * rows)
+        val left = (p / (columns * rows)) * columns * 100f + (inPage % columns) * 100f
+        val top = (inPage / columns) * 120f
         Slot(p, left, top, left + 100f, top + 120f)
     }
 
     @Test
     fun aFingerOnATileAimsAtIt() {
         val slots = rows(7, 3)
-        assertEquals(4, FolderReorderMath.targetSlot(slots, 150f, 130f, rowMajor = true))
-        assertEquals(0, FolderReorderMath.targetSlot(slots, 1f, 1f, rowMajor = true))
+        assertEquals(4, FolderReorderMath.targetSlot(slots, 150f, 130f))
+        assertEquals(0, FolderReorderMath.targetSlot(slots, 1f, 1f))
     }
 
     @Test
     fun theEmptyEndOfTheLastRowAimsAtTheLastApp() {
         // Row 2 holds only app 6; the place two columns over is empty, and
         // app 5 right above it is not what the finger is in line with.
-        assertEquals(6, FolderReorderMath.targetSlot(rows(7, 3), 250f, 300f, rowMajor = true))
+        assertEquals(6, FolderReorderMath.targetSlot(rows(7, 3), 250f, 300f))
     }
 
     @Test
     fun belowTheGridAimsAtTheLastRow() {
         // Over the title row, under the last apps.
-        assertEquals(6, FolderReorderMath.targetSlot(rows(7, 3), 20f, 420f, rowMajor = true))
-        assertEquals(5, FolderReorderMath.targetSlot(rows(6, 3), 280f, 500f, rowMajor = true))
+        assertEquals(6, FolderReorderMath.targetSlot(rows(7, 3), 20f, 420f))
+        assertEquals(5, FolderReorderMath.targetSlot(rows(6, 3), 280f, 500f))
     }
 
     @Test
@@ -69,22 +71,24 @@ class FolderReorderMathTest {
         val slots = rows(6, 3, heights = mapOf(1 to 150f)).map { slot ->
             if (slot.position >= 3) slot.copy(top = slot.top + 30f, bottom = slot.bottom + 30f) else slot
         }
-        assertEquals(0, FolderReorderMath.targetSlot(slots, 50f, 135f, rowMajor = true))
-        assertEquals(3, FolderReorderMath.targetSlot(slots, 50f, 155f, rowMajor = true))
+        assertEquals(0, FolderReorderMath.targetSlot(slots, 50f, 135f))
+        assertEquals(3, FolderReorderMath.targetSlot(slots, 50f, 155f))
     }
 
     @Test
-    fun aPagedGridAimsByColumnFirst() {
-        // Two rows tall: column 2 holds only app 4; the empty place below it
-        // aims at app 4, not at app 3 beside it.
-        val slots = columns(5, 2)
-        assertEquals(4, FolderReorderMath.targetSlot(slots, 250f, 200f, rowMajor = false))
-        assertEquals(3, FolderReorderMath.targetSlot(slots, 150f, 200f, rowMajor = false))
+    fun aPagedGridAimsAtThePageInView() {
+        // 3 x 2 pages, 8 apps: page 2 (scrolled into view, so shifted 300
+        // left) holds apps 6 and 7 in its first row. The empty row under
+        // them aims at app 7, not at app 4 or 5 on page 1 beside it.
+        val slots = pages(8, 3, 2).map { it.copy(left = it.left - 300f, right = it.right - 300f) }
+        assertEquals(7, FolderReorderMath.targetSlot(slots, 250f, 200f, width = 300f))
+        assertEquals(6, FolderReorderMath.targetSlot(slots, 50f, 200f, width = 300f))
+        assertEquals(1, FolderReorderMath.targetSlot(pages(8, 3, 2), 150f, 60f, width = 300f))
     }
 
     @Test
     fun noTilesAimNowhere() {
-        assertEquals(-1, FolderReorderMath.targetSlot(emptyList(), 0f, 0f, rowMajor = true))
+        assertEquals(-1, FolderReorderMath.targetSlot(emptyList(), 0f, 0f))
     }
 
     @Test

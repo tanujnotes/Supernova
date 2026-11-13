@@ -16,24 +16,23 @@ internal object FolderReorderMath {
         return list.toMutableList().apply { add(to, removeAt(from)) }
     }
 
-    // The slot a finger at (x, y) aims at. A vertical grid fills row by row,
-    // so the row is found first and the place in it second: a finger in the
-    // empty end of the last row aims at the last app, not at the one above
-    // it. A horizontal (paged) grid fills column by column, so the column
-    // comes first. Tiles in a row can differ in height (a label wrapping to
-    // two lines), so each row counts as tall as its tallest tile. -1 with no
-    // slots.
-    fun targetSlot(slots: List<Slot>, x: Float, y: Float, rowMajor: Boolean): Int {
-        if (slots.isEmpty()) return -1
-        val bands = if (rowMajor) {
-            slots.groupBy { it.top }.mapValues { (_, row) -> row.maxOf { it.bottom } }
-        } else {
-            slots.groupBy { it.left }.mapValues { (_, column) -> column.maxOf { it.right } }
-        }
-        return slots.minWith(
+    // The slot a finger at (x, y) aims at. Grids fill row by row (a paged
+    // one too, page by page), so the row is found first and the place in it
+    // second: a finger in the empty end of the last row aims at the last app,
+    // not at the one above it. Tiles in a row can differ in height (a label
+    // wrapping to two lines), so each row counts as tall as its tallest tile.
+    // Only tiles centred inside [0, width) count: a paged grid lays out the
+    // page beside the one in view too, and a finger under the short last row
+    // of a page must not aim at a fuller row of the page next to it. -1 with
+    // no slots.
+    fun targetSlot(slots: List<Slot>, x: Float, y: Float, width: Float = Float.POSITIVE_INFINITY): Int {
+        val shown = slots.filter { (it.left + it.right) / 2f in 0f..<width }.ifEmpty { slots }
+        if (shown.isEmpty()) return -1
+        val bands = shown.groupBy { it.top }.mapValues { (_, row) -> row.maxOf { it.bottom } }
+        return shown.minWith(
             compareBy<Slot>(
-                { if (rowMajor) gap(y, it.top, bands.getValue(it.top)) else gap(x, it.left, bands.getValue(it.left)) },
-                { if (rowMajor) gap(x, it.left, it.right) else gap(y, it.top, it.bottom) },
+                { gap(y, it.top, bands.getValue(it.top)) },
+                { gap(x, it.left, it.right) },
                 { it.position }
             )
         ).position

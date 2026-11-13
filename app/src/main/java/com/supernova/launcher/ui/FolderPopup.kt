@@ -102,31 +102,8 @@ class FolderPopup(private val context: Context) {
 
         val immersive = mode == FolderMode.IMMERSIVE
         val metrics = context.resources.displayMetrics
-        // A member's icon box grows with the folder's icon size
-        // (FolderMemberAdapter), so its cell grows with it, as the drawer's
-        // automatic cell does; a smaller icon keeps the base cell for its
-        // label.
-        val cellWidth = (context.dp(CELL_WIDTH_DP) * adapter.iconScale.coerceAtLeast(1f)).toInt()
-        val portraitColumns = when {
-            immersive -> 4
-            members.size <= 4 -> 2
-            members.size <= 9 -> 3
-            else -> 4
-        }
-        // Landscape has width to spare and very little height: the same
-        // column count there makes a tall card that has to scroll before it
-        // has shown four apps, so the members lay out wider instead. Capped
-        // by what the window can actually hold, and never wider than the
-        // folder has members to fill.
-        val landscape = metrics.widthPixels > metrics.heightPixels
-        val columns = columnsOverride.takeIf { it > 0 } ?: if (!landscape) {
-            portraitColumns
-        } else {
-            val fitsWidth = ((metrics.widthPixels - context.dp(48)) / cellWidth).coerceAtLeast(2)
-            (portraitColumns + LANDSCAPE_EXTRA_COLUMNS)
-                .coerceAtMost(fitsWidth)
-                .coerceAtMost(members.size.coerceAtLeast(2))
-        }
+        val cellWidth = cellWidthPx(context, adapter.iconScale)
+        val columns = columnsFor(context, members.size, columnsOverride, immersive, adapter.iconScale)
 
         // Cells are wide enough for a typical label at 12sp, and the grid
         // width is fixed so GridLayoutManager centres each tile in its span
@@ -151,8 +128,8 @@ class FolderPopup(private val context: Context) {
             FolderScroll.HORIZONTAL -> {
                 val cellHeight = measureCellHeight(adapter, ordered, gridWidth / columns)
                 val visibleRows = rowsNeeded.coerceAtMost((maxGridHeight / cellHeight).coerceAtLeast(1))
-                binding.folderGrid.layoutManager =
-                    GridLayoutManager(context, visibleRows, GridLayoutManager.HORIZONTAL, false)
+                // Pages filled row by row, the order the preview reads.
+                binding.folderGrid.layoutManager = PagedGridLayoutManager(columns, visibleRows)
                 // Fixed viewport so paging has a page to snap to.
                 binding.folderGrid.layoutParams = binding.folderGrid.layoutParams.apply {
                     width = gridWidth
@@ -393,29 +370,63 @@ class FolderPopup(private val context: Context) {
         return holder.itemView.measuredHeight.coerceAtLeast(1)
     }
 
-    private companion object {
+    companion object {
+        // A member's icon box grows with the folder's icon size
+        // (FolderMemberAdapter), so its cell grows with it, as the drawer's
+        // automatic cell does; a smaller icon keeps the base cell for its
+        // label.
+        private fun cellWidthPx(context: Context, iconScale: Float): Int =
+            (context.dp(CELL_WIDTH_DP) * iconScale.coerceAtLeast(1f)).toInt()
+
+        // How many columns a folder of `count` apps opens with. The preview
+        // asks too, to show the window's top-left corner.
+        fun columnsFor(context: Context, count: Int, columnsOverride: Int, immersive: Boolean, iconScale: Float): Int {
+            if (columnsOverride > 0) return columnsOverride
+            val portraitColumns = when {
+                immersive -> 4
+                count <= 4 -> 2
+                count <= 9 -> 3
+                else -> 4
+            }
+            // Landscape has width to spare and very little height: the same
+            // column count there makes a tall card that has to scroll before
+            // it has shown four apps, so the members lay out wider instead.
+            // Capped by what the window can actually hold, and never wider
+            // than the folder has members to fill.
+            val metrics = context.resources.displayMetrics
+            return if (metrics.widthPixels <= metrics.heightPixels) {
+                portraitColumns
+            } else {
+                val fitsWidth = ((metrics.widthPixels - context.dp(48)) / cellWidthPx(context, iconScale))
+                    .coerceAtLeast(2)
+                (portraitColumns + LANDSCAPE_EXTRA_COLUMNS)
+                    .coerceAtMost(fitsWidth)
+                    .coerceAtMost(count.coerceAtLeast(2))
+            }
+        }
+
         // 70%-black dim behind the immersive card (#B3000000).
-        const val IMMERSIVE_SCRIM = -0x4D000000
+        private const val IMMERSIVE_SCRIM = -0x4D000000
 
         // Member tile width at the base icon size: the 48dp icon plus room
         // for a one-line 12sp label.
-        const val CELL_WIDTH_DP = 76
+        private const val CELL_WIDTH_DP = 76
 
         // Columns a landscape folder gains over its portrait count, trading
         // the height it does not have for the width it does.
-        const val LANDSCAPE_EXTRA_COLUMNS = 2
+        private const val LANDSCAPE_EXTRA_COLUMNS = 2
 
-        const val OPEN_MS = 240L
-        const val CLOSE_MS = 160L
-        const val SCRIM_MS = 120L
-        const val LIFT_MS = 200L
+        private const val OPEN_MS = 240L
+        private const val CLOSE_MS = 160L
+        private const val SCRIM_MS = 120L
+        private const val LIFT_MS = 200L
 
         // Room left between the card's title row and the keyboard's top.
-        const val KEYBOARD_GAP_DP = 12
+        private const val KEYBOARD_GAP_DP = 12
 
         // Material fast-out-slow-in out, and its accelerating counterpart
         // for collapsing back into the icon.
-        val EXPAND = PathInterpolator(0.4f, 0f, 0.2f, 1f)
-        val COLLAPSE = PathInterpolator(0.4f, 0f, 1f, 1f)
+        private val EXPAND = PathInterpolator(0.4f, 0f, 0.2f, 1f)
+        private val COLLAPSE = PathInterpolator(0.4f, 0f, 1f, 1f)
     }
 }

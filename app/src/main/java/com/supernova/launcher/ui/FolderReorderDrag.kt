@@ -10,7 +10,6 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.view.doOnPreDraw
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.supernova.launcher.R
 import com.supernova.launcher.data.LauncherPrefs
@@ -223,8 +222,7 @@ private fun slotAt(grid: RecyclerView, rawX: Float, rawY: Float): Int {
             )
         }
     }
-    val rowMajor = (grid.layoutManager as? GridLayoutManager)?.orientation != RecyclerView.HORIZONTAL
-    return FolderReorderMath.targetSlot(slots, rawX - at[0], rawY - at[1], rowMajor)
+    return FolderReorderMath.targetSlot(slots, rawX - at[0], rawY - at[1], grid.width.toFloat())
 }
 
 // A folder grid that scrolls, held near one of its ends during a drag: a
@@ -240,7 +238,7 @@ private class GridEdgeScroll(private val grid: RecyclerView, private val active:
     private var flipSide = 0
 
     private val vertical: Boolean
-        get() = (grid.layoutManager as? GridLayoutManager)?.orientation != RecyclerView.HORIZONTAL
+        get() = grid.layoutManager?.canScrollHorizontally() != true
 
     private val scroll = object : Runnable {
         override fun run() {
