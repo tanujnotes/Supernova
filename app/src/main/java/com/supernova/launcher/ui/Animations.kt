@@ -1,5 +1,6 @@
 package com.supernova.launcher.ui
 
+import android.animation.ValueAnimator
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.SettingEnumSerializer
 
@@ -16,6 +17,13 @@ object Animations {
     // Scales a base duration by the animation-speed preference.
     fun duration(prefs: LauncherPrefs, baseMs: Long): Long =
         (baseMs * factor(prefs)).toLong().coerceAtLeast(0L)
+
+    // Whether a jump to another page (home press, page action, desktop
+    // previews) scrolls there or lands at once. A pager's smooth scroll runs
+    // on a scroller, which ignores the system animator scale, so "Remove
+    // animations" (scale 0) is checked here as well as the launcher's switch.
+    fun scrollPages(prefs: LauncherPrefs): Boolean =
+        enabled(prefs) && ValueAnimator.areAnimatorsEnabled()
 }
 
 // Playback speed for launcher-owned animations. DEFAULT keeps the tuned

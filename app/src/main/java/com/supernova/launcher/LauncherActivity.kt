@@ -183,8 +183,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 override val root: View get() = binding.root
                 override fun openDrawer() = this@LauncherActivity.openDrawer()
                 override fun expandNotificationShade() = this@LauncherActivity.expandNotificationShade()
-                override fun showPage(page: Int) =
-                    binding.workspacePager.setCurrentItem(workspaceAdapter.centerPosition(page), true)
+                override fun showPage(page: Int) = binding.workspacePager.setCurrentItem(
+                    workspaceAdapter.centerPosition(page), Animations.scrollPages(viewModel.state.value.prefs)
+                )
                 override fun openSearch(query: String?) = if (query == null) search.open() else search.open(query)
                 override fun launchApp(app: LaunchableApp) = this@LauncherActivity.launchApp(app)
                 override fun launchShortcut(packageName: String, shortcutId: String, userSerial: Long) =
@@ -565,7 +566,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             override fun pageViewFor(page: Int): View? = attachedPageView(page)
             override fun accentColor(): Int = getColor(R.color.accent)
             override fun jumpToPage(page: Int) {
-                binding.workspacePager.setCurrentItem(workspaceAdapter.centerPosition(page), true)
+                binding.workspacePager.setCurrentItem(
+                    workspaceAdapter.centerPosition(page), Animations.scrollPages(viewModel.state.value.prefs)
+                )
             }
             override fun addPage() {
                 viewModel.addPage()
@@ -2452,10 +2455,13 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // A private space card still waiting on its unlock is called off too,
         // and a swipe home over its unlock prompt is that prompt's close.
         val promptClosed = privateSpaceCard.cancelPending()
+        // With animations off (the launcher's or the system's) home lands
+        // at once instead of scrolling past every page in between (#123).
+        val scroll = Animations.scrollPages(viewModel.state.value.prefs)
         // A folder card the same swipe closed on its first touch (#110), read
         // after the reset, whose own closes don't count twice.
         val closed = com.supernova.launcher.ui.OpenDialogs.dismissAll(this) or
-            resetToHome(animate = true, keepDrawer = keepDrawerOpen) or
+            resetToHome(animate = scroll, keepDrawer = keepDrawerOpen) or
             cardSwipeClose.takeFor(SystemClock.uptimeMillis()) or promptClosed
         // The double-home action: pressing home when there was nothing to
         // close and nowhere to scroll runs the configured action instead of
