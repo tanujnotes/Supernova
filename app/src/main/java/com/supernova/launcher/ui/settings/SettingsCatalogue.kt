@@ -2,7 +2,6 @@ package com.supernova.launcher.ui.settings
 
 import androidx.core.graphics.toColorInt
 import android.content.Context
-import androidx.core.net.toUri
 import com.supernova.launcher.R
 import com.supernova.launcher.SupernovaApp
 import com.supernova.launcher.data.IconGlass
@@ -11,7 +10,6 @@ import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.LockMethod
 import com.supernova.launcher.data.Pref
 import com.supernova.launcher.data.SearchWindowMode
-import com.supernova.launcher.runLogged
 import kotlin.math.roundToInt
 import com.supernova.launcher.ui.BadgePosition
 import com.supernova.launcher.ui.BadgeStyle
@@ -75,6 +73,7 @@ object SettingsCatalogue {
         val pickDesktopGrid: () -> Unit = {},
         val editThemeSchedule: () -> Unit = {},
         val showLicense: () -> Unit = {},
+        val showWhatsNew: () -> Unit = {},
         val editGesture: (Gesture) -> Unit = {},
         val pickLockMethod: () -> Unit = {},
         val editHiddenApps: () -> Unit = {},
@@ -289,6 +288,12 @@ object SettingsCatalogue {
     }
 
     // A stored colour's curated entry; one not in the list reads as Default.
+    // The reasons rows on other pages are greyed (SettingItem.blockedWhen).
+    private val animationsOff: (LauncherPrefs) -> Int? = {
+        R.string.needs_animations.takeIf { _ -> it.disableAnimations }
+    }
+    private val feedOff: (LauncherPrefs) -> Int? = { R.string.needs_feed.takeUnless { _ -> it.feedEnabled } }
+
     private fun curatedFor(stored: String): Pair<Int, String> =
         CURATED_COLORS.firstOrNull { it.second.equals(stored, ignoreCase = true) } ?: CURATED_COLORS.first()
 
@@ -465,7 +470,8 @@ object SettingsCatalogue {
                 SettingItem.Toggle(
                     R.string.infinite_scroll,
                     get = { it.infiniteScroll },
-                    set = { viewModel.set(Pref.infiniteScroll, it) }
+                    set = { viewModel.set(Pref.infiniteScroll, it) },
+                    subtitle = R.string.infinite_scroll_summary
                 ),
                 SettingItem.Toggle(
                     R.string.remove_empty_pages,
@@ -694,7 +700,7 @@ object SettingsCatalogue {
                 rows.choice(
                     R.string.drawer_transition, com.supernova.launcher.ui.DrawerTransition.entries,
                     { it.drawerTransition }, { EnumLabels.of(it) }
-                ) { viewModel.set(Pref.drawerTransition, it) },
+                ) { viewModel.set(Pref.drawerTransition, it) }.blockedWhen(animationsOff),
                 SettingItem.Row(
                     R.string.drawer_grid,
                     subtitle = { prefs ->
@@ -711,25 +717,36 @@ object SettingsCatalogue {
                 SettingItem.Toggle(
                     R.string.drawer_auto_keyboard,
                     get = { it.drawerAutoKeyboard },
-                    set = { viewModel.set(Pref.drawerAutoKeyboard, it) },
-                    visibleIf = { SearchBarConfig.decode(it.searchBarConfig).drawer.enabled }
-                ),
-                // Open App Drawer options, offered only while a swipe opens
-                // the drawer.
+                    set = { viewModel.set(Pref.drawerAutoKeyboard, it) }
+                ).blockedWhen {
+                    R.string.needs_drawer_search_bar.takeUnless { _ ->
+                        SearchBarConfig.decode(it.searchBarConfig).drawer.enabled
+                    }
+                },
+                // Open App Drawer options, live only while a swipe opens the
+                // drawer (and, for the arrow, a dock to draw it on).
                 SettingItem.Toggle(
                     R.string.drawer_swipe_indicator,
                     get = { it.drawerSwipeIndicator },
                     set = { viewModel.set(Pref.drawerSwipeIndicator, it) },
-                    visibleIf = { GestureDefaults.swipeUpOpensDrawer(it.gestureBindings) && it.dockEnabled },
                     subtitle = R.string.drawer_swipe_indicator_summary
-                ),
+                ).blockedWhen {
+                    when {
+                        !GestureDefaults.swipeUpOpensDrawer(it.gestureBindings) -> R.string.needs_swipe_up_drawer
+                        !it.dockEnabled -> R.string.needs_dock
+                        else -> null
+                    }
+                },
                 SettingItem.Toggle(
                     R.string.drawer_swipe_haptic,
                     get = { it.drawerSwipeHaptic },
                     set = { viewModel.set(Pref.drawerSwipeHaptic, it) },
-                    visibleIf = { GestureDefaults.swipeUpOpensDrawer(it.gestureBindings) },
                     subtitle = R.string.drawer_swipe_haptic_summary
-                ),
+                ).blockedWhen {
+                    R.string.needs_swipe_up_drawer.takeUnless { _ ->
+                        GestureDefaults.swipeUpOpensDrawer(it.gestureBindings)
+                    }
+                },
                 SettingItem.Toggle(
                     R.string.drawer_frequent_row,
                     get = { it.drawerFrequentRow },
@@ -752,7 +769,7 @@ object SettingsCatalogue {
                     R.string.drawer_page_effect, ScrollEffect.entries,
                     { it.drawerPageEffect }, { EnumLabels.of(it) },
                     visibleIf = { it.drawerStyle == DrawerStyle.PAGED_GRID }
-                ) { viewModel.set(Pref.drawerPageEffect, it) },
+                ) { viewModel.set(Pref.drawerPageEffect, it) }.blockedWhen(animationsOff),
                 SettingItem.Accordion(R.string.advanced),
                 SettingItem.Toggle(
                     R.string.drawer_remember_position,
@@ -827,7 +844,8 @@ object SettingsCatalogue {
                 ),
                 rows.color(
                     R.string.drawer_scrubber_color, { it.drawerScrubberColor },
-                    visibleIf = { it.drawerFastScroller }
+                    // As the scroller's own switch, none in the paged style.
+                    visibleIf = { it.drawerFastScroller && it.drawerStyle != DrawerStyle.PAGED_GRID }
                 ) { viewModel.set(Pref.drawerScrubberColor, it) },
                 SettingItem.Header(R.string.group_tabs),
                 rows.choice(
@@ -1043,26 +1061,6 @@ object SettingsCatalogue {
                         )
                     },
                     onClick = { actions.openSection(R.string.drawer_search_bar) }
-                ),
-                // Supersedes the legacy homeSearch toggle; the pref remains
-                // underneath as the "" fallback.
-                rows.choice(
-                    R.string.home_button_action, HomeButtonAction.choices,
-                    { HomeButtonAction.effective(it.homeButtonAction, it.homeSearch) }, { EnumLabels.of(it) }
-                ) { action ->
-                    viewModel.set(Pref.homeButtonAction, action.name)
-                    // Mirror the legacy pref so old builds and backups derive the
-                    // same behavior, like badgeStyle keeps badgeCounts in sync.
-                    viewModel.set(Pref.homeSearch, action == GestureAction.OPEN_SEARCH)
-                },
-                SettingItem.Toggle(
-                    R.string.home_button_main_page_only,
-                    get = { it.homeButtonOnMainPage },
-                    set = { viewModel.set(Pref.homeButtonOnMainPage, it) },
-                    visibleIf = {
-                        HomeButtonAction.effective(it.homeButtonAction, it.homeSearch) !=
-                            com.supernova.launcher.gesture.GestureAction.NONE
-                    }
                 )
             )
         ),
@@ -1185,8 +1183,8 @@ object SettingsCatalogue {
             ) + SearchBarButtons.ROWS.map { drawerButton(viewModel, it) }
         ),
         // Feed page: the page toggle, then Layout (frequent apps and
-        // shortcuts, the rows stepper, the search bar), with the edge swipe
-        // under Advanced. Cards are their own top-level page.
+        // shortcuts, the rows stepper, the search bar, the edge swipe), and a
+        // link to the Cards page, which links back.
         SettingsSection(
             R.string.settings_section_feed,
             listOf(
@@ -1226,12 +1224,18 @@ object SettingsCatalogue {
                     set = { viewModel.set(Pref.feedShowSearch, it) },
                     visibleIf = { it.feedEnabled }
                 ),
-                SettingItem.Accordion(R.string.feed_advanced, visibleIf = { it.feedEnabled }),
                 SettingItem.Toggle(
                     R.string.feed_edge_swipe,
                     get = { it.feedEdgeSwipe },
                     set = { viewModel.set(Pref.feedEdgeSwipe, it) },
                     visibleIf = { it.feedEnabled }
+                ),
+                // What the page shows lives on the Cards page.
+                SettingItem.Header(R.string.settings_section_cards),
+                SettingItem.Row(
+                    R.string.feed_cards_link,
+                    subtitle = { context.getString(R.string.feed_cards_link_summary) },
+                    onClick = actions.openCards
                 )
             )
         ),
@@ -1277,6 +1281,17 @@ object SettingsCatalogue {
                         onGear = { actions.openSection(R.string.feed_contacts_title) }
                     )
                 )
+                // Cards show on the feed page; its switch is one tap away.
+                add(SettingItem.Header(R.string.settings_section_feed))
+                add(
+                    SettingItem.Row(
+                        R.string.cards_feed_link,
+                        subtitle = { prefs ->
+                            context.getString(if (prefs.feedEnabled) R.string.mode_on else R.string.mode_off)
+                        },
+                        onClick = { actions.openSection(R.string.settings_section_feed) }
+                    )
+                )
             }
         ),
         // Behind each built-in card's gear (reached from the Cards page, not
@@ -1294,7 +1309,7 @@ object SettingsCatalogue {
                     R.string.feed_show_media,
                     get = { it.feedShowMedia },
                     set = { viewModel.set(Pref.feedShowMedia, it) }
-                ),
+                ).blockedWhen(feedOff),
                 // Honest note when the media card can't work: notification
                 // access gates getActiveSessions, same as badges.
                 rows.needsNotificationAccess(R.string.feed_media_needs_access_summary) { it.feedShowMedia }
@@ -1316,7 +1331,7 @@ object SettingsCatalogue {
                         viewModel.set(Pref.feedShowCalendar, enabled)
                         if (enabled) actions.onFeedCalendarEnabled()
                     }
-                )
+                ).blockedWhen(feedOff)
             )
         ),
         SettingsSection(
@@ -1335,7 +1350,7 @@ object SettingsCatalogue {
                         viewModel.set(Pref.feedShowContacts, enabled)
                         if (enabled) actions.onFeedContactsEnabled()
                     }
-                )
+                ).blockedWhen(feedOff)
             )
         ),
         SettingsSection(
@@ -1391,9 +1406,8 @@ object SettingsCatalogue {
                 SettingItem.Toggle(
                     R.string.folder_badges,
                     get = { it.folderBadges },
-                    set = { viewModel.set(Pref.folderBadges, it) },
-                    visibleIf = { it.badges }
-                ),
+                    set = { viewModel.set(Pref.folderBadges, it) }
+                ).blockedWhen { R.string.needs_badges.takeUnless { _ -> it.badges } },
                 SettingItem.Toggle(
                     R.string.folder_close_on_launch,
                     get = { it.folderCloseOnLaunch },
@@ -1722,6 +1736,28 @@ object SettingsCatalogue {
                 rows.gestureRow(Gesture.TWO_FINGER_SWIPE_DOWN),
                 rows.gestureRow(Gesture.TWO_FINGER_ROTATE_CW),
                 rows.gestureRow(Gesture.TWO_FINGER_ROTATE_CCW),
+                // The Home button pressed while home shows.
+                SettingItem.Header(R.string.group_home_button),
+                // Supersedes the legacy homeSearch toggle; the pref remains
+                // underneath as the "" fallback.
+                rows.choice(
+                    R.string.home_button_action, HomeButtonAction.choices,
+                    { HomeButtonAction.effective(it.homeButtonAction, it.homeSearch) }, { EnumLabels.of(it) }
+                ) { action ->
+                    viewModel.set(Pref.homeButtonAction, action.name)
+                    // Mirror the legacy pref so old builds and backups derive the
+                    // same behavior, like badgeStyle keeps badgeCounts in sync.
+                    viewModel.set(Pref.homeSearch, action == GestureAction.OPEN_SEARCH)
+                },
+                SettingItem.Toggle(
+                    R.string.home_button_main_page_only,
+                    get = { it.homeButtonOnMainPage },
+                    set = { viewModel.set(Pref.homeButtonOnMainPage, it) },
+                    visibleIf = {
+                        HomeButtonAction.effective(it.homeButtonAction, it.homeSearch) !=
+                            com.supernova.launcher.gesture.GestureAction.NONE
+                    }
+                ),
                 SettingItem.Header(R.string.action_lock_screen),
                 SettingItem.Row(
                     R.string.lock_method,
@@ -1783,6 +1819,11 @@ object SettingsCatalogue {
                     look = SettingItem.RowLook(tappable = false)
                 ),
                 SettingItem.Row(
+                    R.string.about_whats_new,
+                    subtitle = { context.getString(R.string.about_whats_new_summary) },
+                    onClick = actions.showWhatsNew
+                ),
+                SettingItem.Row(
                     R.string.about_license,
                     subtitle = { context.getString(R.string.about_license_name) },
                     onClick = actions.showLicense
@@ -1790,16 +1831,12 @@ object SettingsCatalogue {
                 SettingItem.Row(
                     R.string.about_source,
                     subtitle = { context.getString(R.string.about_source_url).removePrefix("https://") },
-                    onClick = {
-                        runLogged("open link") {
-                            context.startActivity(
-                                android.content.Intent(
-                                    android.content.Intent.ACTION_VIEW,
-                                    context.getString(R.string.about_source_url).toUri()
-                                ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                            )
-                        }
-                    }
+                    onClick = { AboutLinks.open(context, context.getString(R.string.about_source_url)) }
+                ),
+                SettingItem.Row(
+                    R.string.about_report_issue,
+                    subtitle = { context.getString(R.string.about_report_issue_summary) },
+                    onClick = { AboutLinks.open(context, AboutLinks.newIssueUrl(context)) }
                 ),
                 SettingItem.Row(
                     R.string.crash_log,
@@ -1849,10 +1886,14 @@ object SettingsCatalogue {
                     subtitle = { context.getString(R.string.labs_clear_icon_cache_summary) },
                     onClick = actions.clearIconCache,
                     look = SettingItem.RowLook(chevron = false)
-                ),
-                // Labs Permissions: Supernova's own.
-                SettingItem.Header(R.string.labs_permissions)
-            ) + LabsPermission.entries.filter { it.applies }.map { permission ->
+                )
+            )
+        ),
+        // Every access Supernova can ask for, each with its state; a tap
+        // grants it or opens the system screen that does.
+        SettingsSection(
+            R.string.permissions,
+            LabsPermission.entries.filter { it.applies }.map { permission ->
                 SettingItem.Row(
                     permission.title,
                     subtitle = { permission.status(context) },

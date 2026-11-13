@@ -11,9 +11,9 @@
     android:gravity="center_vertical"
     android:minHeight="64dp"
     android:orientation="horizontal"
-    android:paddingVertical="12dp"
-    android:paddingStart="16dp"
-    android:paddingEnd="4dp">
+    android:paddingVertical="@dimen/space_ms"
+    android:paddingStart="@dimen/space_md"
+    android:paddingEnd="@dimen/space_xs">
 
     <FrameLayout
         android:layout_width="40dp"
@@ -32,7 +32,7 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="@dimen/space_md"
         android:layout_weight="1"
         android:orientation="vertical">
 
@@ -42,15 +42,15 @@
             android:layout_height="wrap_content"
             android:fontFamily="sans-serif-medium"
             android:textColor="@color/textPrimary"
-            android:textSize="16sp" />
+            android:textSize="@dimen/text_body" />
 
         <TextView
             android:id="@+id/sectionSubtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="@dimen/space_xxs"
             android:textColor="@color/textSecondary"
-            android:textSize="13sp"
+            android:textSize="@dimen/text_secondary"
             android:visibility="gone" />
     </LinearLayout>
 
@@ -58,9 +58,9 @@
     <ImageView
         android:layout_width="48dp"
         android:layout_height="20dp"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="@dimen/space_sm"
         android:importantForAccessibility="no"
-        android:paddingHorizontal="14dp"
+        android:paddingHorizontal="@dimen/space_md"
         android:src="@drawable/ic_settings_chevron"
         app:tint="@color/textSecondary" />
 </LinearLayout>

@@ -231,7 +231,7 @@ class FeedAdapter(
                             TextView(context).apply {
                                 text = contact.displayName.take(1).uppercase()
                                 gravity = Gravity.CENTER
-                                textSize = 18f
+                                textSizeOf(R.dimen.text_title)
                                 setTextColor(textColor)
                                 background = GradientDrawable().apply {
                                     shape = GradientDrawable.OVAL

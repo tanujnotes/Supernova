@@ -8,7 +8,7 @@
     android:layout_height="wrap_content"
     android:fontFamily="sans-serif-medium"
     android:letterSpacing="0.015"
-    android:paddingHorizontal="16dp"
-    android:paddingBottom="8dp"
+    android:paddingHorizontal="@dimen/space_md"
+    android:paddingBottom="@dimen/space_sm"
     android:textColor="@color/textSecondary"
-    android:textSize="13sp" />
+    android:textSize="@dimen/text_secondary" />

@@ -7,8 +7,12 @@ import com.supernova.launcher.data.SettingEnumSerializer
 // Master animation switch. Every animation the launcher owns (launch reveal,
 // folder/popup transitions, drag fades, page effects, search fade, wallpaper
 // zoom) consults this at its site; system-driven animations are unaffected.
+// The system's "Remove animations" (animator scale 0) turns them off too:
+// an animator would only jump to its end then, but scroller-driven motion
+// (page flips, smooth scrolls, sheet settles) ignores the scale and played
+// on regardless.
 object Animations {
-    fun enabled(prefs: LauncherPrefs): Boolean = !prefs.disableAnimations
+    fun enabled(prefs: LauncherPrefs): Boolean = !prefs.disableAnimations && ValueAnimator.areAnimatorsEnabled()
 
     // Duration multiplier for the launcher's own animations; 0 when disabled.
     fun factor(prefs: LauncherPrefs): Float =
@@ -19,11 +23,9 @@ object Animations {
         (baseMs * factor(prefs)).toLong().coerceAtLeast(0L)
 
     // Whether a jump to another page (home press, page action, desktop
-    // previews) scrolls there or lands at once. A pager's smooth scroll runs
-    // on a scroller, which ignores the system animator scale, so "Remove
-    // animations" (scale 0) is checked here as well as the launcher's switch.
-    fun scrollPages(prefs: LauncherPrefs): Boolean =
-        enabled(prefs) && ValueAnimator.areAnimatorsEnabled()
+    // previews, a drag's edge flip) or a list's paging scrolls there or lands
+    // at once. Scrollers ignore the system animator scale; enabled() checks it.
+    fun scrollPages(prefs: LauncherPrefs): Boolean = enabled(prefs)
 }
 
 // Playback speed for launcher-owned animations. DEFAULT keeps the tuned

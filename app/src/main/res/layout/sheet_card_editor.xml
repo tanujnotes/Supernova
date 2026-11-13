@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingBottom="24dp">
+        android:paddingBottom="@dimen/space_lg">
 
         <include layout="@layout/sheet_handle" />
 
@@ -21,8 +21,8 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp">
+            android:paddingStart="@dimen/space_sm"
+            android:paddingEnd="@dimen/space_sm">
 
             <ImageButton
                 android:id="@+id/cardBack"
@@ -36,11 +36,11 @@
                 android:id="@+id/cardEditorTitle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/space_sm"
                 android:layout_weight="1"
                 android:text="@string/card_details"
                 android:textColor="@color/textPrimary"
-                android:textSize="22sp"
+                android:textSize="@dimen/text_headline"
                 android:textStyle="bold" />
 
             <Button
@@ -54,7 +54,7 @@
                 android:id="@+id/cardEditorMenu"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:layout_marginStart="4dp"
+                android:layout_marginStart="@dimen/space_xs"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/card_menu"
                 android:src="@drawable/ic_more_vert"
@@ -65,20 +65,20 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="20dp">
+            android:paddingHorizontal="@dimen/space_ml">
 
             <!-- The draft, drawn by the same binder the feed uses. -->
             <FrameLayout
                 android:id="@+id/cardPreview"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" />
+                android:layout_marginTop="@dimen/space_xs" />
 
             <com.google.android.material.textfield.TextInputLayout
                 style="@style/Widget.Supernova.TextInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/space_md"
                 android:hint="@string/card_name">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -112,7 +112,7 @@
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:layout_marginEnd="20dp"
+                    android:layout_marginEnd="@dimen/space_ml"
                     android:importantForAccessibility="no"
                     android:src="@drawable/ic_menu_add"
                     app:tint="@color/textPrimary" />
@@ -122,7 +122,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/card_featured_choose"
                     android:textColor="@color/textPrimary"
-                    android:textSize="16sp" />
+                    android:textSize="@dimen/text_body" />
             </LinearLayout>
 
             <!-- Something featured: icon, label, clear. -->
@@ -140,7 +140,7 @@
                     android:id="@+id/cardFeaturedIcon"
                     android:layout_width="30dp"
                     android:layout_height="30dp"
-                    android:layout_marginEnd="16dp"
+                    android:layout_marginEnd="@dimen/space_md"
                     android:importantForAccessibility="no" />
 
                 <TextView
@@ -151,7 +151,7 @@
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:textColor="@color/textPrimary"
-                    android:textSize="16sp" />
+                    android:textSize="@dimen/text_body" />
 
                 <ImageButton
                     android:id="@+id/cardFeaturedClear"
@@ -182,14 +182,14 @@
                         android:layout_weight="1"
                         android:text="@string/card_widget_height"
                         android:textColor="@color/textPrimary"
-                        android:textSize="16sp" />
+                        android:textSize="@dimen/text_body" />
 
                     <TextView
                         android:id="@+id/cardWidgetHeightValue"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="@color/textPrimary"
-                        android:textSize="16sp" />
+                        android:textSize="@dimen/text_body" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -250,7 +250,7 @@
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:layout_marginEnd="20dp"
+                    android:layout_marginEnd="@dimen/space_ml"
                     android:importantForAccessibility="no"
                     android:src="@drawable/ic_menu_add"
                     app:tint="@color/textPrimary" />
@@ -260,7 +260,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/card_add_action"
                     android:textColor="@color/textPrimary"
-                    android:textSize="16sp" />
+                    android:textSize="@dimen/text_body" />
             </LinearLayout>
 
             <!-- Activation -->
@@ -280,7 +280,7 @@
                     android:id="@+id/cardActivate"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
+                    android:layout_marginTop="@dimen/space_md"
                     android:checked="true" />
             </LinearLayout>
 

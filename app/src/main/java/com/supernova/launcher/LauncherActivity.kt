@@ -288,6 +288,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 viewModel.moveItemToDock(itemId, rank)
             }
 
+            override fun placeWidget(
+                itemId: String,
+                rect: com.supernova.launcher.data.WorkspaceGeometry.CellRect,
+                done: (Boolean) -> Unit
+            ) = viewModel.resizeWidget(itemId, rect, onRefused = { done(false) }, onSaved = { done(true) })
+
             override fun announce(message: Int) = binding.root.announceForAccessibility(getString(message))
         }
     )
@@ -1307,7 +1313,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             decorateIcon = { icon, app -> itemIcons.withBadge(icon, app.packageName, app.className, app.userSerial) },
             onAppClick = { view, app -> launchApp(app, view) },
             onAppLongPress = ::longPressNewApp,
-            onWebSearch = ::launchWebSearch,
+            onWebSearch = { query ->
+                if (openUri(viewModel.state.value.prefs.searchWebProvider.searchUrl(query))) hideDrawer()
+            },
             onChipSearch = { chip, query ->
                 if (openUri(chip.url(query), chip.fallbackUrl(query))) hideDrawer()
             },
@@ -1604,17 +1612,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         val opened = open(uri) || (fallback != null && open(fallback))
         if (!opened) Toast.makeText(this, R.string.launch_failed, Toast.LENGTH_SHORT).show()
         return opened
-    }
-
-    private fun launchWebSearch(query: String) {
-        val search = Intent(Intent.ACTION_WEB_SEARCH).putExtra(android.app.SearchManager.QUERY, query)
-        runCatching { startActivity(search) }.onFailure {
-            val fallback = Intent(
-                Intent.ACTION_VIEW,
-                android.net.Uri.parse("https://www.google.com/search?q=${android.net.Uri.encode(query)}")
-            )
-            runLogged("open web search") { startActivity(fallback) }
-        }
     }
 
     private fun setupDock() {
@@ -2335,7 +2332,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             return
         }
         wallpaperZoomAnimator = android.animation.ValueAnimator.ofFloat(wallpaperZoomValue, target).apply {
-            duration = 250
+            duration = Animations.duration(prefs, WALLPAPER_ZOOM_MS)
             addUpdateListener { animator ->
                 wallpaperZoomValue = animator.animatedValue as Float
                 try {
@@ -4100,7 +4097,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
     override fun viewForItem(item: LauncherItem): View {
         if (item.itemType == ItemType.WIDGET) {
-            return widgets.buildWidgetView(item)
+            return widgets.buildWidgetView(item).also { itemMoves.attachWidget(it, item.id) }
         }
 
         val iconBinding = ItemIconBinding.inflate(LayoutInflater.from(this))
@@ -4588,5 +4585,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // checklist's search field has: the box draws none of its own.
         private const val FIELD_PAD_H_DP = 16
         private const val FIELD_PAD_V_DP = 14
+        private const val WALLPAPER_ZOOM_MS = 250L
     }
 }

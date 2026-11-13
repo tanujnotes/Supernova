@@ -126,7 +126,7 @@ class CardViewBinder(private val callbacks: Callbacks) {
                         text = featuredLabel
                             ?: com.supernova.launcher.data.LaunchTarget.split(target).first.substringBefore('/')
                         setTextColor(textColor)
-                        textSize = 22f
+                        textSizeOf(R.dimen.text_headline)
                         maxLines = 1
                         setPadding(context.dp(18), 0, 0, 0)
                     }
@@ -152,7 +152,7 @@ class CardViewBinder(private val callbacks: Callbacks) {
                         TextView(context).apply {
                             setText(R.string.card_widget_unavailable)
                             setTextColor((0xB3 shl 24) or (textColor and 0xFFFFFF))
-                            textSize = 15f
+                            textSizeOf(R.dimen.text_body)
                             setPadding(0, context.dp(14), 0, context.dp(14))
                         },
                         FrameLayout.LayoutParams(

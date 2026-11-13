@@ -44,7 +44,7 @@ class FolderReorderDrag(
         root.addView(layer, ViewGroup.LayoutParams(fill, fill))
     }
     private val handler = Handler(Looper.getMainLooper())
-    private val edge = GridEdgeScroll(grid) { itemId != null }
+    private val edge = GridEdgeScroll(grid, smooth = { Animations.scrollPages(prefs()) }) { itemId != null }
 
     // The member in the hand, and the order the folder had when it was
     // picked up (put back if the drag is called off).
@@ -229,7 +229,12 @@ private fun slotAt(grid: RecyclerView, rawX: Float, rawY: Float): Int {
 // vertical grid scrolls a little more each frame the deeper the finger is
 // in the band; a paged one turns a page after a hover there, then keeps
 // turning while the finger stays.
-private class GridEdgeScroll(private val grid: RecyclerView, private val active: () -> Boolean) {
+private class GridEdgeScroll(
+    private val grid: RecyclerView,
+    // False: a page turn lands at once (animations off).
+    private val smooth: () -> Boolean,
+    private val active: () -> Boolean
+) {
 
     private val handler = Handler(Looper.getMainLooper())
     private var x = 0f
@@ -254,7 +259,11 @@ private class GridEdgeScroll(private val grid: RecyclerView, private val active:
     private val flip = object : Runnable {
         override fun run() {
             if (!active() || flipSide == 0) return
-            grid.smoothScrollBy(flipSide * grid.width, 0)
+            if (smooth()) {
+                grid.smoothScrollBy(flipSide * grid.width, 0)
+            } else {
+                grid.scrollBy(flipSide * grid.width, 0)
+            }
             handler.postDelayed(this, PAGE_FLIP_REPEAT_MS)
         }
     }

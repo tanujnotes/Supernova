@@ -344,11 +344,25 @@ class AppDrawerAdapter(
         else -> ""
     }
 
-    private fun showWebRow(): Boolean =
-        query.isNotBlank() && displayItems.isEmpty() && SearchMarks.hasProviders(labelPrefs)
+    private fun showWebRow(): Boolean = query.isNotBlank() && displayItems.isEmpty()
 
-    // Empty state: "Search with" header + the provider marks, the same answer
-    // the global overlay gives.
+    // Nothing matched: the rows the search window ends every query with. A
+    // web engine other than Google (the only one with a mark) keeps its own
+    // row above the "Search with" header and the provider marks; with every
+    // provider off the engine row stands alone.
+    private fun footerTypes(): List<Int> {
+        val prefs = labelPrefs
+        val marks = SearchMarks.hasProviders(prefs)
+        val engine = prefs?.searchWebProvider ?: com.supernova.launcher.search.WebProvider.GOOGLE
+        return buildList {
+            if (!marks || engine != com.supernova.launcher.search.WebProvider.GOOGLE) add(TYPE_WEB_ROW)
+            if (marks) {
+                add(TYPE_MARKS_HEADER)
+                add(TYPE_WEB)
+            }
+        }
+    }
+
     // A tab with nothing in it: what to say, and the way to fill it. Null
     // leaves an empty list empty (the All tab, a search).
     class EmptyState(val message: CharSequence, val actionLabel: CharSequence, val onAction: () -> Unit)
@@ -358,7 +372,7 @@ class AppDrawerAdapter(
     private fun showEmpty(): Boolean = query.isBlank() && displayItems.isEmpty() && emptyState != null
 
     override fun getItemCount(): Int = when {
-        showWebRow() -> 2
+        showWebRow() -> footerTypes().size
         showEmpty() -> 1
         else -> displayItems.size
     }
@@ -369,7 +383,7 @@ class AppDrawerAdapter(
         if (showWebRow() || showEmpty() || displayItems.getOrNull(position) === HeaderItem) spanCount else 1
 
     override fun getItemViewType(position: Int): Int = when {
-        showWebRow() -> if (position == 0) TYPE_MARKS_HEADER else TYPE_WEB
+        showWebRow() -> footerTypes()[position]
         showEmpty() -> TYPE_EMPTY
         displayItems[position] === HeaderItem -> TYPE_LIST_HEADER
         displayItems[position] is FolderEntry ->
@@ -398,6 +412,9 @@ class AppDrawerAdapter(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
                 )
             })
+            TYPE_WEB_ROW -> WebRowHolder(
+                com.supernova.launcher.databinding.ItemSearchRowBinding.inflate(inflater, parent, false)
+            )
             TYPE_LIST_HEADER -> ListHeaderHolder(
                 android.widget.FrameLayout(parent.context).apply {
                     layoutParams = RecyclerView.LayoutParams(
@@ -419,6 +436,7 @@ class AppDrawerAdapter(
             is FolderTileHolder -> holder.bind(displayItems[position] as FolderEntry)
             is FolderRowHolder -> holder.bind(displayItems[position] as FolderEntry)
             is MarksHolder -> holder.bind()
+            is WebRowHolder -> holder.bind()
             is HeaderHolder -> Unit
             is ListHeaderHolder -> holder.bind(headerView)
             is EmptyHolder -> emptyState?.let(holder::bind)
@@ -597,6 +615,24 @@ class AppDrawerAdapter(
         }
     }
 
+    // "Search <engine> for “query”", as the search window words it.
+    inner class WebRowHolder(
+        private val binding: com.supernova.launcher.databinding.ItemSearchRowBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
+        fun bind() {
+            val context = binding.root.context
+            val engine = labelPrefs?.searchWebProvider ?: com.supernova.launcher.search.WebProvider.GOOGLE
+            val color = context.getColor(R.color.textPrimary)
+            binding.resultIcon.setImageResource(R.drawable.ic_search)
+            androidx.core.widget.ImageViewCompat.setImageTintList(
+                binding.resultIcon, android.content.res.ColorStateList.valueOf(color)
+            )
+            binding.resultLabel.text = context.getString(R.string.search_web_for, engine.displayName, query.trim())
+            binding.resultLabel.setTextColor(color)
+            binding.root.setOnClickListener { onWebSearch() }
+        }
+    }
+
     inner class MarksHolder(
         private val view: FrequentAppsRowView
     ) : RecyclerView.ViewHolder(view) {
@@ -634,8 +670,9 @@ class AppDrawerAdapter(
         private const val TYPE_MARKS_HEADER = 5
         private const val TYPE_LIST_HEADER = 6
         private const val TYPE_EMPTY = 7
+        private const val TYPE_WEB_ROW = 8
         private const val EMPTY_PAD_DP = 32
-        private const val EMPTY_BUTTON_SP = 15f
+        private const val EMPTY_BUTTON_SP = 16f
         private const val EMPTY_BUTTON_MIN_DP = 48
         private const val EMPTY_BUTTON_PAD_DP = 16
         private const val HEADER_KEY = "list-header"

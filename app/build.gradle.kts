@@ -111,6 +111,16 @@ android {
 
 }
 
+// Settings > About > What's new shows the release notes the store listing
+// carries, so they ship in the app as assets (<versionCode>.txt each).
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addStaticSourceDirectory(
+            rootProject.file("fastlane/metadata/android/en-US/changelogs").path
+        )
+    }
+}
+
 detekt {
     // Static analysis alongside lint: the default rule set, with everything it
     // found on 2026-09-24 parked in the baseline so only new findings fail.

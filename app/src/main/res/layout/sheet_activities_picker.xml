@@ -12,7 +12,7 @@
 
     <TextView
         style="@style/SheetTitle"
-        android:paddingBottom="12dp"
+        android:paddingBottom="@dimen/space_ms"
         android:text="@string/add_category_activities" />
 
     <!-- The widget sheet's search field. No saved state, as with drawerSearch. -->
@@ -20,8 +20,8 @@
         android:id="@+id/activitiesSearch"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="10dp"
+        android:layout_marginHorizontal="@dimen/space_md"
+        android:layout_marginBottom="@dimen/space_ms"
         android:background="@drawable/bg_search_card"
         android:drawableStart="@drawable/ic_search"
         android:drawablePadding="12dp"
@@ -30,12 +30,12 @@
         android:imeOptions="actionSearch"
         android:inputType="text"
         android:maxLines="1"
-        android:paddingHorizontal="18dp"
-        android:paddingVertical="14dp"
+        android:paddingHorizontal="@dimen/space_ml"
+        android:paddingVertical="@dimen/space_md"
         android:saveEnabled="false"
         android:textColor="@color/textPrimary"
         android:textColorHint="@color/textSecondary"
-        android:textSize="16sp" />
+        android:textSize="@dimen/text_body" />
 
     <FrameLayout
         android:id="@+id/activitiesFrame"
@@ -47,7 +47,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:paddingBottom="24dp" />
+            android:paddingBottom="@dimen/space_lg" />
 
         <ProgressBar
             android:id="@+id/activitiesProgress"
@@ -62,7 +62,7 @@
             android:layout_gravity="center"
             android:text="@string/no_activities"
             android:textColor="@color/textSecondary"
-            android:textSize="16sp"
+            android:textSize="@dimen/text_body"
             android:visibility="gone" />
 
         <!-- The drawer's fast scrollbar and its letter bubble. -->
@@ -71,8 +71,8 @@
             android:layout_width="32dp"
             android:layout_height="match_parent"
             android:layout_gravity="end"
-            android:paddingTop="4dp"
-            android:paddingBottom="24dp"
+            android:paddingTop="@dimen/space_xs"
+            android:paddingBottom="@dimen/space_lg"
             android:visibility="gone" />
 
         <TextView
@@ -80,14 +80,14 @@
             android:layout_width="75dp"
             android:layout_height="62dp"
             android:layout_gravity="top|end"
-            android:layout_marginEnd="19dp"
+            android:layout_marginEnd="@dimen/space_ml"
             android:background="@drawable/bg_fast_scroll_bubble"
             android:elevation="3dp"
             android:gravity="center"
             android:importantForAccessibility="no"
             android:includeFontPadding="false"
-            android:paddingHorizontal="13dp"
-            android:textSize="32sp"
+            android:paddingHorizontal="@dimen/space_ms"
+            android:textSize="@dimen/text_display"
             android:visibility="invisible" />
     </FrameLayout>
 </LinearLayout>

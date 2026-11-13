@@ -12,15 +12,15 @@
     android:gravity="center_vertical"
     android:minHeight="56dp"
     android:orientation="horizontal"
-    android:paddingVertical="8dp"
-    android:paddingStart="16dp"
-    android:paddingEnd="4dp">
+    android:paddingVertical="@dimen/space_sm"
+    android:paddingStart="@dimen/space_md"
+    android:paddingEnd="@dimen/space_xs">
 
     <FrameLayout
         android:id="@+id/groupRowTile"
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:layout_marginEnd="16dp"
+        android:layout_marginEnd="@dimen/space_md"
         android:background="@drawable/bg_settings_tile">
 
         <ImageView
@@ -44,16 +44,16 @@
             android:layout_height="wrap_content"
             android:fontFamily="sans-serif-medium"
             android:textColor="@color/textPrimary"
-            android:textSize="16sp" />
+            android:textSize="@dimen/text_body" />
 
         <!-- A value too long for the right-hand side goes here instead. -->
         <TextView
             android:id="@+id/settingSubtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="@dimen/space_xxs"
             android:textColor="@color/textSecondary"
-            android:textSize="13sp"
+            android:textSize="@dimen/text_secondary"
             android:visibility="gone" />
     </LinearLayout>
 
@@ -61,7 +61,7 @@
         android:id="@+id/groupRowSwatch"
         android:layout_width="12dp"
         android:layout_height="12dp"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="@dimen/space_md"
         android:background="@drawable/bg_settings_swatch"
         android:visibility="gone" />
 
@@ -69,12 +69,12 @@
         android:id="@+id/groupRowValue"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="@dimen/space_sm"
         android:ellipsize="end"
         android:maxWidth="160dp"
         android:maxLines="1"
         android:textColor="@color/textSecondary"
-        android:textSize="14sp"
+        android:textSize="@dimen/text_secondary"
         android:visibility="gone" />
 
     <!-- An action that runs on the tap (Clear icon cache) has none; the
@@ -83,9 +83,9 @@
         android:id="@+id/groupRowChevron"
         android:layout_width="48dp"
         android:layout_height="20dp"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="@dimen/space_sm"
         android:importantForAccessibility="no"
-        android:paddingHorizontal="14dp"
+        android:paddingHorizontal="@dimen/space_md"
         android:src="@drawable/ic_settings_chevron"
         app:tint="@color/textSecondary" />
 </LinearLayout>

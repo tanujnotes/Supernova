@@ -5,8 +5,8 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
-import android.view.View
 import android.view.Gravity
+import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -74,7 +74,7 @@ class SearchBarView @JvmOverloads constructor(
         addView(searchIcon, LayoutParams(dp(20), dp(20)))
 
         hint.setText(R.string.search_hint)
-        hint.textSize = 15f
+        hint.textSizeOf(R.dimen.text_body)
         hint.maxLines = 1
         addView(hint, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(12) })
 

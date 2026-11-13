@@ -8,7 +8,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingBottom="16dp">
+    android:paddingBottom="@dimen/space_md">
 
     <include layout="@layout/sheet_handle" />
 
@@ -21,12 +21,12 @@
         android:id="@+id/editComponent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingHorizontal="20dp"
-        android:paddingBottom="6dp"
+        android:paddingHorizontal="@dimen/space_ml"
+        android:paddingBottom="@dimen/space_sm"
         android:fontFamily="monospace"
         android:textColor="@color/textSecondary"
         android:textIsSelectable="true"
-        android:textSize="12sp"
+        android:textSize="@dimen/text_caption"
         android:visibility="gone" />
 
     <androidx.core.widget.NestedScrollView
@@ -42,8 +42,8 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="20dp"
-                android:layout_marginTop="12dp"
+                android:layout_marginHorizontal="@dimen/space_ml"
+                android:layout_marginTop="@dimen/space_ms"
                 android:hint="@string/rename">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -57,13 +57,8 @@
 
             <LinearLayout
                 android:id="@+id/hideLabelRow"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:gravity="center_vertical"
-                android:minHeight="52dp"
-                android:orientation="horizontal"
-                android:paddingHorizontal="20dp">
+                style="@style/SheetRow"
+                android:layout_marginTop="@dimen/space_sm">
 
                 <TextView
                     style="@style/SheetRowTitle"
@@ -72,7 +67,8 @@
                 <androidx.appcompat.widget.SwitchCompat
                     android:id="@+id/hideLabelSwitch"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/hide_label" />
             </LinearLayout>
 
             <LinearLayout
@@ -124,8 +120,8 @@
                 android:gravity="center_vertical"
                 android:minHeight="56dp"
                 android:orientation="horizontal"
-                android:paddingHorizontal="20dp"
-                android:paddingVertical="10dp"
+                android:paddingHorizontal="@dimen/space_ml"
+                android:paddingVertical="@dimen/space_ms"
                 android:visibility="gone">
 
                 <LinearLayout
@@ -139,22 +135,22 @@
                         android:layout_height="wrap_content"
                         android:text="@string/reshape"
                         android:textColor="@color/textPrimary"
-                        android:textSize="15sp" />
+                        android:textSize="@dimen/text_body" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
+                        android:layout_marginTop="@dimen/space_xxs"
                         android:text="@string/reshape_summary"
                         android:textColor="@color/textSecondary"
-                        android:textSize="13sp" />
+                        android:textSize="@dimen/text_secondary" />
                 </LinearLayout>
 
                 <androidx.appcompat.widget.SwitchCompat
                     android:id="@+id/reshapeSwitch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp" />
+                    android:layout_marginStart="@dimen/space_ms" />
             </LinearLayout>
 
             <!-- Folders only: Swipe to open folder, which takes the
@@ -167,8 +163,8 @@
                 android:gravity="center_vertical"
                 android:minHeight="56dp"
                 android:orientation="horizontal"
-                android:paddingHorizontal="20dp"
-                android:paddingVertical="10dp"
+                android:paddingHorizontal="@dimen/space_ml"
+                android:paddingVertical="@dimen/space_ms"
                 android:visibility="gone">
 
                 <LinearLayout
@@ -182,22 +178,22 @@
                         android:layout_height="wrap_content"
                         android:text="@string/swipe_to_open_folder"
                         android:textColor="@color/textPrimary"
-                        android:textSize="15sp" />
+                        android:textSize="@dimen/text_body" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
+                        android:layout_marginTop="@dimen/space_xxs"
                         android:text="@string/swipe_to_open_folder_summary"
                         android:textColor="@color/textSecondary"
-                        android:textSize="13sp" />
+                        android:textSize="@dimen/text_secondary" />
                 </LinearLayout>
 
                 <androidx.appcompat.widget.SwitchCompat
                     android:id="@+id/swipeToOpenSwitch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp" />
+                    android:layout_marginStart="@dimen/space_ms" />
             </LinearLayout>
 
             <!-- Per-item swipe gestures. Shown only when editing a placed
@@ -236,10 +232,10 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/space_sm"
         android:gravity="end|center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="20dp">
+        android:paddingHorizontal="@dimen/space_ml">
 
         <Button
             android:id="@+id/resetButton"
@@ -252,7 +248,7 @@
             android:id="@+id/saveButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/space_sm"
             android:text="@string/save" />
     </LinearLayout>
 </LinearLayout>

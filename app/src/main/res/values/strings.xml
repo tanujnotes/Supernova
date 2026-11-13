@@ -499,10 +499,18 @@
     <string name="contact_message">Message</string>
     <string name="search_contact_cards">Contact card view</string>
     <string name="about">About</string>
-    <string name="section_about_subtitle">Version and licenses</string>
+    <string name="section_about_subtitle">Version, what\'s new and reporting an issue</string>
     <string name="about_version">Version</string>
     <string name="about_license">Open-source license</string>
     <string name="about_license_name">AGPL-3.0</string>
+    <string name="about_whats_new">What\'s new</string>
+    <string name="about_whats_new_summary">Changes in this version</string>
+    <string name="about_whats_new_title">What\'s new in %1$s</string>
+    <string name="about_whats_new_none">No release notes in this build.</string>
+    <string name="about_report_issue">Report an issue</string>
+    <string name="about_report_issue_summary">Opens a new issue on GitHub</string>
+    <string name="about_report_issue_body">\n\n---\nSupernova %1$s, Android %2$s (API %3$d), %4$s</string>
+    <string name="about_no_browser">No app here opens links</string>
     <string name="about_source">Source code</string>
     <string name="about_source_url" translatable="false">https://github.com/tanujnotes/Supernova</string>
     <string name="crash_log">Crash log</string>
@@ -684,6 +692,10 @@
     <string name="style_opacity">Opacity</string>
     <string name="group_name_taken">A group with that name already exists</string>
     <string name="labs">Labs</string>
+    <string name="group_home_button">Home button</string>
+    <string name="feed_cards_link">Cards</string>
+    <string name="feed_cards_link_summary">Add, edit and remove the cards on this page</string>
+    <string name="cards_feed_link">Feed page</string>
     <string name="section_labs_subtitle">Experiments and icon theme tools</string>
     <string name="labs_show_component">Show component in edit dialog</string>
     <string name="labs_show_component_summary">For icon theme makers: an app\'s edit sheet shows its component name</string>
@@ -703,7 +715,8 @@
         <item quantity="other">Exported %d icons</item>
     </plurals>
     <string name="labs_clear_icon_cache">Clear icon cache</string>
-    <string name="labs_permissions">Permissions</string>
+    <string name="permissions">Permissions</string>
+    <string name="section_permissions_subtitle">Contacts, calendar, notification access and more</string>
     <string name="permission_contacts">Contacts</string>
     <string name="permission_contacts_use">contacts in search and the feed</string>
     <string name="permission_calendar">Calendar</string>
@@ -776,7 +789,18 @@
     <string name="chip_spotify">Spotify</string>
     <string name="chip_google">Google</string>
     <string name="search_with">Search with</string>
+    <string name="search_recent_header">Recent searches</string>
+    <string name="search_recent_clear">Clear</string>
+    <string name="search_recent_desc">Search again for %1$s</string>
     <string name="search_no_matches">No matches on this phone</string>
+    <!-- Why a setting is greyed out: what it waits on, and where. -->
+    <string name="needs_drawer_search_bar">Needs the drawer search bar, in Search</string>
+    <string name="needs_swipe_up_drawer">Needs Swipe up set to open the app drawer, in Gestures</string>
+    <string name="needs_dock">Needs the dock, in Dock</string>
+    <string name="needs_badges">Needs notification badges, in Icons &amp; labels</string>
+    <string name="needs_animations">Animations are off, in Home screen</string>
+    <string name="needs_feed">Needs the feed page, in Feed page</string>
+    <string name="infinite_scroll_summary">Swipe past the last page to reach the first. Swipe left and right gestures do nothing while it\'s on</string>
     <string name="settings_search_no_matches">No settings match “%1$s”</string>
     <string name="search_bar_replace">Replace</string>
     <string name="search_bar_settings">Search bar settings</string>
@@ -870,7 +894,6 @@
     <string name="feed_no_frequent">No frequent apps yet</string>
     <string name="feed_menu">Feed options</string>
     <string name="feed_menu_settings">Settings</string>
-    <string name="feed_advanced">Advanced</string>
     <string name="feed_show_media">Show when media is playing</string>
     <string name="cards_media_title">Media controls</string>
     <string name="card_show_in_feed">Feed page</string>
@@ -1026,7 +1049,7 @@
     <string name="reset_done">Launcher reset to defaults</string>
     <string name="reset_failed">Reset failed: %1$s</string>
     <string name="quick_start">Quick start</string>
-    <string name="quick_start_subtitle">Run the setup wizard again</string>
+    <string name="quick_start_subtitle">Run the first-run setup again</string>
     <string name="restart_supernova">Restart Supernova</string>
     <string name="restart_launcher_q">Restart Supernova?</string>
     <string name="restart_launcher_message">Settings and the home screen close and open again. Nothing is lost.</string>
@@ -1043,6 +1066,8 @@
     <string name="edit_widgets_title">Widgets</string>
     <string name="search_widgets_hint">Search widgets</string>
     <string name="edit_home_page">Home page</string>
+    <string name="edit_make_home_page">Make this the home page</string>
+    <string name="edit_home_page_set">Set as the home page</string>
     <string name="shortcut_row_subtitle">Shortcut</string>
     <string name="launcher_action_row_subtitle">Launcher action</string>
     <string name="activities_row_subtitle">Any app activity</string>
@@ -1070,5 +1095,18 @@
     <string name="a11y_move_to_dock">Move to dock</string>
     <string name="a11y_move_to_home">Move to home screen</string>
     <string name="a11y_moved">Moved</string>
+    <string name="a11y_swatch_tone">%1$s, tone %2$d</string>
+    <string name="a11y_expanded">Expanded</string>
+    <string name="a11y_collapsed">Collapsed</string>
+    <string name="a11y_expand">Expand</string>
+    <string name="a11y_collapse">Collapse</string>
+    <string name="a11y_decrease">Decrease %1$s</string>
+    <string name="a11y_increase">Increase %1$s</string>
+    <string name="a11y_preview">Preview of these settings</string>
+    <string name="a11y_resized">Resized</string>
+    <string name="a11y_wider">Make wider</string>
+    <string name="a11y_narrower">Make narrower</string>
+    <string name="a11y_taller">Make taller</string>
+    <string name="a11y_shorter">Make shorter</string>
     <string name="a11y_no_room">No free spot there</string>
 </resources>

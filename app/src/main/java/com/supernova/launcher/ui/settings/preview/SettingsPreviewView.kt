@@ -26,6 +26,7 @@ import com.supernova.launcher.ui.SearchBarConfig
 import com.supernova.launcher.ui.SearchBarView
 import com.supernova.launcher.ui.dp
 import com.supernova.launcher.ui.settings.PreviewKind
+import com.supernova.launcher.ui.textSizeOf
 import com.supernova.launcher.ui.theme.StyleConfig
 import com.supernova.launcher.ui.theme.Styles
 import com.supernova.launcher.ui.theme.SurfaceId
@@ -38,6 +39,14 @@ class SettingsPreviewView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : FrameLayout(context, attrs) {
+
+    // One stop for a screen reader: "Preview", not every sample label in
+    // the fake home screen it draws.
+    init {
+        contentDescription = context.getString(com.supernova.launcher.R.string.a11y_preview)
+        isFocusable = true
+        importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+    }
 
     private var kind: PreviewKind? = null
 
@@ -776,7 +785,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         val pill = TextView(context)
         pill.text = context.getString(R.string.search_apps)
         pill.setTextColor((0x99 shl 24) or (resolved.text and 0xFFFFFF))
-        pill.textSize = 13f
+        pill.textSizeOf(R.dimen.text_secondary)
         pill.setPadding(dp(14), dp(7), dp(14), dp(7))
         pill.background = GradientDrawable().apply {
             cornerRadius = dp(18).toFloat()

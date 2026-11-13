@@ -6,8 +6,8 @@
     android:layout_height="wrap_content"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingHorizontal="20dp"
-    android:paddingVertical="6dp">
+    android:paddingHorizontal="@dimen/space_ml"
+    android:paddingVertical="@dimen/space_sm">
 
     <ImageView
         android:id="@+id/folderCheckIcon"
@@ -19,12 +19,12 @@
         android:id="@+id/folderCheckLabel"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="@dimen/space_md"
         android:layout_weight="1"
         android:checkMark="?android:attr/listChoiceIndicatorMultiple"
         android:ellipsize="end"
         android:gravity="center_vertical"
         android:maxLines="1"
         android:minHeight="44dp"
-        android:textSize="15sp" />
+        android:textSize="@dimen/text_body" />
 </LinearLayout>

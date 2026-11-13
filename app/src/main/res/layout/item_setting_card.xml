@@ -6,9 +6,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingStart="16dp"
-    android:paddingEnd="4dp"
-    android:paddingBottom="12dp">
+    android:paddingStart="@dimen/space_md"
+    android:paddingEnd="@dimen/space_xs"
+    android:paddingBottom="@dimen/space_ms">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -26,13 +26,13 @@
             android:fontFamily="sans-serif-medium"
             android:maxLines="1"
             android:textColor="@color/textPrimary"
-            android:textSize="16sp" />
+            android:textSize="@dimen/text_body" />
 
         <ImageButton
             android:id="@+id/cardGear"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/space_sm"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/card_settings"
             android:src="@drawable/ic_tab_settings"
@@ -43,6 +43,6 @@
         android:id="@+id/cardPreviewContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:layout_marginEnd="12dp" />
+        android:layout_marginTop="@dimen/space_xxs"
+        android:layout_marginEnd="@dimen/space_ms" />
 </LinearLayout>

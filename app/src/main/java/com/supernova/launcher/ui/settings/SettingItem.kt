@@ -20,6 +20,14 @@ sealed class SettingItem {
     // row holds inside itself, which have no row of their own to match.
     open val searchTitles: List<Int> get() = emptyList()
 
+    // Why the row can't do anything now, or null while it can: a row whose
+    // effect waits on a setting elsewhere stays listed, greyed, with a line
+    // saying what to turn on, rather than vanishing (blockedWhen).
+    var blockedBy: (LauncherPrefs) -> Int? = { null }
+        private set
+
+    fun blockedWhen(reason: (LauncherPrefs) -> Int?): SettingItem = apply { blockedBy = reason }
+
     class Toggle(
         @StringRes override val title: Int,
         val get: (LauncherPrefs) -> Boolean,

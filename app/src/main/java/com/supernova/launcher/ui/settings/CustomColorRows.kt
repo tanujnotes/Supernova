@@ -181,9 +181,9 @@ class CustomColorRows(
         const val ROW_DP = 40
         const val NAME_DP = 96
         const val LABEL_TOP_DP = 14
-        const val LABEL_SP = 13f
-        const val NAME_SP = 15f
-        const val HEX_SP = 15f
+        const val LABEL_SP = 14f
+        const val NAME_SP = 16f
+        const val HEX_SP = 16f
         const val HEX_RADIX = 16
         const val RGB_DIGITS = 6
         const val ARGB_DIGITS = 8

@@ -8,7 +8,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingBottom="20dp">
+        android:paddingBottom="@dimen/space_ml">
 
         <include layout="@layout/sheet_handle" />
 
@@ -20,14 +20,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="20dp">
+            android:paddingHorizontal="@dimen/space_ml">
 
         <FrameLayout
             android:id="@+id/stripSurface"
             android:layout_width="match_parent"
             android:layout_height="64dp"
-            android:layout_marginTop="14dp"
-            android:paddingHorizontal="18dp">
+            android:layout_marginTop="@dimen/space_md"
+            android:paddingHorizontal="@dimen/space_ml">
 
             <TextView
                 android:id="@+id/stripText"
@@ -35,7 +35,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="start|center_vertical"
                 android:text="@string/style_preview_sample"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_body" />
 
             <View
                 android:id="@+id/stripAccent"
@@ -48,7 +48,7 @@
             android:id="@+id/slotGroup"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="@dimen/space_md"
             app:checkedButton="@id/slotSurface"
             app:selectionRequired="true"
             app:singleSelection="true">
@@ -83,7 +83,7 @@
             android:id="@+id/contrastRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/space_ms"
             android:orientation="vertical"
             android:visibility="gone">
 
@@ -99,29 +99,29 @@
                     android:labelFor="@id/contrastSeek"
                     android:text="@string/style_min_contrast"
                     android:textColor="@color/textPrimary"
-                    android:textSize="15sp" />
+                    android:textSize="@dimen/text_body" />
 
                 <TextView
                     android:id="@+id/contrastValue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="@color/textSecondary"
-                    android:textSize="14sp" />
+                    android:textSize="@dimen/text_secondary" />
             </LinearLayout>
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="@dimen/space_xxs"
                 android:text="@string/style_min_contrast_summary"
                 android:textColor="@color/textSecondary"
-                android:textSize="13sp" />
+                android:textSize="@dimen/text_secondary" />
 
             <SeekBar
                 android:id="@+id/contrastSeek"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/space_xs"
                 android:max="12" />
         </LinearLayout>
 
@@ -129,10 +129,10 @@
             android:id="@+id/styleGlassNote"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
+            android:layout_marginBottom="@dimen/space_sm"
             android:text="@string/style_bar_glass_note"
             android:textColor="@color/textSecondary"
-            android:textSize="13sp"
+            android:textSize="@dimen/text_secondary"
             android:visibility="gone" />
 
         <LinearLayout
@@ -155,14 +155,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/space_xs"
             android:text="@string/option_default" />
 
         <LinearLayout
             android:id="@+id/opacityRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="@dimen/space_sm"
             android:orientation="vertical">
 
             <LinearLayout
@@ -177,21 +177,21 @@
                     android:labelFor="@id/opacitySeek"
                     android:text="@string/style_opacity"
                     android:textColor="@color/textPrimary"
-                    android:textSize="15sp" />
+                    android:textSize="@dimen/text_body" />
 
                 <TextView
                     android:id="@+id/opacityValue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="@color/textSecondary"
-                    android:textSize="14sp" />
+                    android:textSize="@dimen/text_secondary" />
             </LinearLayout>
 
             <SeekBar
                 android:id="@+id/opacitySeek"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/space_xs"
                 android:max="100" />
         </LinearLayout>
 

@@ -7,7 +7,7 @@
     android:layout_height="wrap_content"
     android:background="@drawable/bg_settings_card"
     android:orientation="vertical"
-    android:padding="20dp">
+    android:padding="@dimen/space_ml">
 
     <!-- A tab bar with one tab picked out, over a row of apps. -->
     <LinearLayout
@@ -17,7 +17,7 @@
         android:background="@drawable/bg_settings_preview"
         android:importantForAccessibility="noHideDescendants"
         android:orientation="vertical"
-        android:padding="14dp">
+        android:padding="@dimen/space_md">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -34,14 +34,14 @@
                 android:id="@+id/emptyArtTab"
                 android:layout_width="62dp"
                 android:layout_height="26dp"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/space_sm"
                 android:background="@drawable/bg_group_chip"
                 android:backgroundTint="@color/group_chip_background" />
 
             <View
                 android:layout_width="58dp"
                 android:layout_height="26dp"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/space_sm"
                 android:background="@drawable/bg_group_chip"
                 android:backgroundTint="@color/group_chip_background" />
         </LinearLayout>
@@ -49,7 +49,7 @@
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/space_ms"
             android:orientation="horizontal">
 
             <View
@@ -61,28 +61,28 @@
             <View
                 android:layout_width="30dp"
                 android:layout_height="30dp"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="@dimen/space_ms"
                 android:background="@drawable/bg_group_art_tile"
                 android:backgroundTint="@color/accentGreen" />
 
             <View
                 android:layout_width="30dp"
                 android:layout_height="30dp"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="@dimen/space_ms"
                 android:background="@drawable/bg_group_art_tile"
                 android:backgroundTint="@color/accentOrange" />
 
             <View
                 android:layout_width="30dp"
                 android:layout_height="30dp"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="@dimen/space_ms"
                 android:background="@drawable/bg_group_art_tile"
                 android:backgroundTint="@color/accentPurple" />
 
             <View
                 android:layout_width="30dp"
                 android:layout_height="30dp"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="@dimen/space_ms"
                 android:background="@drawable/bg_group_art_tile"
                 android:backgroundTint="@color/accentPink" />
         </LinearLayout>
@@ -96,7 +96,7 @@
         android:background="@drawable/bg_settings_preview"
         android:importantForAccessibility="noHideDescendants"
         android:orientation="horizontal"
-        android:padding="14dp">
+        android:padding="@dimen/space_md">
 
         <View
             android:layout_width="30dp"
@@ -108,11 +108,11 @@
             android:id="@+id/emptyArtFolder"
             android:layout_width="30dp"
             android:layout_height="30dp"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/space_ms"
             android:background="@drawable/bg_group_art_tile"
             android:backgroundTint="@color/group_chip_background"
             android:columnCount="2"
-            android:padding="4dp">
+            android:padding="@dimen/space_xs">
 
             <View
                 android:layout_width="9dp"
@@ -142,21 +142,21 @@
         <View
             android:layout_width="30dp"
             android:layout_height="30dp"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/space_ms"
             android:background="@drawable/bg_group_art_tile"
             android:backgroundTint="@color/accentOrange" />
 
         <View
             android:layout_width="30dp"
             android:layout_height="30dp"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/space_ms"
             android:background="@drawable/bg_group_art_tile"
             android:backgroundTint="@color/accentIndigo" />
 
         <View
             android:layout_width="30dp"
             android:layout_height="30dp"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/space_ms"
             android:background="@drawable/bg_group_art_tile"
             android:backgroundTint="@color/accentPurple" />
     </LinearLayout>
@@ -165,25 +165,25 @@
         android:id="@+id/emptyTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="@dimen/space_md"
         android:textColor="@color/textPrimary"
-        android:textSize="18sp"
+        android:textSize="@dimen/text_title"
         android:textStyle="bold" />
 
     <TextView
         android:id="@+id/emptyBody"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="@dimen/space_sm"
         android:lineSpacingExtra="2sp"
         android:textColor="@color/textSecondary"
-        android:textSize="14sp" />
+        android:textSize="@dimen/text_secondary" />
 
     <Button
         android:id="@+id/emptyAdd"
         style="@style/Widget.Supernova.Button.Tonal"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/space_ms"
         android:textColor="?attr/colorAccentOnRaised" />
 </LinearLayout>

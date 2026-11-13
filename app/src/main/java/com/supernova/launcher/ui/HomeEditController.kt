@@ -1,6 +1,7 @@
 package com.supernova.launcher.ui
 
 import android.appwidget.AppWidgetProviderInfo
+import android.os.Build
 import android.view.View
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
@@ -10,12 +11,12 @@ import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.supernova.launcher.R
 import com.supernova.launcher.databinding.ActivityLauncherBinding
 import com.supernova.launcher.databinding.ViewEditModeBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import android.os.Build
 
 // Long-press edit mode: the page zooms out under a home-page marker,
 // Wallpapers/Settings float as chips, and an add sheet peeks from the bottom
@@ -166,6 +167,7 @@ class HomeEditController(
                 if (host.onAddPage()) return@setOnClickListener
                 if (DesktopLock.refused(activity, viewModel)) return@setOnClickListener
                 host.setDefaultPage(host.currentPage())
+                it.announceForAccessibility(activity.getString(R.string.edit_home_page_set))
                 // Saved in the background, so the stored home page is still
                 // the old one here: the marker lights for the page just set,
                 // where before it stayed dim until a swipe away and back.
@@ -324,6 +326,10 @@ class HomeEditController(
         val marker = overlay?.editHomeMarker ?: return
         marker.isActivated = isDefault
         marker.alpha = if (isDefault) 1f else 0.55f
+        // Said as well as shown: dim and lit sound the same to a screen reader.
+        marker.contentDescription = activity.getString(
+            if (isDefault) R.string.edit_home_page else R.string.edit_make_home_page
+        )
     }
 
 

@@ -142,6 +142,6 @@ object SearchBarButtons {
             context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, it, true)
         }?.resourceId?.takeIf { it != 0 }?.let { AppCompatResources.getDrawable(context, it) }
 
-    private const val DATE_SP = 13f
+    private const val DATE_SP = 14f
     private const val DATE_PAD_DP = 6
 }

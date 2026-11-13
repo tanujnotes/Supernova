@@ -347,10 +347,13 @@ class DrawerController(
     // else the pager for the paged style, else the grid.
     private fun applyListVisibility() {
         val paged = currentStyle == DrawerStyle.PAGED_GRID
+        // A paged drawer with nothing to page (an empty tab, no matches)
+        // shows the flat list, where the empty state and the search rows live.
+        val pagedEmpty = paged && adapter.items().isEmpty()
         binding.drawerRecycler.visibility =
-            if (searchingExternally || paged) View.GONE else View.VISIBLE
+            if (searchingExternally || (paged && !pagedEmpty)) View.GONE else View.VISIBLE
         binding.drawerPager.visibility =
-            if (!searchingExternally && paged) View.VISIBLE else View.GONE
+            if (!searchingExternally && paged && !pagedEmpty) View.VISIBLE else View.GONE
     }
 
     private fun liftSearchRow() {
@@ -1799,6 +1802,9 @@ class DrawerController(
             DrawerStyle.PAGED_GRID -> {
                 adapter.tileHeightPx = 0
                 adapter.displayMode = AppDrawerAdapter.DisplayMode.TILE
+                // The flat list only shows here when there is nothing to
+                // page: the empty state or the search rows, all full-width.
+                recycler.layoutManager = DrawerLayoutManager(context, 1)
             }
         }
         val paged = currentStyle == DrawerStyle.PAGED_GRID
@@ -1995,7 +2001,11 @@ class DrawerController(
     private fun syncPages() {
         if (currentStyle != DrawerStyle.PAGED_GRID) return
         val pager = binding.drawerPager
-        if (pager.height == 0) {
+        // No matches means no pages: the flat list shows instead, so the
+        // empty state has somewhere to render (applyListVisibility). Set
+        // first: a pager hidden since the start has no height to wait for.
+        applyListVisibility()
+        if (pager.height == 0 && adapter.items().isNotEmpty()) {
             pager.doOnLayout { syncPages() }
             return
         }
@@ -2005,14 +2015,6 @@ class DrawerController(
         cutRows = rows
         val perPage = (rows * columns).coerceAtLeast(1)
         val pages = adapter.items().chunked(perPage)
-        // No matches means no pages: show the flat list so the empty state has
-        // somewhere to render instead of leaving a blank pager.
-        val empty = pages.isEmpty()
-        // The search results own the container while a query is typed.
-        if (!searchingExternally) {
-            binding.drawerRecycler.visibility = if (empty) View.VISIBLE else View.GONE
-            pager.visibility = if (empty) View.GONE else View.VISIBLE
-        }
         val wasEmpty = pagerAdapter.pages.isEmpty()
         pagerAdapter.columns = columns
         pagerAdapter.infinite = prefs.drawerInfiniteScroll

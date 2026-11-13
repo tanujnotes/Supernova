@@ -42,11 +42,11 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:layout_margin="10dp"
+        android:layout_margin="@dimen/space_ms"
         android:background="@android:color/transparent"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="4dp" />
+        android:padding="@dimen/space_xs" />
 
     <!-- Full width for the line style; applyDockChrome centres it over the
          dock, and it takes no touches, so the workspace under it still
@@ -78,8 +78,8 @@
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:layout_gravity="bottom"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginHorizontal="@dimen/space_md"
+        android:layout_marginBottom="@dimen/space_md"
         android:visibility="gone" />
 
     <!-- Replace: a chosen search widget stands in for the bar above, in the
@@ -89,8 +89,8 @@
         android:layout_width="match_parent"
         android:layout_height="44dp"
         android:layout_gravity="bottom"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginHorizontal="@dimen/space_md"
+        android:layout_marginBottom="@dimen/space_md"
         android:visibility="gone" />
 
     <!-- Dims the wallpaper in step with the drawer coming up (the scrim
@@ -132,9 +132,9 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="10dp">
+            android:paddingHorizontal="@dimen/space_md"
+            android:paddingTop="@dimen/space_md"
+            android:paddingBottom="@dimen/space_ms">
 
             <!-- A plain pill rather than a TextInputLayout: the drawer field
                  wants a full-radius background with no floating label or
@@ -147,7 +147,7 @@
                 android:layout_weight="1"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="16dp">
+                android:paddingHorizontal="@dimen/space_md">
 
                 <ImageView
                     android:id="@+id/drawerSearchIcon"
@@ -163,7 +163,7 @@
                 <FrameLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="@dimen/space_ms"
                     android:layout_weight="1">
 
                     <TextView
@@ -174,7 +174,7 @@
                         android:maxLines="1"
                         android:padding="0dp"
                         android:singleLine="true"
-                        android:textSize="16sp" />
+                        android:textSize="@dimen/text_body" />
 
                     <!-- No saved state: a restored query re-runs the filter
                          watcher inside the view-state restore, and the
@@ -192,7 +192,7 @@
                         android:padding="0dp"
                         android:saveEnabled="false"
                         android:singleLine="true"
-                        android:textSize="16sp" />
+                        android:textSize="@dimen/text_body" />
                 </FrameLayout>
             </LinearLayout>
         </LinearLayout>
@@ -224,8 +224,8 @@
             android:gravity="center_vertical"
             android:minHeight="48dp"
             android:orientation="horizontal"
-            android:paddingStart="20dp"
-            android:paddingEnd="8dp"
+            android:paddingStart="@dimen/space_ml"
+            android:paddingEnd="@dimen/space_sm"
             android:visibility="gone">
 
             <TextView
@@ -234,7 +234,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:textColor="@color/textSecondary"
-                android:textSize="14sp" />
+                android:textSize="@dimen/text_secondary" />
 
             <TextView
                 android:id="@+id/drawerPrivateInstall"
@@ -261,8 +261,8 @@
             android:gravity="center_vertical|end"
             android:minHeight="48dp"
             android:orientation="horizontal"
-            android:paddingStart="20dp"
-            android:paddingEnd="8dp"
+            android:paddingStart="@dimen/space_ml"
+            android:paddingEnd="@dimen/space_sm"
             android:visibility="gone">
 
             <TextView
@@ -278,7 +278,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="12dp"
+            android:paddingHorizontal="@dimen/space_ms"
             android:visibility="gone" />
 
         <!-- The top row of apps (drawerFrequentRow), with a short centred
@@ -295,7 +295,7 @@
             android:layout_width="72dp"
             android:layout_height="2dp"
             android:layout_gravity="center_horizontal"
-            android:layout_marginVertical="10dp"
+            android:layout_marginVertical="@dimen/space_ms"
             android:background="@drawable/bg_drawer_divider"
             android:importantForAccessibility="no"
             android:visibility="gone" />
@@ -310,7 +310,7 @@
                 android:id="@+id/drawerRecycler"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:paddingBottom="18dp"
+                android:paddingBottom="@dimen/space_ml"
                 android:scrollbars="vertical" />
 
             <!-- Paged drawer style only: real page views, so the page effect
@@ -329,7 +329,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
                 android:orientation="vertical"
-                android:padding="16dp"
+                android:padding="@dimen/space_md"
                 android:visibility="gone">
 
                 <TextView
@@ -341,18 +341,18 @@
                     android:gravity="center"
                     android:text="@string/work_apps_paused_title"
                     android:textColor="@color/textPrimary"
-                    android:textSize="18sp" />
+                    android:textSize="@dimen/text_title" />
 
                 <TextView
                     android:id="@+id/drawerWorkPausedBody"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginBottom="24dp"
+                    android:layout_marginTop="@dimen/space_md"
+                    android:layout_marginBottom="@dimen/space_lg"
                     android:gravity="center"
                     android:text="@string/work_apps_paused_body"
                     android:textColor="@color/textSecondary"
-                    android:textSize="14sp" />
+                    android:textSize="@dimen/text_secondary" />
 
                 <Button
                     android:id="@+id/drawerWorkTurnOn"
@@ -378,7 +378,7 @@
                 android:layout_width="32dp"
                 android:layout_height="match_parent"
                 android:layout_gravity="end"
-                android:paddingVertical="12dp"
+                android:paddingVertical="@dimen/space_ms"
                 android:visibility="gone" />
 
             <!-- Its letter bubble, placed by the scroller, at the
@@ -388,14 +388,14 @@
                 android:layout_width="75dp"
                 android:layout_height="62dp"
                 android:layout_gravity="top|end"
-                android:layout_marginEnd="19dp"
+                android:layout_marginEnd="@dimen/space_ml"
                 android:background="@drawable/bg_fast_scroll_bubble"
                 android:elevation="3dp"
                 android:gravity="center"
                 android:importantForAccessibility="no"
                 android:includeFontPadding="false"
-                android:paddingHorizontal="13dp"
-                android:textSize="32sp"
+                android:paddingHorizontal="@dimen/space_ms"
+                android:textSize="@dimen/text_display"
                 android:visibility="invisible" />
         </FrameLayout>
     </LinearLayout>
@@ -429,13 +429,13 @@
             android:drawablePadding="4dp"
             android:drawableTint="@android:color/white"
             android:gravity="center"
-            android:paddingHorizontal="20dp"
-            android:paddingVertical="8dp"
+            android:paddingHorizontal="@dimen/space_ml"
+            android:paddingVertical="@dimen/space_sm"
             android:shadowColor="#80000000"
             android:shadowRadius="6"
             android:text="@string/remove"
             android:textColor="@android:color/white"
-            android:textSize="12sp" />
+            android:textSize="@dimen/text_caption" />
 
         <TextView
             android:id="@+id/dropAppInfo"
@@ -445,13 +445,13 @@
             android:drawablePadding="4dp"
             android:drawableTint="@android:color/white"
             android:gravity="center"
-            android:paddingHorizontal="20dp"
-            android:paddingVertical="8dp"
+            android:paddingHorizontal="@dimen/space_ml"
+            android:paddingVertical="@dimen/space_sm"
             android:shadowColor="#80000000"
             android:shadowRadius="6"
             android:text="@string/app_info"
             android:textColor="@android:color/white"
-            android:textSize="12sp" />
+            android:textSize="@dimen/text_caption" />
 
         <TextView
             android:id="@+id/dropUninstall"
@@ -461,13 +461,13 @@
             android:drawablePadding="4dp"
             android:drawableTint="@android:color/white"
             android:gravity="center"
-            android:paddingHorizontal="20dp"
-            android:paddingVertical="8dp"
+            android:paddingHorizontal="@dimen/space_ml"
+            android:paddingVertical="@dimen/space_sm"
             android:shadowColor="#80000000"
             android:shadowRadius="6"
             android:text="@string/uninstall"
             android:textColor="@android:color/white"
-            android:textSize="12sp" />
+            android:textSize="@dimen/text_caption" />
     </LinearLayout>
 
     <!-- Global search overlay: stub-lazy so cold start pays nothing; its
@@ -490,7 +490,7 @@
         android:clickable="true"
         android:elevation="14dp"
         android:orientation="vertical"
-        android:paddingTop="10dp"
+        android:paddingTop="@dimen/space_ms"
         app:behavior_hideable="true"
         app:behavior_peekHeight="0dp"
         app:layout_behavior="@string/bottom_sheet_behavior">
@@ -507,8 +507,8 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="20dp"
-            android:paddingVertical="14dp">
+            android:paddingHorizontal="@dimen/space_ml"
+            android:paddingVertical="@dimen/space_md">
 
             <ImageView
                 android:layout_width="26dp"
@@ -520,10 +520,10 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
+                android:layout_marginStart="@dimen/space_md"
                 android:text="@string/edit_widgets_title"
                 android:textColor="@color/textPrimary"
-                android:textSize="21sp" />
+                android:textSize="@dimen/text_title" />
         </LinearLayout>
 
         <!-- No saved state, as with drawerSearch. -->
@@ -531,8 +531,8 @@
             android:id="@+id/editWidgetSearch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginBottom="10dp"
+            android:layout_marginHorizontal="@dimen/space_md"
+            android:layout_marginBottom="@dimen/space_ms"
             android:background="@drawable/bg_search_card"
             android:drawableStart="@drawable/ic_search"
             android:drawablePadding="12dp"
@@ -541,12 +541,12 @@
             android:imeOptions="actionSearch"
             android:inputType="text"
             android:maxLines="1"
-            android:paddingHorizontal="18dp"
-            android:paddingVertical="14dp"
+            android:paddingHorizontal="@dimen/space_ml"
+            android:paddingVertical="@dimen/space_md"
             android:saveEnabled="false"
             android:textColor="@color/textPrimary"
             android:textColorHint="@color/textSecondary"
-            android:textSize="16sp" />
+            android:textSize="@dimen/text_body" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/editWidgetRecycler"
@@ -554,7 +554,7 @@
             android:layout_height="0dp"
             android:layout_weight="1"
             android:clipToPadding="false"
-            android:paddingBottom="24dp"
+            android:paddingBottom="@dimen/space_lg"
             android:scrollbars="vertical" />
     </LinearLayout>
 

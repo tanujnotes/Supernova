@@ -14,11 +14,11 @@
         android:layout_width="52dp"
         android:layout_height="52dp"
         android:layout_gravity="top|center_horizontal"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/space_sm"
         android:background="@drawable/bg_edit_marker"
         android:contentDescription="@string/edit_home_page"
         android:elevation="6dp"
-        android:padding="13dp"
+        android:padding="@dimen/space_ms"
         android:src="@drawable/ic_edit_home" />
 
     <ImageView
@@ -27,11 +27,11 @@
         android:layout_height="52dp"
         android:layout_gravity="top|center_horizontal"
         android:layout_marginStart="64dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/space_sm"
         android:background="@drawable/bg_edit_marker"
         android:contentDescription="@string/remove_page"
         android:elevation="6dp"
-        android:padding="14dp"
+        android:padding="@dimen/space_md"
         android:src="@drawable/ic_menu_remove"
         android:visibility="gone"
         app:tint="#FF11161D" />
@@ -51,7 +51,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:padding="8dp">
+            android:padding="@dimen/space_sm">
 
             <ImageView
                 android:layout_width="40dp"
@@ -63,23 +63,23 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="@dimen/space_sm"
                 android:shadowColor="#80000000"
                 android:shadowRadius="6"
                 android:text="@string/home_action_wallpaper"
                 android:textColor="@android:color/white"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_body" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/editChipSettings"
             android:layout_width="150dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="24dp"
+            android:layout_marginStart="@dimen/space_lg"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:padding="8dp">
+            android:padding="@dimen/space_sm">
 
             <ImageView
                 android:layout_width="40dp"
@@ -91,12 +91,12 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="@dimen/space_sm"
                 android:shadowColor="#80000000"
                 android:shadowRadius="6"
                 android:text="@string/home_action_settings"
                 android:textColor="@android:color/white"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_body" />
         </LinearLayout>
     </LinearLayout>
 </FrameLayout>

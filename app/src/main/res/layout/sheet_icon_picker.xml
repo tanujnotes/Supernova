@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingBottom="8dp">
+    android:paddingBottom="@dimen/space_sm">
 
     <include layout="@layout/sheet_handle" />
 
@@ -16,25 +16,25 @@
         android:id="@+id/iconSearch"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginHorizontal="@dimen/space_md"
+        android:layout_marginTop="@dimen/space_sm"
         android:background="@drawable/bg_search_card"
         android:hint="@string/search_icons_hint"
         android:importantForAutofill="no"
         android:imeOptions="actionSearch"
         android:inputType="text"
         android:maxLines="1"
-        android:paddingHorizontal="18dp"
-        android:paddingVertical="14dp"
+        android:paddingHorizontal="@dimen/space_ml"
+        android:paddingVertical="@dimen/space_md"
         android:textColor="@color/textPrimary"
         android:textColorHint="@color/textSecondary"
-        android:textSize="16sp" />
+        android:textSize="@dimen/text_body" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/iconGrid"
         android:layout_width="match_parent"
         android:layout_height="420dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/space_sm"
         android:clipToPadding="false"
-        android:paddingHorizontal="12dp" />
+        android:paddingHorizontal="@dimen/space_ms" />
 </LinearLayout>

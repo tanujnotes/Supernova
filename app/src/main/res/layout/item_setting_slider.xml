@@ -7,15 +7,15 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingHorizontal="8dp"
-    android:paddingVertical="12dp">
+    android:paddingHorizontal="@dimen/space_sm"
+    android:paddingVertical="@dimen/space_ms">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="8dp">
+        android:paddingHorizontal="@dimen/space_sm">
 
         <TextView
             android:id="@+id/settingTitle"
@@ -24,22 +24,22 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:textColor="@color/textPrimary"
-            android:textSize="16sp" />
+            android:textSize="@dimen/text_body" />
 
         <TextView
             android:id="@+id/settingValue"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/space_md"
             android:layout_marginEnd="44dp"
             android:textColor="@color/textSecondary"
-            android:textSize="14sp" />
+            android:textSize="@dimen/text_secondary" />
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="40dp"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="@dimen/space_xs"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -49,7 +49,7 @@
             android:layout_height="40dp"
             android:background="@drawable/bg_step_circle"
             android:contentDescription="@string/stepper_decrease"
-            android:padding="11dp"
+            android:padding="@dimen/space_ms"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_step_minus" />
 
@@ -58,7 +58,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:paddingHorizontal="8dp" />
+            android:paddingHorizontal="@dimen/space_sm" />
 
         <ImageButton
             android:id="@+id/stepUp"
@@ -66,7 +66,7 @@
             android:layout_height="40dp"
             android:background="@drawable/bg_step_circle"
             android:contentDescription="@string/stepper_increase"
-            android:padding="11dp"
+            android:padding="@dimen/space_ms"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_step_plus" />
     </LinearLayout>

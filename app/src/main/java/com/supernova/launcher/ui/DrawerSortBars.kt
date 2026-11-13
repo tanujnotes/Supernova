@@ -124,7 +124,7 @@ class DrawerSortBars(
     ).apply { marginEnd = context.dp(BUTTON_MARGIN_END_DP) }
 
     private companion object {
-        const val TEXT_SP = 13f
+        const val TEXT_SP = 14f
         const val TEXT_ALPHA = 0xB3
         const val RIPPLE_ALPHA = 0x33
         const val BUTTON_HEIGHT_DP = 32

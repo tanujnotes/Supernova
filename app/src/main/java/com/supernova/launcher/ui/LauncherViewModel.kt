@@ -837,10 +837,15 @@ class LauncherViewModel(
 
     fun setWidgetId(itemId: String, appWidgetId: Int) = persist { repository.setWidgetId(itemId, appWidgetId) }
 
-    fun resizeWidget(itemId: String, rect: WorkspaceGeometry.CellRect, onRefused: () -> Unit = {}) {
+    fun resizeWidget(
+        itemId: String,
+        rect: WorkspaceGeometry.CellRect,
+        onRefused: () -> Unit = {},
+        onSaved: () -> Unit = {}
+    ) {
         val prefs = state.value.prefs
         viewModelScope.launch {
-            if (!repository.resizeWidget(itemId, rect, prefs.gridCols, prefs.gridRows)) onRefused()
+            if (repository.resizeWidget(itemId, rect, prefs.gridCols, prefs.gridRows)) onSaved() else onRefused()
         }
     }
 

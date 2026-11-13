@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
-        android:paddingBottom="24dp" />
+        android:paddingBottom="@dimen/space_lg" />
 
     <include
         android:id="@+id/groupEdit"

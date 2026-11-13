@@ -12,7 +12,6 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.toColorInt
@@ -26,9 +25,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.supernova.launcher.data.LockMethod
-import com.supernova.launcher.data.Pref
-import com.supernova.launcher.widget.SupernovaWidgetHost
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.supernova.launcher.data.CornerCut
 import com.supernova.launcher.data.CustomShapeSpec
 import com.supernova.launcher.data.DrawerGroup
@@ -36,41 +33,45 @@ import com.supernova.launcher.data.DrawerGroupType
 import com.supernova.launcher.data.IconShape
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.data.LauncherPrefs
+import com.supernova.launcher.data.LockMethod
+import com.supernova.launcher.data.Pref
 import com.supernova.launcher.data.TabFolders
 import com.supernova.launcher.databinding.ActivitySettingsBinding
 import com.supernova.launcher.databinding.DialogCustomShapeBinding
-import com.supernova.launcher.databinding.ItemIconShapeBinding
-import com.supernova.launcher.databinding.SheetIconPackBinding
-import com.supernova.launcher.databinding.SheetIconShapeBinding
 import com.supernova.launcher.databinding.DialogDesktopGridBinding
 import com.supernova.launcher.databinding.DialogFolderIconBinding
 import com.supernova.launcher.databinding.ItemIconPackChoiceBinding
+import com.supernova.launcher.databinding.ItemIconShapeBinding
+import com.supernova.launcher.databinding.SheetIconPackBinding
+import com.supernova.launcher.databinding.SheetIconShapeBinding
 import com.supernova.launcher.gesture.Gesture
 import com.supernova.launcher.gesture.GestureAction
 import com.supernova.launcher.gesture.GestureBinding
 import com.supernova.launcher.gesture.GestureDefaults
 import com.supernova.launcher.notification.SupernovaNotificationListener
+import com.supernova.launcher.ui.Animations
+import com.supernova.launcher.ui.ChoiceMenu
 import com.supernova.launcher.ui.FolderPreviewStyle
 import com.supernova.launcher.ui.LabelStyler
 import com.supernova.launcher.ui.LauncherViewModel
 import com.supernova.launcher.ui.dp
+import com.supernova.launcher.ui.settings.ColorSheet
 import com.supernova.launcher.ui.settings.EnumLabels
 import com.supernova.launcher.ui.settings.PreviewController
 import com.supernova.launcher.ui.settings.PreviewKind
 import com.supernova.launcher.ui.settings.SettingItem
 import com.supernova.launcher.ui.settings.SettingsAdapter
-import com.supernova.launcher.ui.Animations
-import com.supernova.launcher.ui.settings.ColorSheet
 import com.supernova.launcher.ui.settings.SettingsCatalogue
-import com.supernova.launcher.ui.ChoiceMenu
 import com.supernova.launcher.ui.settings.SettingsSearchIndex
 import com.supernova.launcher.ui.settings.SettingsSection
 import com.supernova.launcher.ui.settings.StylePickerSheet
+import com.supernova.launcher.ui.textSizeOf
 import com.supernova.launcher.ui.theme.AccentColor
 import com.supernova.launcher.ui.theme.PaletteSourceMode
 import com.supernova.launcher.ui.theme.Styles
 import com.supernova.launcher.ui.theme.SurfaceId
 import com.supernova.launcher.ui.theme.ThemeEngine
+import com.supernova.launcher.widget.SupernovaWidgetHost
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -150,7 +151,7 @@ class SettingsActivity : AppCompatActivity() {
 
     private val backup = com.supernova.launcher.ui.BackupTransfer(this, { viewModel })
 
-    // Labs' Permissions: a grant or refusal shows on the row at once. A
+    // The Permissions page: a grant or refusal shows on the row at once. A
     // refusal that comes back at once came without a dialog: the system
     // won't ask again, and only App info can grant it now. One the user
     // gave in the dialog is left at that.
@@ -437,6 +438,16 @@ class SettingsActivity : AppCompatActivity() {
                 MaterialAlertDialogBuilder(this)
                     .setTitle(R.string.about_license)
                     .setMessage(R.string.about_license_text)
+                    .setPositiveButton(R.string.ok, null)
+                    .show()
+            },
+            showWhatsNew = {
+                MaterialAlertDialogBuilder(this)
+                    .setTitle(getString(R.string.about_whats_new_title, SupernovaApp.versionLabel(this).orEmpty()))
+                    .setMessage(
+                        com.supernova.launcher.ui.settings.AboutLinks.releaseNotes(this)
+                            ?: getString(R.string.about_whats_new_none)
+                    )
                     .setPositiveButton(R.string.ok, null)
                     .show()
             },
@@ -817,7 +828,9 @@ class SettingsActivity : AppCompatActivity() {
                 R.string.settings_section_icons, R.string.gestures, R.string.settings_section_search,
                 R.string.settings_section_cards
             ),
-            R.string.settings_group_app to listOf(R.string.settings_section_backup, R.string.about, R.string.labs)
+            R.string.settings_group_app to listOf(
+                R.string.settings_section_backup, R.string.permissions, R.string.about, R.string.labs
+            )
         )
         val grouped = groups.flatMap { it.second }.toSet()
         val unplaced = shown.filter { it.title !in grouped }
@@ -898,21 +911,7 @@ class SettingsActivity : AppCompatActivity() {
     // Leading icons for the root list.
     @androidx.annotation.DrawableRes
     private fun sectionIcon(@androidx.annotation.StringRes sectionTitle: Int): Int =
-        when (sectionTitle) {
-            R.string.settings_section_home -> R.drawable.ic_settings_home
-            R.string.settings_section_dock -> R.drawable.ic_settings_dock
-            R.string.settings_section_drawer -> R.drawable.ic_settings_drawer
-            R.string.settings_section_search -> R.drawable.ic_settings_search
-            R.string.settings_section_feed -> R.drawable.ic_settings_feed
-            R.string.settings_section_cards -> R.drawable.ic_settings_cards
-            R.string.settings_section_folders -> R.drawable.ic_settings_folders
-            R.string.settings_section_icons -> R.drawable.ic_settings_icons
-            R.string.gestures -> R.drawable.ic_settings_gestures
-            R.string.settings_section_backup -> R.drawable.ic_settings_backup
-            R.string.about -> R.drawable.ic_settings_about
-            R.string.labs -> R.drawable.ic_settings_labs
-            else -> 0
-        }
+        ROOT_SECTIONS[sectionTitle]?.first ?: 0
 
     // Parks the section's first visible Preview in the pinned pane. Returns
     // whether the pane took it; false hides the pane (root, search, Style).
@@ -953,21 +952,7 @@ class SettingsActivity : AppCompatActivity() {
     // Root-row blurbs. Long on purpose so they render under the
     // title instead of as value pills.
     private fun sectionSubtitle(@androidx.annotation.StringRes sectionTitle: Int): CharSequence? =
-        when (sectionTitle) {
-            R.string.settings_section_home -> getString(R.string.section_home_subtitle)
-            R.string.settings_section_dock -> getString(R.string.section_dock_subtitle)
-            R.string.settings_section_drawer -> getString(R.string.section_drawer_subtitle)
-            R.string.settings_section_search -> getString(R.string.section_search_subtitle)
-            R.string.settings_section_feed -> getString(R.string.section_feed_subtitle)
-            R.string.settings_section_cards -> getString(R.string.section_cards_subtitle)
-            R.string.settings_section_folders -> getString(R.string.section_folders_subtitle)
-            R.string.settings_section_icons -> getString(R.string.section_icons_subtitle)
-            R.string.gestures -> getString(R.string.section_gestures_subtitle)
-            R.string.settings_section_backup -> getString(R.string.section_backup_subtitle)
-            R.string.about -> getString(R.string.section_about_subtitle)
-            R.string.labs -> getString(R.string.section_labs_subtitle)
-            else -> null
-        }
+        ROOT_SECTIONS[sectionTitle]?.second?.let(::getString)
 
     private fun searchResultItems(): List<SettingItem> {
         // The pill is the search field under the large header; a section screen
@@ -2081,7 +2066,7 @@ class SettingsActivity : AppCompatActivity() {
             column.addView(android.widget.TextView(this).apply {
                 text = getString(titleRes)
                 setTextColor(getColor(R.color.accent))
-                textSize = 13f
+                textSizeOf(R.dimen.text_secondary)
                 setPadding(0, dpPx(12), 0, dpPx(4))
             })
         }
@@ -2122,6 +2107,23 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     companion object {
+        // Each root section's icon and the blurb under its title.
+        private val ROOT_SECTIONS: Map<Int, Pair<Int, Int>> = mapOf(
+            R.string.settings_section_home to (R.drawable.ic_settings_home to R.string.section_home_subtitle),
+            R.string.settings_section_dock to (R.drawable.ic_settings_dock to R.string.section_dock_subtitle),
+            R.string.settings_section_drawer to (R.drawable.ic_settings_drawer to R.string.section_drawer_subtitle),
+            R.string.settings_section_search to (R.drawable.ic_settings_search to R.string.section_search_subtitle),
+            R.string.settings_section_feed to (R.drawable.ic_settings_feed to R.string.section_feed_subtitle),
+            R.string.settings_section_cards to (R.drawable.ic_settings_cards to R.string.section_cards_subtitle),
+            R.string.settings_section_folders to (R.drawable.ic_settings_folders to R.string.section_folders_subtitle),
+            R.string.settings_section_icons to (R.drawable.ic_settings_icons to R.string.section_icons_subtitle),
+            R.string.gestures to (R.drawable.ic_settings_gestures to R.string.section_gestures_subtitle),
+            R.string.settings_section_backup to (R.drawable.ic_settings_backup to R.string.section_backup_subtitle),
+            R.string.about to (R.drawable.ic_settings_about to R.string.section_about_subtitle),
+            R.string.labs to (R.drawable.ic_settings_labs to R.string.section_labs_subtitle),
+            R.string.permissions to (R.drawable.ic_settings_permissions to R.string.section_permissions_subtitle)
+        )
+
         private const val STATE_TAB = "settings_tab"
 
         // Grouped pages' cards on a styled Settings surface: how far toward

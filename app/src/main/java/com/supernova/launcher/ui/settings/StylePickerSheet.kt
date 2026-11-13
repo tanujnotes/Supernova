@@ -13,9 +13,9 @@ import android.widget.TextView
 import com.supernova.launcher.R
 import com.supernova.launcher.data.Pref
 import com.supernova.launcher.databinding.SheetStylePickerBinding
-import com.supernova.launcher.ui.dp
-import com.supernova.launcher.ui.theme.SurfaceShapes
 import com.supernova.launcher.ui.LauncherViewModel
+import com.supernova.launcher.ui.dp
+import com.supernova.launcher.ui.textSizeOf
 import com.supernova.launcher.ui.theme.AccentColor
 import com.supernova.launcher.ui.theme.ColorSpec
 import com.supernova.launcher.ui.theme.PaletteFactory
@@ -24,6 +24,7 @@ import com.supernova.launcher.ui.theme.PaletteSourceMode
 import com.supernova.launcher.ui.theme.StyleConfig
 import com.supernova.launcher.ui.theme.Styles
 import com.supernova.launcher.ui.theme.SurfaceId
+import com.supernova.launcher.ui.theme.SurfaceShapes
 import com.supernova.launcher.ui.theme.ThemeEngine
 import com.supernova.launcher.ui.theme.ToneRamp
 
@@ -307,7 +308,10 @@ object StylePickerSheet {
                 ToneRamp.TONES.forEach { tone ->
                     val spec = ColorSpec(role = role, tone = tone)
                     row.addView(
-                        swatch(context, palette.tone(role, tone), isSelected(spec)) { onPick(spec) },
+                        swatch(
+                            context, palette.tone(role, tone), isSelected(spec),
+                            context.getString(R.string.a11y_swatch_tone, context.getString(labelRes), tone)
+                        ) { onPick(spec) },
                         swatchParams
                     )
                 }
@@ -317,15 +321,24 @@ object StylePickerSheet {
             FIXED.forEach { hex ->
                 val spec = ColorSpec(fixed = hex)
                 row.addView(
-                    swatch(context, Color.parseColor(hex), isSelected(spec)) { onPick(spec) },
+                    swatch(context, Color.parseColor(hex), isSelected(spec), hex) { onPick(spec) },
                     swatchParams
                 )
             }
         }
     }
 
-    private fun swatch(context: Context, color: Int, selected: Boolean, onClick: () -> Unit): ImageView {
+    private fun swatch(
+        context: Context,
+        color: Int,
+        selected: Boolean,
+        name: String,
+        onClick: () -> Unit
+    ): ImageView {
         val view = ImageView(context)
+        // Its colour by name for a screen reader, and whether it's the pick.
+        view.contentDescription = name
+        view.isSelected = selected
         view.background = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(color)
@@ -345,7 +358,7 @@ object StylePickerSheet {
     private fun rowLabel(context: Context, textRes: Int): TextView = TextView(context).apply {
         setText(textRes)
         setTextColor(context.getColor(R.color.textSecondary))
-        textSize = 13f
+        textSizeOf(R.dimen.text_secondary)
     }
 
     private const val CONTRAST_STEP = 5

@@ -4,12 +4,12 @@
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="32dp"
-    android:layout_marginEnd="8dp"
+    android:layout_marginEnd="@dimen/space_sm"
     android:background="@drawable/bg_group_chip"
     android:backgroundTint="@color/group_chip_background"
     android:fontFamily="sans-serif-medium"
     android:gravity="center"
     android:maxLines="1"
-    android:paddingHorizontal="13dp"
+    android:paddingHorizontal="@dimen/space_ms"
     android:textColor="@color/group_chip_text"
-    android:textSize="13sp" />
+    android:textSize="@dimen/text_secondary" />

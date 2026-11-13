@@ -1192,7 +1192,7 @@ class LiveDragController(
         if (!wraps && next in 0 until adapter.itemCount && !adapter.isAddPage(next)) {
             drops.cancelReorderPreview(animate = false)
             hideDragGrid(animate = true)
-            pager.setCurrentItem(next, true)
+            pager.setCurrentItem(next, Animations.scrollPages(viewModel.state.value.prefs))
             pager.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
             return true
         }

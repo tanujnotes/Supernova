@@ -12,6 +12,7 @@ import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.databinding.ItemFeedCalendarBinding
 import com.supernova.launcher.databinding.ItemFeedContactsBinding
 import com.supernova.launcher.databinding.ItemFeedMediaBinding
+import com.supernova.launcher.ui.textSizeOf
 import com.supernova.launcher.ui.theme.Styles
 import com.supernova.launcher.ui.theme.SurfaceId
 
@@ -68,7 +69,7 @@ object CardPreviews {
                         TextView(context).apply {
                             text = initial.toString()
                             gravity = Gravity.CENTER
-                            textSize = 18f
+                            textSizeOf(R.dimen.text_title)
                             setTextColor(popup.text)
                             background = GradientDrawable().apply {
                                 shape = GradientDrawable.OVAL

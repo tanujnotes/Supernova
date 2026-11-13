@@ -4,14 +4,14 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="12dp"
-    android:layout_marginBottom="4dp"
+    android:layout_marginHorizontal="@dimen/space_ms"
+    android:layout_marginBottom="@dimen/space_xs"
     android:background="@drawable/bg_picker_card"
     android:foreground="?attr/selectableItemBackground"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingHorizontal="20dp"
-    android:paddingVertical="12dp">
+    android:paddingHorizontal="@dimen/space_ml"
+    android:paddingVertical="@dimen/space_ms">
 
     <ImageView
         android:id="@+id/shortcutIcon"
@@ -22,7 +22,7 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="18dp"
+        android:layout_marginStart="@dimen/space_ml"
         android:layout_weight="1"
         android:orientation="vertical">
 
@@ -32,13 +32,13 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:textColor="@color/textPrimary"
-            android:textSize="15sp" />
+            android:textSize="@dimen/text_body" />
 
         <TextView
             android:id="@+id/shortcutSubtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textColor="@color/textSecondary"
-            android:textSize="12sp" />
+            android:textSize="@dimen/text_caption" />
     </LinearLayout>
 </LinearLayout>

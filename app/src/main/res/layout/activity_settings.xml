@@ -45,12 +45,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:lineHeight="38sp"
-                android:paddingHorizontal="16dp"
-                android:paddingTop="32dp"
-                android:paddingBottom="8dp"
+                android:paddingHorizontal="@dimen/space_md"
+                android:paddingTop="@dimen/space_xl"
+                android:paddingBottom="@dimen/space_sm"
                 android:text="@string/settings"
                 android:textColor="@color/textPrimary"
-                android:textSize="32sp"
+                android:textSize="@dimen/text_display"
                 android:textStyle="bold"
                 android:visibility="gone"
                 app:layout_scrollFlags="scroll" />
@@ -63,8 +63,8 @@
                 android:layout_height="80dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="4dp"
-                android:paddingTop="24dp">
+                android:paddingHorizontal="@dimen/space_xs"
+                android:paddingTop="@dimen/space_lg">
 
                 <ImageButton
                     android:id="@+id/backButton"
@@ -78,14 +78,14 @@
                     android:id="@+id/settingsTitle"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginStart="@dimen/space_sm"
+                    android:layout_marginEnd="@dimen/space_sm"
                     android:ellipsize="end"
                     android:layout_weight="1"
                     android:maxLines="1"
                     android:text="@string/settings_title"
                     android:textColor="@color/textPrimary"
-                    android:textSize="22sp"
+                    android:textSize="@dimen/text_headline"
                     android:textStyle="bold" />
 
                 <!-- Section search: swapped in for the title while active. -->
@@ -93,7 +93,7 @@
                     android:id="@+id/settingsSearchInput"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="@dimen/space_sm"
                     android:layout_weight="1"
                     android:background="@android:color/transparent"
                     android:hint="@string/settings_search_hint"
@@ -102,7 +102,7 @@
                     android:inputType="text"
                     android:maxLines="1"
                     android:textColor="@color/textPrimary"
-                    android:textSize="16sp"
+                    android:textSize="@dimen/text_body"
                     android:visibility="gone" />
 
                 <ImageButton
@@ -125,8 +125,8 @@
                 android:id="@+id/previewFrame"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="16dp"
-                android:paddingTop="8dp"
+                android:paddingHorizontal="@dimen/space_md"
+                android:paddingTop="@dimen/space_sm"
                 android:visibility="gone">
 
                 <com.supernova.launcher.ui.settings.preview.PreviewPane
@@ -135,7 +135,7 @@
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_settings_preview"
                     android:minHeight="168dp"
-                    android:paddingVertical="6dp" />
+                    android:paddingVertical="@dimen/space_sm" />
             </FrameLayout>
 
             <!-- The search pill is the search field itself: type
@@ -146,9 +146,9 @@
                 android:id="@+id/rootSearch"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="16dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"
+                android:paddingHorizontal="@dimen/space_md"
+                android:paddingTop="@dimen/space_sm"
+                android:paddingBottom="@dimen/space_sm"
                 android:visibility="gone">
 
                 <LinearLayout
@@ -158,8 +158,8 @@
                     android:background="@drawable/bg_settings_pill"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="4dp">
+                    android:paddingStart="@dimen/space_md"
+                    android:paddingEnd="@dimen/space_xs">
 
                     <ImageView
                         android:layout_width="24dp"
@@ -172,7 +172,7 @@
                         android:id="@+id/rootSearchInput"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
-                        android:layout_marginStart="12dp"
+                        android:layout_marginStart="@dimen/space_ms"
                         android:layout_weight="1"
                         android:background="@android:color/transparent"
                         android:hint="@string/settings_search_hint"
@@ -182,7 +182,7 @@
                         android:maxLines="1"
                         android:textColor="@color/textPrimary"
                         android:textColorHint="@color/textSecondary"
-                        android:textSize="16sp" />
+                        android:textSize="@dimen/text_body" />
                 </LinearLayout>
             </FrameLayout>
         </com.google.android.material.appbar.AppBarLayout>
@@ -197,7 +197,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
-                android:paddingBottom="24dp" />
+                android:paddingBottom="@dimen/space_lg" />
 
             <!-- The Drawer groups page (DrawerGroupsPane), in the list's place
                  while it is open. -->
@@ -213,7 +213,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom|end"
-                android:layout_margin="20dp"
+                android:layout_margin="@dimen/space_ml"
                 android:contentDescription="@string/cards_add"
                 android:visibility="gone"
                 app:srcCompat="@drawable/ic_menu_add" />
@@ -231,7 +231,7 @@
         android:baselineAligned="false"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingVertical="12dp">
+        android:paddingVertical="@dimen/space_ms">
 
         <Space
             android:layout_width="0dp"

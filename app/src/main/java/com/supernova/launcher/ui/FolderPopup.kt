@@ -145,7 +145,7 @@ class FolderPopup(private val context: Context) {
                     width = gridWidth
                     height = visibleRows * cellHeight
                 }
-                attachColumnPaging(binding.folderGrid, gridWidth)
+                attachColumnPaging(binding.folderGrid, gridWidth, smooth = animate)
             }
         }
 
@@ -344,8 +344,15 @@ class FolderPopup(private val context: Context) {
     // centred a single column instead, so with an even column count the
     // tiles at both edges were cut in half after every swipe, and a fling
     // moved one column.
-    private fun attachColumnPaging(grid: androidx.recyclerview.widget.RecyclerView, pageWidth: Int) {
+    private fun attachColumnPaging(
+        grid: androidx.recyclerview.widget.RecyclerView,
+        pageWidth: Int,
+        smooth: Boolean
+    ) {
         if (pageWidth <= 0) return
+        // With animations off a page lands at once.
+        fun scrollBy(rv: androidx.recyclerview.widget.RecyclerView, dx: Int) =
+            if (smooth) rv.smoothScrollBy(dx, 0) else rv.scrollBy(dx, 0)
         fun maxOffset(rv: androidx.recyclerview.widget.RecyclerView) =
             (rv.computeHorizontalScrollRange() - rv.computeHorizontalScrollExtent()).coerceAtLeast(0)
         grid.onFlingListener = object : androidx.recyclerview.widget.RecyclerView.OnFlingListener() {
@@ -353,7 +360,7 @@ class FolderPopup(private val context: Context) {
                 val offset = grid.computeHorizontalScrollOffset()
                 val page = offset / pageWidth
                 val target = (if (velocityX > 0) page + 1 else page) * pageWidth
-                grid.smoothScrollBy(target.coerceIn(0, maxOffset(grid)) - offset, 0)
+                scrollBy(grid, target.coerceIn(0, maxOffset(grid)) - offset)
                 return true
             }
         }
@@ -363,7 +370,7 @@ class FolderPopup(private val context: Context) {
                 // A drag let go without a fling settles on the nearer page.
                 val offset = rv.computeHorizontalScrollOffset()
                 val target = (((offset + pageWidth / 2) / pageWidth) * pageWidth).coerceIn(0, maxOffset(rv))
-                if (target != offset) rv.smoothScrollBy(target - offset, 0)
+                if (target != offset) scrollBy(rv, target - offset)
             }
         })
     }

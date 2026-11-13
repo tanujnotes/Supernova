@@ -33,4 +33,8 @@
     <item name="a11y_move_next_page" type="id" />
     <item name="a11y_move_to_dock" type="id" />
     <item name="a11y_move_to_home" type="id" />
+    <item name="a11y_wider" type="id" />
+    <item name="a11y_narrower" type="id" />
+    <item name="a11y_taller" type="id" />
+    <item name="a11y_shorter" type="id" />
 </resources>

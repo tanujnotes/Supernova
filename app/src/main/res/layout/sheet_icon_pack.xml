@@ -5,19 +5,19 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingBottom="24dp">
+    android:paddingBottom="@dimen/space_lg">
 
     <include layout="@layout/sheet_handle" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingHorizontal="24dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="8dp"
+        android:paddingHorizontal="@dimen/space_lg"
+        android:paddingTop="@dimen/space_xs"
+        android:paddingBottom="@dimen/space_sm"
         android:text="@string/icon_pack"
         android:textColor="@color/textPrimary"
-        android:textSize="22sp"
+        android:textSize="@dimen/text_headline"
         android:textStyle="bold" />
 
     <androidx.recyclerview.widget.RecyclerView

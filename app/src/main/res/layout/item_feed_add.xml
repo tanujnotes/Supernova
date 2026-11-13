@@ -3,7 +3,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingVertical="10dp">
+    android:paddingVertical="@dimen/space_ms">
 
     <TextView
         android:id="@+id/feedAddCard"
@@ -15,7 +15,7 @@
         android:gravity="center"
         android:minWidth="140dp"
         android:paddingHorizontal="28dp"
-        android:paddingVertical="14dp"
+        android:paddingVertical="@dimen/space_md"
         android:text="@string/feed_add_card"
-        android:textSize="15sp" />
+        android:textSize="@dimen/text_body" />
 </FrameLayout>

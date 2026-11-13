@@ -267,7 +267,7 @@ object ChoiceMenu {
                 TextView(context).apply {
                     text = label
                     setTextColor(if (checked) surface.accent else surface.text)
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+                    textSizeOf(R.dimen.text_body)
                     if (checked) {
                         typeface = android.graphics.Typeface.create(MEDIUM_FAMILY, android.graphics.Typeface.NORMAL)
                     }

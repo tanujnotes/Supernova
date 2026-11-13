@@ -22,9 +22,9 @@
         android:id="@+id/feedHeaderRow"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
+        android:layout_marginStart="@dimen/space_md"
+        android:layout_marginTop="@dimen/space_sm"
+        android:layout_marginEnd="@dimen/space_sm"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -39,7 +39,7 @@
             android:id="@+id/feedMenu"
             android:layout_width="44dp"
             android:layout_height="44dp"
-            android:layout_marginStart="4dp"
+            android:layout_marginStart="@dimen/space_xs"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/feed_menu"
             android:src="@drawable/ic_more_vert" />
@@ -49,7 +49,7 @@
         android:id="@+id/feedFrequentRow"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/space_sm"
         android:visibility="gone" />
 
     <!-- Placeholder for an empty frequent row. -->
@@ -60,7 +60,7 @@
         android:gravity="center"
         android:paddingVertical="36dp"
         android:text="@string/feed_no_frequent"
-        android:textSize="20sp"
+        android:textSize="@dimen/text_title"
         android:visibility="gone" />
 
     <!-- Suggested shortcuts as icon+label pills; FeedController caps the
@@ -69,8 +69,8 @@
         android:id="@+id/feedShortcutsFlow"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:paddingHorizontal="16dp"
+        android:layout_marginTop="@dimen/space_sm"
+        android:paddingHorizontal="@dimen/space_md"
         android:visibility="gone" />
 
     <androidx.recyclerview.widget.RecyclerView
@@ -79,7 +79,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
-        android:paddingHorizontal="12dp"
-        android:paddingTop="8dp"
-        android:paddingBottom="24dp" />
+        android:paddingHorizontal="@dimen/space_ms"
+        android:paddingTop="@dimen/space_sm"
+        android:paddingBottom="@dimen/space_lg" />
 </LinearLayout>

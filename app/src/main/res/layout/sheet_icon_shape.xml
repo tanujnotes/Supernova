@@ -5,19 +5,19 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingBottom="32dp">
+    android:paddingBottom="@dimen/space_xl">
 
     <include layout="@layout/sheet_handle" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingHorizontal="24dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="16dp"
+        android:paddingHorizontal="@dimen/space_lg"
+        android:paddingTop="@dimen/space_xs"
+        android:paddingBottom="@dimen/space_md"
         android:text="@string/icon_shape"
         android:textColor="@color/textPrimary"
-        android:textSize="22sp"
+        android:textSize="@dimen/text_headline"
         android:textStyle="bold" />
 
     <androidx.core.widget.NestedScrollView
@@ -29,7 +29,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:columnCount="4"
-            android:paddingHorizontal="16dp"
+            android:paddingHorizontal="@dimen/space_md"
             android:useDefaultMargins="false" />
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

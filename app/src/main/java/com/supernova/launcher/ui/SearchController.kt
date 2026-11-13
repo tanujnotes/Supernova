@@ -89,13 +89,25 @@ class SearchController(
         val results: androidx.recyclerview.widget.RecyclerView,
         val cards: CardViewBinder?,
         // After an app or shortcut launch.
-        val afterLaunch: () -> Unit,
+        private val onLaunched: () -> Unit,
         // After anything else that leaves search behind (a web search, a
         // contact, a folder, App info).
-        val dismiss: () -> Unit,
+        private val onDismissed: () -> Unit,
         // What an empty query shows.
         val onEmptyQuery: (Surface) -> Unit
     ) {
+        // A query that led somewhere is kept for the empty window's
+        // Recent searches.
+        fun afterLaunch() {
+            rememberQuery(input.text?.toString().orEmpty())
+            onLaunched()
+        }
+
+        fun dismiss() {
+            rememberQuery(input.text?.toString().orEmpty())
+            onDismissed()
+        }
+
         var lastResults: List<SearchResult> = emptyList()
         var appliedStyle: List<Any?>? = null
         val orchestrator: SearchOrchestrator = buildOrchestrator(cards != null)
@@ -147,6 +159,48 @@ class SearchController(
     var isOpen = false
         private set
 
+    // The empty window's Recent searches, newest first; read when the
+    // window opens (the store is read off the main thread).
+    private var recentQueries: List<String> = emptyList()
+
+    // Not while the keyboard is in private mode: nothing typed is kept then.
+    private fun rememberQuery(query: String) {
+        val trimmed = query.trim()
+        if (trimmed.isEmpty() || viewModel.state.value.prefs.searchPrivateKeyboard) return
+        viewModel.recordSearch(trimmed)
+        recentQueries = (listOf(trimmed) + recentQueries.filterNot { it.equals(trimmed, ignoreCase = true) })
+            .take(com.supernova.launcher.data.LauncherPreferences.MAX_RECENT_SEARCHES)
+    }
+
+    private fun loadRecentQueries() {
+        scope.launch {
+            val loaded = viewModel.recentSearches()
+            if (loaded == recentQueries) return@launch
+            recentQueries = loaded
+            if (isOpen && overlay?.searchInput?.text.isNullOrBlank()) showZeroState()
+        }
+    }
+
+    private fun removeRecentQuery(query: String) {
+        recentQueries = recentQueries - query
+        scope.launch { viewModel.removeRecentSearch(query) }
+        showZeroState()
+    }
+
+    private fun clearRecentQueries() {
+        val cleared = recentQueries
+        recentQueries = emptyList()
+        scope.launch { cleared.forEach { viewModel.removeRecentSearch(it) } }
+        showZeroState()
+    }
+
+    // A recent search tapped: typed back in, so its results are on screen.
+    private fun runRecentQuery(query: String) {
+        val input = overlay?.searchInput ?: return
+        input.setText(query)
+        input.setSelection(query.length)
+    }
+
     // A pinned recent search lands here: open as usual, then type the query in
     // so the results are already on screen.
     fun open(query: String) {
@@ -167,6 +221,7 @@ class SearchController(
         isOpen = true
         onShown(!windowMode())
         showZeroState()
+        loadRecentQueries()
         ui.root.visibility = View.VISIBLE
         ui.root.animate().cancel()
         val backdrop = binding.searchBackdrop
@@ -294,7 +349,7 @@ class SearchController(
 
         val surface = Surface(
             ui.searchInput, ui.searchGhost, ui.searchResults, cardBinder,
-            afterLaunch = ::hide, dismiss = ::hide,
+            onLaunched = ::hide, onDismissed = ::hide,
             onEmptyQuery = { showZeroState() }
         )
         overlaySurface = surface
@@ -540,12 +595,15 @@ class SearchController(
         },
         onAppLongPress = onAppLongPress,
         onShortcutLongPress = onShortcutLongPress,
-        onFolderLongPress = onFolderLongPress
+        onFolderLongPress = onFolderLongPress,
+        onRecent = ::runRecentQuery,
+        onRemoveRecent = ::removeRecentQuery,
+        onClearRecents = ::clearRecentQueries
     )
 
-    // The empty search window: suggested shortcuts, the recently opened
-    // apps, then - under a hairline - the drawer's folders and every app
-    // that isn't in one.
+    // The empty search window: recent searches, suggested shortcuts, the
+    // recently opened apps, then - under a hairline - the drawer's folders
+    // and every app that isn't in one.
     private fun showZeroState() {
         val frequent = viewModel.recentApps(gridColumns())
         val shortcuts = SuggestedShortcuts.pills(viewModel)
@@ -563,7 +621,7 @@ class SearchController(
         ) { it.label }
         val surface = overlaySurface ?: return
         styleSurface(surface)
-        surface.adapter.submitZeroState(shortcuts, frequent, allApps, folders)
+        surface.adapter.submitZeroState(shortcuts, frequent, allApps, folders, recentQueries)
     }
 
     private fun openContact(contact: SearchResult.Contact) {
