@@ -1,0 +1,10 @@
+Import from other launchers, folders in drawer tabs, reorder apps in folders.
+
+- Import Backup reads other launchers' backups, tabs and folders
+- Drawer tabs: icons, a long-press menu, drawer folders inside
+- Drawer: sort buttons, padding sliders, paused work apps card
+- Drag to reorder apps in an open folder
+- Folder icons in any colour; previews match the folder
+- Shortcut Edit: hide label, icon, shape and style
+- Search in icon and Activities pickers
+- Fixed uninstalled apps left on home
