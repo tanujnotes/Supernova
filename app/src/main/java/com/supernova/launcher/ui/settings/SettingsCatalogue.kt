@@ -288,6 +288,8 @@ object SettingsCatalogue {
     }
 
     // A stored colour's curated entry; one not in the list reads as Default.
+    private const val ANDROID_16 = 36
+
     // The reasons rows on other pages are greyed (SettingItem.blockedWhen).
     private val animationsOff: (LauncherPrefs) -> Int? = {
         R.string.needs_animations.takeIf { _ -> it.disableAnimations }
@@ -448,8 +450,17 @@ object SettingsCatalogue {
                 ),
                 rows.choice(
                     R.string.home_orientation, com.supernova.launcher.ui.HomeOrientation.entries,
-                    { com.supernova.launcher.ui.HomeOrientation.fromPrefs(it) }, { EnumLabels.of(it) }
-                ) { viewModel.set(Pref.homeOrientation, it.name) },
+                    { com.supernova.launcher.ui.HomeOrientation.fromPrefs(it) },
+                    // Default is portrait on a phone and rotates on a tablet.
+                    { EnumLabels.of(it, com.supernova.launcher.data.DeviceProfile.isWide(context)) }
+                ) { viewModel.set(Pref.homeOrientation, it.name) }.blockedWhen {
+                    // Android 16 turns a large screen with the system's
+                    // rotation and ignores what an app asks for.
+                    R.string.orientation_system_owned.takeIf { _ ->
+                        android.os.Build.VERSION.SDK_INT >= ANDROID_16 &&
+                            com.supernova.launcher.data.DeviceProfile.isWide(context)
+                    }
+                },
                 SettingItem.Header(R.string.group_pages),
                 rows.choice(
                     R.string.page_indicator, IndicatorStyle.entries,

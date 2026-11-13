@@ -1846,17 +1846,26 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         binding.statusBarBand.isVisible = !prefs.transparentStatus && !prefs.hideStatusBar
         binding.navBarBand.isVisible = !prefs.transparentNav
 
-        // The grid is dp/weight based (WorkspaceGeometry normalized floats),
-        // so landscape renders without dedicated layouts - functional, not
-        // tuned. The manifest doesn't pin orientation; this is the one pin.
-        // DEFAULT keeps the old homeRotation=false pin exactly; the forced
-        // axes use the sensor variants so the 180-degree flip still works.
-        requestedOrientation = when (HomeOrientation.fromPrefs(prefs)) {
-            HomeOrientation.DEFAULT -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            HomeOrientation.AUTO_ROTATE -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-            HomeOrientation.PORTRAIT -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
-            HomeOrientation.LANDSCAPE -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-        }
+        requestedOrientation = homeOrientationRequest(prefs)
+    }
+
+    // Landscape keeps the portrait grid: every icon stays in its cell,
+    // and the cells reshape to the wider window. The manifest doesn't pin
+    // orientation; this is the one pin. DEFAULT is portrait on a phone
+    // and follows the system's auto-rotate on a tablet, which sits in a
+    // stand or a keyboard case as often as in a hand (Android 16 ignores
+    // a portrait pin on large screens anyway). The forced axes use the
+    // sensor variants so the 180-degree flip still works.
+    private fun homeOrientationRequest(prefs: LauncherPrefs): Int = when (HomeOrientation.fromPrefs(prefs)) {
+        HomeOrientation.DEFAULT ->
+            if (com.supernova.launcher.data.DeviceProfile.isWide(this)) {
+                ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            } else {
+                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            }
+        HomeOrientation.AUTO_ROTATE -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        HomeOrientation.PORTRAIT -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+        HomeOrientation.LANDSCAPE -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
     }
 
     private fun applyStatusBarVisibility(hide: Boolean) {

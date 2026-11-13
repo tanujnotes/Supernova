@@ -304,8 +304,8 @@ object EnumLabels {
     }
 
     @StringRes
-    fun of(orientation: HomeOrientation): Int = when (orientation) {
-        HomeOrientation.DEFAULT -> R.string.orientation_default
+    fun of(orientation: HomeOrientation, wide: Boolean = false): Int = when (orientation) {
+        HomeOrientation.DEFAULT -> if (wide) R.string.orientation_default_tablet else R.string.orientation_default
         HomeOrientation.AUTO_ROTATE -> R.string.orientation_auto_rotate
         HomeOrientation.PORTRAIT -> R.string.orientation_portrait
         HomeOrientation.LANDSCAPE -> R.string.orientation_landscape

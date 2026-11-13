@@ -21,13 +21,17 @@ object WideScreen {
     // The horizontal padding to add on each side of content that has
     // `availableWidthPx` of window to fill; zero on any screen narrower than
     // the column.
+    // The shape is the window's, not the display's: in split screen or a
+    // freeform window on a tablet the two differ.
     fun gutterPx(context: Context, availableWidthPx: Int): Int {
-        val metrics = context.resources.displayMetrics
-        val density = metrics.density
-        val landscape = metrics.widthPixels > metrics.heightPixels
+        val configuration = context.resources.configuration
+        val density = context.resources.displayMetrics.density
+        val widthPx = (configuration.screenWidthDp * density).toInt()
+        val heightPx = (configuration.screenHeightDp * density).toInt()
+        val landscape = widthPx > heightPx
         val column = if (landscape) {
             min(
-                (min(metrics.widthPixels, metrics.heightPixels) * LANDSCAPE_COLUMN_OF_HEIGHT).toInt(),
+                (min(widthPx, heightPx) * LANDSCAPE_COLUMN_OF_HEIGHT).toInt(),
                 (LANDSCAPE_COLUMN_MAX_DP * density).toInt()
             )
         } else {
