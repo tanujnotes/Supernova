@@ -532,6 +532,12 @@
     <string name="dock_bg_rounded">Rounded rectangle</string>
     <string name="dock_bg_square">Square</string>
     <string name="opacity_percent">%1$d%%</string>
+    <string name="color_with_opacity">%1$s, %2$d%%</string>
+    <string name="color_custom">Custom</string>
+    <string name="color_hue">Hue</string>
+    <string name="color_saturation">Saturation</string>
+    <string name="color_brightness">Brightness</string>
+    <string name="color_hex">Hex</string>
     <string name="dock_padding_h">Horizontal padding</string>
     <string name="dock_padding_v">Vertical padding</string>
     <string name="drawer_padding_h">Horizontal padding</string>

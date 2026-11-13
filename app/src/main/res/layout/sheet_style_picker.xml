@@ -141,6 +141,14 @@
             android:layout_height="wrap_content"
             android:orientation="vertical" />
 
+        <!-- Any color: hue, saturation, brightness and hex, for one-color pickers. -->
+        <LinearLayout
+            android:id="@+id/customRows"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone" />
+
         <Button
             android:id="@+id/styleDefault"
             style="@style/Widget.Supernova.Button.Text"

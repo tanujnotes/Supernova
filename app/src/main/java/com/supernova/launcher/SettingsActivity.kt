@@ -50,6 +50,7 @@ import com.supernova.launcher.gesture.GestureBinding
 import com.supernova.launcher.gesture.GestureDefaults
 import com.supernova.launcher.notification.SupernovaNotificationListener
 import com.supernova.launcher.ui.FolderPreviewStyle
+import com.supernova.launcher.ui.LabelStyler
 import com.supernova.launcher.ui.LauncherViewModel
 import com.supernova.launcher.ui.dp
 import com.supernova.launcher.ui.settings.EnumLabels
@@ -58,6 +59,7 @@ import com.supernova.launcher.ui.settings.PreviewKind
 import com.supernova.launcher.ui.settings.SettingItem
 import com.supernova.launcher.ui.settings.SettingsAdapter
 import com.supernova.launcher.ui.Animations
+import com.supernova.launcher.ui.settings.ColorSheet
 import com.supernova.launcher.ui.settings.SettingsCatalogue
 import com.supernova.launcher.ui.ChoiceMenu
 import com.supernova.launcher.ui.settings.SettingsSearchIndex
@@ -1345,7 +1347,6 @@ class SettingsActivity : AppCompatActivity() {
         val prefs = viewModel.state.value.prefs
         var shapeName = prefs.folderIconShape
         var plateColor = prefs.folderPlateColor
-        val colors = SettingsCatalogue.CURATED_COLORS
         dialogBinding.outlineCheck.isChecked = prefs.folderIconOutline
         dialogBinding.clipCheck.isChecked = prefs.folderClipToBg
         dialogBinding.matchColorCheck.isChecked = prefs.folderMatchWindowColor
@@ -1369,8 +1370,7 @@ class SettingsActivity : AppCompatActivity() {
             val colorShown = if (dialogBinding.matchColorCheck.isChecked) View.GONE else View.VISIBLE
             dialogBinding.colorRow.visibility = colorShown
             dialogBinding.colorDivider.visibility = colorShown
-            val colorIndex = colors.indexOfFirst { it.second.equals(plateColor, ignoreCase = true) }
-            dialogBinding.colorValue.text = getString(colors.getOrNull(colorIndex)?.first ?: R.string.color_default)
+            dialogBinding.colorValue.text = plateColorLabel(plateColor)
             dialogBinding.folderIconPreview.setImageDrawable(
                 com.supernova.launcher.ui.FolderIconDrawable(
                     sampleIcons,
@@ -1405,8 +1405,13 @@ class SettingsActivity : AppCompatActivity() {
                 refresh()
             }
         }
-        dialogBinding.colorRow.setOnClickListener { row ->
-            pickPlateColor(row, dialogBinding.colorValue, plateColor) { plateColor = it; refresh() }
+        dialogBinding.colorRow.setOnClickListener {
+            val palette = com.supernova.launcher.ui.theme.PaletteFactory.resolve(
+                this, prefs.paletteSource, prefs.paletteSeed,
+                com.supernova.launcher.ui.theme.ThemeEngine.accentColor(this, prefs.accentColor)
+            )
+            ColorSheet(this, palette, com.supernova.launcher.ui.FolderIconDrawable.DEFAULT_PLATE_COLOR)
+                .show(R.string.folder_plate_color, plateColor) { plateColor = it; refresh() }
         }
         listOf(
             dialogBinding.outlineRow to dialogBinding.outlineCheck,
@@ -1432,15 +1437,20 @@ class SettingsActivity : AppCompatActivity() {
             .show()
     }
 
-    // Opened over the row's value, in the dialog's window, as the shape is.
-    private fun pickPlateColor(row: View, value: View, current: String, onPick: (String) -> Unit) {
-        val colors = SettingsCatalogue.CURATED_COLORS
-        val valueX = IntArray(2).also(value::getLocationInWindow)[0] + value.width / 2f
-        val selected = colors.indexOfFirst { it.second.equals(current, ignoreCase = true) }.coerceAtLeast(0)
-        val labels = colors.map { getString(it.first) }
-        showChoice(getString(R.string.folder_plate_color), labels, selected, inDialog = row to valueX) { which ->
-            onPick(colors[which].second)
+    // A curated color by name, any other by hex, and the opacity when it
+    // isn't solid: "Red", "Red, 50%", "#3F51B5".
+    private fun plateColorLabel(stored: String): String {
+        if (stored.isEmpty()) return getString(R.string.color_default)
+        val color = LabelStyler.parseColor(stored, com.supernova.launcher.ui.FolderIconDrawable.DEFAULT_PLATE_COLOR)
+        val rgb = android.graphics.Color.rgb(
+            android.graphics.Color.red(color), android.graphics.Color.green(color), android.graphics.Color.blue(color)
+        )
+        val named = SettingsCatalogue.CURATED_COLORS.firstOrNull {
+            it.second.isNotEmpty() && android.graphics.Color.parseColor(it.second) == rgb
         }
+        val name = named?.let { getString(it.first) } ?: String.format(java.util.Locale.ROOT, "#%06X", rgb and 0xFFFFFF)
+        val opacity = ColorSheet.percent(color)
+        return if (color == rgb) name else getString(R.string.color_with_opacity, name, opacity)
     }
 
     private fun showLockMethodPicker() {

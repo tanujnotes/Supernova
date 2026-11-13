@@ -114,30 +114,6 @@ object StylePickerSheet {
             stripDot.setColor(resolved.accent)
         }
 
-        fun swatch(color: Int, selected: Boolean, onClick: () -> Unit): ImageView {
-            val view = ImageView(context)
-            view.background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(color)
-            }
-            if (selected) {
-                view.setImageResource(R.drawable.ic_check)
-                // Check contrast follows the swatch, not the theme.
-                val bright = Color.red(color) * 299 + Color.green(color) * 587 + Color.blue(color) * 114 > 160_000
-                view.setColorFilter(if (bright) Color.BLACK else Color.WHITE)
-                view.scaleType = ImageView.ScaleType.CENTER_INSIDE
-                view.setPadding(context.dp(10), context.dp(10), context.dp(10), context.dp(10))
-            }
-            view.setOnClickListener { onClick() }
-            return view
-        }
-
-        fun rowLabel(textRes: Int): TextView = TextView(context).apply {
-            setText(textRes)
-            setTextColor(context.getColor(R.color.textSecondary))
-            textSize = 13f
-        }
-
         lateinit var renderSwatches: () -> Unit
 
         fun onPick(spec: ColorSpec) {
@@ -161,63 +137,15 @@ object StylePickerSheet {
         }
 
         renderSwatches = {
-            binding.swatchRows.removeAllViews()
             val spec = activeSpec()
-            val swatchParams = LinearLayout.LayoutParams(context.dp(40), context.dp(40)).apply {
-                marginEnd = context.dp(8)
-            }
-            val labelParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = context.dp(10) }
-
-            fun addRow(labelRes: Int, fill: (LinearLayout) -> Unit) {
-                binding.swatchRows.addView(rowLabel(labelRes), labelParams)
-                val row = LinearLayout(context).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    gravity = Gravity.CENTER_VERTICAL
-                    setPadding(0, context.dp(6), 0, context.dp(2))
+            fillSwatches(context, binding, palette, { candidate ->
+                if (candidate.fixed != null) {
+                    candidate.fixed.equals(spec.fixed, ignoreCase = true)
+                } else {
+                    spec.fixed == null && spec.role == candidate.role &&
+                        spec.tone != null && ToneRamp.indexOfTone(spec.tone) == ToneRamp.indexOfTone(candidate.tone!!)
                 }
-                fill(row)
-                val scroller = HorizontalScrollView(context).apply {
-                    isHorizontalScrollBarEnabled = false
-                    addView(row)
-                }
-                binding.swatchRows.addView(
-                    scroller,
-                    LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
-                    )
-                )
-            }
-
-            for (role in PaletteRole.entries) {
-                val labelRes = when (role) {
-                    PaletteRole.PRIMARY -> R.string.style_role_primary
-                    PaletteRole.NEUTRAL -> R.string.style_role_neutral
-                    PaletteRole.NEUTRAL_VARIANT -> R.string.style_role_neutral_variant
-                }
-                addRow(labelRes) { row ->
-                    ToneRamp.TONES.forEachIndexed { index, tone ->
-                        val selected = spec.fixed == null && spec.role == role &&
-                            spec.tone != null && ToneRamp.indexOfTone(spec.tone) == index
-                        row.addView(
-                            swatch(palette.tone(role, tone), selected) {
-                                onPick(ColorSpec(role = role, tone = tone))
-                            },
-                            swatchParams
-                        )
-                    }
-                }
-            }
-            addRow(R.string.style_fixed_colors) { row ->
-                FIXED.forEach { hex ->
-                    val selected = hex.equals(spec.fixed, ignoreCase = true)
-                    row.addView(
-                        swatch(Color.parseColor(hex), selected) { onPick(ColorSpec(fixed = hex)) },
-                        swatchParams
-                    )
-                }
-            }
+            }, ::onPick)
         }
 
         fun slotButtonId(target: Slot): Int = when (target) {
@@ -311,6 +239,93 @@ object StylePickerSheet {
         renderContrast()
         renderStrip()
         dialog.show()
+    }
+
+    // The palette's tone rows and the fixed colors, a check on the selected one.
+    internal fun fillSwatches(
+        context: Context,
+        binding: SheetStylePickerBinding,
+        palette: com.supernova.launcher.ui.theme.TonalPalette,
+        isSelected: (ColorSpec) -> Boolean,
+        onPick: (ColorSpec) -> Unit
+    ) {
+        binding.swatchRows.removeAllViews()
+        val swatchParams = LinearLayout.LayoutParams(context.dp(40), context.dp(40)).apply {
+            marginEnd = context.dp(8)
+        }
+        val labelParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { topMargin = context.dp(10) }
+
+        fun addRow(labelRes: Int, fill: (LinearLayout) -> Unit) {
+            binding.swatchRows.addView(rowLabel(context, labelRes), labelParams)
+            val row = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, context.dp(6), 0, context.dp(2))
+            }
+            fill(row)
+            val scroller = HorizontalScrollView(context).apply {
+                isHorizontalScrollBarEnabled = false
+                addView(row)
+            }
+            binding.swatchRows.addView(
+                scroller,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            )
+        }
+
+        for (role in PaletteRole.entries) {
+            val labelRes = when (role) {
+                PaletteRole.PRIMARY -> R.string.style_role_primary
+                PaletteRole.NEUTRAL -> R.string.style_role_neutral
+                PaletteRole.NEUTRAL_VARIANT -> R.string.style_role_neutral_variant
+            }
+            addRow(labelRes) { row ->
+                ToneRamp.TONES.forEach { tone ->
+                    val spec = ColorSpec(role = role, tone = tone)
+                    row.addView(
+                        swatch(context, palette.tone(role, tone), isSelected(spec)) { onPick(spec) },
+                        swatchParams
+                    )
+                }
+            }
+        }
+        addRow(R.string.style_fixed_colors) { row ->
+            FIXED.forEach { hex ->
+                val spec = ColorSpec(fixed = hex)
+                row.addView(
+                    swatch(context, Color.parseColor(hex), isSelected(spec)) { onPick(spec) },
+                    swatchParams
+                )
+            }
+        }
+    }
+
+    private fun swatch(context: Context, color: Int, selected: Boolean, onClick: () -> Unit): ImageView {
+        val view = ImageView(context)
+        view.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(color)
+        }
+        if (selected) {
+            view.setImageResource(R.drawable.ic_check)
+            // Check contrast follows the swatch, not the theme.
+            val bright = Color.red(color) * 299 + Color.green(color) * 587 + Color.blue(color) * 114 > 160_000
+            view.setColorFilter(if (bright) Color.BLACK else Color.WHITE)
+            view.scaleType = ImageView.ScaleType.CENTER_INSIDE
+            view.setPadding(context.dp(10), context.dp(10), context.dp(10), context.dp(10))
+        }
+        view.setOnClickListener { onClick() }
+        return view
+    }
+
+    private fun rowLabel(context: Context, textRes: Int): TextView = TextView(context).apply {
+        setText(textRes)
+        setTextColor(context.getColor(R.color.textSecondary))
+        textSize = 13f
     }
 
     private const val CONTRAST_STEP = 5
