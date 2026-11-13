@@ -460,7 +460,7 @@ object SettingsCatalogue {
                         android.os.Build.VERSION.SDK_INT >= ANDROID_16 &&
                             com.supernova.launcher.data.DeviceProfile.isWide(context)
                     }
-                },
+                }.searchableBy(R.string.home_orientation_keywords),
                 SettingItem.Header(R.string.group_pages),
                 rows.choice(
                     R.string.page_indicator, IndicatorStyle.entries,

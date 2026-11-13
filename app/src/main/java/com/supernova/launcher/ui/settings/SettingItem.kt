@@ -28,6 +28,14 @@ sealed class SettingItem {
 
     fun blockedWhen(reason: (LauncherPrefs) -> Int?): SettingItem = apply { blockedBy = reason }
 
+    // More words the settings search finds the row by, space-separated in
+    // one string ("landscape" finds Screen orientation); 0 for none.
+    @StringRes
+    var keywords: Int = 0
+        private set
+
+    fun searchableBy(@StringRes words: Int): SettingItem = apply { keywords = words }
+
     class Toggle(
         @StringRes override val title: Int,
         val get: (LauncherPrefs) -> Boolean,

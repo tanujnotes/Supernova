@@ -598,6 +598,8 @@
     <string name="indicator_line">Line</string>
     <string name="indicator_circle">Circles</string>
     <string name="home_orientation">Screen orientation</string>
+    <!-- More words settings search finds Screen orientation by. -->
+    <string name="home_orientation_keywords">landscape portrait rotate rotation auto-rotate</string>
     <string name="orientation_default">Default (portrait)</string>
     <string name="orientation_default_tablet">Default (follows auto-rotate)</string>
     <string name="orientation_system_owned">On tablets, Android sets this with the system\'s auto-rotate</string>
