@@ -711,6 +711,10 @@ class AppCatalog(
         return runCatching { launcherApps.isPackageEnabled(packageName, user) }.getOrDefault(false)
     }
 
+    // Whether the app is surely gone for that user (see InstalledApps).
+    fun isUninstalled(packageName: String, userSerial: Long): Boolean =
+        userForSerial(userSerial)?.let { InstalledApps.isGone(launcherApps, userManager, packageName, it) } == true
+
     // The private space profile (Android 15+), seen only while this is the
     // default home app and holds ACCESS_HIDDEN_PROFILES.
     fun privateSpaceUser(): UserHandle? {

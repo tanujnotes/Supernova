@@ -387,7 +387,23 @@ class LauncherViewModel(
         privateSpaceFlow.value = catalog.privateSpace()
         pausedWorkFlow.value = catalog.pausedWorkProfiles()
         appsFlow.value = apps
+        pruneUninstalled(apps)
         catalog.warmIcons(apps)
+    }
+
+    // Catching up on uninstalls the launcher missed (its process was gone
+    // when the app went): an item whose app is no longer installed goes, as
+    // it does on onPackageRemoved. Only apps the scan didn't list are asked
+    // about, and isUninstalled keeps anything that may come back.
+    private suspend fun pruneUninstalled(apps: List<LaunchableApp>) {
+        val listed = apps.mapTo(HashSet()) { "${it.userSerial}/${it.packageName}" }
+        repository.modelFlow.first().items.asSequence()
+            .filter { it.itemType == ItemType.APP || it.itemType == ItemType.SHORTCUT }
+            .mapNotNull { item -> item.packageName?.let { it to item.userSerial } }
+            .distinct()
+            .filter { (pkg, serial) -> "$serial/$pkg" !in listed && catalog.isUninstalled(pkg, serial) }
+            .toList()
+            .forEach { (pkg, serial) -> repository.removeItemsForPackage(pkg, serial) }
     }
 
     // Auto-add: a newly installed primary-profile app lands on the first page
@@ -482,6 +498,7 @@ class LauncherViewModel(
         privateSpaceFlow.value = catalog.privateSpace()
         pausedWorkFlow.value = catalog.pausedWorkProfiles()
         appsFlow.value = apps
+        pruneUninstalled(apps)
         // Pre-warm off the main thread so binds become cache hits; the
         // render lock keeps this safe alongside main-thread misses.
         catalog.warmIcons(apps)
