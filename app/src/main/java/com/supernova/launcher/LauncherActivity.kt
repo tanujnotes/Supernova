@@ -2285,8 +2285,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             .of(com.supernova.launcher.ui.theme.SurfaceId.DOCK)
         binding.dockBar.background = when (prefs.dockBgStyle) {
             DockBgStyle.NONE -> null
-            DockBgStyle.PILL ->
-                dockBackgroundDrawable(resolvedDock, dp(34).toFloat(), dockBehindNav || dockFullBleed)
             DockBgStyle.ROUNDED ->
                 dockBackgroundDrawable(resolvedDock, dp(14).toFloat(), dockBehindNav || dockFullBleed)
             DockBgStyle.SQUARE -> dockBackgroundDrawable(resolvedDock, 0f, dockBehindNav || dockFullBleed)

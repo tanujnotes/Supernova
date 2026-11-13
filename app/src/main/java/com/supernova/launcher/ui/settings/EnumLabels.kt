@@ -291,7 +291,6 @@ object EnumLabels {
     @StringRes
     fun of(style: DockBgStyle): Int = when (style) {
         DockBgStyle.NONE -> R.string.dock_bg_none
-        DockBgStyle.PILL -> R.string.dock_bg_pill
         DockBgStyle.ROUNDED -> R.string.dock_bg_rounded
         DockBgStyle.SQUARE -> R.string.dock_bg_square
     }

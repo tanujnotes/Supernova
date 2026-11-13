@@ -423,7 +423,7 @@ class OnboardingActivity : AppCompatActivity() {
             ))
             tiles.tile(getString(look.labelRes), holder, LOOK_TILE_DP, { !shuffled && look.matches(it, profile) }) {
                 shuffled = false
-                choose(look.writes(prefs, profile))
+                choose(look.writes(profile))
             }
         }
         val column = tiles.vertical()
@@ -431,7 +431,7 @@ class OnboardingActivity : AppCompatActivity() {
         val label = getString(R.string.onboarding_shuffle)
         val shuffle = tiles.tile(label, null, SHUFFLE_TILE_DP, { shuffled }, labelSp = SHUFFLE_SP) {
             shuffled = true
-            choose(OnboardingChoices.shuffleWrites(prefs, profile, accents, Random.Default))
+            choose(OnboardingChoices.shuffleWrites(profile, accents, Random.Default))
         }
         column.addView(shuffle, tiles.matchWrap().apply { topMargin = dp(OnboardingTiles.GAP_DP) })
         return column

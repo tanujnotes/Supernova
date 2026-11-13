@@ -8,11 +8,7 @@ import com.supernova.launcher.data.IconShape
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.Pref
 import com.supernova.launcher.data.PrefWrite
-import com.supernova.launcher.ui.DesktopSearchBarConfig
-import com.supernova.launcher.ui.DockBgStyle
 import com.supernova.launcher.ui.LabelFont
-import com.supernova.launcher.ui.SearchBarConfig
-import com.supernova.launcher.ui.SearchBarPlacement
 import com.supernova.launcher.ui.theme.AccentColor
 import com.supernova.launcher.ui.theme.PaletteSourceMode
 import kotlin.math.abs
@@ -99,70 +95,39 @@ internal object OnboardingChoices {
         }
     }
 
-    // Where the home screen's search bar sits, as the looks place it.
-    enum class Bar(val placement: SearchBarPlacement) {
-        BELOW(SearchBarPlacement.DOCK_BELOW),
-        ABOVE(SearchBarPlacement.DOCK_ABOVE),
-        NONE(SearchBarPlacement.NONE);
-
-        // A bar coming back takes the fresh-install style; one that is only
-        // moving keeps its own.
-        fun writes(prefs: LauncherPrefs): List<PrefWrite<*>> {
-            val config = SearchBarConfig.decode(prefs.searchBarConfig)
-            val current = SearchBarPlacement.fromName(config.desktop.placement)
-            val desktop = when {
-                this == NONE -> config.desktop.copy(placement = placement.name)
-                current == SearchBarPlacement.NONE || current == SearchBarPlacement.WIDGET ->
-                    DesktopSearchBarConfig.FRESH.copy(placement = placement.name)
-                else -> config.desktop.copy(placement = placement.name)
-            }
-            return listOf(PrefWrite(Pref.searchBarConfig, config.copy(desktop = desktop).encode()))
-        }
-
-        companion object {
-            fun of(prefs: LauncherPrefs): Bar? {
-                val desktop = SearchBarConfig.decode(prefs.searchBarConfig).desktop
-                val placement = SearchBarPlacement.fromName(desktop.placement)
-                return entries.firstOrNull { it.placement == placement }
-            }
-        }
-    }
-
-    // A starting point: one tap that sets every later step.
-    @Suppress("LongParameterList")
+    // A starting point: one tap that sets every later step. None of them
+    // moves the search bar or gives the dock a background: both stay as
+    // they are (on a fresh install, the bar under the dock and no
+    // background).
     enum class Look(
         val labelRes: Int,
         val shape: IconShape,
         val finish: Finish,
         val density: Density,
-        val names: Names,
-        val bar: Bar,
-        val dock: DockBgStyle
+        val names: Names
     ) {
         CLASSIC(
             R.string.onboarding_look_classic, IconShape.SYSTEM, Finish.ORIGINAL, Density.BALANCED,
-            Names.STANDARD, Bar.BELOW, DockBgStyle.NONE
+            Names.STANDARD
         ),
         GLASS(
             R.string.onboarding_look_glass, IconShape.ROUNDED_SQUARE, Finish.CLEAR, Density.BALANCED,
-            Names.STANDARD, Bar.ABOVE, DockBgStyle.PILL
+            Names.STANDARD
         ),
         QUIET(
             R.string.onboarding_look_quiet, IconShape.CIRCLE, Finish.TINTED, Density.ROOMY,
-            Names.HIDDEN, Bar.NONE, DockBgStyle.NONE
+            Names.HIDDEN
         ),
         BOLD(
             R.string.onboarding_look_bold, IconShape.TEARDROP, Finish.FROSTED, Density.ROOMY,
-            Names.SERIF, Bar.BELOW, DockBgStyle.ROUNDED
+            Names.SERIF
         );
 
-        fun writes(prefs: LauncherPrefs, profile: DeviceProfile): List<PrefWrite<*>> = compose(
-            prefs, profile, shape, finish, density, names, bar, dock
-        )
+        fun writes(profile: DeviceProfile): List<PrefWrite<*>> = compose(profile, shape, finish, density, names)
 
         fun matches(prefs: LauncherPrefs, profile: DeviceProfile): Boolean =
             prefs.iconShape == shape && Finish.of(prefs) == finish && Density.of(prefs, profile) == density &&
-                Names.of(prefs) == names && Bar.of(prefs) == bar && prefs.dockBgStyle == dock
+                Names.of(prefs) == names
 
         companion object {
             fun of(prefs: LauncherPrefs, profile: DeviceProfile): Look? =
@@ -172,36 +137,24 @@ internal object OnboardingChoices {
 
     // A look nobody picked: any shape but the system's, and any of each
     // other step's choices, colour included.
-    fun shuffleWrites(
-        prefs: LauncherPrefs,
-        profile: DeviceProfile,
-        accents: Map<AccentColor, Int>,
-        random: Random
-    ): List<PrefWrite<*>> {
+    fun shuffleWrites(profile: DeviceProfile, accents: Map<AccentColor, Int>, random: Random): List<PrefWrite<*>> {
         val accent = AccentColor.entries.random(random)
         return compose(
-            prefs, profile,
+            profile,
             SHAPES.drop(1).random(random),
             Finish.entries.random(random),
             Density.entries.random(random),
-            Names.entries.random(random),
-            Bar.entries.random(random),
-            listOf(DockBgStyle.NONE, DockBgStyle.PILL, DockBgStyle.ROUNDED).random(random)
+            Names.entries.random(random)
         ) + accentWrites(accent, accents.getValue(accent))
     }
 
-    @Suppress("LongParameterList")
     private fun compose(
-        prefs: LauncherPrefs,
         profile: DeviceProfile,
         shape: IconShape,
         finish: Finish,
         density: Density,
-        names: Names,
-        bar: Bar,
-        dock: DockBgStyle
-    ): List<PrefWrite<*>> = shapeWrites(shape) + finish.writes() + density.writes(profile) + names.writes() +
-        bar.writes(prefs) + PrefWrite(Pref.dockBgStyle, dock)
+        names: Names
+    ): List<PrefWrite<*>> = shapeWrites(shape) + finish.writes() + density.writes(profile) + names.writes()
 
     // A colour: the accent, and the palette the launcher's surfaces and
     // tinted icons are drawn from, seeded with it.

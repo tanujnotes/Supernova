@@ -127,7 +127,6 @@ class HomePreviewView @JvmOverloads constructor(
             val surface = Styles.resolve(context, prefs).of(SurfaceId.DOCK)
             val alpha = StyleConfig.decode(prefs.styleConfig).styleFor(SurfaceId.DOCK).alpha ?: prefs.dockBgOpacity
             val radius = when (prefs.dockBgStyle) {
-                DockBgStyle.PILL -> height / 2f
                 DockBgStyle.ROUNDED -> dp(DOCK_ROUNDED_DP).toFloat()
                 else -> 0f
             }

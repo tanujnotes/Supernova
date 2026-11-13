@@ -16,7 +16,9 @@ import kotlinx.serialization.encoding.Encoder
 open class SettingEnumSerializer<E : Enum<E>>(
     serialName: String,
     private val values: List<E>,
-    private val fallback: E
+    private val fallback: E,
+    // Names of values since removed, read back as the one standing in.
+    private val aliases: Map<String, E> = emptyMap()
 ) : KSerializer<E> {
 
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor(serialName, PrimitiveKind.STRING)
@@ -25,7 +27,9 @@ open class SettingEnumSerializer<E : Enum<E>>(
 
     override fun deserialize(decoder: Decoder): E = parse(decoder.decodeString())
 
-    fun parse(name: String): E = values.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: fallback
+    fun parse(name: String): E = values.firstOrNull { it.name.equals(name, ignoreCase = true) }
+        ?: aliases.entries.firstOrNull { it.key.equals(name, ignoreCase = true) }?.value
+        ?: fallback
 }
 
 // How the device is locked by the Lock screen action.

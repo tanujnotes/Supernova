@@ -408,7 +408,6 @@ class SettingsPreviewView @JvmOverloads constructor(
         strip.setPadding(dp(10), dp(8), dp(10), dp(8))
         when (prefs.dockBgStyle) {
             DockBgStyle.NONE -> Unit
-            DockBgStyle.PILL -> strip.background = surfaceDrawable(resolved, dp(30).toFloat())
             DockBgStyle.ROUNDED -> strip.background = surfaceDrawable(resolved, dp(14).toFloat())
             DockBgStyle.SQUARE -> strip.background = surfaceDrawable(resolved, 0f)
         }
