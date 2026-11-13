@@ -25,7 +25,6 @@ object DrawerOrder {
             DrawerSort.INSTALL_DATE -> byName(apps).sortedByDescending { it.installTime }
             DrawerSort.MOST_USED -> byName(apps).sortedByDescending(usage::count)
             DrawerSort.RECENTLY_USED -> recentlyUsed(apps, usage)
-            DrawerSort.APP_SIZE -> byName(apps).sortedByDescending { it.sizeBytes }
         }
 
     // Up to `limit` apps for the row over the list.

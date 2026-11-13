@@ -176,7 +176,6 @@
     <string name="sort_install">Newest installed</string>
     <string name="sort_most_used">Most used</string>
     <string name="sort_recently_used">Recently used</string>
-    <string name="sort_app_size">App size</string>
     <string name="drawer_work_tab">Separate Work tab</string>
     <string name="drawer_default_tab">Default tab</string>
     <string name="drawer_hide_all_tab">Hide the All tab</string>

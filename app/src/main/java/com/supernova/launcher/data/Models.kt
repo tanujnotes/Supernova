@@ -649,9 +649,6 @@ data class LaunchableApp(
     val label: String,
     val userSerial: Long = 0L,
     val installTime: Long = 0L,
-    // The app's installed files (its APKs), for the size order. Readable
-    // without any permission, unlike its data and cache.
-    val sizeBytes: Long = 0L,
     // Resolved from the app's override so list surfaces can honor it.
     val hideLabel: Boolean = false,
     // In the private space: drawer and search only, never the home screen.

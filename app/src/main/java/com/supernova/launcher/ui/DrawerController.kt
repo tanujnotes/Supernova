@@ -1305,8 +1305,8 @@ class DrawerController(
             DrawerSort.ALPHA -> AppDrawerAdapter.Order.A_Z
             DrawerSort.ALPHA_REVERSE -> AppDrawerAdapter.Order.Z_A
             // Already in order, and no letters to scroll by.
-            DrawerSort.INSTALL_DATE, DrawerSort.MOST_USED, DrawerSort.RECENTLY_USED,
-            DrawerSort.APP_SIZE -> AppDrawerAdapter.Order.UNSORTED
+            DrawerSort.INSTALL_DATE, DrawerSort.MOST_USED,
+            DrawerSort.RECENTLY_USED -> AppDrawerAdapter.Order.UNSORTED
         }
 
     // The top row above the list: All tab only, hidden while a query

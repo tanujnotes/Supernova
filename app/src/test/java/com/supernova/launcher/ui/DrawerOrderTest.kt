@@ -7,8 +7,8 @@ import org.junit.Test
 // The drawer list's orders and the top row's.
 class DrawerOrderTest {
 
-    private fun app(label: String, installed: Long = 0L, size: Long = 0L) = LaunchableApp(
-        packageName = "pkg.$label", className = "Main", label = label, installTime = installed, sizeBytes = size
+    private fun app(label: String, installed: Long = 0L) = LaunchableApp(
+        packageName = "pkg.$label", className = "Main", label = label, installTime = installed
     )
 
     private fun sorted(sort: DrawerSort, usage: AppUsage = usage()) = labels(DrawerOrder.sorted(apps, sort, usage))
@@ -16,10 +16,10 @@ class DrawerOrderTest {
     private fun row(sort: TopRowSort, usage: AppUsage, limit: Int) =
         labels(DrawerOrder.topRow(apps, sort, usage, limit))
 
-    private val camera = app("Camera", installed = 30, size = 400)
-    private val maps = app("maps", installed = 10, size = 900)
-    private val bank = app("Bank", installed = 20, size = 100)
-    private val zoom = app("Zoom", installed = 20, size = 100)
+    private val camera = app("Camera", installed = 30)
+    private val maps = app("maps", installed = 10)
+    private val bank = app("Bank", installed = 20)
+    private val zoom = app("Zoom", installed = 20)
     private val apps = listOf(zoom, maps, camera, bank)
 
     private fun usage(counts: Map<LaunchableApp, Int> = emptyMap(), recent: List<LaunchableApp> = emptyList()) =
@@ -47,14 +47,6 @@ class DrawerOrderTest {
         assertEquals(
             listOf("Camera", "Bank", "Zoom", "maps"),
             sorted(DrawerSort.INSTALL_DATE)
-        )
-    }
-
-    @Test
-    fun biggestFirstThenByName() {
-        assertEquals(
-            listOf("maps", "Camera", "Bank", "Zoom"),
-            sorted(DrawerSort.APP_SIZE)
         )
     }
 

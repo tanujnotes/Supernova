@@ -278,7 +278,6 @@ object EnumLabels {
         DrawerSort.INSTALL_DATE -> R.string.sort_install
         DrawerSort.MOST_USED -> R.string.sort_most_used
         DrawerSort.RECENTLY_USED -> R.string.sort_recently_used
-        DrawerSort.APP_SIZE -> R.string.sort_app_size
     }
 
     @StringRes
