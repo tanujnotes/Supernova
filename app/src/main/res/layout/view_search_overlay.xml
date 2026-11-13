@@ -61,7 +61,7 @@
                 android:background="@android:color/transparent"
                 android:gravity="center_vertical"
                 android:hint="@string/search_apps"
-                android:imeOptions="actionSearch"
+                android:imeOptions="actionSearch|flagNoExtractUi|flagNoFullscreen"
                 android:importantForAutofill="no"
                 android:inputType="text"
                 android:maxLines="1"

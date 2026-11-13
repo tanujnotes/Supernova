@@ -712,10 +712,12 @@ class SearchController(
     }
 
     // IME_FLAG_NO_PERSONALIZED_LEARNING is applied before focus, so the flag
-    // is present when the input connection starts.
+    // is present when the input connection starts. No full-screen keyboard
+    // (a phone in landscape): the live results stay in view while typing.
     private fun applyImeOptions(ui: ViewSearchOverlayBinding) {
         val privateKeyboard = viewModel.state.value.prefs.searchPrivateKeyboard
-        val target = EditorInfo.IME_ACTION_SEARCH or
+        val target = EditorInfo.IME_ACTION_SEARCH or EditorInfo.IME_FLAG_NO_EXTRACT_UI or
+            EditorInfo.IME_FLAG_NO_FULLSCREEN or
             (if (privateKeyboard) EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING else 0)
         if (ui.searchInput.imeOptions != target) {
             ui.searchInput.imeOptions = target

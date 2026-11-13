@@ -1127,9 +1127,11 @@ class DrawerController(
     // The private keyboard setting covers the drawer's own field too, not
     // just the search overlay's. Set on every state change, well before the
     // field can take focus, so the flag is in place when the input
-    // connection starts.
+    // connection starts. Never the keyboard's full-screen text box (a
+    // phone in landscape): it would cover the results that filter live.
     private fun applyImeOptions(prefs: LauncherPrefs) {
-        val target = EditorInfo.IME_ACTION_SEARCH or
+        val target = EditorInfo.IME_ACTION_SEARCH or EditorInfo.IME_FLAG_NO_EXTRACT_UI or
+            EditorInfo.IME_FLAG_NO_FULLSCREEN or
             (if (prefs.searchPrivateKeyboard) EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING else 0)
         if (binding.drawerSearch.imeOptions != target) binding.drawerSearch.imeOptions = target
     }
