@@ -28,9 +28,9 @@ import com.supernova.launcher.ui.DrawerTabStyle
 import com.supernova.launcher.ui.FolderMode
 import com.supernova.launcher.ui.FolderScroll
 import com.supernova.launcher.ui.DesktopSearchBarConfig
-import com.supernova.launcher.ui.DrawerActionButton
 import com.supernova.launcher.ui.DrawerBarPlacement
 import com.supernova.launcher.ui.DrawerSearchBarConfig
+import com.supernova.launcher.ui.SearchBarButtons
 import com.supernova.launcher.ui.SearchBarChip
 import com.supernova.launcher.ui.SearchBarConfig
 import com.supernova.launcher.ui.SearchBarPlacement
@@ -219,8 +219,8 @@ object SettingsCatalogue {
 
         // A button on the bar. Turning one on adds it after the others, so
         // they show in the order they were turned on.
-        fun barChip(chip: SearchBarChip, @StringRes title: Int) = SettingItem.Toggle(
-            title,
+        fun barChip(chip: SearchBarChip) = SettingItem.Toggle(
+            SearchBarButtons.label(chip),
             get = { prefs -> SearchBarPrefs.desktopBar(prefs).chips.any { SearchBarChip.fromName(it) == chip } },
             set = { on ->
                 editDesktopBar { bar ->
@@ -1028,12 +1028,9 @@ object SettingsCatalogue {
                     get = { SearchBarPrefs.desktopBar(it).hint },
                     set = { on -> rows.editDesktopBar { it.copy(hint = on) } }
                 ),
-                SettingItem.Header(R.string.search_bar_chips),
-                rows.barChip(SearchBarChip.DATE, R.string.search_bar_chip_date),
-                rows.barChip(SearchBarChip.ASSISTANT, R.string.search_bar_chip_assistant),
-                rows.barChip(SearchBarChip.PLAY_STORE, R.string.chip_play_store),
-                rows.barChip(SearchBarChip.VOICE, R.string.search_bar_chip_voice)
-            )
+                SettingItem.Header(R.string.search_bar_chips)
+                // The same buttons as the drawer field's, in the same order.
+            ) + SearchBarButtons.ROWS.map(rows::barChip)
         ),
         // The drawer field's own page, opened from the same Search bars group.
         SettingsSection(
@@ -1089,9 +1086,7 @@ object SettingsCatalogue {
                 ),
                 // The buttons inside the field, at its right end; gone with it.
                 SettingItem.Header(R.string.search_bar_chips, visibleIf = { SearchBarPrefs.drawerFieldShown(it) }),
-                drawerButton(viewModel, DrawerActionButton.PLAY_STORE, R.string.chip_play_store),
-                drawerButton(viewModel, DrawerActionButton.SETTINGS, R.string.settings),
-            )
+            ) + SearchBarButtons.ROWS.map { drawerButton(viewModel, it) }
         ),
         // Feed page: the page toggle, then Layout (frequent apps and
         // shortcuts, the rows stepper, the search bar), with the edge swipe
@@ -1906,22 +1901,14 @@ object SettingsCatalogue {
     }
 }
 
-// One of the drawer field's buttons (drawerActionButtons), on and off; they
-// keep their own order whichever is turned on first.
-private fun drawerButton(
-    viewModel: LauncherViewModel,
-    button: DrawerActionButton,
-    @StringRes title: Int
-) = SettingItem.Toggle(
-    title,
-    get = { button in DrawerActionButton.decode(it.drawerActionButtons) },
+// One of the drawer field's buttons (drawerActionButtons), on and off. As on
+// the home bar, turning one on adds it after the others.
+private fun drawerButton(viewModel: LauncherViewModel, button: SearchBarChip) = SettingItem.Toggle(
+    SearchBarButtons.label(button),
+    get = { button in SearchBarButtons.decode(it.drawerActionButtons) },
     set = { on ->
-        val now = DrawerActionButton.decode(viewModel.state.value.prefs.drawerActionButtons).toSet()
-        val next = if (on) now + button else now - button
-        viewModel.set(
-            Pref.drawerActionButtons,
-            DrawerActionButton.encode(DrawerActionButton.entries.filter { it in next })
-        )
+        val now = SearchBarButtons.decode(viewModel.state.value.prefs.drawerActionButtons)
+        viewModel.set(Pref.drawerActionButtons, SearchBarButtons.encode(SearchBarButtons.toggled(now, button, on)))
     },
     visibleIf = { SearchBarPrefs.drawerFieldShown(it) }
 )

@@ -274,8 +274,8 @@ data class LauncherPrefs(
     val swipeDownHaptic: Boolean = true,
     // Fast-scroller active-letter color; "" follows the drawer accent.
     val drawerScrubberColor: String = "",
-    // Header action buttons beside the drawer search field (comma-joined
-    // DrawerActionButton names); "" = none.
+    // The buttons inside the drawer search field (comma-joined
+    // SearchBarChip names, see SearchBarButtons); "" = none.
     val drawerActionButtons: String = "",
     // Apps living in TAB-type drawer groups leave the All tab (tab
     // isolation); folder-type groups always did.

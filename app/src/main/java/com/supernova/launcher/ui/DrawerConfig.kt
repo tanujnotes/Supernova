@@ -84,20 +84,3 @@ enum class DrawerTabStyle {
     }
 }
 
-// Optional header action buttons beside the drawer search field (C10),
-// stored comma-joined in the drawerActionButtons pref. A stored SEARCH (since
-// removed) is simply dropped by decode.
-enum class DrawerActionButton {
-    PLAY_STORE,
-    SETTINGS;
-
-    companion object {
-        fun decode(raw: String): List<DrawerActionButton> =
-            raw.split(',').mapNotNull { token ->
-                entries.firstOrNull { it.name.equals(token.trim(), ignoreCase = true) }
-            }
-
-        fun encode(buttons: List<DrawerActionButton>): String =
-            buttons.joinToString(",") { it.name }
-    }
-}

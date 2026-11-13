@@ -20,6 +20,8 @@ import com.supernova.launcher.ui.FolderPreviewStyle
 import com.supernova.launcher.ui.LabelContext
 import com.supernova.launcher.ui.LabelStyler
 import com.supernova.launcher.ui.LauncherViewModel
+import com.supernova.launcher.ui.SearchBarButtons
+import com.supernova.launcher.ui.SearchBarChip
 import com.supernova.launcher.ui.SearchBarConfig
 import com.supernova.launcher.ui.SearchBarView
 import com.supernova.launcher.ui.dp
@@ -278,20 +280,13 @@ class SettingsPreviewView @JvmOverloads constructor(
             setTextColor((DRAWER_HINT_ALPHA shl 24) or (surface.text and 0xFFFFFF))
         }, LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
         // The drawer's action buttons, inside the field as the drawer has them.
-        val buttons = com.supernova.launcher.ui.DrawerActionButton.decode(prefs.drawerActionButtons)
+        val buttons = SearchBarButtons.decode(prefs.drawerActionButtons)
         buttons.forEach { button ->
-            field.addView(ImageView(context).apply {
-                setImageResource(
-                    when (button) {
-                        com.supernova.launcher.ui.DrawerActionButton.PLAY_STORE -> R.drawable.ic_play_store
-                        com.supernova.launcher.ui.DrawerActionButton.SETTINGS -> R.drawable.ic_tab_settings
-                    }
-                )
-                imageTintList = android.content.res.ColorStateList.valueOf(surface.text)
-                val pad = dp(DRAWER_BUTTON_PAD_DP)
-                setPadding(pad, pad, pad, pad)
-                importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
-            }, LinearLayout.LayoutParams(dp(DRAWER_BUTTON_DP), dp(DRAWER_BUTTON_DP)))
+            val width = if (button == SearchBarChip.DATE) LayoutParams.WRAP_CONTENT else dp(DRAWER_BUTTON_DP)
+            field.addView(
+                SearchBarButtons.view(context, button, surface.text, onClick = null),
+                LinearLayout.LayoutParams(width, dp(DRAWER_BUTTON_DP))
+            )
         }
         if (buttons.isNotEmpty()) field.setPaddingRelative(dp(SEARCH_BAR_INSET_DP), 0, dp(DRAWER_BUTTON_END_DP), 0)
         drawerField = field
@@ -916,7 +911,6 @@ class SettingsPreviewView @JvmOverloads constructor(
         const val DRAWER_HINT_ALPHA = 0x8A
         const val DRAWER_STROKE_ALPHA = 0x5A
         const val DRAWER_BUTTON_DP = 36
-        const val DRAWER_BUTTON_PAD_DP = 8
         const val DRAWER_BUTTON_END_DP = 4
         // The stand-in notification picture a Dynamic badge shows here, and
         // the count a Numeric one does.

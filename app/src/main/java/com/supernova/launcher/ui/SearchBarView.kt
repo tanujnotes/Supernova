@@ -1,27 +1,18 @@
 package com.supernova.launcher.ui
 
-import android.content.ContentUris
 import android.content.Context
-import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
-import android.provider.CalendarContract
-import android.speech.RecognizerIntent
-import android.text.format.DateUtils
 import android.util.AttributeSet
-import android.util.TypedValue
 import android.view.View
 import android.view.Gravity
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.widget.ImageViewCompat
 import com.supernova.launcher.R
 import com.supernova.launcher.data.IconGlass
-import com.supernova.launcher.runLogged
 import com.supernova.launcher.ui.theme.ResolvedSurface
 
 // The desktop/dock search bar pill: SEARCH_BAR surface colors plus per-config
@@ -89,47 +80,19 @@ class SearchBarView @JvmOverloads constructor(
 
     }
 
-    private fun addIconChip(iconRes: Int, labelRes: Int, tint: ColorStateList, onClick: () -> Unit) {
-        val chip = ImageView(context)
-        chip.setImageResource(iconRes)
-        chip.setPadding(dp(CHIP_PAD_DP), dp(CHIP_PAD_DP), dp(CHIP_PAD_DP), dp(CHIP_PAD_DP))
-        chip.background = borderlessRipple()
-        chip.contentDescription = context.getString(labelRes)
-        chip.setOnClickListener { if (interactive) onClick() }
-        ImageViewCompat.setImageTintList(chip, tint)
-        chip.tag = CHIP_TAG
-        addView(chip, chipIndex, LayoutParams(dp(CHIP_DP), dp(CHIP_DP)).apply { marginStart = dp(2) })
-    }
-
-    private fun addDateChip(textColor: Int) {
-        val chip = TextView(context)
-        chip.textSize = 13f
-        chip.maxLines = 1
-        chip.gravity = Gravity.CENTER
-        chip.setPadding(dp(6), dp(8), dp(6), dp(8))
-        chip.background = borderlessRipple()
-        chip.contentDescription = context.getString(R.string.search_bar_chip_date)
-        chip.setOnClickListener { if (interactive) openCalendar() }
-        chip.setTextColor(textColor)
-        chip.tag = CHIP_TAG
-        addView(chip, chipIndex, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
-            marginStart = dp(2)
-        })
-        dateChip = chip
+    private fun addChip(chip: SearchBarChip, color: Int) {
+        val view = SearchBarButtons.view(context, chip, color) {
+            if (interactive) SearchBarButtons.run(context, chip)
+        }
+        view.tag = CHIP_TAG
+        val size = dp(SearchBarButtons.BUTTON_DP)
+        val width = if (chip == SearchBarChip.DATE) LayoutParams.WRAP_CONTENT else size
+        addView(view, chipIndex, LayoutParams(width, size).apply { marginStart = dp(2) })
+        if (chip == SearchBarChip.DATE) dateChip = view as TextView
     }
 
     // Chips go before the host's trailing button, if there is one.
     private val chipIndex: Int get() = trailing?.let(::indexOfChild)?.takeIf { it >= 0 } ?: childCount
-
-    private fun borderlessRipple(): Drawable? {
-        val value = TypedValue()
-        context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, value, true)
-        return if (value.resourceId != 0) {
-            AppCompatResources.getDrawable(context, value.resourceId)
-        } else {
-            null
-        }
-    }
 
     // Re-styles the pill from config + resolved SEARCH_BAR surface; guarded so
     // repeated chrome passes with unchanged inputs cost nothing.
@@ -176,15 +139,7 @@ class SearchBarView @JvmOverloads constructor(
             }
             dateChip = null
             config.chips.mapNotNull(SearchBarChip::fromName).distinct().forEach { chip ->
-                when (chip) {
-                    SearchBarChip.VOICE ->
-                        addIconChip(R.drawable.ic_mic, R.string.search_bar_chip_voice, tint) { startVoiceSearch() }
-                    SearchBarChip.ASSISTANT ->
-                        addIconChip(R.drawable.ic_assistant, R.string.search_bar_chip_assistant, tint) { startAssistant() }
-                    SearchBarChip.PLAY_STORE ->
-                        addIconChip(R.drawable.ic_play_store, R.string.chip_play_store, tint) { openPlayStore() }
-                    SearchBarChip.DATE -> addDateChip(resolved.text)
-                }
+                addChip(chip, resolved.text)
             }
         }
         refreshDate()
@@ -199,53 +154,13 @@ class SearchBarView @JvmOverloads constructor(
 
     private fun refreshDate() {
         val chip = dateChip ?: return
-        val text = DateUtils.formatDateTime(
-            context, System.currentTimeMillis(),
-            DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_ABBREV_MONTH or DateUtils.FORMAT_NO_YEAR
-        )
+        val text = SearchBarButtons.dateText(context)
         if (chip.text != text) chip.text = text
-    }
-
-    // Blind-start like the other chips: launches the store app when present.
-    private fun openPlayStore() {
-        runLogged("open Play Store") {
-            context.packageManager.getLaunchIntentForPackage("com.android.vending")
-                ?.let(context::startActivity)
-        }
-    }
-
-    private fun startVoiceSearch() {
-        runLogged("start voice search") {
-            context.startActivity(
-                Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-                    .putExtra(
-                        RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                        RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-                    )
-            )
-        }
-    }
-
-    // Same ladder as the ASSISTANT gesture action, with the voice-command
-    // front door first (the mic-style assistant surface where available).
-    private fun startAssistant() {
-        if (runCatching { context.startActivity(Intent(Intent.ACTION_VOICE_COMMAND)) }.isSuccess) return
-        runLogged("open assistant") { context.startActivity(Intent(Intent.ACTION_ASSIST)) }
-    }
-
-    // The documented "open calendar at a day" deep link, blind-started: a
-    // missing calendar app just no-ops.
-    private fun openCalendar() {
-        val uri = CalendarContract.CONTENT_URI.buildUpon()
-            .appendPath("time")
-            .also { ContentUris.appendId(it, System.currentTimeMillis()) }
-            .build()
-        runLogged("open link") { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
     }
 
     private companion object {
         const val CHIP_TAG = "search-bar-chip"
-        const val CHIP_DP = 36
+        const val CHIP_DP = SearchBarButtons.BUTTON_DP
         // Leaves the 20dp box the magnifier on the left has.
         const val CHIP_PAD_DP = 8
     }

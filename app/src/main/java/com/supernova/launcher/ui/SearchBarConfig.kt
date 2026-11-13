@@ -16,11 +16,12 @@ enum class SearchBarPlacement {
     }
 }
 
-// Action chips drawn on the right edge of the desktop bar, rendered in the
-// order they appear in the config's chips list. An App drawer chip was
-// removed; a config still naming it decodes without it.
+// The buttons at a search bar's right end (SearchBarButtons), on the home
+// bar in the order its config's chips list names them and in the drawer
+// field in drawerActionButtons order. An App drawer chip was removed; a
+// config still naming it decodes without it.
 enum class SearchBarChip {
-    VOICE, ASSISTANT, DATE, PLAY_STORE;
+    VOICE, ASSISTANT, DATE, PLAY_STORE, SETTINGS;
 
     companion object {
         fun fromName(name: String): SearchBarChip? =

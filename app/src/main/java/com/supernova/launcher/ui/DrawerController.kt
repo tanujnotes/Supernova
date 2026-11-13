@@ -112,6 +112,8 @@ class DrawerController(
     private var needsRefresh = false
     // A badge moved while the sheet was closed; the next open rebinds rows.
     private var badgesStale = false
+    // The field's Date button, if on; each open brings it up to today.
+    private var dateButton: android.widget.TextView? = null
     private var suppressFilterEvents = false
     // Mirrors the IME inset so a drag-dismiss knows whether there was a
     // keyboard to take down with the sheet.
@@ -643,6 +645,7 @@ class DrawerController(
             cardsShown = true
             cards?.onShown()
         }
+        dateButton?.text = SearchBarButtons.dateText(context)
         // Usage orders shift with every launch; those changes no longer
         // re-emit state, so refresh the ordering as the drawer opens.
         val byUsage = prefs.drawerSort == DrawerSort.MOST_USED || prefs.drawerSort == DrawerSort.RECENTLY_USED
@@ -1683,49 +1686,23 @@ class DrawerController(
         for (index in field.childCount - 1 downTo 0) {
             if (field.getChildAt(index).tag == actionTag) field.removeViewAt(index)
         }
-        val actionButtons = DrawerActionButton.decode(prefs.drawerActionButtons)
+        val actionButtons = SearchBarButtons.decode(prefs.drawerActionButtons)
         // Buttons carry their own touch padding, so the field's end inset shrinks.
         field.setPaddingRelative(
             field.paddingStart, field.paddingTop,
             ((if (actionButtons.isEmpty()) FIELD_END_DP else FIELD_END_WITH_BUTTONS_DP) * density).toInt(),
             field.paddingBottom
         )
+        dateButton = null
         actionButtons.forEach { button ->
-            val view = android.widget.ImageButton(context).apply {
-                tag = actionTag
-                setImageResource(
-                    when (button) {
-                        DrawerActionButton.PLAY_STORE -> R.drawable.ic_play_store
-                        DrawerActionButton.SETTINGS -> R.drawable.ic_tab_settings
-                    }
-                )
-                imageTintList = android.content.res.ColorStateList.valueOf(resolvedField.text)
-                background = null
-                // An ImageButton centres its icon at its own 24dp; fit it to
-                // the magnifier's 20dp box instead, so both ends match.
-                scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
-                val pad = (ACTION_BUTTON_PAD_DP * density).toInt()
-                setPadding(pad, pad, pad, pad)
-                contentDescription = context.getString(
-                    when (button) {
-                        DrawerActionButton.PLAY_STORE -> R.string.chip_play_store
-                        DrawerActionButton.SETTINGS -> R.string.settings
-                    }
-                )
-                setOnClickListener {
-                    when (button) {
-                        DrawerActionButton.PLAY_STORE -> runLogged("open Play Store") {
-                            context.packageManager.getLaunchIntentForPackage("com.android.vending")
-                                ?.let(context::startActivity)
-                        }
-                        DrawerActionButton.SETTINGS -> context.startActivity(
-                            android.content.Intent(context, com.supernova.launcher.SettingsActivity::class.java)
-                        )
-                    }
-                }
+            val view = SearchBarButtons.view(context, button, resolvedField.text) {
+                SearchBarButtons.run(context, button)
             }
-            val size = (ACTION_BUTTON_DP * density).toInt()
-            field.addView(view, android.widget.LinearLayout.LayoutParams(size, size))
+            view.tag = actionTag
+            val size = (SearchBarButtons.BUTTON_DP * density).toInt()
+            val width = if (button == SearchBarChip.DATE) ViewGroup.LayoutParams.WRAP_CONTENT else size
+            field.addView(view, LinearLayout.LayoutParams(width, size))
+            if (button == SearchBarChip.DATE) dateButton = view as android.widget.TextView
         }
         // Focusability is the pre-IME interception point: a non-focusable
         // EditText delivers a plain click and never starts an input connection.
@@ -2069,8 +2046,6 @@ class DrawerController(
         // How far in from the list's top and bottom edges its rows fade.
         const val LIST_FADE_DP = 32
         const val FIELD_END_WITH_BUTTONS_DP = 4
-        const val ACTION_BUTTON_DP = 36
-        const val ACTION_BUTTON_PAD_DP = 8
         // item_drawer_app's 4dp side padding, both sides.
         const val TILE_SIDE_PADDING_DP = 8
         const val MAX_COLUMNS = 12
