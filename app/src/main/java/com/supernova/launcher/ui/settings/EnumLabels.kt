@@ -234,6 +234,19 @@ object EnumLabels {
     }
 
     @StringRes
+    fun of(content: com.supernova.launcher.ui.DrawerTabContent): Int = when (content) {
+        com.supernova.launcher.ui.DrawerTabContent.LABEL -> R.string.tab_content_label
+        com.supernova.launcher.ui.DrawerTabContent.ICON -> R.string.tab_content_icon
+        com.supernova.launcher.ui.DrawerTabContent.LABEL_AND_ICON -> R.string.tab_content_both
+    }
+
+    @StringRes
+    fun of(align: com.supernova.launcher.ui.DrawerTabAlign): Int = when (align) {
+        com.supernova.launcher.ui.DrawerTabAlign.START -> R.string.tab_align_start
+        com.supernova.launcher.ui.DrawerTabAlign.CENTER -> R.string.tab_align_center
+    }
+
+    @StringRes
     fun of(category: SmartCategory): Int = when (category) {
         SmartCategory.GAMES -> R.string.category_games
         SmartCategory.ENTERTAINMENT -> R.string.category_entertainment

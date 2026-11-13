@@ -84,3 +84,26 @@ enum class DrawerTabStyle {
     }
 }
 
+// What each drawer tab shows: its name, its icon, or the icon before the name.
+@kotlinx.serialization.Serializable(with = DrawerTabContent.Names::class)
+enum class DrawerTabContent {
+    LABEL,
+    ICON,
+    LABEL_AND_ICON;
+
+    val showsIcon: Boolean get() = this != LABEL
+    val showsLabel: Boolean get() = this != ICON
+
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<DrawerTabContent>("DrawerTabContent", entries, LABEL)
+}
+
+// Where the drawer's tabs sit in their row while they don't fill it.
+@kotlinx.serialization.Serializable(with = DrawerTabAlign.Names::class)
+enum class DrawerTabAlign {
+    START,
+    CENTER;
+
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<DrawerTabAlign>("DrawerTabAlign", entries, START)
+}

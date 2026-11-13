@@ -402,6 +402,13 @@
     <string name="drawer_tab_style">Tab type</string>
     <string name="tab_style_classic">Classic</string>
     <string name="tab_style_bubble">Bubble</string>
+    <string name="drawer_tab_content">Tab content</string>
+    <string name="tab_content_label">Label</string>
+    <string name="tab_content_icon">Icon</string>
+    <string name="tab_content_both">Label and icon</string>
+    <string name="drawer_tab_align">Tab alignment</string>
+    <string name="tab_align_start">Start</string>
+    <string name="tab_align_center">Center</string>
     <string name="group_keep_in_main">Keep apps in main app tab</string>
     <string name="group_keep_in_main_summary">Its apps also stay in the main tab</string>
     <string name="group_kept_in_main">kept in main tab</string>

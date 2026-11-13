@@ -13,7 +13,9 @@ import com.supernova.launcher.ui.BadgePosition
 import com.supernova.launcher.ui.DockBgStyle
 import com.supernova.launcher.ui.DrawerSort
 import com.supernova.launcher.ui.DrawerStyle
+import com.supernova.launcher.ui.DrawerTabAlign
 import com.supernova.launcher.ui.DrawerTabBar
+import com.supernova.launcher.ui.DrawerTabContent
 import com.supernova.launcher.ui.DrawerTabStyle
 import com.supernova.launcher.ui.DrawerTransition
 import com.supernova.launcher.ui.FolderMode
@@ -192,6 +194,8 @@ object Pref {
     val drawerTransition = choice("drawer_transition", DrawerTransition.entries)
     val drawerTabBar = choice("drawer_tab_bar", DrawerTabBar.entries)
     val drawerTabStyle = choice("drawer_tab_style", DrawerTabStyle.entries)
+    val drawerTabContent = choice("drawer_tab_content", DrawerTabContent.entries)
+    val drawerTabAlign = choice("drawer_tab_align", DrawerTabAlign.entries)
     val drawerTabsNoSwipe = bool("drawer_tabs_no_swipe")
     val drawerFrequentRow = bool("drawer_frequent_row")
     val drawerRememberPosition = bool("drawer_remember_position")

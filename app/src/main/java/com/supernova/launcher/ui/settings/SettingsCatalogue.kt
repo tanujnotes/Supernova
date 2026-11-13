@@ -23,7 +23,9 @@ import com.supernova.launcher.gesture.GestureDefaults
 import com.supernova.launcher.gesture.HomeButtonAction
 import com.supernova.launcher.search.WebProvider
 import com.supernova.launcher.ui.DrawerSort
+import com.supernova.launcher.ui.DrawerTabAlign
 import com.supernova.launcher.ui.DrawerTabBar
+import com.supernova.launcher.ui.DrawerTabContent
 import com.supernova.launcher.ui.DrawerTabStyle
 import com.supernova.launcher.ui.FolderMode
 import com.supernova.launcher.ui.FolderScroll
@@ -779,6 +781,22 @@ object SettingsCatalogue {
                             it.drawerTabBar != DrawerTabBar.NONE
                     }
                 ) { viewModel.set(Pref.drawerTabStyle, it) },
+                rows.choice(
+                    R.string.drawer_tab_content, DrawerTabContent.entries,
+                    { it.drawerTabContent }, { EnumLabels.of(it) },
+                    visibleIf = {
+                        (viewModel.drawerTabGroups().isNotEmpty() || viewModel.hasWorkApps()) &&
+                            it.drawerTabBar != DrawerTabBar.NONE
+                    }
+                ) { viewModel.set(Pref.drawerTabContent, it) },
+                rows.choice(
+                    R.string.drawer_tab_align, DrawerTabAlign.entries,
+                    { it.drawerTabAlign }, { EnumLabels.of(it) },
+                    visibleIf = {
+                        (viewModel.drawerTabGroups().isNotEmpty() || viewModel.hasWorkApps()) &&
+                            it.drawerTabBar != DrawerTabBar.NONE
+                    }
+                ) { viewModel.set(Pref.drawerTabAlign, it) },
                 SettingItem.Toggle(
                     R.string.drawer_work_tab,
                     get = { it.drawerWorkTab },

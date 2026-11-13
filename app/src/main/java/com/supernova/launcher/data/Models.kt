@@ -6,7 +6,9 @@ import com.supernova.launcher.ui.BadgePosition
 import com.supernova.launcher.ui.DockBgStyle
 import com.supernova.launcher.ui.DrawerSort
 import com.supernova.launcher.ui.DrawerStyle
+import com.supernova.launcher.ui.DrawerTabAlign
 import com.supernova.launcher.ui.DrawerTabBar
+import com.supernova.launcher.ui.DrawerTabContent
 import com.supernova.launcher.ui.DrawerTabStyle
 import com.supernova.launcher.ui.DrawerTransition
 import com.supernova.launcher.ui.FolderMode
@@ -230,6 +232,10 @@ data class LauncherPrefs(
     // Tab type: CLASSIC (a bar under the label) or BUBBLE (a pill
     // behind it); DrawerTabStyle names.
     val drawerTabStyle: DrawerTabStyle = DrawerTabStyle.CLASSIC,
+    // What each tab shows (DrawerTabContent names), and where the tabs sit
+    // in their row (DrawerTabAlign names).
+    val drawerTabContent: DrawerTabContent = DrawerTabContent.LABEL,
+    val drawerTabAlign: DrawerTabAlign = DrawerTabAlign.START,
     // Isolate tabs: a sideways swipe on the list stays on the tab.
     val drawerTabsNoSwipe: Boolean = false,
     // The top row over the drawer list (recently opened apps by default,

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Add drawer tab / Add drawer folder: the title field (filled in
-     code through DialogField.wrap) and Keep apps in main app tab. -->
+     code through DialogField.wrap) and Keep apps in main app tab. Edit tab
+     also shows the tab's icon row. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -21,4 +22,20 @@
         android:paddingStart="12dp"
         android:paddingEnd="0dp"
         android:text="@string/group_keep_in_main" />
+
+    <LinearLayout
+        android:id="@+id/newGroupIconRow"
+        style="@style/SheetRow"
+        android:layout_marginTop="4dp"
+        android:paddingHorizontal="24dp"
+        android:visibility="gone">
+
+        <TextView
+            style="@style/SheetRowTitle"
+            android:text="@string/icon_row" />
+
+        <TextView
+            android:id="@+id/newGroupIconValue"
+            style="@style/SheetRowValue" />
+    </LinearLayout>
 </LinearLayout>
