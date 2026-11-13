@@ -1135,6 +1135,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     }
 
     private fun drawerPullAllowed(): Boolean {
+        if (!viewModel.state.value.prefs.drawerEnabled) return false
         if (!::drawer.isInitialized || drawer.isVisible) return false
         if (::feed.isInitialized && feed.isOpen) return false
         if (::search.isInitialized && search.isOpen) return false
@@ -1443,8 +1444,11 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // The home bar opens the drawer, not the search window: the drawer
         // arrives with its own field focused and the keyboard up, whatever
         // the drawer's keyboard setting. The bar's search chip and the
-        // gestures still reach the global overlay.
-        binding.desktopSearchBar.onTap = { openDrawer(forSearch = true) }
+        // gestures still reach the global overlay. With the drawer disabled,
+        // tapping the bar opens the global search window instead.
+        binding.desktopSearchBar.onTap = {
+            if (viewModel.state.value.prefs.drawerEnabled) openDrawer(forSearch = true) else search.open()
+        }
         binding.desktopSearchBar.onLongPress = { anchor -> showSearchBarMenu(anchor) }
     }
 
@@ -2294,6 +2298,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     }
 
     private fun openDrawer(forSearch: Boolean = false) {
+        if (!viewModel.state.value.prefs.drawerEnabled) return
         animateWallpaperZoom(1f)
         drawer.open(forSearch)
     }
@@ -2540,7 +2545,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // The swipe indicator belongs to a swipe up that opens the drawer, and
     // points at the dock: it is only wanted with both.
     private fun swipeArrowWanted(prefs: LauncherPrefs): Boolean =
-        prefs.drawerSwipeIndicator && prefs.dockEnabled &&
+        prefs.drawerEnabled && prefs.drawerSwipeIndicator && prefs.dockEnabled &&
             GestureDefaults.swipeUpOpensDrawer(prefs.gestureBindings)
 
     // It hides and comes back with the dock (auto-close, the dock toggle),

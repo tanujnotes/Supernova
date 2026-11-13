@@ -183,6 +183,7 @@ object Pref {
     val widgetOverlap = bool("widget_overlap")
     val overlapWhenPlacing = bool("overlap_when_placing")
     val widgetPadding = int("widget_padding", 0..WIDGET_PADDING_MAX)
+    val drawerEnabled = bool("drawer_enabled")
     val drawerStyle = choice("drawer_style", DrawerStyle.entries)
     val drawerColumns = int("drawer_columns", 0..GridLimits.DRAWER_COLUMNS_BIG)
     val drawerRows = int("drawer_rows", 0..GridLimits.DRAWER_ROWS_BIG)

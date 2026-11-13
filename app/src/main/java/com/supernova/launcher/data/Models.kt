@@ -210,6 +210,7 @@ data class LauncherPrefs(
     val overlapWhenPlacing: Boolean = false,
     // Inset in dp applied inside each widget's cell-derived frame.
     val widgetPadding: Int = 0,
+    val drawerEnabled: Boolean = true,
     val drawerStyle: DrawerStyle = DrawerStyle.VERTICAL_GRID,
     // 0 = derive from screen width (the pre-setting behavior).
     val drawerColumns: Int = 0,

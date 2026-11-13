@@ -110,6 +110,8 @@
     <string name="lock_needs_accessibility">Enable Supernova in Accessibility settings to lock the screen</string>
     <string name="hidden_apps">Hidden apps</string>
     <string name="drawer_groups">Drawer groups</string>
+    <string name="drawer_enabled">Show app drawer</string>
+    <string name="drawer_enabled_summary">Disable to remove the app drawer from the home screen</string>
     <string name="drawer_style">Drawer style</string>
     <string name="style_vertical_grid">Vertical grid</string>
     <string name="style_paged_grid">Horizontal pages</string>

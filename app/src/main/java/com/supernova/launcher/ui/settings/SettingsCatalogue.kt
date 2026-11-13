@@ -593,6 +593,12 @@ object SettingsCatalogue {
         SettingsSection(
             R.string.settings_section_drawer,
             listOf(
+                SettingItem.Toggle(
+                    R.string.drawer_enabled,
+                    get = { it.drawerEnabled },
+                    set = { viewModel.set(Pref.drawerEnabled, it) },
+                    subtitle = R.string.drawer_enabled_summary
+                ),
                 SettingItem.Preview(PreviewKind.DRAWER),
                 rows.choice(
                     R.string.drawer_style, DrawerStyle.entries,
