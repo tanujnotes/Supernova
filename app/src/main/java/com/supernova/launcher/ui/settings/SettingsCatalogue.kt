@@ -1559,6 +1559,18 @@ object SettingsCatalogue {
                     get = { it.popupNotifications },
                     set = { viewModel.set(Pref.popupNotifications, it) }
                 ),
+                rows.choice(
+                    R.string.popup_style, com.supernova.launcher.ui.PopupMenuStyle.entries,
+                    { it.popupStyle }, { EnumLabels.of(it) },
+                    onPick = { viewModel.set(Pref.popupStyle, it) }
+                ),
+                SettingItem.Toggle(
+                    R.string.popup_group_shortcuts,
+                    get = { it.popupGroupShortcuts },
+                    set = { viewModel.set(Pref.popupGroupShortcuts, it) },
+                    visibleIf = { it.popupStyle.canGroup },
+                    subtitle = R.string.popup_group_shortcuts_summary
+                ),
                 SettingItem.Toggle(
                     R.string.popup_card_bg,
                     get = { it.popupCardBg },
@@ -1568,18 +1580,6 @@ object SettingsCatalogue {
                         !it.popupGroupShortcuts ||
                             !it.popupStyle.canGroup
                     }
-                ),
-                SettingItem.Toggle(
-                    R.string.popup_group_shortcuts,
-                    get = { it.popupGroupShortcuts },
-                    set = { viewModel.set(Pref.popupGroupShortcuts, it) },
-                    visibleIf = { it.popupStyle.canGroup },
-                    subtitle = R.string.popup_group_shortcuts_summary
-                ),
-                rows.choice(
-                    R.string.popup_style, com.supernova.launcher.ui.PopupMenuStyle.entries,
-                    { it.popupStyle }, { EnumLabels.of(it) },
-                    onPick = { viewModel.set(Pref.popupStyle, it) }
                 )
             )
         ),
