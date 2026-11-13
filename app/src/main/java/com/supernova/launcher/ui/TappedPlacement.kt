@@ -17,16 +17,16 @@ object TappedPlacement {
         add: (LauncherViewModel.FreeSpot) -> Unit
     ): Boolean {
         val context = viewModel.getApplication<android.app.Application>()
-        val spot = viewModel.freeSpotFrom(page, spanX, spanY)
-        if (spot == null) {
-            Toast.makeText(context, R.string.no_room_anywhere, Toast.LENGTH_SHORT).show()
-            return false
+        val locked = DesktopLock.refused(context, viewModel)
+        val spot = if (locked) null else viewModel.freeSpotFrom(page, spanX, spanY)
+        if (!locked && spot == null) Toast.makeText(context, R.string.no_room_anywhere, Toast.LENGTH_SHORT).show()
+        if (spot != null) {
+            add(spot)
+            if (spot.page != page) {
+                Toast.makeText(context, context.getString(R.string.added_to_page, spot.page + 1), Toast.LENGTH_SHORT)
+                    .show()
+            }
         }
-        add(spot)
-        if (spot.page != page) {
-            Toast.makeText(context, context.getString(R.string.added_to_page, spot.page + 1), Toast.LENGTH_SHORT)
-                .show()
-        }
-        return true
+        return spot != null
     }
 }

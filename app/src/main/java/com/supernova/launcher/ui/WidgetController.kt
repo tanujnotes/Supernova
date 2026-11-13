@@ -733,7 +733,7 @@ class WidgetController(
     }
 
     // Widget-featured custom card: bind into the card instead of a cell.
-    private fun onWidgetPickedForCard(info: AppWidgetProviderInfo, cardId: String) {
+    fun bindToCard(info: AppWidgetProviderInfo, cardId: String) {
         bind(info, Target.Card(cardId))
     }
 
@@ -771,12 +771,14 @@ class WidgetController(
         }
     }
 
-    fun showPickerForCard(cardId: String) {
+    // The picker over a card's editor: the pick goes back to the editor, which
+    // saves the card and then binds (bindToCard).
+    fun showPickerForCard(onPicked: (AppWidgetProviderInfo) -> Unit) {
         val prefs = viewModel.state.value.prefs
         val (cellWidth, cellHeight) = host.currentCellSizePx()
         WidgetPickerSheet.show(
             activity, cellWidth, cellHeight, prefs.gridCols, prefs.gridRows,
-            prefs = prefs, onPicked = { info -> onWidgetPickedForCard(info, cardId) },
+            prefs = prefs, onPicked = onPicked,
             icons = WidgetPickerIcons.of(viewModel.appCatalog())
         )
     }

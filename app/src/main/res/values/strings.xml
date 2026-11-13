@@ -727,7 +727,6 @@
 
     <string name="settings_section_search">Search</string>
     <string name="search_hint">Search</string>
-    <string name="clear_search">Clear search</string>
     <string name="search_web_provider">Web search engine</string>
     <string name="search_contacts">Search contacts</string>
     <string name="search_shortcuts">Search app shortcuts</string>
@@ -766,6 +765,8 @@
     <string name="chip_spotify">Spotify</string>
     <string name="chip_google">Google</string>
     <string name="search_with">Search with</string>
+    <string name="search_no_matches">No matches on this phone</string>
+    <string name="settings_search_no_matches">No settings match “%1$s”</string>
     <string name="search_bar_replace">Replace</string>
     <string name="search_bar_settings">Search bar settings</string>
     <string name="search_bar_restore">Use the built-in bar</string>
@@ -821,6 +822,7 @@
     <string name="undo_remove">Undo bar after removing</string>
     <string name="item_removed">Removed</string>
     <string name="undo">Undo</string>
+    <string name="card_deleted">Card deleted</string>
 
     <!-- Phase 6: popup menu -->
     <string name="popup_menu_rows">Popup menu items</string>

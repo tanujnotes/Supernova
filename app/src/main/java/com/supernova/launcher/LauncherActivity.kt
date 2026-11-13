@@ -617,6 +617,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // close the drawer. A launcher always consumes back itself.
         onBackPressedDispatcher.addCallback(this) {
             when {
+                // A widget's resize frame first: it sits on the page, under
+                // whatever else is open.
+                widgets.activeResizeFrame != null -> widgets.dismissResizeFrame()
                 ::editMode.isInitialized && editMode.isOpen -> editMode.exit()
                 desktopPreviews.isShowing -> desktopPreviews.dismiss()
                 ::search.isInitialized && search.isOpen -> search.hide()
@@ -1306,8 +1309,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             onAppLongPress = ::longPressNewApp,
             onWebSearch = ::launchWebSearch,
             onChipSearch = { chip, query ->
-                openUriBlind(chip.url(query))
-                hideDrawer()
+                if (openUri(chip.url(query), chip.fallbackUrl(query))) hideDrawer()
             },
             // Deferred: `search` is initialized right after the drawer, and
             // this only runs on a user tap.
@@ -1364,7 +1366,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             onLaunchShortcut = { view, shortcut ->
                 launchShortcut(shortcut.packageName, shortcut.shortcutId, shortcut.userSerial, view)
             },
-            onOpenUri = ::openUriBlind,
+            onOpenUri = ::openUri,
             onAppInfo = { app ->
                 val user = viewModel.appCatalog().userForSerial(app.userSerial)
                     ?: android.os.Process.myUserHandle()
@@ -1591,12 +1593,16 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         }
     }
 
-    // Search targets (web engines, chips) launch blind: no <queries> entry,
-    // no handler probing - a missing handler just no-ops.
-    private fun openUriBlind(uri: String) {
-        runLogged("open link") {
-            startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(uri)))
-        }
+    // Search targets (web engines, chips) launch without probing for a
+    // handler (no <queries> entry): a refusal tries the fallback page, and
+    // with nothing to open either the user is told. False then, so the search
+    // that asked stays open on its query.
+    private fun openUri(uri: String, fallback: String? = null): Boolean {
+        fun open(target: String) =
+            runCatching { startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(target))) }.isSuccess
+        val opened = open(uri) || (fallback != null && open(fallback))
+        if (!opened) Toast.makeText(this, R.string.launch_failed, Toast.LENGTH_SHORT).show()
+        return opened
     }
 
     private fun launchWebSearch(query: String) {
@@ -3354,7 +3360,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 Intent(Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=$packageName"))
             )
         }.onFailure {
-            openUriBlind("https://play.google.com/store/apps/details?id=$packageName")
+            openUri("https://play.google.com/store/apps/details?id=$packageName")
         }
     }
 
@@ -3588,6 +3594,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             scroll = prefs.folderScroll,
             surfaceColor = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
                 .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).surface,
+            textColor = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
+                .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).text,
             cornerRadiiDp = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
                 .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).cornerRadiiDp,
             showTitle = prefs.folderShowName,
@@ -3770,6 +3778,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             scroll = prefs.folderScroll,
             surfaceColor = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
                 .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).surface,
+            textColor = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
+                .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).text,
             cornerRadiiDp = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
                 .of(com.supernova.launcher.ui.theme.SurfaceId.FOLDER).cornerRadiiDp,
             showTitle = prefs.folderShowName,
@@ -4358,7 +4368,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // A long-press on a page in edit mode: the rest of the stream moves the
     // page, so the pager and the canvas let it go.
     private fun startPageDrag() {
-        if (desktopLocked || !pageDrag.start()) return
+        if (com.supernova.launcher.ui.DesktopLock.refused(this, viewModel) || !pageDrag.start()) return
         val now = android.os.SystemClock.uptimeMillis()
         val cancel = MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, 0f, 0f, 0)
         super.dispatchTouchEvent(cancel)
@@ -4402,9 +4412,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // one page is asked for; the model emission carrying it closes edit mode
     // on the new page and then runs the pick (observeState).
     private fun requestEditAddPage(then: (() -> Unit)?) {
-        if (pendingEditAddPage != null) return
         val page = workspaceAdapter.realPageCount
-        if (page >= LauncherRepository.MAX_PAGES) return
+        if (pendingEditAddPage != null || page >= LauncherRepository.MAX_PAGES ||
+            com.supernova.launcher.ui.DesktopLock.refused(this, viewModel)
+        ) {
+            return
+        }
         pendingEditAddPage = PendingEditAddPage(page, then)
         viewModel.addPage()
     }

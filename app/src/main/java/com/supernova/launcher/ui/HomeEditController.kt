@@ -155,6 +155,7 @@ class HomeEditController(
             inflated.editHomeMarker.setOnClickListener {
                 // The slot isn't a page to make home.
                 if (host.onAddPage()) return@setOnClickListener
+                if (DesktopLock.refused(activity, viewModel)) return@setOnClickListener
                 host.setDefaultPage(host.currentPage())
                 // Saved in the background, so the stored home page is still
                 // the old one here: the marker lights for the page just set,
@@ -162,6 +163,7 @@ class HomeEditController(
                 showMarker(isDefault = true)
             }
             inflated.editRemovePage.setOnClickListener {
+                if (DesktopLock.refused(activity, viewModel)) return@setOnClickListener
                 if (!host.onAddPage() && host.canRemoveCurrentPage()) host.removeCurrentPage()
             }
             inflated.editChipWallpapers.setOnClickListener {

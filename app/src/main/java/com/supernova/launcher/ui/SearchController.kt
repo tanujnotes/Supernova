@@ -43,7 +43,9 @@ class SearchController(
     private val scope: CoroutineScope,
     private val onLaunchApp: (View?, LaunchableApp) -> Unit,
     private val onLaunchShortcut: (View?, SearchResult.Shortcut) -> Unit,
-    private val onOpenUri: (String) -> Unit,
+    // A link and the page to try when no app takes it; false when nothing
+    // opened, and the search stays open.
+    private val onOpenUri: (String, String?) -> Boolean,
     // The top hit's gear: the system App info page for the app.
     private val onAppInfo: (LaunchableApp) -> Unit = {},
     // Folder search (D3): cheap name hits, match-time icons, and the opener.
@@ -126,6 +128,7 @@ class SearchController(
             input, ghost, results, cards, afterLaunch, dismiss,
             onEmptyQuery = { it.adapter.clear() }
         )
+        surface.adapter.showNoMatches = false
         drawerSurface = surface
         return object : DrawerSearch {
             override fun query(text: String) = onQueryChanged(surface, text)
@@ -200,7 +203,6 @@ class SearchController(
         suppressQueryEvents = true
         ui.searchInput.text?.clear()
         suppressQueryEvents = false
-        ui.searchClear.visibility = View.GONE
         ui.searchGhost.text = null
         ui.searchInput.clearFocus()
         imm()?.hideSoftInputFromWindow(ui.searchInput.windowToken, 0)
@@ -297,11 +299,9 @@ class SearchController(
         )
         overlaySurface = surface
 
-        ui.searchClear.setOnClickListener { ui.searchInput.text?.clear() }
         ui.searchInput.doAfterTextChanged { text ->
             if (suppressQueryEvents) return@doAfterTextChanged
             val query = text?.toString().orEmpty()
-            ui.searchClear.visibility = if (query.isEmpty()) View.GONE else View.VISIBLE
             onQueryChanged(surface, query)
         }
         ui.searchInput.setOnEditorActionListener { _, actionId, _ ->
@@ -485,8 +485,7 @@ class SearchController(
             }
             else -> {
                 val provider = viewModel.state.value.prefs.searchWebProvider
-                onOpenUri(provider.searchUrl(query))
-                surface.dismiss()
+                if (onOpenUri(provider.searchUrl(query), null)) surface.dismiss()
             }
         }
     }
@@ -521,12 +520,10 @@ class SearchController(
             surface.dismiss()
         },
         onChip = { chip, query ->
-            onOpenUri(chip.url(query))
-            surface.dismiss()
+            if (onOpenUri(chip.url(query), chip.fallbackUrl(query))) surface.dismiss()
         },
         onWeb = { web ->
-            onOpenUri(web.provider.searchUrl(web.query))
-            surface.dismiss()
+            if (onOpenUri(web.provider.searchUrl(web.query), null)) surface.dismiss()
         },
         onCopyCalculation = ::copyToClipboard,
         onFrequentApp = { view, app ->
@@ -627,7 +624,6 @@ class SearchController(
         ui.searchGhost.typeface = ui.searchInput.typeface
         val iconTint = ColorStateList.valueOf(bar.text)
         ImageViewCompat.setImageTintList(ui.searchIcon, iconTint)
-        ImageViewCompat.setImageTintList(ui.searchClear, iconTint)
         overlaySurface?.let { surface ->
             surface.appliedStyle = null
             styleSurface(surface)

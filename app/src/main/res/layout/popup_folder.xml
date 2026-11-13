@@ -42,7 +42,7 @@
                 android:paddingHorizontal="8dp"
                 android:paddingTop="6dp"
                 android:textColor="@color/textPrimary"
-                android:textColorHint="#80FFFFFF"
+                android:textColorHint="@color/textSecondary"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 

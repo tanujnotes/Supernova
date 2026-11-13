@@ -40,18 +40,27 @@ import java.util.UUID
 // and the two-step app -> shortcut list (the gesture LAUNCH_SHORTCUT
 // pattern). Only Save commits; back/dismiss changes nothing.
 //
-// The Widget choice hands off to the host (onPickWidget): the bind/configure
-// flow is LauncherActivity's, so the draft is saved first and the editor
-// closes; the feed shows the result.
+// The Widget choice opens the host's widget picker over the editor; only a
+// pick saves the draft and hands it to the bind/configure flow (the
+// launcher's), which closes the editor; a dismissed picker leaves the editor
+// as it was. Delete offers Undo.
 object CustomCardEditorSheet {
+
+    // The host's widget flow for a Widget-featured card: the picker, then
+    // the bind into a card id already saved.
+    class WidgetFlow(
+        val pick: (onPicked: (android.appwidget.AppWidgetProviderInfo) -> Unit) -> Unit,
+        val bind: (info: android.appwidget.AppWidgetProviderInfo, cardId: String) -> Unit
+    )
 
     fun show(
         activity: AppCompatActivity,
         viewModel: LauncherViewModel,
         existing: FeedCard?,
-        // Opens the widget picker for a Widget-featured card; the card is saved
-        // first so the bound widget attaches to a persisted id.
-        onPickWidget: ((cardId: String) -> Unit)? = null
+        widgetFlow: WidgetFlow? = null,
+        // What the Undo bar after Delete sits above (Settings' tab bar);
+        // null puts it at the screen's bottom.
+        undoAnchor: View? = null
     ) {
         val binding = SheetCardEditorBinding.inflate(LayoutInflater.from(activity))
         val dialog = com.supernova.launcher.ui.Sheets.open(activity)
@@ -160,8 +169,18 @@ object CustomCardEditorSheet {
                     1 -> pinned = !pinned
                     2 -> enabled = !enabled
                     3 -> {
-                        viewModel.removeFeedCard(existing!!.id)
+                        val removed = existing!!
+                        viewModel.removeFeedCard(removed.id)
                         dialog.dismiss()
+                        com.google.android.material.snackbar.Snackbar
+                            .make(
+                                activity.findViewById(android.R.id.content),
+                                R.string.card_deleted,
+                                com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+                            )
+                            .setAction(R.string.undo) { viewModel.upsertFeedCard(removed) }
+                            .apply { if (undoAnchor != null) anchorView = undoAnchor }
+                            .show()
                     }
                 }
                 true
@@ -200,7 +219,7 @@ object CustomCardEditorSheet {
             val options = buildList {
                 add(activity.getString(R.string.card_featured_app))
                 add(activity.getString(R.string.card_featured_shortcut))
-                if (onPickWidget != null) add(activity.getString(R.string.widget))
+                if (widgetFlow != null) add(activity.getString(R.string.widget))
             }.toTypedArray()
             MaterialAlertDialogBuilder(activity)
                 .setTitle(R.string.card_featured)
@@ -216,11 +235,12 @@ object CustomCardEditorSheet {
                             featuredTarget = target
                             refreshFeatured()
                         }
-                        2 -> {
-                            // Persist the draft, then bind a widget into it;
-                            // the editor closes and the feed shows the result.
+                        2 -> widgetFlow?.pick { info ->
+                            // Saved only once a widget is picked, so the bound
+                            // widget attaches to a persisted id; the editor
+                            // closes and the feed shows the result.
                             viewModel.upsertFeedCard(buildCard())
-                            onPickWidget?.invoke(cardId)
+                            widgetFlow.bind(info, cardId)
                             dialog.dismiss()
                         }
                     }

@@ -139,6 +139,9 @@ class SettingsActivity : AppCompatActivity() {
     // Header search over the whole catalogue; the index resolves lazily on
     // first activation so plain settings visits never build it.
     private var searchActive = false
+    // The Style tab was opened from its row in the Settings list, so Back
+    // returns there rather than closing Settings.
+    private var styleFromList = false
     private val searchIndex by lazy { SettingsSearchIndex.build(this, viewModel) }
 
     private val requestHomeRoleLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -303,13 +306,22 @@ class SettingsActivity : AppCompatActivity() {
             val parent = currentSection?.title?.let(subPageParents::get)
             when {
                 searchActive -> setSearchActive(false)
+                // The Style tab opened from its row in the list: back to that
+                // row, as from any section.
+                styleFromList && currentTab == Tab.STYLE && currentSection == null -> {
+                    selectTab(Tab.SETTINGS)
+                    scrollRootTo(R.string.style_tab)
+                }
                 // From a group's own page back to the groups.
                 onGroupsPage() && groupsPane?.handleBack() == true -> Unit
                 // Back onto the row that opened the page, not the top.
                 parent != null -> navigateTo(parent, currentSection?.title ?: 0, flash = false)
                 else -> {
+                    val left = currentSection?.title
                     currentSection = null
                     render()
+                    // The root list comes back on the section just left.
+                    left?.let(::scrollRootTo)
                 }
             }
         }
@@ -479,7 +491,8 @@ class SettingsActivity : AppCompatActivity() {
                 }
             },
             editCard = { card ->
-                com.supernova.launcher.ui.CustomCardEditorSheet.show(this, viewModel, card)
+                com.supernova.launcher.ui.CustomCardEditorSheet
+                    .show(this, viewModel, card, undoAnchor = binding.settingsTabs)
             },
             openCards = { navigateTo(R.string.settings_section_cards, 0) },
             openNotificationAccess = { com.supernova.launcher.ui.PermissionPrompts.openNotificationAccess(this) },
@@ -569,7 +582,6 @@ class SettingsActivity : AppCompatActivity() {
         // next try. Leaving search for good (back, a result) goes through
         // setSearchActive(false).
         binding.rootSearchInput.doAfterTextChanged { text ->
-            binding.rootSearchClear.isVisible = !text.isNullOrEmpty()
             val hasQuery = !text.isNullOrBlank()
             if (hasQuery || searchActive) {
                 searchActive = hasQuery
@@ -581,7 +593,6 @@ class SettingsActivity : AppCompatActivity() {
             getSystemService(InputMethodManager::class.java)?.hideSoftInputFromWindow(view.windowToken, 0)
             true
         }
-        binding.rootSearchClear.setOnClickListener { binding.rootSearchInput.text?.clear() }
         // The pill around the field (its magnifier, its ends) focuses it too.
         binding.rootSearchPill.setOnClickListener {
             binding.rootSearchInput.requestFocus()
@@ -681,7 +692,7 @@ class SettingsActivity : AppCompatActivity() {
         R.string.desktop_search_bar to R.string.settings_section_search,
         R.string.drawer_search_bar to R.string.settings_section_search,
         R.string.drawer_groups to R.string.settings_section_drawer
-    )
+    ) + cardSections.associateWith { R.string.settings_section_cards }
 
     // The Drawer groups page is the pane's, not the list's. A search from
     // its toolbar shows results in the list, and Back returns to the pane.
@@ -733,7 +744,7 @@ class SettingsActivity : AppCompatActivity() {
         binding.tabSettings.isSelected = currentTab == Tab.SETTINGS
         binding.tabStyle.isSelected = currentTab == Tab.STYLE
         val section = currentSection
-        backCallback.isEnabled = section != null || searchActive
+        backCallback.isEnabled = section != null || searchActive || (styleFromList && currentTab == Tab.STYLE)
         // The Cards page adds from a FAB.
         binding.cardsFab.visibility =
             if (section?.title == R.string.settings_section_cards && !searchActive && currentTab == Tab.SETTINGS) {
@@ -824,7 +835,11 @@ class SettingsActivity : AppCompatActivity() {
                             R.string.style_tab,
                             icon = R.drawable.ic_tab_style,
                             subtitle = { getString(R.string.section_style_subtitle) },
-                            onClick = { selectTab(Tab.STYLE) }
+                            onClick = {
+                                selectTab(Tab.STYLE)
+                                styleFromList = true
+                                render()
+                            }
                         )
                     )
                 }
@@ -949,7 +964,19 @@ class SettingsActivity : AppCompatActivity() {
         // searches from its toolbar.
         val input = if (currentSection == null) binding.rootSearchInput else binding.settingsSearchInput
         val query = input.text?.toString().orEmpty()
-        return searchIndex.search(query, viewModel.state.value.prefs, limit = 40).map { entry ->
+        val found = searchIndex.search(query, viewModel.state.value.prefs, limit = 40)
+        // A query that finds nothing says so, rather than leave a blank list.
+        if (found.isEmpty() && query.isNotBlank()) {
+            return listOf(
+                SettingItem.Row(
+                    0,
+                    onClick = {},
+                    titleText = getString(R.string.settings_search_no_matches, query.trim()),
+                    look = SettingItem.RowLook(tappable = false)
+                )
+            )
+        }
+        return found.map { entry ->
             // The entry's own name: a control found inside a row (the Label
             // card's size) is listed as itself and leads to that row.
             SettingItem.Row(
@@ -1009,7 +1036,18 @@ class SettingsActivity : AppCompatActivity() {
         if (section != 0) navigateTo(section, intent.getIntExtra(EXTRA_HIGHLIGHT_TITLE_RES, 0))
     }
 
+    // A row of the root list into view, a little below the top, unless it is
+    // already among the first rows the open header shows.
+    private fun scrollRootTo(@androidx.annotation.StringRes title: Int) {
+        val position = adapter.positionOf(title)
+        if (position < ROOT_ROWS_IN_VIEW) return
+        binding.settingsAppBar.setExpanded(false, false)
+        (binding.settingsRecycler.layoutManager as? LinearLayoutManager)
+            ?.scrollToPositionWithOffset(position, dp(72))
+    }
+
     private fun selectTab(tab: Tab) {
+        styleFromList = false
         if (tab == currentTab) return
         // A section's search lives in its toolbar, which the other tab
         // doesn't show, so it ends here. A query in the pill stays: both
@@ -2105,6 +2143,9 @@ class SettingsActivity : AppCompatActivity() {
 
         // A permission refusal quicker than this never showed a dialog.
         private const val NO_DIALOG_MS = 400L
+        // Rows the root list shows under its open header on a phone: one of
+        // these needs no scroll to come back to.
+        private const val ROOT_ROWS_IN_VIEW = 8
 
         // Deep link from the global search overlay's settings results.
         // The home search bar's "Search bar settings" row opens the bar's

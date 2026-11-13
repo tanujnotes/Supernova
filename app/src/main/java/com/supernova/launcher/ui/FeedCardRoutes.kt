@@ -28,7 +28,10 @@ class FeedCardRoutes(
     fun edit(card: FeedCard?) {
         CustomCardEditorSheet.show(
             activity, viewModel, card,
-            onPickWidget = { cardId -> widgets().showPickerForCard(cardId) }
+            widgetFlow = CustomCardEditorSheet.WidgetFlow(
+                pick = { onPicked -> widgets().showPickerForCard(onPicked) },
+                bind = { info, cardId -> widgets().bindToCard(info, cardId) }
+            )
         )
     }
 

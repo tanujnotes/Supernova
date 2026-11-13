@@ -162,6 +162,10 @@ class SearchResultsAdapter(
         cardTextColor = cardText
     }
 
+    // False for the app drawer's list: a query matching nothing there goes
+    // straight to "Search with".
+    var showNoMatches = true
+
     // oneRowApps: the app tiles are capped to a single grid row.
     fun submitResults(
         results: List<SearchResult>,
@@ -183,13 +187,19 @@ class SearchResultsAdapter(
             .filter { topHit == null || it.packageName != topHit.app.packageName }
             .mapTo(rows) { Row.Result(it) }
         results.filterIsInstance<SearchResult.Contact>().mapTo(rows) { Row.Result(it) }
+        // Nothing on the phone matched: said, above the ways to search on.
+        if (rows.isEmpty() && showNoMatches) rows.add(Row.Header(R.string.search_no_matches))
         // Every query ends with the providers; the web engine leads them.
         // With every provider off it's the web engine alone, as a plain row.
+        // Only Google has a mark among them, so another engine keeps its row.
+        val webRows = results.filterIsInstance<SearchResult.Web>().map { Row.Result(it) }
         if (SearchMarks.hasProviders(prefs)) {
+            val engine = prefs?.searchWebProvider ?: com.supernova.launcher.search.WebProvider.GOOGLE
+            if (engine != com.supernova.launcher.search.WebProvider.GOOGLE) rows.addAll(webRows)
             rows.add(Row.Header(R.string.search_with))
             rows.add(Row.ProviderIcons(query))
         } else {
-            results.filterIsInstance<SearchResult.Web>().mapTo(rows) { Row.Result(it) }
+            rows.addAll(webRows)
         }
         notifyRowsChanged()
     }

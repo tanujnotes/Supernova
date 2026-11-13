@@ -28,8 +28,9 @@ enum class WebProvider(val displayName: String) {
 }
 
 // One-tap alternate search targets rendered as a pill row under the web row.
-// Every URL is launched blind with ACTION_VIEW inside runCatching, so a
-// missing handler (no Play Store, no maps app) degrades to a no-op.
+// Every URL is launched with ACTION_VIEW; a missing handler (no Play Store, no
+// maps app) falls back to the chip's web page, and with nothing to open it
+// the user is told and the search stays.
 enum class SearchChip {
     PLAY_STORE,
     MAPS,
@@ -57,6 +58,14 @@ enum class SearchChip {
         WIKIPEDIA -> "https://en.wikipedia.org/wiki/Special:Search?search=${encodeQuery(query)}"
         SPOTIFY -> "https://open.spotify.com/search/${encodeQuery(query)}"
         GOOGLE -> "https://www.google.com/search?q=${encodeQuery(query)}"
+    }
+
+    // The web page for a chip whose own link needs an app (market:, geo:),
+    // opened when no app takes that link; null where url is a web page already.
+    fun fallbackUrl(query: String): String? = when (this) {
+        PLAY_STORE -> "https://play.google.com/store/search?q=${encodeQuery(query)}&c=apps"
+        MAPS -> "https://www.google.com/maps/search/?api=1&query=${encodeQuery(query)}"
+        else -> null
     }
 
     // The chip row is user-ordered, so the pref keeps a list rather than a set.

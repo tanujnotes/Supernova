@@ -662,7 +662,7 @@ class LiveDragController(
     // preview as the picture. Its spans are the provider's defaults, the same
     // ones a tap-to-add would use.
     fun armWidget(info: AppWidgetProviderInfo, preview: View): Boolean {
-        if (desktopLocked) return false
+        if (DesktopLock.refused(context, viewModel)) return false
         val prefs = viewModel.state.value.prefs
         val (cellWidth, cellHeight) = host.currentCellSizePx()
         val spans = WidgetSizing.defaultSpans(context, info, cellWidth, cellHeight, prefs.gridCols, prefs.gridRows)
@@ -673,7 +673,7 @@ class LiveDragController(
     // A shortcut row long-pressed in the add sheet: lifted as its icon, an
     // icon-sized drop. What it becomes is only known once its flow has run.
     fun armShortcut(target: ShortcutTarget, icon: View): Boolean {
-        if (desktopLocked) return false
+        if (DesktopLock.refused(context, viewModel)) return false
         arm(icon, DragPayload.NewShortcut(target), menu = null)
         return true
     }

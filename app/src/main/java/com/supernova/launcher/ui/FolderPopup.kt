@@ -37,6 +37,9 @@ class FolderPopup(private val context: Context) {
         scroll: FolderScroll = FolderScroll.VERTICAL,
         // Resolved FOLDER surface; null keeps the drawable's default color.
         surfaceColor: Int? = null,
+        // The resolved FOLDER text, for the name, its hint, the count and the
+        // menu button; null keeps the theme's text color.
+        textColor: Int? = null,
         // Style-engine radii/cuts for the card, in dp; null keeps bg_folder's
         // built-in 24dp round corners.
         cornerRadiiDp: FloatArray? = null,
@@ -89,6 +92,13 @@ class FolderPopup(private val context: Context) {
                 (binding.folderCard.background?.mutate() as? GradientDrawable)?.setColor(color)
             }
         }
+        // The title row reads on the card's own color: a fixed hint was white
+        // on the light theme's white card, so an unnamed folder showed nothing.
+        val text = textColor ?: context.getColor(com.supernova.launcher.R.color.textPrimary)
+        binding.folderTitle.setTextColor(text)
+        binding.folderTitle.setHintTextColor(androidx.core.graphics.ColorUtils.setAlphaComponent(text, HINT_ALPHA))
+        binding.folderCount.setTextColor(androidx.core.graphics.ColorUtils.setAlphaComponent(text, COUNT_ALPHA))
+        binding.folderEditButton.imageTintList = android.content.res.ColorStateList.valueOf(text)
         binding.folderTitle.visibility = if (showTitle) View.VISIBLE else View.GONE
         if (!titleEditable) {
             binding.folderTitle.apply {
@@ -371,6 +381,9 @@ class FolderPopup(private val context: Context) {
     }
 
     companion object {
+        private const val HINT_ALPHA = 0x80
+        private const val COUNT_ALPHA = 0xB3
+
         // A member's icon box grows with the folder's icon size
         // (FolderMemberAdapter), so its cell grows with it, as the drawer's
         // automatic cell does; a smaller icon keeps the base cell for its

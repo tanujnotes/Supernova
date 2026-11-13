@@ -51,6 +51,8 @@ class ShortcutPlacer(
     // launcher action placed as an icon, or the any-activity picker. cell:
     // where a dragged row was dropped; null for a tap.
     fun pick(target: ShortcutTarget, cell: DropCell? = null) {
+        // Before an app's own shortcut screen, not after it.
+        if (DesktopLock.refused(activity, viewModel())) return
         when (target) {
             is ShortcutTarget.Create -> {
                 val intent = Intent(Intent.ACTION_CREATE_SHORTCUT)
