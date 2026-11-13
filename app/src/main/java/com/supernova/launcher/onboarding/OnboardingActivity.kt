@@ -62,6 +62,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.min
@@ -120,7 +121,18 @@ class OnboardingActivity : AppCompatActivity() {
             then?.invoke()
         }
 
-    private val prefs: LauncherPrefs get() = viewModel.state.value.prefs
+    // A choice just tapped, as the settings will be once its write lands:
+    // the tiles and the preview show it at once rather than a round trip
+    // through the store later.
+    private var pendingPrefs: LauncherPrefs? = null
+    private val clearPending = Runnable {
+        pendingPrefs = null
+        refreshChoices(prefs)
+        rebindPreview()
+    }
+
+    // The settings as the screen shows them.
+    private val prefs: LauncherPrefs get() = pendingPrefs ?: viewModel.state.value.prefs
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -161,6 +173,10 @@ class OnboardingActivity : AppCompatActivity() {
             seedJob = lifecycleScope.launch {
                 withContext(NonCancellable) { viewModel.seedDefaultLayout() }
             }
+            // The first run starts on the wallpaper's colours, so that is the
+            // colour step's pick until another is tapped. Once per run: a
+            // rotation keeps whatever was picked since.
+            if (savedInstanceState == null) choose(OnboardingChoices.wallpaperWrites(wallpaperColors?.first, accents))
         }
         // The preview and the chosen tiles follow the settings and the layout
         // as they change.
@@ -170,11 +186,17 @@ class OnboardingActivity : AppCompatActivity() {
                     .filter { it.loaded }
                     .map { Triple(it.prefs, it.model, it.iconGeneration) }
                     .distinctUntilChanged()
-                    .collectLatest { (prefs, model, _) ->
+                    .collectLatest { (stored, model, _) ->
+                        // The tapped choice has landed.
+                        if (stored == pendingPrefs) {
+                            pendingPrefs = null
+                            binding.root.removeCallbacks(clearPending)
+                        }
+                        refreshChoices(prefs)
                         val icons = withContext(Dispatchers.Default) { iconsFor(model) }
                         lastPreview = Triple(prefs, model, icons)
-                        binding.onboardingPreview.bind(prefs, model, icons)
-                        refreshChoices(prefs)
+                        binding.onboardingPreview.bind(prefs, model, icons + drawnIcons(prefs).orEmpty())
+                        if (prefetchStep != step) startPrefetch()
                     }
             }
         }
@@ -287,7 +309,8 @@ class OnboardingActivity : AppCompatActivity() {
     // launcher's own so the home screen's views keep theirs.
     private fun iconsFor(model: LauncherModel): Map<String, Drawable> {
         val catalog = viewModel.appCatalog()
-        return model.items
+        val components = HashMap<String, String>()
+        val icons = model.items
             .filter { it.container == ContainerType.DOCK || it.container == ContainerType.WORKSPACE && it.page == 0 }
             .filter { it.itemType == ItemType.APP || it.itemType == ItemType.SHORTCUT }
             .mapNotNull { item ->
@@ -295,10 +318,77 @@ class OnboardingActivity : AppCompatActivity() {
                 val cls = item.className.takeIf { item.itemType == ItemType.APP }
                 val app = catalog.mainActivityFor(pkg, item.userSerial, cls)
                     ?: catalog.mainActivityFor(pkg, item.userSerial)
-                val icon = app?.let(catalog::iconFor) ?: return@mapNotNull null
+                    ?: return@mapNotNull null
+                // An icon edited in Settings is the launcher's to draw.
+                val edited = catalog.overrideFor(app.userSerial, app.packageName, app.className) != null
+                if (app.userSerial == 0L && !edited) components[item.id] = "${app.packageName}/${app.className}"
+                val icon = catalog.iconFor(app) ?: return@mapNotNull null
                 item.id to (icon.constantState?.newDrawable(resources)?.mutate() ?: icon)
             }
             .toMap()
+        previewComponents = components
+        return icons
+    }
+
+    // The preview's items' launcher components (the primary profile's), by
+    // item id, as the last pass found them: what PreviewIcons draws (an
+    // icon edited in Settings stays out).
+    @Volatile private var previewComponents: Map<String, String> = emptyMap()
+
+    private val previewIcons by lazy {
+        PreviewIcons(this) { component ->
+            ComponentName.unflattenFromString(component)?.let { name ->
+                runCatching { packageManager.getActivityIcon(name) }.getOrNull()
+            }
+        }
+    }
+    private var prefetchJob: Job? = null
+    private var prefetchStep = -1
+
+    // The preview's icons as PreviewIcons drew them for these settings, by
+    // item id; null while any is still to draw.
+    private fun drawnIcons(prefs: LauncherPrefs): Map<String, Drawable>? {
+        val components = previewComponents
+        val byComponent = previewIcons.cached(components.values, prefs) ?: return null
+        return components.mapNotNull { (id, component) -> byComponent[component]?.let { id to it } }.toMap()
+    }
+
+    // Draws every option of the step ahead of its tap, one after another.
+    private fun startPrefetch() {
+        prefetchJob?.cancel()
+        prefetchStep = step
+        val components = previewComponents.values.toList()
+        if (components.isEmpty()) return
+        val base = prefs
+        val night = night()
+        val options = when (step) {
+            STEP_LOOK -> OnboardingChoices.Look.entries.map { it.writes(base, profile, night) }
+            STEP_SHAPE -> OnboardingChoices.SHAPES.map { OnboardingChoices.shapeWrites(it) }
+            STEP_FINISH -> OnboardingChoices.Finish.entries.map { it.writes(base, night) }
+            else -> return
+        }.map { com.supernova.launcher.data.LauncherPreferences.applied(base, it) }
+        prefetchJob = lifecycleScope.launch(Dispatchers.Default) {
+            for (option in options) previewIcons.render(components, option) { isActive }
+        }
+    }
+
+    // A tap whose icons aren't drawn yet: those first, then the rest.
+    private fun drawNow(expected: LauncherPrefs) {
+        prefetchJob?.cancel()
+        val components = previewComponents.values.toList()
+        if (components.isEmpty() || !previewIcons.handles(expected)) return
+        prefetchJob = lifecycleScope.launch {
+            withContext(Dispatchers.Default) { previewIcons.render(components, expected) { isActive } }
+            if (prefs == expected) rebindPreview()
+            startPrefetch()
+        }
+    }
+
+    // The preview again with what is known now: the settings shown, and
+    // the drawn icons over the launcher's.
+    private fun rebindPreview() {
+        val (_, model, icons) = lastPreview ?: return
+        binding.onboardingPreview.bind(prefs, model, icons + drawnIcons(prefs).orEmpty())
     }
 
     private fun goTo(target: Int) {
@@ -338,6 +428,7 @@ class OnboardingActivity : AppCompatActivity() {
             }
         }
         buildStep()
+        startPrefetch()
         refreshChoices(prefs)
         applyCamera(animate)
         if (animate) {
@@ -391,6 +482,19 @@ class OnboardingActivity : AppCompatActivity() {
                 it.spec == Pref.gridRows && it.value != current.gridRows
         }
         viewModel.setAll(writes, replant = gridMoves && !isRerun)
+        // Shown now: the chosen tile, and the preview with the icons it has
+        // (re-rendered ones follow as they come). Should the write not come
+        // back as worked out, the stored settings take over after a moment.
+        val expected = com.supernova.launcher.data.LauncherPreferences.applied(current, writes)
+        pendingPrefs = expected
+        binding.root.removeCallbacks(clearPending)
+        binding.root.postDelayed(clearPending, PENDING_MS)
+        refreshChoices(expected)
+        val drawn = drawnIcons(expected)
+        lastPreview?.let { (_, model, icons) ->
+            binding.onboardingPreview.bind(expected, model, icons + drawn.orEmpty())
+        }
+        if (drawn == null) drawNow(expected)
     }
 
     // Look ---------------------------------------------------------------
@@ -423,7 +527,7 @@ class OnboardingActivity : AppCompatActivity() {
             ))
             tiles.tile(getString(look.labelRes), holder, LOOK_TILE_DP, { !shuffled && look.matches(it, profile) }) {
                 shuffled = false
-                choose(look.writes(profile))
+                choose(look.writes(prefs, profile, night()))
             }
         }
         val column = tiles.vertical()
@@ -431,7 +535,7 @@ class OnboardingActivity : AppCompatActivity() {
         val label = getString(R.string.onboarding_shuffle)
         val shuffle = tiles.tile(label, null, SHUFFLE_TILE_DP, { shuffled }, labelSp = SHUFFLE_SP) {
             shuffled = true
-            choose(OnboardingChoices.shuffleWrites(profile, accents, Random.Default))
+            choose(OnboardingChoices.shuffleWrites(prefs, profile, night(), accents, Random.Default))
         }
         column.addView(shuffle, tiles.matchWrap().apply { topMargin = dp(OnboardingTiles.GAP_DP) })
         return column
@@ -545,7 +649,7 @@ class OnboardingActivity : AppCompatActivity() {
             holder.addView(plate, FrameLayout.LayoutParams(dp(FINISH_PLATE_DP), dp(FINISH_PLATE_DP), Gravity.CENTER))
             val isChosen = { prefs: LauncherPrefs -> OnboardingChoices.Finish.of(prefs) == finish }
             tiles.tile(getString(finish.labelRes), holder, FINISH_TILE_DP, isChosen) {
-                choose(finish.writes())
+                choose(finish.writes(prefs, night()))
             }
         }
         return tiles.grid(FINISH_COLUMNS, views)
@@ -680,6 +784,8 @@ class OnboardingActivity : AppCompatActivity() {
         }
     }
 
+    private fun night(): Boolean = ThemeEngine.isNight(this, prefs)
+
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).roundToInt()
 
     companion object {
@@ -703,6 +809,7 @@ class OnboardingActivity : AppCompatActivity() {
         private val CLOSE_STEPS = setOf(STEP_COLOR, STEP_SHAPE, STEP_FINISH)
 
         private const val CAMERA_MS = 450L
+        private const val PENDING_MS = 2000L
         private const val FADE_MS = 200L
         private const val FIT_MARGIN = 0.94f
 

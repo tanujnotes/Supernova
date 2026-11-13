@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.mutablePreferencesOf
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -41,6 +42,16 @@ class LauncherPreferences(private val context: Context) {
 
         // The read-side twin: what the store holds, on LauncherPrefs' defaults.
         fun decode(values: Preferences): LauncherPrefs = PrefStoreFormat.read(values)
+
+        // What the settings come to once `writes` land, worked out the way
+        // the store reads them back, so it compares equal to what the store
+        // then holds.
+        fun applied(prefs: LauncherPrefs, writes: List<PrefWrite<*>>): LauncherPrefs {
+            val target = mutablePreferencesOf()
+            writeAll(target, prefs)
+            writes.forEach { it.into(target) }
+            return decode(target)
+        }
 
         // The stored drawer groups once a smart-folder regeneration lands:
         // the user's own groups as they were, plus the generated folders.

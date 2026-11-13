@@ -9,8 +9,14 @@ import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.Pref
 import com.supernova.launcher.data.PrefWrite
 import com.supernova.launcher.ui.LabelFont
+import com.supernova.launcher.ui.SearchBarConfig
 import com.supernova.launcher.ui.theme.AccentColor
+import com.supernova.launcher.ui.theme.ColorSpec
+import com.supernova.launcher.ui.theme.PaletteRole
 import com.supernova.launcher.ui.theme.PaletteSourceMode
+import com.supernova.launcher.ui.theme.StyleConfig
+import com.supernova.launcher.ui.theme.SurfaceId
+import com.supernova.launcher.ui.theme.SurfaceStyle
 import kotlin.math.abs
 import kotlin.random.Random
 
@@ -37,14 +43,56 @@ internal object OnboardingChoices {
         CLEAR(R.string.icon_glass_clear, themed = false, glass = IconGlass.CLEAR),
         SMOKED(R.string.icon_glass_smoked, themed = false, glass = IconGlass.SMOKED);
 
-        fun writes(): List<PrefWrite<*>> = listOf(
-            PrefWrite(Pref.themedIcons, themed),
-            PrefWrite(Pref.iconGlass, glass)
-        )
+        // The icons, and both search bars - the home screen's and the
+        // drawer's - in the same finish: the same glass, or tinted from the
+        // palette as the themed icons are, in the launcher's dark or light
+        // as it is now.
+        fun writes(prefs: LauncherPrefs, night: Boolean): List<PrefWrite<*>> {
+            val bars = SearchBarConfig.decode(prefs.searchBarConfig)
+            val glassed = bars.copy(
+                desktop = bars.desktop.copy(glass = glass.name),
+                drawer = bars.drawer.copy(glass = glass.name)
+            )
+            var styles = StyleConfig.decode(prefs.styleConfig)
+            for (bar in BAR_SURFACES) {
+                styles = when {
+                    themed -> styles.with(bar, tintedBar(night))
+                    // Only the tint this step put there comes off; a style
+                    // set in the Style tab stays.
+                    styles.styleFor(bar) in TINTED_BARS -> styles.with(bar, SurfaceStyle())
+                    else -> styles
+                }
+            }
+            return listOf(
+                PrefWrite(Pref.themedIcons, themed),
+                PrefWrite(Pref.iconGlass, glass),
+                PrefWrite(Pref.searchBarConfig, glassed.encode()),
+                PrefWrite(Pref.styleConfig, styles.encode())
+            )
+        }
 
         companion object {
             fun of(prefs: LauncherPrefs): Finish? =
                 entries.firstOrNull { it.glass == prefs.iconGlass && it.themed == prefs.themedIcons }
+
+            private val BAR_SURFACES = listOf(SurfaceId.SEARCH_BAR, SurfaceId.DRAWER_SEARCH_BAR)
+
+            // A search bar tinted as themed icons are (LauncherViewModel's
+            // themedIconColors): the palette's neutral plate with its glyph
+            // tone for the text and icons, dark at night and light by day.
+            private fun tintedBar(night: Boolean): SurfaceStyle {
+                val ink = ColorSpec(PaletteRole.PRIMARY, if (night) NIGHT_INK else DAY_INK)
+                return SurfaceStyle(
+                    surface = ColorSpec(PaletteRole.NEUTRAL, if (night) NIGHT_PLATE else DAY_PLATE),
+                    text = ink,
+                    accent = ink
+                )
+            }
+            private const val DAY_PLATE = 90
+            private const val NIGHT_PLATE = 20
+            private const val DAY_INK = 40
+            private const val NIGHT_INK = 80
+            private val TINTED_BARS = listOf(tintedBar(night = false), tintedBar(night = true))
         }
     }
 
@@ -123,7 +171,8 @@ internal object OnboardingChoices {
             Names.SERIF
         );
 
-        fun writes(profile: DeviceProfile): List<PrefWrite<*>> = compose(profile, shape, finish, density, names)
+        fun writes(prefs: LauncherPrefs, profile: DeviceProfile, night: Boolean): List<PrefWrite<*>> =
+            compose(prefs, profile, night, shape, finish, density, names)
 
         fun matches(prefs: LauncherPrefs, profile: DeviceProfile): Boolean =
             prefs.iconShape == shape && Finish.of(prefs) == finish && Density.of(prefs, profile) == density &&
@@ -137,10 +186,16 @@ internal object OnboardingChoices {
 
     // A look nobody picked: any shape but the system's, and any of each
     // other step's choices, colour included.
-    fun shuffleWrites(profile: DeviceProfile, accents: Map<AccentColor, Int>, random: Random): List<PrefWrite<*>> {
+    fun shuffleWrites(
+        prefs: LauncherPrefs,
+        profile: DeviceProfile,
+        night: Boolean,
+        accents: Map<AccentColor, Int>,
+        random: Random
+    ): List<PrefWrite<*>> {
         val accent = AccentColor.entries.random(random)
         return compose(
-            profile,
+            prefs, profile, night,
             SHAPES.drop(1).random(random),
             Finish.entries.random(random),
             Density.entries.random(random),
@@ -148,13 +203,16 @@ internal object OnboardingChoices {
         ) + accentWrites(accent, accents.getValue(accent))
     }
 
+    @Suppress("LongParameterList")
     private fun compose(
+        prefs: LauncherPrefs,
         profile: DeviceProfile,
+        night: Boolean,
         shape: IconShape,
         finish: Finish,
         density: Density,
         names: Names
-    ): List<PrefWrite<*>> = shapeWrites(shape) + finish.writes() + density.writes(profile) + names.writes()
+    ): List<PrefWrite<*>> = shapeWrites(shape) + finish.writes(prefs, night) + density.writes(profile) + names.writes()
 
     // A colour: the accent, and the palette the launcher's surfaces and
     // tinted icons are drawn from, seeded with it.
