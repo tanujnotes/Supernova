@@ -75,6 +75,8 @@ object SettingsCatalogue {
         val editGesture: (Gesture) -> Unit = {},
         val pickLockMethod: () -> Unit = {},
         val editHiddenApps: () -> Unit = {},
+        val editHomeApps: () -> Unit = {},
+        val editDrawerGroups: () -> Unit = {},
         val editSearchChips: () -> Unit = {},
         val pickDrawerGrid: () -> Unit = {},
         val editFolderIcon: () -> Unit = {},
@@ -301,6 +303,11 @@ object SettingsCatalogue {
                     R.string.desktop_grid,
                     subtitle = { context.getString(R.string.grid_value, it.gridRows, it.gridCols) },
                     onClick = actions.pickDesktopGrid
+                ),
+                SettingItem.Row(
+                    R.string.home_screen_apps,
+                    subtitle = { context.getString(R.string.home_screen_apps_summary) },
+                    onClick = actions.editHomeApps
                 ),
                 rows.choice(
                     R.string.wallpaper_scroll, com.supernova.launcher.ui.WallpaperScrollMode.entries,

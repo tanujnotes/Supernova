@@ -12,6 +12,7 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ListView
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.widget.doAfterTextChanged
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -28,7 +29,8 @@ class AppChecklist<T>(
     private val apps: List<T>,
     private val checked: BooleanArray,
     private val iconFor: (T) -> Drawable?,
-    private val labelOf: (T) -> String
+    private val labelOf: (T) -> String,
+    private val chooseAll: Boolean = false
 ) {
     private val inFolder = apps.indices.filter { checked[it] }
     private val others = apps.indices.filterNot { checked[it] }
@@ -58,6 +60,19 @@ class AppChecklist<T>(
                 bottomMargin = context.dp(BELOW_FIELD_DP)
             }
         )
+        if (chooseAll) {
+            addView(TextView(context).apply {
+                text = context.getString(R.string.choose_all)
+                gravity = android.view.Gravity.CENTER_VERTICAL or android.view.Gravity.END
+                isClickable = true
+                isFocusable = true
+                setPadding(0, context.dp(6), context.dp(FIELD_PAD_H_DP), context.dp(10))
+                setOnClickListener {
+                    checked.fill(true)
+                    adapter.notifyDataSetChanged()
+                }
+            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
         val maxHeight = (context.resources.displayMetrics.heightPixels * LIST_SHARE).toInt()
         val list = BoundedListView(context, maxHeight).apply {
             adapter = this@AppChecklist.adapter

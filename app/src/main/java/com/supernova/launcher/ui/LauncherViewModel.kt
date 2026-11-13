@@ -628,6 +628,20 @@ class LauncherViewModel(
         }
     }
 
+    fun homeAppKeys(): Set<String> = state.value.model.items.asSequence()
+        .filter { it.itemType == ItemType.APP && it.container != ContainerType.FOLDER }
+        .mapNotNull { item ->
+            val packageName = item.packageName ?: return@mapNotNull null
+            val className = item.className ?: return@mapNotNull null
+            "${item.userSerial}/$packageName/$className"
+        }
+        .toSet()
+
+    fun setHomeApps(available: List<LaunchableApp>, selected: List<LaunchableApp>) {
+        val prefs = state.value.prefs
+        persist { repository.setHomeApps(available, selected, prefs.gridCols, prefs.gridRows) }
+    }
+
     fun addShortcutToWorkspace(
         app: LaunchableApp,
         shortcutId: String,

@@ -217,6 +217,33 @@ object WorkspaceGeometry {
         return null
     }
 
+    fun freeCellsByPage(
+        model: LauncherModel,
+        pages: IntRange,
+        cols: Int,
+        rows: Int
+    ): Map<Int, List<Pair<Int, Int>>> {
+        val fitted = fitted(model, cols, rows)
+        val occupied = pages.associateWith { mutableListOf<CellRect>() }
+        fitted.items.forEach { item ->
+            if (item.container != ContainerType.WORKSPACE || (allowWidgetOverlap && item.itemType == ItemType.WIDGET)) {
+                return@forEach
+            }
+            occupied[item.page]?.add(itemRect(item, cols, rows))
+        }
+        return pages.associateWith { page ->
+            val pageItems = occupied.getValue(page)
+            buildList {
+                for (row in 0 until rows) {
+                    for (col in 0 until cols) {
+                        val candidate = cellRect(col, row, 1, 1)
+                        if (pageItems.none { overlaps(candidate, it) }) add(col to row)
+                    }
+                }
+            }
+        }
+    }
+
     // Free cell whose centre lies closest to a point (in cell units).
     fun nearestFreeCell(
         model: LauncherModel,

@@ -11,8 +11,10 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -129,6 +131,25 @@ class LauncherRepository(private val context: Context) {
                 return@mutateFitted current.copy(items = current.items + item)
             }
             current
+        }
+    }
+
+    suspend fun setHomeApps(
+        available: List<LaunchableApp>,
+        selected: List<LaunchableApp>,
+        cols: Int,
+        rows: Int
+    ) {
+        lock.withLock {
+            val raw = context.supernovaStore.data.first()[StoreKeys.model]
+            val encoded = withContext(Dispatchers.Default) {
+                val current = decode(raw) ?: return@withContext null
+                val shown = WorkspaceGeometry.fitted(current, cols, rows)
+                val next = withHomeApps(shown, available, selected, cols, rows, ::id)
+                if (next == shown) return@withContext null
+                json.encodeToString(next)
+            } ?: return
+            context.supernovaStore.edit { prefs -> prefs[StoreKeys.model] = encoded }
         }
     }
 
@@ -1148,6 +1169,81 @@ class LauncherRepository(private val context: Context) {
         // screen's view model has its own repository, and each read-modify-
         // write has to see the others' writes or one of them is lost.
         private val lock = Mutex()
+
+        internal fun withHomeApps(
+            original: LauncherModel,
+            available: List<LaunchableApp>,
+            selected: List<LaunchableApp>,
+            cols: Int,
+            rows: Int,
+            createId: () -> String = { UUID.randomUUID().toString() }
+        ): LauncherModel {
+            fun appKey(app: LaunchableApp) = "${app.userSerial}/${app.packageName}/${app.className}"
+            fun itemKey(item: LauncherItem): String? {
+                val packageName = item.packageName ?: return null
+                val className = item.className ?: return null
+                return "${item.userSerial}/$packageName/$className"
+            }
+
+            val availableKeys = available.mapTo(mutableSetOf(), ::appKey)
+            val selectedByKey = selected.associateBy(::appKey)
+            val items = original.items.filterNot { item ->
+                item.itemType == ItemType.APP && item.container != ContainerType.FOLDER &&
+                    itemKey(item)?.let { it in availableKeys && it !in selectedByKey } == true
+            }.toMutableList()
+            val present = items.asSequence()
+                .filter { it.itemType == ItemType.APP && it.container != ContainerType.FOLDER }
+                .mapNotNull(::itemKey)
+                .toMutableSet()
+            val lastWorkspacePage = items.asSequence()
+                .filter { it.container == ContainerType.WORKSPACE }
+                .maxOfOrNull { it.page } ?: -1
+            var pageCount = maxOf(original.pageCount, lastWorkspacePage + 1, 1)
+            val layout = original.copy(items = items)
+            val freeCells = WorkspaceGeometry.freeCellsByPage(layout, 0 until pageCount, cols, rows)
+                .mapValuesTo(mutableMapOf()) { it.value }
+            val nextCell = mutableMapOf<Int, Int>()
+            var allocationPage = 0
+
+            selectedByKey.forEach { (key, app) ->
+                if (!present.add(key)) return@forEach
+                var location: Pair<Int, Pair<Int, Int>>? = null
+                while (allocationPage < pageCount && location == null) {
+                    val cells = freeCells.getValue(allocationPage)
+                    val index = nextCell[allocationPage] ?: 0
+                    if (index < cells.size) {
+                        location = allocationPage to cells[index]
+                        nextCell[allocationPage] = index + 1
+                    } else {
+                        allocationPage++
+                    }
+                }
+                val (targetPage, cell) = location ?: run {
+                    val newPage = pageCount++
+                    freeCells[newPage] = buildList {
+                        for (row in 0 until rows) {
+                            for (col in 0 until cols) add(col to row)
+                        }
+                    }
+                    nextCell[newPage] = 1
+                    allocationPage = newPage
+                    newPage to (0 to 0)
+                }
+                items += LauncherItem(
+                    id = createId(),
+                    itemType = ItemType.APP,
+                    container = ContainerType.WORKSPACE,
+                    page = targetPage,
+                    cellX = cell.first,
+                    cellY = cell.second,
+                    label = app.label,
+                    packageName = app.packageName,
+                    className = app.className,
+                    userSerial = app.userSerial
+                )
+            }
+            return original.copy(items = items, pageCount = pageCount)
+        }
 
         internal fun emptyPagesToRemove(model: LauncherModel, keep: Set<Int>): List<Int> {
             val occupied = model.items.filter { it.container == ContainerType.WORKSPACE }.map { it.page }.toSet()

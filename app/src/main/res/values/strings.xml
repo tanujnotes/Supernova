@@ -112,6 +112,8 @@
     <string name="drawer_groups">Drawer groups</string>
     <string name="drawer_enabled">Show app drawer</string>
     <string name="drawer_enabled_summary">Disable to remove the app drawer from the home screen</string>
+    <string name="home_screen_apps">Home screen apps</string>
+    <string name="home_screen_apps_summary">Choose which apps appear on the home screen</string>
     <string name="drawer_style">Drawer style</string>
     <string name="style_vertical_grid">Vertical grid</string>
     <string name="style_paged_grid">Horizontal pages</string>
@@ -168,6 +170,7 @@
     <string name="hide_label">Hide label</string>
     <string name="change_icon">Change icon</string>
     <string name="select_apps">Select apps</string>
+    <string name="choose_all">Choose all</string>
     <string name="sort">Sort</string>
     <string name="reshape">Reshape</string>
     <string name="reshape_summary">Fit the icon to the icon shape</string>

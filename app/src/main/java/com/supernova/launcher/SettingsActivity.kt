@@ -431,6 +431,7 @@ class SettingsActivity : AppCompatActivity() {
             editGesture = ::showActionPicker,
             pickLockMethod = ::showLockMethodPicker,
             editHiddenApps = ::showHiddenAppsPicker,
+            editHomeApps = ::showHomeAppsPicker,
             exportBackup = backup::pickExportFile,
             importBackup = backup::pickImportFile,
             shareBackup = ::shareBackup,
@@ -1743,11 +1744,17 @@ class SettingsActivity : AppCompatActivity() {
         title: CharSequence,
         apps: List<LaunchableApp>,
         checked: (LaunchableApp) -> Boolean,
+        chooseAll: Boolean = false,
         onSave: (Map<LaunchableApp, Boolean>) -> Unit
     ) {
         val states = apps.map(checked).toBooleanArray()
         val checklist = com.supernova.launcher.ui.AppChecklist(
-            this, apps, states.copyOf(), viewModel.appCatalog()::iconFor, LaunchableApp::label
+            this,
+            apps,
+            states.copyOf(),
+            viewModel.appCatalog()::iconFor,
+            LaunchableApp::label,
+            chooseAll
         )
         checklist.show(title) { ticks ->
             val changes = apps.indices.filter { ticks[it] != states[it] }.associate { apps[it] to ticks[it] }
@@ -1761,6 +1768,25 @@ class SettingsActivity : AppCompatActivity() {
             apps = viewModel.state.value.apps,
             checked = { viewModel.isAppHidden(it) },
             onSave = { changes -> changes.forEach { (app, hidden) -> viewModel.setAppHidden(app, hidden) } }
+        )
+    }
+
+    private fun showHomeAppsPicker() {
+        val apps = viewModel.appsForPicking()
+        val availableKeys = apps.mapTo(mutableSetOf(), viewModel::hiddenKey)
+        val selected = viewModel.homeAppKeys().intersect(availableKeys).toMutableSet()
+        showAppChecklist(
+            title = getString(R.string.home_screen_apps),
+            apps = apps,
+            checked = { viewModel.hiddenKey(it) in selected },
+            chooseAll = true,
+            onSave = { changes ->
+                changes.forEach { (app, checked) ->
+                    val key = viewModel.hiddenKey(app)
+                    if (checked) selected.add(key) else selected.remove(key)
+                }
+                viewModel.setHomeApps(apps, apps.filter { viewModel.hiddenKey(it) in selected })
+            }
         )
     }
 
