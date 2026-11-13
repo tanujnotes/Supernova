@@ -8,6 +8,7 @@ import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Rect
+import android.os.Bundle
 import android.util.SizeF
 import android.view.Gravity
 import android.view.MotionEvent
@@ -36,6 +37,7 @@ import com.supernova.launcher.widget.SupernovaWidgetHostView
 import com.supernova.launcher.widget.WidgetFeatures
 import com.supernova.launcher.widget.WidgetResizeFrame
 import com.supernova.launcher.widget.WidgetSizing
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.math.hypot
 
@@ -138,12 +140,6 @@ class WidgetController(
         data object SearchBar : Target
     }
 
-    private data class PendingWidget(
-        val widgetId: Int,
-        val provider: ComponentName,
-        val target: Target
-    )
-
     // Kept in the view model: a dark-mode, font-size or language change
     // recreates the activity while a widget's bind or setup screen is up,
     // and the answer then reached a new activity that had lost the widget -
@@ -176,8 +172,11 @@ class WidgetController(
     // (beginLiveDrag); every way down goes through dismissResizeFrame.
     var activeResizeFrame: WidgetResizeFrame? = null
         private set
-    // Items and cards rebindRestoredWidgets has seen, and the ids it allocated.
+    // Items and cards rebindRestoredWidgets has seen.
     private val rebindsTried = HashSet<String>()
+    // Ids handed to the model this session (rebinds and finished adds), kept
+    // from the orphan sweep: the model write lands a moment later, and a
+    // sweep already reading the old layout would delete them.
     private val reboundIds = HashSet<Int>()
 
     // From a press on that frame's edge to its lift. See trackResizeDrag.
@@ -212,6 +211,19 @@ class WidgetController(
 
     private val configureWidgetLauncher = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         handleConfigureResult(result.resultCode, result.data)
+    }
+
+    // Also kept in the saved state: a phone short on memory can kill the
+    // launcher while a widget's setup screen (a photo picker, say) is up,
+    // and its answer then reached a new process that had lost the widget.
+    init {
+        val registry = activity.savedStateRegistry
+        if (pendingWidget == null) {
+            registry.consumeRestoredStateForKey(PENDING_WIDGET_STATE)
+                ?.let(PendingWidget::fromBundle)
+                ?.let { pendingWidget = it }
+        }
+        registry.registerSavedStateProvider(PENDING_WIDGET_STATE) { pendingWidget?.toBundle() ?: Bundle() }
     }
 
     // Reclaims host ids leaked by any interrupted add flow or by uninstall-driven
@@ -736,7 +748,10 @@ class WidgetController(
 
         if (bound) {
             proceedToConfigure(info)
-        } else {
+            return
+        }
+        // Some builds ship without the system's "allow widgets" screen.
+        val asked = runCatching {
             bindWidgetLauncher.launch(
                 Intent(AppWidgetManager.ACTION_APPWIDGET_BIND).apply {
                     putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
@@ -744,6 +759,10 @@ class WidgetController(
                     putExtra(AppWidgetManager.EXTRA_APPWIDGET_PROVIDER_PROFILE, info.profile)
                 }
             )
+        }
+        if (asked.isFailure) {
+            abortPendingWidget()
+            Toast.makeText(activity, R.string.widget_bind_failed, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -828,8 +847,21 @@ class WidgetController(
         }
     }
 
+    // A process started for the answer has not decoded the layout yet, and
+    // its grid and free cells would be the defaults.
     private fun finalizeWidget() {
         val pending = pendingWidget ?: return
+        if (viewModel.state.value.loaded) {
+            finalizeLoaded(pending)
+        } else {
+            activity.lifecycleScope.launch {
+                viewModel.state.first { it.loaded }
+                if (pendingWidget === pending) finalizeLoaded(pending)
+            }
+        }
+    }
+
+    private fun finalizeLoaded(pending: PendingWidget) {
         val info = appWidgetManager.getAppWidgetInfo(pending.widgetId)
         if (info == null) {
             abortPendingWidget()
@@ -872,6 +904,7 @@ class WidgetController(
                 )
             }
         }
+        reboundIds += pending.widgetId
         pendingWidget = null
     }
 
@@ -889,6 +922,7 @@ class WidgetController(
     companion object {
         private const val REQUEST_CONFIGURE_WIDGET = 4001
         private const val REQUEST_RECONFIGURE_WIDGET = 4002
+        private const val PENDING_WIDGET_STATE = "supernova:pending_widget"
         // Widget resize: each snap to a new cell edge eases there.
         private const val RESIZE_SNAP_MS = 120L
         // The dim behind the padding dialog, which previews on the home screen.
