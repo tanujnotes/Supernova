@@ -548,11 +548,12 @@ object SettingsCatalogue {
                     display = { it.toString() },
                     visibleIf = { it.dockEnabled }
                 ),
-                rows.choice(
-                    R.string.dock_bg_style, DockBgStyle.entries,
-                    { it.dockBgStyle }, { EnumLabels.of(it) },
+                SettingItem.Toggle(
+                    R.string.dock_bg_style,
+                    get = { it.dockBgStyle != DockBgStyle.NONE },
+                    set = { viewModel.set(Pref.dockBgStyle, if (it) DockBgStyle.ROUNDED else DockBgStyle.NONE) },
                     visibleIf = { it.dockEnabled }
-                ) { viewModel.set(Pref.dockBgStyle, it) },
+                ),
                 SettingItem.Slider(
                     R.string.dock_bg_opacity,
                     min = 0, max = 100,
@@ -561,6 +562,24 @@ object SettingsCatalogue {
                     set = { SurfaceOpacity.set(viewModel, SurfaceId.DOCK, it) },
                     display = { context.getString(R.string.opacity_percent, it) },
                     preview = { p, v -> SurfaceOpacity.preview(p, SurfaceId.DOCK, v) },
+                    visibleIf = { it.dockEnabled && it.dockBgStyle != DockBgStyle.NONE }
+                ),
+                SettingItem.Slider(
+                    R.string.dock_bg_radius,
+                    min = 0, max = 24,
+                    get = { if (it.dockBgStyle == DockBgStyle.SQUARE) 0 else it.dockBgRadius },
+                    // A square dock from before the switch becomes a rounded
+                    // one at the radius picked.
+                    set = {
+                        viewModel.setAll(
+                            listOf(
+                                com.supernova.launcher.data.PrefWrite(Pref.dockBgRadius, it),
+                                com.supernova.launcher.data.PrefWrite(Pref.dockBgStyle, DockBgStyle.ROUNDED)
+                            )
+                        )
+                    },
+                    display = { context.getString(R.string.padding_dp_value, it) },
+                    preview = { p, v -> p.copy(dockBgRadius = v, dockBgStyle = DockBgStyle.ROUNDED) },
                     visibleIf = { it.dockEnabled && it.dockBgStyle != DockBgStyle.NONE }
                 ),
                 SettingItem.Toggle(

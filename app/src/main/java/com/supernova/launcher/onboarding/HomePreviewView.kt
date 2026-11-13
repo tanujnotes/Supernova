@@ -92,7 +92,8 @@ class HomePreviewView @JvmOverloads constructor(
 
     private fun chromeFor(prefs: LauncherPrefs): Chrome {
         val bottom = homeHeight - bottomInset - dp(BOTTOM_GAP_DP)
-        val dockHeight = (dp(ICON_DP) * prefs.dockIconScale).roundToInt() + dp(DOCK_PAD_DP) * 2
+        val bgPad = if (prefs.dockBgStyle == DockBgStyle.NONE) 0 else dp(DOCK_BG_PAD_DP)
+        val dockHeight = (dp(ICON_DP) * prefs.dockIconScale).roundToInt() + (dp(DOCK_PAD_DP) + bgPad) * 2
         val barHeight = dp(BAR_HEIGHT_DP)
         val gap = dp(BAR_GAP_DP)
         val placement = SearchBarPlacement.fromName(SearchBarConfig.decode(prefs.searchBarConfig).desktop.placement)
@@ -127,7 +128,7 @@ class HomePreviewView @JvmOverloads constructor(
             val surface = Styles.resolve(context, prefs).of(SurfaceId.DOCK)
             val alpha = StyleConfig.decode(prefs.styleConfig).styleFor(SurfaceId.DOCK).alpha ?: prefs.dockBgOpacity
             val radius = when (prefs.dockBgStyle) {
-                DockBgStyle.ROUNDED -> dp(DOCK_ROUNDED_DP).toFloat()
+                DockBgStyle.ROUNDED -> dp(prefs.dockBgRadius).toFloat()
                 else -> 0f
             }
             val plate = View(context)
@@ -230,8 +231,8 @@ class HomePreviewView @JvmOverloads constructor(
         const val SIDE_PAD_DP = 8
         const val BOTTOM_GAP_DP = 8
         const val DOCK_PAD_DP = 16
+        const val DOCK_BG_PAD_DP = 8
         const val DOCK_SIDE_DP = 10
-        const val DOCK_ROUNDED_DP = 22
         const val BAR_HEIGHT_DP = 48
         const val BAR_GAP_DP = 8
         const val BAR_SIDE_DP = 16

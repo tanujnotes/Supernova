@@ -2120,7 +2120,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
     private fun applyDockChrome(prefs: LauncherPrefs) {
         val key = listOf(
-            prefs.dockEnabled, prefs.dockBgStyle, prefs.dockBgOpacity,
+            prefs.dockEnabled, prefs.dockBgStyle, prefs.dockBgOpacity, prefs.dockBgRadius,
             prefs.dockOverlay, prefs.showScrims,
             prefs.styleConfig, prefs.paletteSource, prefs.paletteSeed,
             prefs.searchBarConfig, prefs.searchBarWidgetId,
@@ -2174,11 +2174,14 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         val dockFullBleed = !prefs.dockBgPadding && !dockBehindNav &&
             prefs.dockBgStyle != DockBgStyle.NONE &&
             slot != BarSlot.BELOW_DOCK
+        // A background gets room above and below the icons, so they don't
+        // touch its edges.
+        val bgPadV = if (prefs.dockBgStyle == DockBgStyle.NONE) 0 else dp(DOCK_BG_PADDING_V_DP)
         binding.dockBar.setPadding(
             dp(prefs.dockPaddingH) + if (dockBehindNav) systemInsets.left else 0,
-            dp(prefs.dockPaddingV),
+            dp(prefs.dockPaddingV) + bgPadV,
             dp(prefs.dockPaddingH) + if (dockBehindNav) systemInsets.right else 0,
-            dp(prefs.dockPaddingV) + if (dockBehindNav) systemInsets.bottom else 0
+            dp(prefs.dockPaddingV) + bgPadV + if (dockBehindNav) systemInsets.bottom else 0
         )
         val density = resources.displayMetrics.density
         val arrowWanted = swipeArrowWanted(prefs)
@@ -2285,8 +2288,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             .of(com.supernova.launcher.ui.theme.SurfaceId.DOCK)
         binding.dockBar.background = when (prefs.dockBgStyle) {
             DockBgStyle.NONE -> null
-            DockBgStyle.ROUNDED ->
-                dockBackgroundDrawable(resolvedDock, dp(14).toFloat(), dockBehindNav || dockFullBleed)
+            DockBgStyle.ROUNDED -> dockBackgroundDrawable(
+                resolvedDock, dp(prefs.dockBgRadius).toFloat(), dockBehindNav || dockFullBleed
+            )
             DockBgStyle.SQUARE -> dockBackgroundDrawable(resolvedDock, 0f, dockBehindNav || dockFullBleed)
         }
     }
@@ -4565,6 +4569,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         private const val DOCK_ITEM_PADDING_H_DP = 2
         private const val DOCK_ITEM_PADDING_V_DP = 4
         private const val DOCK_SLOT_PADDING_V_DP = 2
+        // The dock background's room above and below the icons.
+        private const val DOCK_BG_PADDING_V_DP = 8
 
         // The dim behind a dialog that previews on the home screen.
         private const val PREVIEW_DIALOG_DIM = 0.15f

@@ -129,6 +129,7 @@ object Pref {
     private const val DESKTOP_PADDING_MAX = 48
     private const val WIDGET_PADDING_MAX = 24
     private const val WIDGET_RADIUS_MAX = 32
+    private const val DOCK_BG_RADIUS_MAX = 24
     private const val LABEL_SIZE_MIN = 9
     private const val LABEL_SIZE_MAX = 18
     private const val DAY_LAST_MINUTE = 1439
@@ -184,6 +185,7 @@ object Pref {
     val dockPages = int("dock_pages", 1..PAGES_OR_ROWS_MAX)
     val dockBgStyle = choice("dock_bg_style", DockBgStyle.entries)
     val dockBgOpacity = float("dock_bg_opacity", 0f..1f)
+    val dockBgRadius = int("dock_bg_radius", 0..DOCK_BG_RADIUS_MAX)
     val dockBgBehindNav = bool("dock_bg_behind_nav")
     val dockBgPadding = bool("dock_bg_padding")
     val dockLabels = bool("dock_labels")

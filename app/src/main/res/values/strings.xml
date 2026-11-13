@@ -554,6 +554,7 @@
     <string name="dock_pages">Dock pages</string>
     <string name="dock_bg_style">Dock background</string>
     <string name="dock_bg_opacity">Background opacity</string>
+    <string name="dock_bg_radius">Background radius</string>
     <string name="dock_labels">Icon labels</string>
     <string name="dock_icon_scale">Icon scale</string>
     <string name="dock_bg_none">None</string>

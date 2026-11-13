@@ -116,6 +116,10 @@ class SettingsPreviewView @JvmOverloads constructor(
             }
             PreviewKind.DOCK -> {
                 com.supernova.launcher.ui.theme.SurfaceShapes.setColor(surfaceBg, withAlpha(styleAlpha ?: prefs.dockBgOpacity))
+                // The radius bar ticks here too.
+                if (prefs.dockBgStyle == DockBgStyle.ROUNDED) {
+                    (surfaceBg as? GradientDrawable)?.cornerRadius = dp(prefs.dockBgRadius).toFloat()
+                }
                 slotViews.forEachIndexed { index, slot ->
                     slot.visibility = if (index < prefs.dockCount) VISIBLE else GONE
                 }
@@ -405,10 +409,13 @@ class SettingsPreviewView @JvmOverloads constructor(
         styleAlpha = StyleConfig.decode(prefs.styleConfig).styleFor(SurfaceId.DOCK).alpha
 
         val strip = newRow()
-        strip.setPadding(dp(10), dp(8), dp(10), dp(8))
+        // The dock's own room above and below the icons when it has a
+        // background (LauncherActivity's DOCK_BG_PADDING_V_DP).
+        val padV = if (prefs.dockBgStyle == DockBgStyle.NONE) dp(DOCK_PAD_V_DP) else dp(DOCK_BG_PAD_V_DP)
+        strip.setPadding(dp(10), padV, dp(10), padV)
         when (prefs.dockBgStyle) {
             DockBgStyle.NONE -> Unit
-            DockBgStyle.ROUNDED -> strip.background = surfaceDrawable(resolved, dp(14).toFloat())
+            DockBgStyle.ROUNDED -> strip.background = surfaceDrawable(resolved, dp(prefs.dockBgRadius).toFloat())
             DockBgStyle.SQUARE -> strip.background = surfaceDrawable(resolved, 0f)
         }
         // Every slot the dock can have, Big grid's included; binding shows
@@ -900,6 +907,8 @@ class SettingsPreviewView @JvmOverloads constructor(
 
     private companion object {
         // The home bar's height and side inset, with room above and below.
+        const val DOCK_PAD_V_DP = 8
+        const val DOCK_BG_PAD_V_DP = 16
         const val SEARCH_BAR_HEIGHT_DP = 48
         const val SEARCH_BAR_INSET_DP = 16
         const val SEARCH_BAR_PAD_DP = 28
