@@ -414,7 +414,9 @@ class SettingsActivity : AppCompatActivity() {
         adapter.onRowTapped = { menuAnchor = it }
 
         val actions = SettingsCatalogue.Actions(
-            pickChoice = { showChoice(it.title, it.labels, it.selected, it.onPick) },
+            pickChoice = {
+                showChoice(getString(it.title), it.labels, it.selected, MenuExtras(swatches = it.swatches), it.onPick)
+            },
             pickIconPack = ::showIconPackPicker,
             pickIconShape = ::showIconShapePicker,
             resetCustomIcons = ::confirmResetCustomIcons,
@@ -456,7 +458,15 @@ class SettingsActivity : AppCompatActivity() {
                         .putExtra(com.supernova.launcher.onboarding.OnboardingActivity.EXTRA_RERUN, true)
                 )
             },
-            restartLauncher = ::restartLauncher,
+            restartLauncher = {
+                // It closes Settings and the home screen at once: asked first.
+                MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.restart_launcher_q)
+                    .setMessage(R.string.restart_launcher_message)
+                    .setPositiveButton(R.string.restart) { _, _ -> restartLauncher() }
+                    .setNegativeButton(R.string.cancel, null)
+                    .show()
+            },
             showCrashLog = ::showCrashLog,
             onBadgesEnabled = {
                 com.supernova.launcher.ui.PermissionPrompts
@@ -1435,7 +1445,8 @@ class SettingsActivity : AppCompatActivity() {
             val labels = listOf<CharSequence>(getString(R.string.folder_shape_match_icons)) +
                 shapes.map { getString(EnumLabels.of(it)) }
             val current = names.indexOf(shapeName).coerceAtLeast(0)
-            showChoice(getString(R.string.folder_icon_shape), labels, current, inDialog = row to valueX) { which ->
+            val extras = MenuExtras(inDialog = row to valueX)
+            showChoice(getString(R.string.folder_icon_shape), labels, current, extras) { which ->
                 shapeName = names[which]
                 refresh()
             }
@@ -1830,16 +1841,21 @@ class SettingsActivity : AppCompatActivity() {
     // anchor - a picker reached from inside a dialog, or one whose row has
     // scrolled off - it falls back to the dialog this used to be, because a
     // popup would open behind that dialog's window.
+    // How a choice menu opens beyond its options: from a row inside a dialog,
+    // and with a colour dot per option.
+    private class MenuExtras(val inDialog: Pair<View, Float>? = null, val swatches: List<Int?>? = null)
+
     private fun showChoice(
         title: CharSequence?,
         labels: List<CharSequence>,
         selected: Int,
-        // A row inside a dialog, and where it was pressed in the dialog's
-        // window: hung off the settings row under the dialog, the menu opened
-        // behind it.
-        inDialog: Pair<View, Float>? = null,
+        // inDialog: a row inside a dialog, and where it was pressed in the
+        // dialog's window (hung off the settings row under the dialog, the
+        // menu opened behind it); swatches: a colour dot per option.
+        extras: MenuExtras = MenuExtras(),
         onPick: (Int) -> Unit
     ) {
+        val inDialog = extras.inDialog
         val anchor = inDialog?.first ?: menuAnchor?.takeIf { it.isAttachedToWindow && it.isShown }
         if (anchor == null) {
             // The title earns its place only here: a menu hanging off a row
@@ -1874,6 +1890,7 @@ class SettingsActivity : AppCompatActivity() {
             selected = selected,
             animate = Animations.enabled(viewModel.state.value.prefs),
             alignToAnchorEnd = true,
+            swatches = extras.swatches,
             onPick = onPick
         )
     }

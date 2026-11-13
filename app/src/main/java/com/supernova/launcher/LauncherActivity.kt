@@ -1322,6 +1322,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             onFolderClick = { view, group, members -> showDrawerFolderPopup(view, group, members) },
             onFolderLongPress = ::longPressDrawerFolder,
             onTabMenu = ::showDrawerTabMenu,
+            onSelectTabApps = ::showDrawerGroupChecklist,
             customTabIcon = { group ->
                 itemIcons.customFolderIcon(group.iconBase64, group.iconPack, group.iconName, group.iconRaw)
             },
@@ -2916,6 +2917,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             menu.addRow(getString(R.string.hide_app), R.drawable.ic_menu_hide) {
                 viewModel.setAppHidden(app, true)
                 source?.dismiss()
+                // Where it went, and the way back.
+                Snackbar.make(binding.root, getString(R.string.app_hidden, app.label), Snackbar.LENGTH_LONG)
+                    .setAction(R.string.undo) { viewModel.setAppHidden(app, false) }
+                    .show()
             }
         }
         addExtraRows(menu, extras, app)
@@ -3842,7 +3847,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         drawer.hideKeyboardIfShowing()
         val menu = newItemPopup()
         if (group == null) {
-            menu.addRow(getString(R.string.show_hidden_apps), R.drawable.ic_menu_show) { drawer.toggleHiddenApps() }
+            // Says what it will do: shown, the hidden apps go back out of sight.
+            if (drawer.hiddenAppsShown) {
+                menu.addRow(getString(R.string.hide_hidden_apps), R.drawable.ic_menu_hide) { drawer.toggleHiddenApps() }
+            } else {
+                menu.addRow(getString(R.string.show_hidden_apps), R.drawable.ic_menu_show) { drawer.toggleHiddenApps() }
+            }
             menu.addRow(getString(R.string.hide_apps), R.drawable.ic_menu_hide) { showHiddenAppsChecklist() }
         } else {
             menu.addRow(getString(R.string.edit_tab), R.drawable.ic_menu_edit) { promptEditTab(group) }

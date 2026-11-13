@@ -99,6 +99,15 @@ class HomeEditController(
             binding.editWidgetRecycler.setPadding(
                 0, 0, 0, (24 * density).toInt() + maxOf(barInsets.bottom, keyboard)
             )
+            // Expanded, the sheet stops under the status bar rather than
+            // running its handle up into it: a sheet ends its parent's height
+            // minus this margin, and opens to its own height.
+            (view.layoutParams as? android.view.ViewGroup.MarginLayoutParams)?.let { params ->
+                if (params.topMargin != barInsets.top) {
+                    params.topMargin = barInsets.top
+                    view.layoutParams = params
+                }
+            }
             overlay?.let(::applyOverlayInsets)
             insets
         }
@@ -182,8 +191,14 @@ class HomeEditController(
         // Layout, bottom up: the sheet peeks, the chips sit just above it, and
         // the page shrinks toward the top until its bottom clears the chips.
         val rootHeight = binding.root.height
-        val peek = (rootHeight * PEEK_FRACTION).toInt()
-        behavior.peekHeight = peek
+        // The sheet runs under the navigation bar, so the bar's height is
+        // added: what shows above it is the same on gesture and 3-button nav.
+        // Its top margin (the status bar, see the insets listener) moves the
+        // collapsed sheet down by as much, so that goes back on too.
+        val peek = (rootHeight * PEEK_FRACTION).toInt() + barInsets.bottom
+        val topMargin =
+            (binding.editWidgetSheet.layoutParams as? android.view.ViewGroup.MarginLayoutParams)?.topMargin ?: 0
+        behavior.peekHeight = peek + topMargin
         val chips = ov.editChips
         (chips.layoutParams as FrameLayout.LayoutParams).bottomMargin = peek + activity.dp(12)
         chips.requestLayout()

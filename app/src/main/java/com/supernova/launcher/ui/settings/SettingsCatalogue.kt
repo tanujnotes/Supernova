@@ -1,5 +1,6 @@
 package com.supernova.launcher.ui.settings
 
+import androidx.core.graphics.toColorInt
 import android.content.Context
 import androidx.core.net.toUri
 import com.supernova.launcher.R
@@ -177,10 +178,11 @@ object SettingsCatalogue {
 
         // Curated swatches for v1; a free hex picker arrives with theming. An
         // unknown stored color (from a backup) reads as Default.
+        // The row shows the colour in force, its dot and its name.
         fun color(
             @StringRes title: Int,
             current: (LauncherPrefs) -> String,
-            subtitle: (LauncherPrefs) -> CharSequence? = { null },
+            subtitle: (LauncherPrefs) -> CharSequence? = { context.getString(curatedFor(current(it)).first) },
             visibleIf: (LauncherPrefs) -> Boolean = { true },
             onPick: (String) -> Unit
         ): SettingItem.Row = SettingItem.Row(
@@ -188,11 +190,18 @@ object SettingsCatalogue {
             subtitle = subtitle,
             onClick = {
                 val now = current(viewModel.state.value.prefs)
-                val selected = CURATED_COLORS.indexOfFirst { it.second.equals(now, ignoreCase = true) }.coerceAtLeast(0)
-                pick(title, CURATED_COLORS, selected, { context.getString(it.first) }) { onPick(it.second) }
+                actions.pickChoice(
+                    Choice(
+                        title, CURATED_COLORS.map { context.getString(it.first) },
+                        CURATED_COLORS.indexOf(curatedFor(now)), { onPick(CURATED_COLORS[it].second) },
+                        swatches = CURATED_COLORS.map { swatchOf(it.second) }
+                    )
+                )
             },
-            visibleIf = visibleIf
+            visibleIf = visibleIf,
+            look = SettingItem.RowLook(swatch = { swatchOf(current(it)) })
         )
+
 
         // Shows the choice now: for rows built by hand and for controls that
         // are not rows (the Label card's font).
@@ -203,7 +212,7 @@ object SettingsCatalogue {
             label: (T) -> CharSequence,
             onPick: (T) -> Unit
         ) {
-            actions.pickChoice(Choice(title, values.map(label), selected) { onPick(values[it]) })
+            actions.pickChoice(Choice(title, values.map(label), selected, { onPick(values[it]) }))
         }
 
         // A gesture's row: its name, what it does now (a launch shows its
@@ -256,6 +265,36 @@ object SettingsCatalogue {
             { context.getString(EnumLabels.of(it)) }, onPick
         )
     }
+
+    // The accent: its dot on the row, and every option's dot in the menu.
+    private fun accentRow(context: Context, viewModel: LauncherViewModel, actions: Actions): SettingItem.Row {
+        val accents = AccentColor.entries
+        return SettingItem.Row(
+            R.string.accent_color,
+            subtitle = { context.getString(EnumLabels.of(it.accentColor)) },
+            onClick = {
+                actions.pickChoice(
+                    Choice(
+                        R.string.accent_color, accents.map { context.getString(EnumLabels.of(it)) },
+                        accents.indexOf(viewModel.state.value.prefs.accentColor),
+                        { viewModel.set(Pref.accentColor, accents[it]) },
+                        swatches = accents.map { context.getColor(it.colorRes) }
+                    )
+                )
+            },
+            look = SettingItem.RowLook(
+                R.drawable.ic_style_accent, swatch = { context.getColor(it.accentColor.colorRes) }
+            )
+        )
+    }
+
+    // A stored colour's curated entry; one not in the list reads as Default.
+    private fun curatedFor(stored: String): Pair<Int, String> =
+        CURATED_COLORS.firstOrNull { it.second.equals(stored, ignoreCase = true) } ?: CURATED_COLORS.first()
+
+    // Its dot; none for Default.
+    private fun swatchOf(hex: String): Int? =
+        hex.takeIf { it.isNotEmpty() }?.let { runCatching { it.toColorInt() }.getOrNull() }
 
     val CURATED_COLORS = listOf(
         R.string.color_default to "",
@@ -337,7 +376,8 @@ object SettingsCatalogue {
                 SettingItem.Toggle(
                     R.string.show_scrims,
                     get = { it.showScrims },
-                    set = { viewModel.set(Pref.showScrims, it) }
+                    set = { viewModel.set(Pref.showScrims, it) },
+                    subtitle = R.string.show_scrims_summary
                 ),
                 SettingItem.Toggle(
                     R.string.auto_add_apps,
@@ -371,7 +411,8 @@ object SettingsCatalogue {
                 SettingItem.Toggle(
                     R.string.drop_targets,
                     get = { it.dropTargets },
-                    set = { viewModel.set(Pref.dropTargets, it) }
+                    set = { viewModel.set(Pref.dropTargets, it) },
+                    subtitle = R.string.drop_targets_summary
                 ),
                 SettingItem.Toggle(
                     R.string.undo_remove,
@@ -460,7 +501,8 @@ object SettingsCatalogue {
                 SettingItem.Toggle(
                     R.string.overlap_when_placing,
                     get = { it.overlapWhenPlacing },
-                    set = { viewModel.set(Pref.overlapWhenPlacing, it) }
+                    set = { viewModel.set(Pref.overlapWhenPlacing, it) },
+                    subtitle = R.string.overlap_when_placing_summary
                 ),
                 SettingItem.Slider(
                     R.string.widget_padding,
@@ -601,7 +643,8 @@ object SettingsCatalogue {
                     R.string.dock_overlay,
                     get = { it.dockOverlay },
                     set = { viewModel.set(Pref.dockOverlay, it) },
-                    visibleIf = { it.dockEnabled }
+                    visibleIf = { it.dockEnabled },
+                    subtitle = R.string.dock_overlay_summary
                 ),
                 SettingItem.Toggle(
                     R.string.dock_auto_close,
@@ -765,13 +808,6 @@ object SettingsCatalogue {
                 ),
                 rows.color(
                     R.string.drawer_scrubber_color, { it.drawerScrubberColor },
-                    subtitle = {
-                        if (it.drawerScrubberColor.isEmpty()) {
-                            context.getString(R.string.option_default)
-                        } else {
-                            it.drawerScrubberColor
-                        }
-                    },
                     visibleIf = { it.drawerFastScroller }
                 ) { viewModel.set(Pref.drawerScrubberColor, it) },
                 SettingItem.Header(R.string.group_tabs),
@@ -866,7 +902,8 @@ object SettingsCatalogue {
                 SettingItem.Toggle(
                     R.string.smart_folders,
                     get = { it.smartFolders },
-                    set = { viewModel.setSmartFolders(it) }
+                    set = { viewModel.setSmartFolders(it) },
+                    subtitle = R.string.smart_folders_summary
                 ),
                 SettingItem.Toggle(
                     R.string.drawer_folders_first,
@@ -917,7 +954,8 @@ object SettingsCatalogue {
                 SettingItem.Toggle(
                     R.string.search_apps_one_row,
                     get = { it.searchAppsOneRow },
-                    set = { viewModel.set(Pref.searchAppsOneRow, it) }
+                    set = { viewModel.set(Pref.searchAppsOneRow, it) },
+                    subtitle = R.string.search_apps_one_row_summary
                 ),
                 SettingItem.Toggle(
                     R.string.search_contact_cards,
@@ -956,7 +994,8 @@ object SettingsCatalogue {
                 SettingItem.Toggle(
                     R.string.search_private_keyboard,
                     get = { it.searchPrivateKeyboard },
-                    set = { viewModel.set(Pref.searchPrivateKeyboard, it) }
+                    set = { viewModel.set(Pref.searchPrivateKeyboard, it) },
+                    subtitle = R.string.search_private_keyboard_summary
                 ),
                 SettingItem.Header(R.string.group_bars),
                 SettingItem.Row(
@@ -1052,7 +1091,8 @@ object SettingsCatalogue {
                     R.string.search_bar_wireframe,
                     get = { SearchBarPrefs.desktopBar(it).wireframe },
                     set = { on -> rows.editDesktopBar { it.copy(wireframe = on) } },
-                    visibleIf = { IconGlass.fromName(SearchBarPrefs.desktopBar(it).glass) == IconGlass.OFF }
+                    visibleIf = { IconGlass.fromName(SearchBarPrefs.desktopBar(it).glass) == IconGlass.OFF },
+                    subtitle = R.string.search_bar_wireframe_summary
                 ),
                 SettingItem.Toggle(
                     R.string.search_bar_shadow,
@@ -1291,7 +1331,8 @@ object SettingsCatalogue {
                 SettingItem.Toggle(
                     R.string.folder_prioritize_first,
                     get = { it.folderPrioritizeFirst },
-                    set = { viewModel.set(Pref.folderPrioritizeFirst, it) }
+                    set = { viewModel.set(Pref.folderPrioritizeFirst, it) },
+                    subtitle = R.string.folder_prioritize_first_summary
                 ),
                 SettingItem.Slider(
                     R.string.folder_columns,
@@ -1516,7 +1557,7 @@ object SettingsCatalogue {
                         if (prefs.badgeColor.isBlank() && BadgeStyle.effective(prefs) == BadgeStyle.DOTS) {
                             context.getString(R.string.badge_color_icon)
                         } else {
-                            null
+                            context.getString(curatedFor(prefs.badgeColor).first)
                         }
                     },
                     visibleIf = { it.badges && BadgeStyle.effective(it) != BadgeStyle.DYNAMIC }
@@ -1718,7 +1759,9 @@ object SettingsCatalogue {
                 SettingItem.Row(
                     R.string.about_version,
                     subtitle = { SupernovaApp.versionLabel(context) },
-                    onClick = {}
+                    onClick = {},
+                    // Information only: no ripple, no chevron.
+                    look = SettingItem.RowLook(tappable = false)
                 ),
                 SettingItem.Row(
                     R.string.about_license,
@@ -1840,15 +1883,7 @@ object SettingsCatalogue {
                 visibleIf = { it.themeMode == ThemeMode.SCHEDULE },
                 look = SettingItem.RowLook(R.drawable.ic_style_schedule)
             ),
-            rows.choice(
-                R.string.accent_color, AccentColor.entries,
-                { it.accentColor }, { EnumLabels.of(it) },
-                onPick = { viewModel.set(Pref.accentColor, it) }
-            ).withLook(
-                SettingItem.RowLook(R.drawable.ic_style_accent, swatch = {
-                    context.getColor(it.accentColor.colorRes)
-                })
-            ),
+            accentRow(context, viewModel, actions),
             SettingItem.Header(R.string.style_group_surfaces),
             SettingItem.StyleTarget(
                 R.string.settings_section_home, SurfaceId.HOME, { actions.openStylePicker(SurfaceId.HOME) }

@@ -9,7 +9,6 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.PopupMenu
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.addCallback
@@ -160,15 +159,16 @@ object CustomCardEditorSheet {
         // ---- Toolbar: back, Save, overflow (Pin, Enable, Delete) ----
         binding.cardBack.setOnClickListener { attemptClose() }
         binding.cardEditorMenu.setOnClickListener { anchor ->
-            val menu = PopupMenu(activity, anchor)
-            menu.menu.add(0, 1, 0, if (pinned) R.string.card_menu_unpin else R.string.card_menu_pin)
-            menu.menu.add(0, 2, 1, if (enabled) R.string.card_menu_disable else R.string.card_menu_enable)
-            if (existing != null) menu.menu.add(0, 3, 2, R.string.card_delete)
-            menu.setOnMenuItemClickListener { item ->
-                when (item.itemId) {
-                    1 -> pinned = !pinned
-                    2 -> enabled = !enabled
-                    3 -> {
+            val labels = listOfNotNull(
+                activity.getString(if (pinned) R.string.card_menu_unpin else R.string.card_menu_pin),
+                activity.getString(if (enabled) R.string.card_menu_disable else R.string.card_menu_enable),
+                existing?.let { activity.getString(R.string.card_delete) }
+            )
+            ChoiceMenu.showActions(anchor, viewModel.state.value.prefs, labels) { which ->
+                when (which) {
+                    0 -> pinned = !pinned
+                    1 -> enabled = !enabled
+                    2 -> {
                         val removed = existing!!
                         viewModel.removeFeedCard(removed.id)
                         dialog.dismiss()
@@ -183,9 +183,7 @@ object CustomCardEditorSheet {
                             .show()
                     }
                 }
-                true
             }
-            menu.show()
         }
         binding.cardSave.setOnClickListener { save() }
 

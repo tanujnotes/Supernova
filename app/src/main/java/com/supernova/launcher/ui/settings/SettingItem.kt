@@ -170,5 +170,8 @@ class Choice(
     @StringRes val title: Int,
     val labels: List<CharSequence>,
     val selected: Int,
-    val onPick: (Int) -> Unit
+    val onPick: (Int) -> Unit,
+    // A colour per option, drawn as a dot before its label (a colour choice);
+    // a null entry is an option with no colour of its own (Default).
+    val swatches: List<Int?>? = null
 )

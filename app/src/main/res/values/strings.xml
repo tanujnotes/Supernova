@@ -10,10 +10,10 @@
     <string name="set_default_page">Set as default page</string>
     <string name="move_page_left">Move page left</string>
     <string name="move_page_right">Move page right</string>
-    <string name="settings_title">Launcher Settings</string>
+    <string name="settings_title">Launcher settings</string>
     <string name="search_apps">Search apps</string>
     <string name="add_to_home">Add to Home</string>
-    <string name="app_info">App Info</string>
+    <string name="app_info">App info</string>
     <string name="uninstall">Uninstall</string>
     <string name="rename">Rename</string>
     <string name="remove">Remove</string>
@@ -49,6 +49,7 @@
     </plurals>
     <string name="no_room_on_page">No room on this page</string>
     <string name="no_room_anywhere">No room on any page</string>
+    <string name="widget_not_in_dock">Widgets can\'t go in the dock</string>
     <string name="added_to_page">Added to page %1$d</string>
     <string name="widget_span">%1$d × %2$d</string>
     <string name="widget_add_interrupted">Widget setup was interrupted, please try again</string>
@@ -57,8 +58,8 @@
     <string name="widget_configure_failed">Couldn\'t open widget settings</string>
     <string name="widget_provider_missing">Widget is no longer available</string>
     <string name="widget_finish_setup">%1$s\nTap to finish setup</string>
-    <string name="export_backup">Export Backup</string>
-    <string name="import_backup">Import Backup</string>
+    <string name="export_backup">Export backup</string>
+    <string name="import_backup">Import backup</string>
     <string name="import_backup_subtitle">A Supernova backup, or a backup file from another launcher</string>
     <string name="backup_exported">Backup exported</string>
     <plurals name="backup_imported_count">
@@ -156,6 +157,7 @@
     <string name="drawer_auto_close">Automatically close</string>
     <string name="drawer_folders_first">Show folders first</string>
     <string name="smart_folders">Smart folders</string>
+    <string name="smart_folders_summary">Groups apps into folders by their category</string>
     <string name="category_games">Games</string>
     <string name="category_entertainment">Entertainment</string>
     <string name="category_image">Photos</string>
@@ -182,6 +184,7 @@
     <string name="hide_label">Hide label</string>
     <string name="change_icon">Change icon</string>
     <string name="select_apps">Select apps</string>
+    <string name="drawer_tab_empty">No apps in this tab yet</string>
     <string name="sort">Sort</string>
     <string name="reshape">Reshape</string>
     <string name="reshape_summary">Fit the icon to the icon shape</string>
@@ -217,7 +220,7 @@
     <string name="hide_app">Hide from drawer</string>
     <string name="unhide_app">Unhide</string>
     <string name="set_swipe_up_action">Set swipe up action</string>
-    <string name="swipe_none">None</string>
+    <string name="swipe_none">Nothing</string>
     <string name="swipe_up_title">Swipe up</string>
     <string name="swipe_down_title">Swipe down</string>
     <string name="swipe_to_open_folder">Swipe to open folder</string>
@@ -467,6 +470,8 @@
     <string name="new_tab">New tab</string>
     <string name="edit_tab">Edit tab</string>
     <string name="show_hidden_apps">Show hidden apps</string>
+    <string name="hide_hidden_apps">Hide hidden apps again</string>
+    <string name="app_hidden">%1$s hidden from the drawer</string>
     <string name="hide_apps">Hide apps</string>
     <string name="new_folder_group">New folder</string>
     <string name="group_tabs_header">Tabs</string>
@@ -488,6 +493,7 @@
     <string name="search_window_immersive">Immersive</string>
     <string name="search_window_window">Window</string>
     <string name="search_apps_one_row">Limit apps to one row</string>
+    <string name="search_apps_one_row_summary">App results in one row that scrolls sideways</string>
     <string name="feed_show_shortcuts">Frequently used shortcuts</string>
     <string name="feed_show_shortcuts_subtitle">Keep commonly used shortcuts in the top row for quick access</string>
     <string name="contact_call">Call</string>
@@ -572,7 +578,7 @@
     <string name="desktop_locked">Lock layout</string>
     <string name="widget_overlap">Allow placing items over widgets</string>
     <string name="widget_padding">Widget padding</string>
-    <string name="desktop_locked_toast">Desktop is locked</string>
+    <string name="desktop_locked_toast">Layout is locked</string>
     <string name="page_indicator">Page indicator</string>
     <string name="page_indicator_auto_hide">Auto-hide page indicator</string>
     <string name="page_indicator_auto_hide_summary">Show it only while changing pages</string>
@@ -590,6 +596,7 @@
     <string name="orientation_portrait">Force portrait</string>
     <string name="orientation_landscape">Force landscape</string>
     <string name="overlap_when_placing">Allow overlap when placing</string>
+    <string name="overlap_when_placing_summary">A dropped item may land on top of another</string>
     <string name="mode_on">On</string>
     <string name="mode_off">Off</string>
     <string name="wallpaper_scroll_reverse">Reverse</string>
@@ -598,6 +605,7 @@
     <string name="reshape_legacy_on">Rescale and add background</string>
     <string name="drawer_pull_to_search">Pull to search</string>
     <string name="folder_prioritize_first">Prioritize first icon</string>
+    <string name="folder_prioritize_first_summary">The first app large in the folder icon, the rest small</string>
     <string name="label_customize">Customize labels</string>
     <string name="folder_icon_scale">Icon scale</string>
 
@@ -625,6 +633,7 @@
     <string name="grid_value">%1$d × %2$d</string>
     <string name="widget_corner_radius">Widget corner radius</string>
     <string name="show_scrims">Show shadow</string>
+    <string name="show_scrims_summary">A soft shade behind the status bar and the dock</string>
     <string name="wallpaper_zoom">Wallpaper zoom effect</string>
     <string name="auto_add_apps">Add new apps to Home screen</string>
     <string name="label_font">Label font</string>
@@ -647,6 +656,7 @@
     <string name="dock_infinite_scroll">Infinite scroll</string>
     <string name="dock_match_desktop">Match desktop icon scale</string>
     <string name="dock_overlay">Display as overlay</string>
+    <string name="dock_overlay_summary">The dock sits over the home screen instead of below it</string>
     <string name="dock_auto_close">Automatically close</string>
     <string name="dock_remember_position">Remember position</string>
     <!-- Group labels on the grouped settings pages (the root list and Style). -->
@@ -734,6 +744,7 @@
     <string name="search_hidden_apps">Hidden apps</string>
     <string name="search_hidden_apps_summary">Find apps hidden from the drawer when you search</string>
     <string name="search_private_keyboard">Private keyboard mode</string>
+    <string name="search_private_keyboard_summary">Asks the keyboard not to learn from your searches</string>
     <string name="home_button_action">Home button action</string>
     <string name="settings_search_hint">Search settings</string>
     <string name="desktop_search_bar">Desktop search bar</string>
@@ -744,6 +755,7 @@
     <string name="search_bar_persistent">Always show at bottom</string>
     <string name="search_bar_widget">Workspace widget</string>
     <string name="search_bar_wireframe">Wireframe style</string>
+    <string name="search_bar_wireframe_summary">Only an outline, with no fill</string>
     <string name="search_bar_shadow">Shadow</string>
     <string name="search_bar_hint_text">Show “Search” text</string>
     <string name="search_bar_chips">Buttons</string>
@@ -819,6 +831,7 @@
 
     <!-- Phase 6: drag UX -->
     <string name="drop_targets">Drag drop targets</string>
+    <string name="drop_targets_summary">Remove, App info and Uninstall at the top while dragging</string>
     <string name="undo_remove">Undo bar after removing</string>
     <string name="item_removed">Removed</string>
     <string name="undo">Undo</string>
@@ -855,7 +868,7 @@
     <string name="feed_show_search">Search bar</string>
     <string name="feed_show_frequent">Frequently used apps</string>
     <string name="feed_show_frequent_subtitle">Keep commonly used apps in the top row for quick access</string>
-    <string name="feed_no_frequent">No Frequent Apps</string>
+    <string name="feed_no_frequent">No frequent apps yet</string>
     <string name="feed_menu">Feed options</string>
     <string name="feed_menu_settings">Settings</string>
     <string name="feed_advanced">Advanced</string>
@@ -1004,7 +1017,7 @@
     <string name="next">Next</string>
 
     <!-- Phase 8: backup extras -->
-    <string name="share_backup">Share Backup</string>
+    <string name="share_backup">Share backup</string>
     <string name="reset_to_default">Reset to default</string>
     <string name="reset_to_default_subtitle">Clear the layout and all preferences</string>
     <string name="reset_to_default_message">This clears the home screen layout and resets every preference. A snapshot is saved to Automatic backups first, so it can be restored.</string>
@@ -1013,6 +1026,9 @@
     <string name="quick_start">Quick start</string>
     <string name="quick_start_subtitle">Run the setup wizard again</string>
     <string name="restart_supernova">Restart Supernova</string>
+    <string name="restart_launcher_q">Restart Supernova?</string>
+    <string name="restart_launcher_message">Settings and the home screen close and open again. Nothing is lost.</string>
+    <string name="restart">Restart</string>
     <!-- Popup row jumping straight to one app's widgets. -->
     <string name="widgets_row">Widgets</string>
     <string name="folder_badges">Badge folders</string>

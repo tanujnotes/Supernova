@@ -53,6 +53,8 @@ class DrawerController(
     // A tab's menu, anchored to the tab: a group tab's (its group as
     // stored), or the All tab's (null).
     private val onTabMenu: (View, DrawerGroup?) -> Unit = { _, _ -> },
+    // An empty group tab's "Select apps": the picker for that group.
+    private val onSelectTabApps: (DrawerGroup) -> Unit = {},
     // A group tab's picked icon (pack, app icon or photo), null for none.
     private val customTabIcon: (DrawerGroup) -> Drawable? = { null },
     // Activated custom cards above the list (the drawer cards); null
@@ -1282,6 +1284,12 @@ class DrawerController(
             appsForTab(tab).filterNot {
                 "${it.userSerial}/${it.packageName}/${it.className}" in excluded
             }
+        }
+        adapter.emptyState = (tab as? DrawerGroup)?.let { group ->
+            AppDrawerAdapter.EmptyState(
+                binding.root.context.getString(R.string.drawer_tab_empty),
+                binding.root.context.getString(R.string.select_apps)
+            ) { onSelectTabApps(storedTab(group)) }
         }
         adapter.submit(apps, folders, prefs.drawerFoldersFirst, listOrder(prefs))
         // The first apps make a tile measurable.
