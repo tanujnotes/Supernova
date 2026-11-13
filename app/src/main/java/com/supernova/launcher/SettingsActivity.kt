@@ -950,7 +950,7 @@ class SettingsActivity : AppCompatActivity() {
         // searches from its toolbar.
         val input = if (currentSection == null) binding.rootSearchInput else binding.settingsSearchInput
         val query = input.text?.toString().orEmpty()
-        return searchIndex.search(query, limit = 40).map { entry ->
+        return searchIndex.search(query, viewModel.state.value.prefs, limit = 40).map { entry ->
             // The entry's own name: a control found inside a row (the Label
             // card's size) is listed as itself and leads to that row.
             SettingItem.Row(
