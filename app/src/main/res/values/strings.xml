@@ -174,7 +174,7 @@
     <string name="sort_alpha">Alphabetical</string>
     <string name="sort_alpha_reverse">Reverse alphabetical</string>
     <string name="sort_install">Newest installed</string>
-    <string name="sort_most_used">Most used</string>
+    <string name="sort_most_used">Most opened</string>
     <string name="sort_recently_used">Recently used</string>
     <string name="drawer_work_tab">Separate Work tab</string>
     <string name="drawer_default_tab">Default tab</string>
