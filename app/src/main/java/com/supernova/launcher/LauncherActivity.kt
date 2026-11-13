@@ -4185,6 +4185,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             if (swipeToOpen) launchFolderFirstItem(item, it) else launchItem(item, it)
         }
         iconBinding.root.setOnLongClickListener { v ->
+            if (liftPageFromItem(v, item)) return@setOnLongClickListener true
             drag.arm(v, DragPayload.ExistingItem(item.id)) { showWorkspaceItemMenu(v, item) }
             true
         }
@@ -4384,6 +4385,24 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         cancel.recycle()
     }
 
+    // In edit mode a long-press on an icon, folder or widget lifts its page
+    // like one on empty space: a page full of icons (an imported layout, say)
+    // has no empty spot to hold. True when edit mode took the press.
+    private fun liftPageFromItem(view: View, item: LauncherItem): Boolean {
+        val taken = ::editMode.isInitialized && editMode.isOpen && !desktopLocked &&
+            item.container == ContainerType.WORKSPACE
+        // An item on a neighbouring page peeking at the edge doesn't lift the
+        // page in view.
+        if (taken && item.page == workspaceAdapter.realPage(binding.workspacePager.currentItem)) {
+            // The page's picture is drawn as it lifts: without the press
+            // highlight still on the held item.
+            view.isPressed = false
+            view.jumpDrawablesToCurrentState()
+            startPageDrag()
+        }
+        return taken
+    }
+
     // The live view rendering this page, when the pager still has one: with
     // infinite scroll, the copy nearest the one in view.
     private fun attachedPageView(page: Int): View? {
@@ -4502,6 +4521,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     }
 
     override fun onWidgetLongPress(view: View, item: LauncherItem) {
+        if (liftPageFromItem(view, item)) return
         drag.arm(view, DragPayload.ExistingItem(item.id)) { showWorkspaceItemMenu(view, item) }
     }
 
