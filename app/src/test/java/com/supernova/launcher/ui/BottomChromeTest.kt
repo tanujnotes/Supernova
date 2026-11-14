@@ -19,7 +19,8 @@ class BottomChromeTest {
         slot: BarSlot? = BarSlot.BELOW_DOCK,
         arrowWanted: Boolean = false,
         indicatorOn: Boolean = false,
-        pagePadding: Int = 12
+        pagePadding: Int = 12,
+        sideBySide: Boolean = false
     ) = BottomChrome.layout(
         BottomChrome.Spec(
             density = 1f,
@@ -36,12 +37,22 @@ class BottomChromeTest {
             arrowWanted = arrowWanted,
             arrowHeight = ARROW,
             indicatorOn = indicatorOn,
-            pagePadding = pagePadding
+            pagePadding = pagePadding,
+            sideBySide = sideBySide
         )
     )
 
     // Where the indicator view's centre line is.
     private fun BottomChrome.Result.indicatorCenter() = indicatorBottom + 12
+
+    @Test
+    fun sideBySideTheBarSitsBesideTheDockAndTheGridClearsOneRow() {
+        val chrome = layout(landscape = true, sideBySide = true)
+        assertEquals(NAV + 10, chrome.dockBottom)
+        // Centred on the dock's 80: (80 - 48) / 2 over its bottom.
+        assertEquals(chrome.dockBottom + 16, chrome.barBottom)
+        assertEquals(chrome.dockBottom + 80, chrome.pagerBottom)
+    }
 
     @Test
     fun aBarUnderTheDockCentresInItsBand() {

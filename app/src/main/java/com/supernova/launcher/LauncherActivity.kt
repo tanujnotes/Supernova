@@ -2023,6 +2023,20 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         return if (cap in 1 until available) cap else 0
     }
 
+    // A phone (not a tablet) on its side with a dock that takes room and a
+    // search bar: the two share one row.
+    private fun phoneSideBySide(prefs: LauncherPrefs): Boolean =
+        isLandscape && !com.supernova.launcher.data.DeviceProfile.isWide(this) &&
+            prefs.dockEnabled && !prefs.dockOverlay
+
+    // Each half of that row: the window less the side insets, the 16dp
+    // outer margins and the 16dp between them, split in two.
+    private fun sideBySideWidthPx(): Int {
+        val available = resources.displayMetrics.widthPixels - systemInsets.left - systemInsets.right
+        val gaps = dp(SIDE_BY_SIDE_GAP_DP) * SIDE_BY_SIDE_GAPS
+        return ((available - gaps) / 2).coerceAtLeast(1)
+    }
+
     // The dock's margin at each side. A dock without a background spans the
     // width, so its slots stand on the grid's columns; a
     // background floats 10dp in from the edges unless it runs edge to edge.
@@ -2036,7 +2050,13 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         if (laidOut > 0) return laidOut
         val sideMargins = 2 * (dockSideMarginPx(prefs, false) + dp(prefs.dockPaddingH)) +
             systemInsets.left + systemInsets.right
-        val window = landscapeChromeWidthPx().takeIf { it > 0 }
+        val prefsBar = SearchBarConfig.decode(prefs.searchBarConfig).desktop
+        val barShown = SearchBarPlacement.fromName(prefsBar.placement).let {
+            it != SearchBarPlacement.NONE && it != SearchBarPlacement.WIDGET
+        }
+        val window = sideBySideWidthPx().takeIf { barShown && phoneSideBySide(prefs) }
+            ?.plus(systemInsets.left + systemInsets.right)
+            ?: landscapeChromeWidthPx().takeIf { it > 0 }
             ?: resources.displayMetrics.widthPixels
         return (window - sideMargins).coerceAtLeast(1)
     }
@@ -2169,15 +2189,20 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     .of(com.supernova.launcher.ui.theme.SurfaceId.SEARCH_BAR)
             )
         }
+        // A phone on its side shares one row between the bar (left) and the
+        // dock (right): stacked, the two took a third of the short window
+        // and the grid's icons shrank to half size to fit what was left.
+        val sideBySide = slot != null && phoneSideBySide(prefs)
         // Behind-nav mode drops the side and bottom margins so the background
-        // slab runs flush to the window's bottom edge.
-        val dockBehindNav = prefs.dockBgBehindNav &&
+        // slab runs flush to the window's bottom edge. Neither edge-to-edge
+        // style fits a dock that has half a row.
+        val dockBehindNav = !sideBySide && prefs.dockBgBehindNav &&
             prefs.dockBgStyle != DockBgStyle.NONE &&
             slot != BarSlot.BELOW_DOCK
         // Un-inset background: the slab spans the full width and rests on the
         // navigation bar rather than floating clear of it. Behind-nav is the
         // stronger version of the same thing, so it wins.
-        val dockFullBleed = !prefs.dockBgPadding && !dockBehindNav &&
+        val dockFullBleed = !sideBySide && !prefs.dockBgPadding && !dockBehindNav &&
             prefs.dockBgStyle != DockBgStyle.NONE &&
             slot != BarSlot.BELOW_DOCK
         // A background gets room above and below the icons, so they don't
@@ -2217,7 +2242,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 arrowWanted = arrowWanted,
                 arrowHeight = arrow?.intrinsicHeight ?: 0,
                 indicatorOn = prefs.pageIndicatorStyle != IndicatorStyle.NONE,
-                pagePadding = pagePaddingVPx(prefs.desktopPaddingV, density, isLandscape)
+                pagePadding = pagePaddingVPx(prefs.desktopPaddingV, density, isLandscape),
+                sideBySide = sideBySide
             )
         )
         val dockParams = binding.dockBar.layoutParams as ViewGroup.MarginLayoutParams
@@ -2231,8 +2257,15 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // it, so the dock reads as one row rather than a scattered line. The
         // edge-to-edge background styles are the exception - a slab that
         // stops short of the edges is not the thing they are asking for.
+        val half = if (sideBySide) sideBySideWidthPx() else 0
         val dockCap = landscapeChromeWidthPx()
-        if (dockCap > 0 && !dockBehindNav && !dockFullBleed) {
+        if (half > 0) {
+            dockParams.width = half
+            // The bar's 16dp, mirrored at the other edge.
+            dockParams.rightMargin = dp(SIDE_BY_SIDE_GAP_DP) + systemInsets.right
+            (dockParams as? androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams)
+                ?.gravity = Gravity.BOTTOM or Gravity.END
+        } else if (dockCap > 0 && !dockBehindNav && !dockFullBleed) {
             dockParams.width = dockCap
             (dockParams as? androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams)
                 ?.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
@@ -2249,9 +2282,17 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         barParams.rightMargin = dp(16) + systemInsets.right
         // Same landscape cap the dock takes: a search field running the full
         // width of a landscape window is a very long, very empty box.
-        val barWidth = if (dockCap > 0) dockCap else ViewGroup.LayoutParams.MATCH_PARENT
-        val barGravity =
-            if (dockCap > 0) Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL else Gravity.BOTTOM
+        // Side by side it takes the row's other half, at the start.
+        val barWidth = when {
+            half > 0 -> half
+            dockCap > 0 -> dockCap
+            else -> ViewGroup.LayoutParams.MATCH_PARENT
+        }
+        val barGravity = when {
+            half > 0 -> Gravity.BOTTOM or Gravity.START
+            dockCap > 0 -> Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            else -> Gravity.BOTTOM
+        }
         barParams.width = barWidth
         (barParams as? androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams)
             ?.gravity = barGravity
@@ -4589,6 +4630,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // the display's short edge: wide enough to use the extra room, narrow
         // enough that five dock icons still read as a row.
         private const val LANDSCAPE_CHROME_WIDTH = 1.35f
+        private const val SIDE_BY_SIDE_GAP_DP = 16
+        // Start, middle and end.
+        private const val SIDE_BY_SIDE_GAPS = 3
 
         // The space inside a dialog's outlined name field, as the app
         // checklist's search field has: the box draws none of its own.
