@@ -91,11 +91,15 @@ class CardActivation(context: Context, private val cards: () -> List<FeedCard>) 
         )
     }
 
-    // Feed membership and order: pinned, then activated, then the rest.
-    fun feedOrder(): List<FeedCard> {
+    // Feed membership and order: pinned, then activated, then the rest
+    // (with the built-ins), each in the user's order (FeedOrder).
+    fun feedLayout(order: List<String>, shownBuiltIns: Set<String>): List<FeedOrder.Entry> {
         val environment = environment()
-        noteActivations(CardVisibility.activated(cards(), environment))
-        return CardVisibility.feedOrder(cards(), environment)
+        val cards = cards()
+        val activated = CardVisibility.activated(cards, environment)
+        noteActivations(activated)
+        val activatedIds = activated.mapTo(HashSet()) { it.id }
+        return FeedOrder.layout(order, cards, shownBuiltIns) { it.id in activatedIds }
     }
 
     // Drawer membership: activated cards only.

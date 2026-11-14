@@ -533,10 +533,10 @@ class SettingsActivity : AppCompatActivity() {
                         onMenu = null
                     )
                 )
-                val popup = com.supernova.launcher.ui.theme.Styles
+                val look = com.supernova.launcher.ui.theme.Styles
                     .resolve(this, viewModel.state.value.prefs)
-                    .of(com.supernova.launcher.ui.theme.SurfaceId.POPUP)
-                binder.setAppearance(popup.surface, popup.text, popup.accent)
+                    .of(com.supernova.launcher.ui.theme.SurfaceId.CARDS)
+                binder.setAppearance(look.surface, look.text, look.accent)
                 binder.inflate(parent).also { binder.bind(it, card) }.root
             },
             builtInPreview = { kind, parent ->

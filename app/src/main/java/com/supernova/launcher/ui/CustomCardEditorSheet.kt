@@ -83,6 +83,7 @@ object CustomCardEditorSheet {
         var pinned = existing?.pinned ?: false
         var enabled = existing?.enabled ?: true
         binding.cardActivate.isChecked = existing?.activationEnabled ?: true
+        binding.cardFrame.isChecked = existing?.showFrame ?: true
         binding.cardName.setText(existing?.name.orEmpty())
 
         // Live preview: the draft rendered by the feed's own binder. Launch
@@ -97,10 +98,10 @@ object CustomCardEditorSheet {
                 onMenu = null
             )
         )
-        val popup = com.supernova.launcher.ui.theme.Styles
+        val look = com.supernova.launcher.ui.theme.Styles
             .resolve(activity, viewModel.state.value.prefs)
-            .of(com.supernova.launcher.ui.theme.SurfaceId.POPUP)
-        previewBinder.setAppearance(popup.surface, popup.text, popup.accent)
+            .of(com.supernova.launcher.ui.theme.SurfaceId.CARDS)
+        previewBinder.setAppearance(look.surface, look.text, look.accent)
         val previewBinding = previewBinder.inflate(binding.cardPreview)
         binding.cardPreview.addView(previewBinding.root)
 
@@ -121,11 +122,13 @@ object CustomCardEditorSheet {
                 enabled = enabled,
                 pinned = pinned,
                 widgetHeightDp = widgetHeightDp,
-                activationEnabled = binding.cardActivate.isChecked
+                activationEnabled = binding.cardActivate.isChecked,
+                showFrame = binding.cardFrame.isChecked
             )
         }
         val refreshPreview = { previewBinder.bind(previewBinding, buildCard()) }
         binding.cardName.doAfterTextChanged { refreshPreview() }
+        binding.cardFrame.setOnCheckedChangeListener { _, _ -> refreshPreview() }
         // What the sheet opened with, normalised the same way; a draft that
         // still equals it can close without asking.
         val initial = buildCard()

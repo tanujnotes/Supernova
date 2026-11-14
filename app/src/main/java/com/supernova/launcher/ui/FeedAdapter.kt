@@ -22,6 +22,7 @@ import com.supernova.launcher.databinding.ItemFeedMediaBinding
 import com.supernova.launcher.feed.CalendarCardSource
 import com.supernova.launcher.feed.ContactsCardSource
 import com.supernova.launcher.feed.FeedCard
+import com.supernova.launcher.feed.FeedOrder
 import com.supernova.launcher.feed.MediaCardSource
 import com.supernova.launcher.runLogged
 
@@ -43,15 +44,29 @@ class FeedAdapter(
         val onAddCard: () -> Unit
     )
 
-    sealed class Row {
-        data class Media(val state: MediaCardSource.MediaState) : Row()
-        data class CalendarRow(val state: CalendarCardSource.CalendarState) : Row()
-        data class Contacts(val state: ContactsCardSource.ContactsState) : Row()
-        data class Custom(val card: FeedCard) : Row()
-        object AddCard : Row()
+    // key and group place a card in the user's order (FeedOrder); the Add
+    // card button has neither and never moves.
+    sealed class Row(val key: String?, val group: FeedOrder.Group?) {
+        class Media(val state: MediaCardSource.MediaState) : Row(FeedOrder.MEDIA, FeedOrder.Group.REST)
+        class CalendarRow(val state: CalendarCardSource.CalendarState) : Row(FeedOrder.CALENDAR, FeedOrder.Group.REST)
+        class Contacts(val state: ContactsCardSource.ContactsState) : Row(FeedOrder.CONTACTS, FeedOrder.Group.REST)
+        class Custom(val card: FeedCard, cardGroup: FeedOrder.Group) : Row(card.id, cardGroup)
+        object AddCard : Row(null, null)
     }
 
     private val rows = ArrayList<Row>()
+
+    // The rows as shown, in order: what a move up or down is measured
+    // against.
+    val rowsShown: List<Row> get() = rows
+
+    // A card dragged past a neighbour: the two change places on screen.
+    // The order is stored when the card is let go.
+    fun moveRow(from: Int, to: Int) {
+        if (from !in rows.indices || to !in rows.indices || from == to) return
+        rows.add(to, rows.removeAt(from))
+        notifyItemMoved(from, to)
+    }
 
     // Resolved style ints, applied at bind time (binds are rare: feed-open
     // and source emissions only).
@@ -61,12 +76,17 @@ class FeedAdapter(
     // Add card sits on the pane's dim, not on a card.
     private var paneTextColor: Int = Color.WHITE
 
+    // Shown rows are bound again, so a color picked while the pane stays
+    // open (Settings over it) reaches the cards already on screen.
+    @Suppress("NotifyDataSetChanged")
     fun setAppearance(card: Int, text: Int, accent: Int, paneText: Int) {
+        val changed = listOf(card, text, accent, paneText) != listOf(cardColor, textColor, accentColor, paneTextColor)
         cardColor = card
         textColor = text
         accentColor = accent
         paneTextColor = paneText
         cardBinder.setAppearance(card, text, accent)
+        if (changed && rows.isNotEmpty()) notifyDataSetChanged()
     }
 
     @Suppress("NotifyDataSetChanged")
@@ -251,10 +271,24 @@ class FeedAdapter(
         }
     }
 
-    private inner class CustomHolder(private val binding: ItemFeedCustomBinding) :
+    // A custom card's own menu (its ⋮'s), for a card put down unmoved;
+    // false for any other row, whose menu the feed builds itself.
+    fun openCardMenu(holder: RecyclerView.ViewHolder): Boolean {
+        val custom = holder as? CustomHolder
+        val card = custom?.card
+        return card != null && cardBinder.openMenu(custom.binding, card)
+    }
+
+    private inner class CustomHolder(val binding: ItemFeedCustomBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(card: FeedCard) = cardBinder.bind(binding, card)
+        var card: FeedCard? = null
+            private set
+
+        fun bind(card: FeedCard) {
+            this.card = card
+            cardBinder.bind(binding, card)
+        }
     }
 
     private inner class AddHolder(private val binding: ItemFeedAddBinding) :

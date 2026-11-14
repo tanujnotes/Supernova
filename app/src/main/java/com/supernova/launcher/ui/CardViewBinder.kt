@@ -23,7 +23,13 @@ import com.supernova.launcher.feed.FeedCard
 // icon+label action pills. One binder per surface (feed, drawer, search,
 // editor preview) so each can route launches and the menu its own way; the
 // look is identical everywhere.
-class CardViewBinder(private val callbacks: Callbacks) {
+class CardViewBinder(
+    private val callbacks: Callbacks,
+    // Whether a long-press on the card opens its menu. The feed says no:
+    // there a long-press picks the card up to move it, and the menu opens
+    // when it is let go where it was (FeedCardOrder).
+    private val longPressMenu: Boolean = true
+) {
 
     class Callbacks(
         // type APP/SHORTCUT; target uses the gesture payload encodings.
@@ -57,7 +63,7 @@ class CardViewBinder(private val callbacks: Callbacks) {
 
     fun bind(binding: ItemFeedCustomBinding, card: FeedCard) {
         val context = binding.root.context
-        (binding.root.background?.mutate() as? GradientDrawable)?.setColor(cardColor)
+        bindFrame(binding, card.showFrame)
         binding.cardTypeIcon.imageTintList = ColorStateList.valueOf(textColor)
         binding.customName.setTextColor(textColor)
         val featuredLabel = card.featuredTarget?.let { target ->
@@ -75,23 +81,55 @@ class CardViewBinder(private val callbacks: Callbacks) {
         binding.cardMenu.visibility = if (menu == null) View.GONE else View.VISIBLE
         binding.cardMenu.imageTintList = ColorStateList.valueOf(textColor)
         binding.cardMenu.setOnClickListener { anchor -> menu?.invoke(card, anchor) }
-        if (menu != null) {
-            binding.root.setOnLongClickListener {
-                menu(card, binding.cardMenu)
-                true
-            }
-        } else {
-            binding.root.setOnLongClickListener(null)
-            binding.root.isLongClickable = false
-        }
 
         val hasFeatured = bindFeatured(binding, card, featuredLabel)
+        bindLongPress(binding, card)
         val hasActions = bindActions(binding, card)
         binding.cardDivider.setBackgroundColor((0x33 shl 24) or (textColor and 0xFFFFFF))
         binding.cardDivider.visibility = if (hasFeatured && hasActions) View.VISIBLE else View.GONE
         binding.customActions.visibility = if (hasActions) View.VISIBLE else View.GONE
         (binding.customActions.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin =
             context.dp(if (hasFeatured) 10 else 2)
+    }
+
+    // The card's menu as its ⋮ opens it, or against the card when it is
+    // drawn bare. False when this surface has no menu.
+    fun openMenu(binding: ItemFeedCustomBinding, card: FeedCard): Boolean {
+        val menu = callbacks.onMenu ?: return false
+        menu(card, if (card.showFrame) binding.cardMenu else binding.root)
+        return true
+    }
+
+    // A long-press opens the menu where this surface wants it to. A hosted
+    // widget performs the long-click itself, not the card, so it gets the
+    // card's too; one widget view serves the feed and search in turn, so it
+    // is set (or cleared) on every bind.
+    private fun bindLongPress(binding: ItemFeedCustomBinding, card: FeedCard) {
+        val longPress = if (longPressMenu && callbacks.onMenu != null) {
+            View.OnLongClickListener { openMenu(binding, card) }
+        } else {
+            null
+        }
+        val hosted = binding.customFeatured.getChildAt(0) as? android.appwidget.AppWidgetHostView
+        for (view in listOfNotNull(binding.root, hosted)) {
+            view.setOnLongClickListener(longPress)
+            if (longPress == null) view.isLongClickable = false
+        }
+    }
+
+    // The plate and the header row, or neither: a card with its background
+    // off is its content alone, edge to edge, like a widget on the home
+    // screen. Set both ways on every bind, since rows are reused.
+    private fun bindFrame(binding: ItemFeedCustomBinding, framed: Boolean) {
+        val context = binding.root.context
+        (binding.root.background?.mutate() as? GradientDrawable)
+            ?.setColor(if (framed) cardColor else Color.TRANSPARENT)
+        binding.cardHeader.visibility = if (framed) View.VISIBLE else View.GONE
+        val side = if (framed) context.resources.getDimensionPixelSize(R.dimen.space_md) else 0
+        val edge = if (framed) context.resources.getDimensionPixelSize(R.dimen.space_ms) else 0
+        binding.root.setPadding(side, edge, side, edge)
+        (binding.customFeatured.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin =
+            if (framed) context.resources.getDimensionPixelSize(R.dimen.space_sm) else 0
     }
 
     private fun bindFeatured(

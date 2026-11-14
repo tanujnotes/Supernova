@@ -35,15 +35,12 @@ object CardVisibility {
     fun isActivated(card: FeedCard, env: Environment): Boolean =
         card.activationEnabled && card.hasConditions && isVisible(card, env)
 
-    // The feed's order: pinned cards first, then activated ones, then the
-    // rest, each group keeping the stored order. Disabled cards drop out.
-    fun feedOrder(cards: List<FeedCard>, env: Environment): List<FeedCard> {
-        val enabled = cards.filter { it.enabled }
-        val pinned = enabled.filter { it.pinned }
-        val activated = enabled.filter { !it.pinned && isActivated(it, env) }
-        val rest = enabled.filter { !it.pinned && !isActivated(it, env) }
-        return pinned + activated + rest
-    }
+    // The feed's order of custom cards: pinned cards first, then activated
+    // ones, then the rest, each group keeping the stored order. Disabled
+    // cards drop out. The feed itself lays out through FeedOrder, which adds
+    // the built-in cards and the user's order.
+    fun feedOrder(cards: List<FeedCard>, env: Environment): List<FeedCard> =
+        FeedOrder.layout(emptyList(), cards, emptySet()) { isActivated(it, env) }.mapNotNull { it.card }
 
     // Drawer membership: activated cards in stored order.
     fun activated(cards: List<FeedCard>, env: Environment): List<FeedCard> =

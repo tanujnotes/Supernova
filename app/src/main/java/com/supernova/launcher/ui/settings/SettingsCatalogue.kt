@@ -1205,6 +1205,11 @@ object SettingsCatalogue {
                     get = { it.feedEnabled },
                     set = { viewModel.set(Pref.feedEnabled, it) }
                 ),
+                // The cards' color and opacity: the Style tab's Cards row.
+                SettingItem.StyleTarget(
+                    R.string.feed_card_colors, SurfaceId.CARDS, { actions.openStylePicker(SurfaceId.CARDS) },
+                    visibleIf = { it.feedEnabled }
+                ),
                 SettingItem.Header(R.string.feed_layout_header, visibleIf = { it.feedEnabled }),
                 SettingItem.Toggle(
                     R.string.feed_show_frequent,
@@ -1963,6 +1968,9 @@ object SettingsCatalogue {
             SettingItem.StyleTarget(R.string.settings_section_dock, SurfaceId.DOCK, { actions.openStylePicker(SurfaceId.DOCK) }),
             SettingItem.StyleTarget(R.string.settings_section_folders, SurfaceId.FOLDER, { actions.openStylePicker(SurfaceId.FOLDER) }),
             SettingItem.StyleTarget(R.string.style_popup, SurfaceId.POPUP, { actions.openStylePicker(SurfaceId.POPUP) }),
+            SettingItem.StyleTarget(
+                R.string.style_cards, SurfaceId.CARDS, { actions.openStylePicker(SurfaceId.CARDS) }
+            ),
             SettingItem.StyleTarget(
                 R.string.desktop_search_bar, SurfaceId.SEARCH_BAR,
                 { actions.openStylePicker(SurfaceId.SEARCH_BAR) }

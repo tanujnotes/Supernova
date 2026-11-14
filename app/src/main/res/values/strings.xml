@@ -688,6 +688,7 @@
     <string name="palette_seed_hint">Hex color, e.g. 3366FF</string>
     <string name="palette_seed_invalid">Not a valid hex color</string>
     <string name="style_popup">Popup menu</string>
+    <string name="style_cards">Cards</string>
     <string name="style_bar_glass_note">Glass takes the place of the surface color. It\'s set on the bar\'s own page.</string>
     <string name="style_slot_surface">Background</string>
     <string name="style_slot_text">Text</string>
@@ -894,6 +895,7 @@
     <string name="settings_section_feed">Feed page</string>
     <string name="feed_enabled">Show before first page</string>
     <string name="feed_enabled_subtitle">Show the feed as an additional home screen page before the first</string>
+    <string name="feed_card_colors">Card colors</string>
     <string name="feed_edge_swipe">Open with left-edge swipe</string>
     <string name="feed_show_search">Search bar</string>
     <string name="feed_show_frequent">Frequently used apps</string>
@@ -938,6 +940,8 @@
     <string name="card_featured_choose">Choose featured content</string>
     <string name="card_widget_height">Widget height</string>
     <string name="card_widget_height_value">%1$d dp</string>
+    <string name="card_frame">Card background</string>
+    <string name="card_frame_desc">Off shows the card without its background and title, the way a widget sits on the home screen. Long-press it for its menu.</string>
     <string name="card_actions_desc">Pin up to 6 app or shortcut actions to your card</string>
     <string name="card_reorder">Drag to reorder</string>
     <string name="card_activate">Activate in the feed</string>
@@ -976,6 +980,8 @@
     <string name="card_menu_edit">Settings</string>
     <string name="card_menu_pin">Pin</string>
     <string name="card_menu_unpin">Unpin</string>
+    <string name="card_menu_move_up">Move up</string>
+    <string name="card_menu_move_down">Move down</string>
     <string name="card_untitled">Card</string>
     <string name="card_widget_unavailable">Widget not available</string>
     <string name="card_summary_pinned">Pinned</string>

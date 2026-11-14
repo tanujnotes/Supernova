@@ -770,9 +770,33 @@ class LauncherRepository(private val context: Context) {
         }
     }
 
+    // The card's key stays in feedOrder, so an Undo puts it back where it
+    // stood; the next reorder drops it.
     suspend fun removeFeedCard(cardId: String) {
         mutate { current ->
             current.copy(feedCards = current.feedCards.filterNot { it.id == cardId })
+        }
+    }
+
+    // Undo after a delete: the card back in its old slot of the list.
+    suspend fun restoreFeedCard(card: com.supernova.launcher.feed.FeedCard, index: Int) {
+        mutate { current ->
+            val cards = current.feedCards.filterNot { it.id == card.id }.toMutableList()
+            cards.add(index.coerceIn(0, cards.size), card)
+            current.copy(feedCards = cards)
+        }
+    }
+
+    // The feed's new card order. The cards list is put in the same order,
+    // so the drawer, search and the Cards page list them as the feed does.
+    suspend fun setFeedOrder(keys: List<String>) {
+        mutate { current ->
+            val order = com.supernova.launcher.feed.FeedOrder.resolve(keys, current.feedCards.map { it.id })
+            val rank = order.withIndex().associate { it.value to it.index }
+            current.copy(
+                feedOrder = order,
+                feedCards = current.feedCards.sortedBy { rank[it.id] ?: Int.MAX_VALUE }
+            )
         }
     }
 

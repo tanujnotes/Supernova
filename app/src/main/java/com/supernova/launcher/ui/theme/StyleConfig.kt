@@ -9,8 +9,10 @@ import kotlinx.serialization.json.Json
 // now and vice versa.
 @Serializable
 // HOME is the home screen's own background: a color laid over the wallpaper,
-// transparent unless one is picked.
-enum class SurfaceId { DRAWER, DOCK, FOLDER, POPUP, SEARCH_BAR, DRAWER_SEARCH_BAR, SETTINGS, HOME }
+// transparent unless one is picked. CARDS is the plate of every card (the
+// feed's, the drawer's and search's), which wore POPUP's colours before it
+// had its own and still does until it is styled.
+enum class SurfaceId { DRAWER, DOCK, FOLDER, POPUP, SEARCH_BAR, DRAWER_SEARCH_BAR, SETTINGS, HOME, CARDS }
 
 // Tonal-palette roles, matching Material's accent1/neutral1/neutral2 ramps.
 @Serializable

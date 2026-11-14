@@ -140,7 +140,10 @@ data class LauncherModel(
     val defaultPage: Int = 0,
     val appOverrides: Map<String, AppOverride> = emptyMap(),
     // v5: custom feed-page cards (see feed/FeedCards.kt).
-    val feedCards: List<com.supernova.launcher.feed.FeedCard> = emptyList()
+    val feedCards: List<com.supernova.launcher.feed.FeedCard> = emptyList(),
+    // The feed's card order, built-in cards included (feed/FeedOrder.kt);
+    // empty = the order it always had. Default-supplied, so no migration.
+    val feedOrder: List<String> = emptyList()
 )
 
 @Serializable

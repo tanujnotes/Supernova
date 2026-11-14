@@ -1354,10 +1354,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     parent: android.view.ViewGroup,
                     card: com.supernova.launcher.feed.FeedCard
                 ): View {
-                    val popup = com.supernova.launcher.ui.theme.Styles
+                    val look = com.supernova.launcher.ui.theme.Styles
                         .resolve(this@LauncherActivity, viewModel.state.value.prefs)
-                        .of(com.supernova.launcher.ui.theme.SurfaceId.POPUP)
-                    binder.setAppearance(popup.surface, popup.text, popup.accent)
+                        .of(com.supernova.launcher.ui.theme.SurfaceId.CARDS)
+                    binder.setAppearance(look.surface, look.text, look.accent)
                     val binding = binder.inflate(parent)
                     binder.bind(binding, card)
                     return binding.root
@@ -1486,7 +1486,16 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             viewModel = viewModel,
             scope = lifecycleScope,
             activation = cardActivation,
-            cardBinder = cards.binder(afterLaunch = null),
+            // Deferred: `feed` is assigned by this very call, and a move
+            // only comes from a card menu once the pane is up.
+            cardBinder = cards.binder(
+                afterLaunch = null,
+                moves = object : com.supernova.launcher.ui.FeedCardRoutes.Moves {
+                    override fun canMove(key: String, up: Boolean) = feed.cardMoves.canMove(key, up)
+
+                    override fun move(key: String, up: Boolean) = feed.cardMoves.move(key, up)
+                }
+            ),
             canPullFromWorkspace = ::feedPullAllowed,
             itemDragArmed = { drag.isArmed || drag.isActive },
             host = object : FeedController.Host {
@@ -1545,10 +1554,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
                 override fun editCard(card: com.supernova.launcher.feed.FeedCard?) = cards.edit(card)
 
-                override fun openFeedSettings() {
+                override fun openFeedSettings(section: Int) {
                     startActivity(
                         Intent(this@LauncherActivity, SettingsActivity::class.java)
-                            .putExtra(SettingsActivity.EXTRA_SECTION_TITLE_RES, R.string.settings_section_feed)
+                            .putExtra(SettingsActivity.EXTRA_SECTION_TITLE_RES, section)
                     )
                 }
             }

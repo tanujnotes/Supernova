@@ -909,6 +909,13 @@ class LauncherViewModel(
 
     fun removeFeedCard(cardId: String) = persist { repository.removeFeedCard(cardId) }
 
+    fun restoreFeedCard(card: com.supernova.launcher.feed.FeedCard, index: Int) =
+        persist { repository.restoreFeedCard(card, index) }
+
+    fun feedOrder(): List<String> = state.value.model.feedOrder
+
+    fun setFeedOrder(keys: List<String>) = persist { repository.setFeedOrder(keys) }
+
     // "Pin": flips the stored flag; the feed re-sorts on the emission.
     fun setFeedCardPinned(cardId: String, pinned: Boolean) {
         val card = feedCards().firstOrNull { it.id == cardId } ?: return

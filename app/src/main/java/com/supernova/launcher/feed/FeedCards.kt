@@ -32,7 +32,11 @@ data class FeedCard(
     val widgetHeightDp: Int = 160,
     // The "Activate" switch: off keeps the conditions but stops them
     // activating the card (it then lives in the feed and search only).
-    val activationEnabled: Boolean = true
+    val activationEnabled: Boolean = true,
+    // "Card background": off draws the card bare, with no plate and no
+    // header row, so a featured widget sits on the page as on the home
+    // screen. Its menu is then a long-press away.
+    val showFrame: Boolean = true
 ) {
     // Activation: a card with conditions is "activated" while they all
     // hold; that is what promotes it into the app drawer. A card without

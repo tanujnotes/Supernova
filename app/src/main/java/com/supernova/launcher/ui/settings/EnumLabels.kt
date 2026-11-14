@@ -357,6 +357,7 @@ object EnumLabels {
         SurfaceId.DRAWER_SEARCH_BAR -> R.string.drawer_search_bar
         SurfaceId.SETTINGS -> R.string.settings
         SurfaceId.HOME -> R.string.settings_section_home
+        SurfaceId.CARDS -> R.string.style_cards
     }
 
     @StringRes

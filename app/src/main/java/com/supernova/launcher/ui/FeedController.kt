@@ -19,6 +19,7 @@ import com.supernova.launcher.feed.CardActivation
 import com.supernova.launcher.feed.ContactsCardSource
 import com.supernova.launcher.feed.FeaturedType
 import com.supernova.launcher.feed.FeedCard
+import com.supernova.launcher.feed.FeedOrder
 import com.supernova.launcher.feed.MediaCardSource
 import com.supernova.launcher.search.AppSearchProvider
 import com.supernova.launcher.ui.theme.Styles
@@ -40,9 +41,13 @@ import kotlin.math.min
 // and the pager's left overscroll. Card sources are strictly dormant while
 // the pane is hidden.
 //
-// Custom cards: every enabled card is in the feed, pinned ones
-// first, then the activated ones (all conditions met), then the rest. The
-// shared CardActivation evaluates conditions and is held only while shown.
+// Cards: every enabled card is in the feed, pinned ones first, then the
+// activated ones (all conditions met), then the rest with the built-in
+// cards among them, each group in the user's order (FeedOrder). The shared
+// CardActivation evaluates conditions and is held only while shown.
+//
+// A long-press picks a card up and a drag moves it within its group; let go
+// where it was, it opens the card's menu instead (FeedCardDrag).
 class FeedController(
     private val binding: ActivityLauncherBinding,
     private val viewModel: LauncherViewModel,
@@ -61,8 +66,9 @@ class FeedController(
     interface Host {
         fun onOpenSearch()
 
-        // The overflow's Settings entry: the Feed page section.
-        fun openFeedSettings()
+        // The overflow's Settings entry: the Feed page section; a built-in
+        // card's menu opens that card's own page.
+        fun openFeedSettings(@androidx.annotation.StringRes section: Int = R.string.settings_section_feed)
 
         fun launchApp(anchor: View?, app: LaunchableApp)
 
@@ -283,6 +289,12 @@ class FeedController(
                     dragTo(ev.x)
                     return TouchResult.CONSUMED
                 }
+                // A card picked up in the pane is being moved: a sideways
+                // drift is that card's, not a swipe closing the pane.
+                if (cardDrag.holding) {
+                    stopTracking()
+                    return TouchResult.PASS
+                }
                 if (edgeTracking || pullTracking || closeTracking) {
                     velocityTracker?.addMovement(ev)
                     val dx = ev.x - downX
@@ -481,9 +493,11 @@ class FeedController(
                 ) { _, _, _ -> Unit }.collect { rebuild() }
             }
             launch {
-                // Card edits made while the pane is open (editor sheet on top).
-                // The first emission is the cards acquire just armed for.
-                viewModel.state.map { it.model.feedCards }.distinctUntilChanged().drop(1).collect {
+                // Card edits made while the pane is open (editor sheet on top),
+                // and moves. The first emission is the cards acquire just
+                // armed for.
+                viewModel.state.map { it.model.feedCards to it.model.feedOrder }
+                    .distinctUntilChanged().drop(1).collect {
                     activation.refresh()
                     rebuild()
                     scheduleBoundary()
@@ -542,34 +556,55 @@ class FeedController(
 
     private fun rebuild() {
         if (!shown) return
+        // Never under a held card: the rows it is being moved among would
+        // be swapped for new ones mid-drag. The drop catches up.
+        if (cardDrag.holding) {
+            rebuildPending = true
+            return
+        }
+        rebuildPending = false
         val prefs = viewModel.state.value.prefs
-        val rows = ArrayList<FeedAdapter.Row>()
+        // The built-in cards with something to show, by their order key.
+        val builtIns = HashMap<String, FeedAdapter.Row>()
         if (prefs.feedShowMedia) {
-            mediaSource.state.value?.let { rows.add(FeedAdapter.Row.Media(it)) }
+            mediaSource.state.value?.let { builtIns[FeedOrder.MEDIA] = FeedAdapter.Row.Media(it) }
         }
         if (prefs.feedShowCalendar) {
             when (val state = calendarSource.state.value) {
                 CalendarCardSource.CalendarState.NeedsPermission ->
-                    rows.add(FeedAdapter.Row.CalendarRow(state))
+                    builtIns[FeedOrder.CALENDAR] = FeedAdapter.Row.CalendarRow(state)
                 is CalendarCardSource.CalendarState.Events ->
                     // Granted but empty week: no card beats an empty card.
-                    if (state.events.isNotEmpty()) rows.add(FeedAdapter.Row.CalendarRow(state))
+                    if (state.events.isNotEmpty()) builtIns[FeedOrder.CALENDAR] = FeedAdapter.Row.CalendarRow(state)
                 null -> Unit
             }
         }
         if (prefs.feedShowContacts) {
             when (val state = contactsSource.state.value) {
                 ContactsCardSource.ContactsState.NeedsPermission ->
-                    rows.add(FeedAdapter.Row.Contacts(state))
+                    builtIns[FeedOrder.CONTACTS] = FeedAdapter.Row.Contacts(state)
                 is ContactsCardSource.ContactsState.Contacts ->
-                    if (state.contacts.isNotEmpty()) rows.add(FeedAdapter.Row.Contacts(state))
+                    if (state.contacts.isNotEmpty()) builtIns[FeedOrder.CONTACTS] = FeedAdapter.Row.Contacts(state)
                 null -> Unit
             }
         }
-        activation.feedOrder().forEach { rows.add(FeedAdapter.Row.Custom(it)) }
+        val rows = ArrayList<FeedAdapter.Row>()
+        activation.feedLayout(viewModel.feedOrder(), builtIns.keys).forEach { entry ->
+            val card = entry.card
+            rows.add(if (card != null) FeedAdapter.Row.Custom(card, entry.group) else builtIns.getValue(entry.key))
+        }
         rows.add(FeedAdapter.Row.AddCard)
         adapter.submit(rows)
     }
+
+    private var rebuildPending = false
+
+    // Moving cards: the drag, and Move up / Move down from a card's menu.
+    private val cardOrder = FeedCardOrder(adapter, viewModel) { section -> host.openFeedSettings(section) }
+    private val cardDrag = FeedCardDrag(adapter, viewModel, cardOrder) { if (rebuildPending) rebuild() }
+
+    // For the feed's card menus (FeedCardRoutes).
+    val cardMoves: FeedCardRoutes.Moves get() = cardOrder
 
     // ---- Chrome ----------------------------------------------------------
 
@@ -601,6 +636,7 @@ class FeedController(
         pane.feedRecycler.itemAnimator = null
         pane.feedRecycler.layoutManager =
             androidx.recyclerview.widget.LinearLayoutManager(context)
+        cardDrag.attach(pane.feedRecycler)
         pane.feedSearchBar.onTap = { host.onOpenSearch() }
         pane.feedMenu.setOnClickListener { anchor -> showMenu(anchor) }
 
@@ -657,8 +693,8 @@ class FeedController(
         val resolved = Styles.resolve(context, prefs)
         // The pane is a dim over the wallpaper (the feed page look); its
         // text takes the DRAWER surface's text color, the embedded bar wears
-        // SEARCH_BAR and the cards the POPUP surface, keeping every color
-        // user-styleable through the existing pickers.
+        // SEARCH_BAR and the cards the CARDS surface (POPUP's colours until
+        // styled), keeping every color user-styleable through the pickers.
         val paneText = paneTextColor(prefs)
         pane.root.setBackgroundColor(FEED_DIM)
         // Inside the bar the menu wears the bar's text colour, like its
@@ -667,8 +703,8 @@ class FeedController(
             if (pane.feedSearchBar.trailing === pane.feedMenu) resolved.of(SurfaceId.SEARCH_BAR).text else paneText
         )
         pane.feedNoFrequent.setTextColor((0xB3 shl 24) or (paneText and 0xFFFFFF))
-        val popupSurface = resolved.of(SurfaceId.POPUP)
-        adapter.setAppearance(popupSurface.surface, popupSurface.text, popupSurface.accent, paneText)
+        val cards = resolved.of(SurfaceId.CARDS)
+        adapter.setAppearance(cards.surface, cards.text, cards.accent, paneText)
         // The feed bar borrows the desktop bar's styling (radius, wireframe,
         // logo, chips) - placement is this pane's own business.
         pane.feedSearchBar.apply(

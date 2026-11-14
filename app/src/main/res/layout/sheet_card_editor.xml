@@ -222,6 +222,31 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- Card background: off draws the card bare. -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/CardEditorHeader"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="@string/card_frame" />
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/cardFrame"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_md"
+                    android:checked="true" />
+            </LinearLayout>
+
+            <TextView
+                style="@style/CardEditorDescription"
+                android:text="@string/card_frame_desc" />
+
             <!-- Actions -->
             <TextView
                 style="@style/CardEditorHeader"
