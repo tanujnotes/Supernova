@@ -97,6 +97,21 @@ class PictureFrameTest {
     }
 
     @Test
+    fun aTileOrADiscIsOneSolidBody() {
+        assertTrue(PictureFrame.solid(roundedSquare(margin = 8, radius = 10), size))
+        assertTrue(PictureFrame.solid(picture { x, y -> inDisc(x, y, 40f) }, size))
+    }
+
+    @Test
+    fun aLogoMadeOfPiecesIsNoSolidBody() {
+        // Four blocks with clear lanes between them.
+        val blocks = picture { x, y -> x in 10..85 && y in 10..85 && x !in 42..53 && y !in 42..53 }
+
+        assertFalse(PictureFrame.solid(blocks, size))
+        assertFalse(PictureFrame.solid(IntArray(size * size), size))
+    }
+
+    @Test
     fun aBoxReachesItsCorners() {
         val square = picture { x, y -> x in 8 until size - 8 && y in 8 until size - 8 }
         assertEquals(1.414f, PictureFrame.boxReach(square, size, PictureFrame.tile(square, size)!!), 0.03f)

@@ -12,51 +12,57 @@ import kotlin.math.roundToInt
 
 // Glass for a legacy icon, which is one picture: a tile of its own (Paseo's
 // blue square, FAST's white disc) is enlarged to fill the shape and cleared
-// like an adaptive icon's background; an object standing free (a SIM card
-// with a gear beside it) sits whole on a white pane.
+// like an adaptive icon's background; a tile that is a picture all over (a
+// map with a face on it) fills the shape whole; an object or a logo standing
+// free (a SIM card with a gear beside it, a cloud over a page) sits whole on
+// a white pane.
 internal class LegacyGlass(private val painter: GlassPainter) {
+
+    // The icon enlarged across the mask, and whether it has a backing to
+    // clear; without one the picture stays as it is.
+    private class Tile(val art: Bitmap, val backed: Boolean)
 
     // A legacy icon is one picture: its tile is cleared from that, with the
     // outline unmixed; one without a tile sits whole on a white pane.
     fun draw(canvas: Canvas, icon: Drawable, mask: Path, glass: IconGlass) {
         val size = canvas.width
-        val art = tiled(icon, mask, size)
-        if (art == null) {
+        val tile = tiled(icon, mask, size)
+        if (tile == null) {
             canvas.withClip(mask) { painter.drawPane(this, glass, Color.WHITE, size, size) }
             drawFreeStanding(canvas, icon, size)
             return
         }
         val pixels = IntArray(size * size)
-        art.getPixels(pixels, 0, size, 0, 0, size, size)
-        art.recycle()
+        tile.art.getPixels(pixels, 0, size, 0, 0, size, size)
+        tile.art.recycle()
         val original = pixels.copyOf()
-        val cleared = BakedBacking.clear(pixels, size)
+        val cleared = if (tile.backed) BakedBacking.clear(pixels, size) else null
         // A flood that followed a steep gradient into soft-edged art (Equate's
         // bevelled letters) leaves an empty pane or scraps of the art, depending
         // on the shape: the picture stays whole instead.
-        val whole = cleared != null &&
-            (BakedBacking.clearedAway(original, pixels) || BakedBacking.ranFar(original, cleared))
+        val whole = cleared == null ||
+            BakedBacking.clearedAway(original, pixels) || BakedBacking.ranFar(original, cleared)
         canvas.withClip(mask) {
             painter.drawPane(this, glass, cleared?.color ?: Color.WHITE, size, size)
             drawPixels(this, if (whole) original else pixels, size)
         }
     }
 
-    // A legacy icon whose backing spans it - Paseo's blue tile, FAST's white
-    // disc - enlarged so that tile reaches just past the mask; null for one
-    // whose picture is an object (a SIM card with a gear beside it).
-    private fun tiled(icon: Drawable, mask: Path, size: Int): Bitmap? {
+    // A legacy icon that is one solid body, enlarged so it reaches just past
+    // the mask: one whose backing spans it (Paseo's blue tile, FAST's white
+    // disc), or a square tile that is a picture all over. Null for an object
+    // or a logo: a body with gaps in it is no tile even when one of its
+    // colours spans it, and clearing that colour took half the logo.
+    private fun tiled(icon: Drawable, mask: Path, size: Int): Tile? {
         val pixels = picture(icon, size)
-        val content = BakedBacking.contentBounds(pixels, size)
-        val cleared = content?.let { BakedBacking.clear(pixels, size) }
-        val isTile = content != null && cleared != null &&
-            BakedBacking.spans(cleared, content, (size * BakedBacking.TILE_SLACK).roundToInt())
-        return if (isTile && content != null) {
-            createBitmap(size, size).also { bitmap ->
-                Canvas(bitmap).withClip(mask) { drawFitted(this, icon, size, content, TILE_FILL) }
-            }
-        } else {
-            null
+        val content = BakedBacking.contentBounds(pixels, size)?.takeIf { PictureFrame.solid(pixels, size) }
+        val square = PictureFrame.tile(pixels, size) != null
+        val backed = content != null && BakedBacking.clear(pixels, size)
+            ?.let { BakedBacking.spans(it, content, (size * BakedBacking.TILE_SLACK).roundToInt()) } == true
+        return content?.takeIf { backed || square }?.let { box ->
+            val art = createBitmap(size, size)
+            Canvas(art).withClip(mask) { drawFitted(this, icon, size, box, TILE_FILL) }
+            Tile(art, backed)
         }
     }
 
