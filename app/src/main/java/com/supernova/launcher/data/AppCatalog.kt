@@ -166,14 +166,6 @@ class AppCatalog(
 
             val override = overrides[cacheKey]
             val variant = override?.iconVariant
-            // Keys the pack's iconback choice, so an app keeps the same plate
-            // between launches instead of shuffling on every cache rebuild.
-            val packComponent = "${app.packageName}/${app.className}"
-            // ORIGINAL shows the app's own icon unshaped: the launcher's
-            // shape is left off, but one picked for this app in Edit still
-            // applies.
-            val ownShape = override?.iconShape?.let(IconShape::fromName)
-            val effectiveShape = ownShape ?: if (variant == "ORIGINAL") IconShape.SYSTEM else iconShape
 
             // Dynamic calendar icons: an isolated day-keyed cache entry, so the
             // date is always current and no normal icon key is touched. Falls
@@ -190,7 +182,7 @@ class AppCatalog(
                 val calendar = iconPacks.calendarDrawable(app.packageName, app.className, day)
                 if (calendar != null) {
                     val rendered = runLogged("render calendar icon") {
-                        iconRenderer.render(calendar, null, effectiveShape, customShapeSpec, IconGlass.OFF)
+                        iconRenderer.render(calendar, null, shapeFor(override), customShapeSpec, IconGlass.OFF)
                     }.getOrNull()
                     if (rendered != null) {
                         val badged = runLogged("badge icon for its profile") {
@@ -202,69 +194,7 @@ class AppCatalog(
                 }
             }
 
-            // A gallery image outranks a pack icon (they are mutually exclusive
-            // by construction); decoding happens only here, on a cache miss.
-            val gallery = override?.iconBase64?.takeIf { it.isNotEmpty() }?.let { data ->
-                GalleryIconCodec.decode(data)?.let { BitmapDrawable(context.resources, it) }
-            }
-
-            // A per-app custom icon skips the pack pipeline entirely; if its
-            // pack vanished, fall back silently and keep the override recorded.
-            val custom = gallery ?: override?.iconPackPackage?.let { pack ->
-                override.iconDrawableName?.let { name -> packDrawable(pack, name) }
-            }
-            // Another app's icon, picked in Edit, is drawn as that app's own
-            // icon is (shape, glass and all), not as a pack's finished art.
-            val pickedAppIcon = gallery == null && custom != null && AppIconSource.isAppIcon(override?.iconPackPackage)
-
-            val source: Drawable
-            val decoration: IconPackDecoration?
-            // A pack's own art or a picked picture is finished as it is:
-            // glass leaves it alone.
-            var finishedArt = false
-            // The app's own icon, left as it comes: no pack, no pick in Edit.
-            var ownIcon = false
-            if (custom != null) {
-                // Another app's icon takes the themed look as the app's own
-                // would: with Themed icons on, or Themed picked for this app.
-                val mono = custom.takeIf { pickedAppIcon && variant != "ORIGINAL" }
-                    ?.let { themedIcon(it, force = variant == "THEMED") }
-                source = mono ?: custom
-                decoration = null
-                finishedArt = !pickedAppIcon
-                ownIcon = pickedAppIcon && mono == null
-            } else if (variant == "ORIGINAL") {
-                // The app's own icon with no pack plate and no shape clip.
-                source = resolveActivity(app.packageName, app.className, user)?.getIcon(0) ?: return null
-                decoration = null
-            } else if (variant == "THEMED") {
-                // Force the system monochrome look for just this app.
-                val mono = monochromeThemedIcon(app.packageName, app.className, user, force = true)
-                source = mono ?: resolveActivity(app.packageName, app.className, user)?.getIcon(0) ?: return null
-                decoration = if (mono == null) iconPacks.decoration(packComponent) else null
-            } else {
-                // A themed icon from the active pack already looks final; only
-                // unthemed apps get the pack's back/mask/upon treatment.
-                val themed = iconPacks.themedIcon(app.packageName, app.className)
-                // Pack theming wins; else the system monochrome layer when the
-                // themed-icons pref is on; else the raw icon with pack plate.
-                val mono = if (themed == null) monochromeThemedIcon(app.packageName, app.className, user) else null
-                source = themed ?: mono ?: resolveActivity(app.packageName, app.className, user)?.getIcon(0)
-                    ?: return null
-                decoration = if (themed == null && mono == null) iconPacks.decoration(packComponent) else null
-                finishedArt = themed != null
-                ownIcon = themed == null && mono == null && decoration == null
-            }
-
-            // ORIGINAL is the app's own icon, glass and all left off.
-            val glass = if (variant == "ORIGINAL" || finishedArt) IconGlass.OFF else iconRenderer.glass
-            val rendered = runLogged("render icon") {
-                when {
-                    gallery != null -> pickedPicture(gallery.bitmap, effectiveShape)
-                    ownIcon -> iconRenderer.renderOwnIcon(source, effectiveShape, customShapeSpec, glass)
-                    else -> iconRenderer.render(source, decoration, effectiveShape, customShapeSpec, glass)
-                }
-            }.getOrNull() ?: return null
+            val rendered = drawEdited(app, user, override) ?: return null
             dominantColorOf(IconRenderer.bitmapOf(rendered))?.let { dominantColors[cacheKey] = it }
             val icon = runLogged("badge icon for its profile") {
                 pm.getUserBadgedIcon(rendered, user)
@@ -272,6 +202,92 @@ class AppCatalog(
             iconCache.put(cacheKey, icon)
             return icon
         }
+    }
+
+    // An app's icon as it would look with `override` saved, for Edit's
+    // preview: drawn now, never cached.
+    fun previewIcon(app: LaunchableApp, override: AppOverride): Drawable? {
+        val user = userForSerial(app.userSerial) ?: return null
+        return synchronized(renderLock) { drawEdited(app, user, override) }
+    }
+
+    // ORIGINAL shows the app's own icon unshaped: the launcher's shape is
+    // left off, but one picked for this app in Edit still applies.
+    private fun shapeFor(override: AppOverride?): IconShape =
+        override?.iconShape?.let(IconShape::fromName)
+            ?: if (override?.iconVariant == "ORIGINAL") IconShape.SYSTEM else iconShape
+
+    // The app's icon drawn with an edit's icon, style and shape, before the
+    // profile badge. Called under renderLock.
+    private fun drawEdited(app: LaunchableApp, user: UserHandle, override: AppOverride?): Drawable? {
+        val variant = override?.iconVariant
+        // Keys the pack's iconback choice, so an app keeps the same plate
+        // between launches instead of shuffling on every cache rebuild.
+        val packComponent = "${app.packageName}/${app.className}"
+        val effectiveShape = shapeFor(override)
+        // A gallery image outranks a pack icon (they are mutually exclusive
+        // by construction); decoding happens only here, on a cache miss.
+        val gallery = override?.iconBase64?.takeIf { it.isNotEmpty() }?.let { data ->
+            GalleryIconCodec.decode(data)?.let { BitmapDrawable(context.resources, it) }
+        }
+
+        // A per-app custom icon skips the pack pipeline entirely; if its
+        // pack vanished, fall back silently and keep the override recorded.
+        val custom = gallery ?: override?.iconPackPackage?.let { pack ->
+            override.iconDrawableName?.let { name -> packDrawable(pack, name) }
+        }
+        // Another app's icon, picked in Edit, is drawn as that app's own
+        // icon is (shape, glass and all), not as a pack's finished art.
+        val pickedAppIcon = gallery == null && custom != null && AppIconSource.isAppIcon(override?.iconPackPackage)
+
+        val source: Drawable
+        val decoration: IconPackDecoration?
+        // A pack's own art or a picked picture is finished as it is:
+        // glass leaves it alone.
+        var finishedArt = false
+        // The app's own icon, left as it comes: no pack, no pick in Edit.
+        var ownIcon = false
+        if (custom != null) {
+            // Another app's icon takes the themed look as the app's own
+            // would: with Themed icons on, or Themed picked for this app.
+            val mono = custom.takeIf { pickedAppIcon && variant != "ORIGINAL" }
+                ?.let { themedIcon(it, force = variant == "THEMED") }
+            source = mono ?: custom
+            decoration = null
+            finishedArt = !pickedAppIcon
+            ownIcon = pickedAppIcon && mono == null
+        } else if (variant == "ORIGINAL") {
+            // The app's own icon with no pack plate and no shape clip.
+            source = resolveActivity(app.packageName, app.className, user)?.getIcon(0) ?: return null
+            decoration = null
+        } else if (variant == "THEMED") {
+            // Force the system monochrome look for just this app.
+            val mono = monochromeThemedIcon(app.packageName, app.className, user, force = true)
+            source = mono ?: resolveActivity(app.packageName, app.className, user)?.getIcon(0) ?: return null
+            decoration = if (mono == null) iconPacks.decoration(packComponent) else null
+        } else {
+            // A themed icon from the active pack already looks final; only
+            // unthemed apps get the pack's back/mask/upon treatment.
+            val themed = iconPacks.themedIcon(app.packageName, app.className)
+            // Pack theming wins; else the system monochrome layer when the
+            // themed-icons pref is on; else the raw icon with pack plate.
+            val mono = if (themed == null) monochromeThemedIcon(app.packageName, app.className, user) else null
+            source = themed ?: mono ?: resolveActivity(app.packageName, app.className, user)?.getIcon(0)
+                ?: return null
+            decoration = if (themed == null && mono == null) iconPacks.decoration(packComponent) else null
+            finishedArt = themed != null
+            ownIcon = themed == null && mono == null && decoration == null
+        }
+
+        // ORIGINAL is the app's own icon, glass and all left off.
+        val glass = if (variant == "ORIGINAL" || finishedArt) IconGlass.OFF else iconRenderer.glass
+        return runLogged("render icon") {
+            when {
+                gallery != null -> pickedPicture(gallery.bitmap, effectiveShape)
+                ownIcon -> iconRenderer.renderOwnIcon(source, effectiveShape, customShapeSpec, glass)
+                else -> iconRenderer.render(source, decoration, effectiveShape, customShapeSpec, glass)
+            }
+        }.getOrNull()
     }
 
     // The cached dominant color for DYNAMIC badge tinting; null until the

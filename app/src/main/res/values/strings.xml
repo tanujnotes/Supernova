@@ -1101,6 +1101,20 @@
     <string name="variant_default">Default</string>
     <string name="variant_themed">Themed</string>
     <string name="variant_original">Original</string>
+    <string name="variant_default_hint">Follows the launcher: its icon shape, glass and themed icons.</string>
+    <string name="variant_themed_hint">A one-colour icon on a tinted plate, even with themed icons off.</string>
+    <string name="variant_original_hint">The icon as the app made it. Only a shape picked here applies.</string>
+    <!-- Edit sheet preview: the icon as it will look, and what differs from the default. -->
+    <string name="edit_preview">Preview</string>
+    <string name="edit_no_changes">No changes</string>
+    <string name="edit_change_renamed">Renamed</string>
+    <string name="edit_change_hidden">Name hidden</string>
+    <string name="edit_change_icon">Icon: %1$s</string>
+    <string name="edit_shape_default">Default (launcher\'s shape)</string>
+    <plurals name="save_changes">
+        <item quantity="one">Save %d change</item>
+        <item quantity="other">Save %d changes</item>
+    </plurals>
     <!-- Home edit mode -->
     <string name="edit_widgets_title">Widgets</string>
     <string name="search_widgets_hint">Search widgets</string>

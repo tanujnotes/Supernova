@@ -159,7 +159,10 @@ object FolderEditSheet {
         val savedRaw: Boolean get() = raw && isCustom
     }
 
+    // A folder's sheet keeps its name, icon and swipe rows; the preview,
+    // style and shape are an app's.
     private fun hideAppRows(binding: SheetAppEditBinding) {
+        binding.previewCard.visibility = View.GONE
         binding.hideLabelRow.visibility = View.GONE
         binding.shapeRow.visibility = View.GONE
         binding.variantRow.visibility = View.GONE

@@ -27,6 +27,7 @@
     <ID>ComplexCondition:WorkspacePagerAdapter.kt$WorkspacePagerAdapter.PageViewHolder$margins.leftMargin != padH || margins.topMargin != padV || margins.rightMargin != padH || margins.bottomMargin != padV</ID>
     <ID>CyclomaticComplexMethod:ActionIcons.kt$ActionIcons$@DrawableRes fun of(action: GestureAction): Int</ID>
     <ID>CyclomaticComplexMethod:ActionRunner.kt$ActionRunner$fun run(bound: GestureBinding, anchor: View? = null): Boolean</ID>
+    <ID>CyclomaticComplexMethod:AppCatalog.kt$AppCatalog$private fun drawEdited(app: LaunchableApp, user: UserHandle, override: AppOverride?): Drawable?</ID>
     <ID>CyclomaticComplexMethod:AppCatalog.kt$AppCatalog$private fun renderIcon(app: LaunchableApp): Drawable?</ID>
     <ID>CyclomaticComplexMethod:AppDrawerAdapter.kt$AppDrawerAdapter$fun setDisplay( iconScale: Float, showLabels: Boolean, prefs: com.supernova.launcher.data.LauncherPrefs? = null ): Boolean</ID>
     <ID>CyclomaticComplexMethod:AppEditSheet.kt$AppEditSheet$fun show( context: Context, scope: CoroutineScope, viewModel: LauncherViewModel, // Null only with shortcut, for one with no app behind it. app: LaunchableApp?, // Host-provided photo picker (the ActivityResult launcher must be // registered on the activity); null hides the photo options. pickPhoto: PhotoPicker? = null, // Per-item swipe editing. Non-null only when editing a placed // workspace item: `swipeLabels` reads the current up/down labels and // `onEditSwipe` opens the host picker, calling back with the chosen // label (null = cleared) so the row can refresh without racing the // async model write. swipeLabels: ((down: Boolean) -&gt; String?)? = null, onEditSwipe: ((down: Boolean, onPicked: (String?) -&gt; Unit) -&gt; Unit)? = null, shortcut: ShortcutEdit? = null )</ID>
@@ -93,8 +94,6 @@
     <ID>LargeClass:SettingsPreviewView.kt$SettingsPreviewView : FrameLayout</ID>
     <ID>LargeClass:WidgetController.kt$WidgetController</ID>
     <ID>LongMethod:ActionRunner.kt$ActionRunner$fun run(bound: GestureBinding, anchor: View? = null): Boolean</ID>
-    <ID>LongMethod:AppCatalog.kt$AppCatalog$private fun renderIcon(app: LaunchableApp): Drawable?</ID>
-    <ID>LongMethod:AppEditSheet.kt$AppEditSheet$fun show( context: Context, scope: CoroutineScope, viewModel: LauncherViewModel, // Null only with shortcut, for one with no app behind it. app: LaunchableApp?, // Host-provided photo picker (the ActivityResult launcher must be // registered on the activity); null hides the photo options. pickPhoto: PhotoPicker? = null, // Per-item swipe editing. Non-null only when editing a placed // workspace item: `swipeLabels` reads the current up/down labels and // `onEditSwipe` opens the host picker, calling back with the chosen // label (null = cleared) so the row can refresh without racing the // async model write. swipeLabels: ((down: Boolean) -&gt; String?)? = null, onEditSwipe: ((down: Boolean, onPicked: (String?) -&gt; Unit) -&gt; Unit)? = null, shortcut: ShortcutEdit? = null )</ID>
     <ID>LongMethod:BackupRoundTripTest.kt$BackupRoundTripTest$private fun nonDefaultPrefs()</ID>
     <ID>LongMethod:BottomChrome.kt$BottomChrome$fun layout(s: Spec): Result</ID>
     <ID>LongMethod:CardPreviews.kt$CardPreviews$fun builtIn(kind: BuiltInCard, parent: ViewGroup, prefs: LauncherPrefs): View</ID>
@@ -792,6 +791,7 @@
     <ID>ReturnCount:ActionShortcut.kt$ActionShortcut$fun decode(intentUri: String?): GestureBinding?</ID>
     <ID>ReturnCount:AppCatalog.kt$AppCatalog$fun mainActivityFor(packageName: String, userSerial: Long, className: String? = null): LaunchableApp?</ID>
     <ID>ReturnCount:AppCatalog.kt$AppCatalog$fun userForSerial(serial: Long): UserHandle?</ID>
+    <ID>ReturnCount:AppCatalog.kt$AppCatalog$private fun drawEdited(app: LaunchableApp, user: UserHandle, override: AppOverride?): Drawable?</ID>
     <ID>ReturnCount:AppCatalog.kt$AppCatalog$private fun renderIcon(app: LaunchableApp): Drawable?</ID>
     <ID>ReturnCount:AppEditSheet.kt$AppEditSheet$fun show( context: Context, scope: CoroutineScope, viewModel: LauncherViewModel, // Null only with shortcut, for one with no app behind it. app: LaunchableApp?, // Host-provided photo picker (the ActivityResult launcher must be // registered on the activity); null hides the photo options. pickPhoto: PhotoPicker? = null, // Per-item swipe editing. Non-null only when editing a placed // workspace item: `swipeLabels` reads the current up/down labels and // `onEditSwipe` opens the host picker, calling back with the chosen // label (null = cleared) so the row can refresh without racing the // async model write. swipeLabels: ((down: Boolean) -&gt; String?)? = null, onEditSwipe: ((down: Boolean, onPicked: (String?) -&gt; Unit) -&gt; Unit)? = null, shortcut: ShortcutEdit? = null )</ID>
     <ID>ReturnCount:AppMatcher.kt$AppMatcher$fun match(label: String, query: String): Match?</ID>

@@ -3454,7 +3454,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             null
         } else {
             AppEditSheet.ShortcutEdit(
-                item.label, item.shortcutEdit ?: AppOverride(), pinnedShortcutLabel(item)
+                item.label, item.shortcutEdit ?: AppOverride(), pinnedShortcutLabel(item),
+                // Drawn as the item is on home, with the edit in the sheet.
+                preview = { edit ->
+                    itemIcons.intentItemIcon(item.copy(shortcutEdit = edit))
+                        ?: app?.let { viewModel.appCatalog().iconFor(it) }
+                }
             ) { label, edit -> viewModel.editShortcut(item.id, label, edit) }
         }
         if (app == null && shortcut == null) return

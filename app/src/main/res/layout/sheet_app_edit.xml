@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Per-app Edit sheet. The plate and its corners come from the theme's
-     bottom-sheet style; rows read like settings rows - a title with the
-     current value in a pill - so a row is a thing to change rather than a
-     sentence to parse. The rows scroll between a pinned title and a pinned
-     button row, so Save is in reach however many rows the item has. -->
+<!-- Per-app Edit sheet (and, with the app rows hidden, a folder's). The
+     plate and its corners come from the theme's bottom-sheet style. A
+     preview of the icon as it will look sits under the title, with what
+     differs from the default beside it, and redraws on every change. The
+     style and shape answer in place - a segmented switch and a row of
+     shapes - rather than in menus; the rest read like settings rows. The
+     rows scroll between the pinned preview and a pinned button row, so Save
+     is in reach however many rows the item has. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -29,6 +33,68 @@
         android:textSize="@dimen/text_caption"
         android:visibility="gone" />
 
+    <LinearLayout
+        android:id="@+id/previewCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/space_ml"
+        android:layout_marginTop="@dimen/space_sm"
+        android:background="@drawable/bg_edit_preview"
+        android:baselineAligned="false"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="@dimen/space_md">
+
+        <LinearLayout
+            android:layout_width="88dp"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/previewIcon"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:contentDescription="@string/edit_preview"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:id="@+id/previewLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_xs"
+                android:ellipsize="end"
+                android:gravity="center_horizontal"
+                android:maxLines="1"
+                android:textColor="@color/textPrimary"
+                android:textSize="@dimen/text_caption" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_md"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:text="@string/edit_preview"
+                android:textColor="@color/textSecondary"
+                android:textSize="@dimen/text_caption" />
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/previewChanges"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_xs"
+                app:chipSpacingHorizontal="@dimen/space_xs"
+                app:chipSpacingVertical="@dimen/space_xs" />
+        </LinearLayout>
+    </LinearLayout>
+
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -43,7 +109,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="@dimen/space_ml"
-                android:layout_marginTop="@dimen/space_ms"
+                android:layout_marginTop="@dimen/space_md"
                 android:hint="@string/rename">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -72,32 +138,6 @@
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/shapeRow"
-                style="@style/SheetRow">
-
-                <TextView
-                    style="@style/SheetRowTitle"
-                    android:text="@string/icon_shape" />
-
-                <TextView
-                    android:id="@+id/shapeValue"
-                    style="@style/SheetRowValue" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/variantRow"
-                style="@style/SheetRow">
-
-                <TextView
-                    style="@style/SheetRowTitle"
-                    android:text="@string/icon_variant" />
-
-                <TextView
-                    android:id="@+id/variantValue"
-                    style="@style/SheetRowValue" />
-            </LinearLayout>
-
-            <LinearLayout
                 android:id="@+id/iconRow"
                 style="@style/SheetRow">
 
@@ -108,6 +148,115 @@
                 <TextView
                     android:id="@+id/iconValue"
                     style="@style/SheetRowValue" />
+            </LinearLayout>
+
+            <!-- Icon style: Default follows the launcher, Themed and Original
+                 are this app's own; the line under it says what the pick does. -->
+            <LinearLayout
+                android:id="@+id/variantRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="@dimen/space_ml"
+                android:paddingTop="@dimen/space_ms"
+                android:paddingBottom="@dimen/space_sm">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/icon_variant"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="@dimen/text_body" />
+
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/variantGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    app:selectionRequired="true"
+                    app:singleSelection="true">
+
+                    <Button
+                        android:id="@+id/variantDefault"
+                        style="@style/Widget.Supernova.Button.Segment"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/variant_default" />
+
+                    <Button
+                        android:id="@+id/variantThemed"
+                        style="@style/Widget.Supernova.Button.Segment"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/variant_themed" />
+
+                    <Button
+                        android:id="@+id/variantOriginal"
+                        style="@style/Widget.Supernova.Button.Segment"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/variant_original" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                <TextView
+                    android:id="@+id/variantHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="@dimen/text_secondary" />
+            </LinearLayout>
+
+            <!-- Icon shape: every shape in a row, the pick ringed; Default,
+                 drawn as an outline, follows the launcher's shape. -->
+            <LinearLayout
+                android:id="@+id/shapeRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingTop="@dimen/space_ms"
+                android:paddingBottom="@dimen/space_sm">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="@dimen/space_ml">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/icon_shape"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="@dimen/text_body" />
+
+                    <TextView
+                        android:id="@+id/shapeValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_ms"
+                        android:textColor="@color/textSecondary"
+                        android:textSize="@dimen/text_secondary" />
+                </LinearLayout>
+
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:clipToPadding="false"
+                    android:paddingHorizontal="@dimen/space_ms"
+                    android:scrollbars="none">
+
+                    <LinearLayout
+                        android:id="@+id/shapeSwatches"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal" />
+                </HorizontalScrollView>
             </LinearLayout>
 
             <!-- Folders only, while a custom icon is chosen: off draws it

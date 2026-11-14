@@ -10,11 +10,9 @@ import com.supernova.launcher.data.AppIconSource
 import com.supernova.launcher.data.AppOverride
 import com.supernova.launcher.data.GalleryIconCodec
 import com.supernova.launcher.data.IconSearch
-import com.supernova.launcher.data.IconShape
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.databinding.SheetAppEditBinding
 import com.supernova.launcher.databinding.SheetIconPickerBinding
-import com.supernova.launcher.ui.settings.EnumLabels
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -34,6 +32,8 @@ object AppEditSheet {
         val label: String,
         val edit: AppOverride,
         val originalLabel: String?,
+        // The shortcut's icon drawn with an edit, for the preview.
+        val preview: ((AppOverride) -> android.graphics.drawable.Drawable?)? = null,
         val onSave: (label: String, edit: AppOverride) -> Unit
     )
 
@@ -62,11 +62,6 @@ object AppEditSheet {
 
         val rawLabel = shortcut?.label ?: app?.let(viewModel::rawLabelOf).orEmpty()
         val current = shortcut?.edit ?: app?.let(viewModel::overrideFor) ?: AppOverride()
-        var chosenShape: String? = current.iconShape
-        var chosenPack: String? = current.iconPackPackage
-        var chosenIcon: String? = current.iconDrawableName
-        var chosenPhoto: String? = current.iconBase64
-        var chosenVariant: String? = current.iconVariant
 
         binding.editTitle.text = rawLabel
         if (viewModel.state.value.prefs.labsShowComponent && app != null && shortcut == null) {
@@ -78,109 +73,14 @@ object AppEditSheet {
         // The whole row toggles it, as the sheet's other switch rows do.
         binding.hideLabelRow.setOnClickListener { binding.hideLabelSwitch.toggle() }
 
-        fun refreshRows() {
-            val shapeLabel = chosenShape?.let { context.getString(EnumLabels.of(IconShape.fromName(it))) }
-                ?: context.getString(R.string.option_default)
-            binding.shapeValue.text = shapeLabel
-            val iconLabel = chosenPhoto?.let { context.getString(R.string.icon_photo) }
-                ?: chosenIcon?.let { IconPickerSheet.pickLabel(viewModel, chosenPack, it) }
-                ?: context.getString(R.string.option_default)
-            binding.iconValue.text = iconLabel
-            val variantLabel = when (chosenVariant) {
-                "THEMED" -> context.getString(R.string.variant_themed)
-                "ORIGINAL" -> context.getString(R.string.variant_original)
-                else -> context.getString(R.string.variant_default)
-            }
-            binding.variantValue.text = variantLabel
-        }
-        refreshRows()
-
-        // These two rows ask the same kind of question the settings screen
-        // does - one value, a short list of alternatives - so they answer it
-        // the same way: a menu at the row rather than a dialog over the sheet.
-        // Anchored to a view inside the sheet's own window, so the menu lands
-        // above the sheet rather than behind it.
-        val surface = com.supernova.launcher.ui.theme.Styles
-            .resolve(context, viewModel.state.value.prefs)
-            .of(com.supernova.launcher.ui.theme.SurfaceId.POPUP)
-        val animate = Animations.enabled(viewModel.state.value.prefs)
-        // Where each row was pressed, watched rather than consumed so the
-        // row's own click listener still runs.
-        var rowTouchX = 0f
-        val trackTouch = android.view.View.OnTouchListener { view, event ->
-            if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
-                val location = IntArray(2)
-                view.getLocationInWindow(location)
-                rowTouchX = event.x + location[0]
-            }
-            false
-        }
-        binding.shapeRow.setOnTouchListener(trackTouch)
-        binding.variantRow.setOnTouchListener(trackTouch)
-
-        binding.shapeRow.setOnClickListener { row ->
-            val options = listOf<IconShape?>(null) + IconShape.entries
-            val labels = options.map { shape ->
-                if (shape == null) context.getString(R.string.option_default)
-                else context.getString(EnumLabels.of(shape))
-            }
-            val currentIndex = options.indexOfFirst { it?.name == chosenShape }.coerceAtLeast(0)
-            ChoiceMenu.show(row, rowTouchX, surface, labels, currentIndex, animate) { which ->
-                chosenShape = options[which]?.name
-                refreshRows()
-            }
-        }
-
-        binding.variantRow.setOnClickListener { row ->
-            val values = listOf<String?>(null, "THEMED", "ORIGINAL")
-            val labels = listOf(
-                context.getString(R.string.variant_default),
-                context.getString(R.string.variant_themed),
-                context.getString(R.string.variant_original)
-            )
-            ChoiceMenu.show(
-                row, rowTouchX, surface, labels,
-                values.indexOf(chosenVariant).coerceAtLeast(0), animate
-            ) { which ->
-                chosenVariant = values[which]
-                refreshRows()
-            }
-        }
-
-        // One row for the icon, wherever it comes from: Default, another
-        // app's icon, a photo or an icon pack.
-        binding.iconRow.setOnClickListener {
-            val onPhoto = pickPhoto?.let { picker ->
-                { fromFiles: Boolean ->
-                    picker(fromFiles) { uri ->
-                        if (uri == null) return@picker
-                        // Crop + encode off the main thread; the sheet stays
-                        // open and commits the result with Save like every
-                        // other field.
-                        scope.launch {
-                            val encoded = withContext(Dispatchers.IO) {
-                                GalleryIconCodec.encode(context.applicationContext, uri)
-                            }
-                            if (encoded == null) {
-                                Toast.makeText(context, R.string.photo_load_failed, Toast.LENGTH_SHORT).show()
-                                return@launch
-                            }
-                            chosenPhoto = encoded
-                            chosenPack = null
-                            chosenIcon = null
-                            refreshRows()
-                        }
-                    }
-                }
-            }
-            IconPickerSheet.show(context, scope, viewModel, allowDefault = true, onPickPhoto = onPhoto) { pack, name ->
-                chosenPack = pack
-                chosenIcon = name
-                // A pack icon (or a reset to default) replaces any photo.
-                chosenPhoto = null
-                refreshRows()
-            }
-        }
+        val draft = AppEditDraft(
+            binding, scope, viewModel,
+            defaultLabel = shortcut?.let { it.originalLabel ?: it.label } ?: rawLabel,
+            saved = current
+        )
+        draft.preview = shortcut?.preview ?: app?.let { a -> { edit -> viewModel.appCatalog().previewIcon(a, edit) } }
+        draft.bind()
+        bindIconRow(scope, viewModel, draft, pickPhoto)
 
         if (swipeLabels != null && onEditSwipe != null) {
             // Track the labels locally: the picker commits asynchronously, so
@@ -210,17 +110,8 @@ object AppEditSheet {
                 dialog.dismiss()
             }
             binding.saveButton.setOnClickListener {
-                shortcut.onSave(
-                    binding.editLabel.text?.toString().orEmpty(),
-                    AppOverride(
-                        hideLabel = binding.hideLabelSwitch.isChecked,
-                        iconShape = chosenShape,
-                        iconPackPackage = if (chosenIcon != null) chosenPack else null,
-                        iconDrawableName = chosenIcon,
-                        iconBase64 = chosenPhoto,
-                        iconVariant = chosenVariant
-                    )
-                )
+                // A shortcut's name is saved on the item, not in the edit.
+                shortcut.onSave(draft.typedLabel(), draft.edit().copy(customLabel = null))
                 dialog.dismiss()
             }
             dialog.show()
@@ -235,23 +126,55 @@ object AppEditSheet {
         }
 
         binding.saveButton.setOnClickListener {
-            val typed = binding.editLabel.text?.toString().orEmpty().trim()
-            val customLabel = typed.takeIf { it.isNotEmpty() && it != rawLabel }
-            viewModel.setAppOverride(app) {
-                AppOverride(
-                    customLabel = customLabel,
-                    hideLabel = binding.hideLabelSwitch.isChecked,
-                    iconShape = chosenShape,
-                    iconPackPackage = if (chosenIcon != null) chosenPack else null,
-                    iconDrawableName = chosenIcon,
-                    iconBase64 = chosenPhoto,
-                    iconVariant = chosenVariant
-                )
-            }
+            viewModel.setAppOverride(app) { draft.edit() }
             dialog.dismiss()
         }
 
         dialog.show()
+    }
+
+    // One row for the icon, wherever it comes from: Default, another app's
+    // icon, a photo or an icon pack. A pick lands in the draft, and the
+    // preview shows it at once.
+    private fun bindIconRow(
+        scope: CoroutineScope,
+        viewModel: LauncherViewModel,
+        draft: AppEditDraft,
+        pickPhoto: PhotoPicker?
+    ) {
+        val context = draft.binding.root.context
+        draft.binding.iconRow.setOnClickListener {
+            val onPhoto = pickPhoto?.let { picker ->
+                { fromFiles: Boolean ->
+                    picker(fromFiles) { uri ->
+                        if (uri == null) return@picker
+                        // Crop + encode off the main thread; the sheet stays
+                        // open and commits the result with Save like every
+                        // other field.
+                        scope.launch {
+                            val encoded = withContext(Dispatchers.IO) {
+                                GalleryIconCodec.encode(context.applicationContext, uri)
+                            }
+                            if (encoded == null) {
+                                Toast.makeText(context, R.string.photo_load_failed, Toast.LENGTH_SHORT).show()
+                                return@launch
+                            }
+                            draft.photo = encoded
+                            draft.pack = null
+                            draft.icon = null
+                            draft.refresh()
+                        }
+                    }
+                }
+            }
+            IconPickerSheet.show(context, scope, viewModel, allowDefault = true, onPickPhoto = onPhoto) { pack, name ->
+                draft.pack = pack
+                draft.icon = name
+                // A pack icon (or a reset to default) replaces any photo.
+                draft.photo = null
+                draft.refresh()
+            }
+        }
     }
 }
 

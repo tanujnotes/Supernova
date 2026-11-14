@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Edit sheet's preview card: the icon as it will look, on a tile
+     that reads apart from the sheet in either theme. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/settingsPickerTile" />
+    <corners android:radius="20dp" />
+</shape>
