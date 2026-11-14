@@ -21,6 +21,9 @@ import com.supernova.launcher.data.DrawerGroup
 import com.supernova.launcher.data.DrawerGroupEdit
 import com.supernova.launcher.data.DrawerGroupOrder
 import com.supernova.launcher.data.DrawerGroupType
+import com.supernova.launcher.data.DrawerTarget
+import com.supernova.launcher.data.FolderMove
+import com.supernova.launcher.data.FolderToDrawer
 import com.supernova.launcher.data.GroupPick
 import com.supernova.launcher.data.IconPack
 import com.supernova.launcher.data.IconShape
@@ -930,6 +933,41 @@ class LauncherViewModel(
         val prefs = state.value.prefs
         viewModelScope.launch {
             repository.restoreItems(items, prefs.gridCols, prefs.gridRows, prefs.dockCount * prefs.dockPages.coerceAtLeast(1))
+        }
+    }
+
+    // A home or dock folder moved into the drawer (FolderToDrawer). Null,
+    // and nothing moved, when the folder holds no app a drawer group can.
+    fun moveFolderToDrawer(folder: LauncherItem, target: DrawerTarget): FolderMove? {
+        val members = folderMembers(folder.id)
+        val movable = FolderToDrawer.movable(members)
+        if (movable.isEmpty()) return null
+        val move = FolderMove(listOf(folder) + members, members.size - movable.size)
+        viewModelScope.launch {
+            // Named inside the edit, against what is stored.
+            preferences.updateDrawerGroups { groups ->
+                val name = FolderToDrawer.uniqueName(folder.label, groups.map { it.name })
+                move.groupName = name
+                FolderToDrawer.withGroupAdded(groups, folder, members, name, target)
+            }
+            repository.removeMovedFolder(folder.id)
+        }
+        return move
+    }
+
+    // The move's Undo: the group goes (and its place in a tab), and the
+    // folder comes back where it was.
+    fun undoFolderMove(move: FolderMove) {
+        val prefs = state.value.prefs
+        viewModelScope.launch {
+            move.groupName?.let { name ->
+                preferences.updateDrawerGroups { groups ->
+                    TabFolders.forgotten(groups.filterNot { it.name == name }, name)
+                }
+            }
+            repository.replaceItems(
+                move.items, prefs.gridCols, prefs.gridRows, prefs.dockCount * prefs.dockPages.coerceAtLeast(1)
+            )
         }
     }
 

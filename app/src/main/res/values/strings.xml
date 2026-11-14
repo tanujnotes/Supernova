@@ -188,6 +188,14 @@
     <string name="select_apps">Select apps</string>
     <string name="drawer_tab_empty">No apps in this tab yet</string>
     <string name="sort">Sort</string>
+    <string name="move_to_drawer">Move to drawer</string>
+    <string name="move_to_drawer_folder_in">Folder in %1$s</string>
+    <string name="move_to_drawer_tab">New tab</string>
+    <string name="moved_to_drawer">Moved to the drawer</string>
+    <plurals name="moved_to_drawer_left_behind">
+        <item quantity="one">Moved to the drawer. %d shortcut stayed on Home</item>
+        <item quantity="other">Moved to the drawer. %d shortcuts stayed on Home</item>
+    </plurals>
     <string name="reshape">Reshape</string>
     <string name="reshape_summary">Fit the icon to the icon shape</string>
     <string name="folder_menu">Folder options</string>

@@ -3251,6 +3251,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     }
                     addIconSizeRow(menu, item)
                 }
+                addMoveToDrawerRow(menu, item)
                 // Folder Edit: name, icon, Swipe to open folder and the swipe
                 // actions in one sheet, as an app's Edit holds its label, icon
                 // and swipes - and like an app's, it keeps the name and icon
@@ -3496,6 +3497,66 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             }
         if (host === binding.root && binding.dockBar.isVisible) bar.anchorView = binding.dockBar
         bar.show()
+    }
+
+    // Move to drawer, in a home or dock folder's menus: offered on an
+    // unlocked desktop, for a folder holding an app. `first` runs before the
+    // dialog opens (the open folder closes).
+    private fun addMoveToDrawerRow(menu: SupernovaPopupMenu, folder: LauncherItem, first: () -> Unit = {}) {
+        val movable = com.supernova.launcher.data.FolderToDrawer.movable(viewModel.folderMembers(folder.id))
+        if (desktopLocked || movable.isEmpty()) return
+        menu.addRow(getString(R.string.move_to_drawer), R.drawable.ic_menu_export) {
+            first()
+            promptMoveFolderToDrawer(folder)
+        }
+    }
+
+    // Move to drawer: a home or dock folder becomes a drawer folder, on the
+    // main list or in a tab, or a tab of its own. Its apps go with it; what a
+    // drawer group can't hold (shortcuts, contacts) stays on the home screen.
+    private fun promptMoveFolderToDrawer(folder: LauncherItem) {
+        val tabs = viewModel.drawerTabGroups()
+        val targets = listOf(com.supernova.launcher.data.DrawerTarget.MainList) +
+            tabs.map { com.supernova.launcher.data.DrawerTarget.InTab(it.name) } +
+            com.supernova.launcher.data.DrawerTarget.OwnTab
+        val choices = targets.map { target ->
+            when (target) {
+                com.supernova.launcher.data.DrawerTarget.MainList ->
+                    getString(R.string.move_to_drawer_folder_in, getString(R.string.drawer_all))
+                is com.supernova.launcher.data.DrawerTarget.InTab ->
+                    getString(R.string.move_to_drawer_folder_in, target.tab)
+                com.supernova.launcher.data.DrawerTarget.OwnTab -> getString(R.string.move_to_drawer_tab)
+            }
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.move_to_drawer)
+            .setItems(choices.toTypedArray()) { _, which ->
+                viewModel.moveFolderToDrawer(folder, targets[which])?.let(::showFolderMovedBar)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    // Says what stayed on the home screen, and offers the move back.
+    private fun showFolderMovedBar(move: com.supernova.launcher.data.FolderMove) {
+        val text = if (move.leftBehind == 0) {
+            getString(R.string.moved_to_drawer)
+        } else {
+            resources.getQuantityString(R.plurals.moved_to_drawer_left_behind, move.leftBehind, move.leftBehind)
+        }
+        val snackbar = Snackbar.make(binding.root, text, UNDO_DURATION_MS)
+            .setAction(R.string.undo) { viewModel.undoFolderMove(move) }
+        if (binding.dockBar.isVisible) snackbar.anchorView = binding.dockBar
+        val page = move.items.first().desktopPage()
+        snackbar.addCallback(object : Snackbar.Callback() {
+            override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+                if (undoSnackbar !== transientBottomBar) return
+                undoSnackbar = null
+                if (event != DISMISS_EVENT_ACTION) removeEmptyPages(emptied = page)
+            }
+        })
+        undoSnackbar = snackbar
+        snackbar.show()
     }
 
     // Posted: a drag can end inside the pickup of the next one (its settle cut
@@ -3828,6 +3889,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                         sortFolderWithUndo(folder.id, popup?.contentView, ::applied)
                     }
                 }
+                addMoveToDrawerRow(menu, folder) { popup?.dismiss() }
                 drag.activeItemPopup = menu
                 menu.show(button)
                 menu.makeModal()

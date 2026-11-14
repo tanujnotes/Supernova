@@ -449,6 +449,20 @@ class LauncherRepository(private val context: Context) {
         mutateFitted(cols, rows) { current -> restored(current, items, cols, rows, dockSlots) }
     }
 
+    // A folder moved into the drawer leaves the home screen (FolderToDrawer).
+    suspend fun removeMovedFolder(folderId: String) {
+        mutate { current -> FolderToDrawer.homeAfterMove(current, folderId) }
+    }
+
+    // Undo of that move: what stayed behind (a shortcut that took the
+    // folder's place) gives way, and the folder comes back as it was.
+    suspend fun replaceItems(items: List<LauncherItem>, cols: Int, rows: Int, dockSlots: Int) {
+        val ids = items.mapTo(mutableSetOf()) { it.id }
+        mutateFitted(cols, rows) { current ->
+            restored(current.copy(items = current.items.filterNot { it.id in ids }), items, cols, rows, dockSlots)
+        }
+    }
+
     suspend fun addWidget(
         page: Int,
         cellX: Int,
