@@ -9,11 +9,19 @@ object ThemedGlyph {
     // ink of a solid tile (a white logo on an orange square, whose silhouette
     // is the whole square), else null. A photo, a gradient tile or a block
     // of colours (a stack of books) has no glyph to take, and the app gets
-    // a tinted copy instead.
+    // a tinted copy instead. A logo made of pieces (a white cloud over a
+    // purple page) is no tile: its ink is the cloud, and the page behind it
+    // stays, dimmed, so the logo keeps its whole outline.
     fun forApp(pixels: IntArray, width: Int, height: Int): IntArray? {
         val plain = plainAlpha(pixels)
         if (reads(plain, width, height) && !isBlock(plain, width, height)) return plain
-        return SilhouetteMask.of(pixels, width, height)?.takeIf { reads(it, width, height) }
+        val ink = SilhouetteMask.of(pixels, width, height)?.takeIf { reads(it, width, height) }
+        val pieces = ink != null && width == height && !PictureFrame.solid(pixels, width)
+        return if (ink != null && pieces) {
+            IntArray(ink.size) { maxOf(ink[it], plain[it] * BODY_ALPHA / FULL) }
+        } else {
+            ink
+        }
     }
 
     // A shortcut's: the ink of a solid tile, else its silhouette.
@@ -143,6 +151,9 @@ object ThemedGlyph {
     // half the shape is a tile or a picture, which tints to a blank plate.
     private const val MIN_COVERAGE = 0.01f
     private const val MAX_COVERAGE = 0.5f
+
+    // How solid (0-255) a logo's body is drawn behind its ink.
+    private const val BODY_ALPHA = 105
 
     // How much of its inscribed ellipse a block's silhouette fills.
     private const val BLOCK_FILL = 0.97f

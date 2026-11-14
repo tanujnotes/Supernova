@@ -52,6 +52,24 @@ class ThemedGlyphTest {
     }
 
     @Test
+    fun aLogoMadeOfPiecesKeepsItsBodyDimmedBehindItsInk() {
+        val purple = 0xFF5B3FE0.toInt()
+        // A page with a cloud across its lower left, reaching past its edge.
+        val logo = picture { x, y ->
+            when {
+                x in 4..16 && y in 14..20 -> white
+                x in 12..22 && y in 4..24 -> purple
+                else -> clear
+            }
+        }
+
+        val alpha = requireNotNull(ThemedGlyph.forApp(logo, size, size))
+        assertEquals(255, alpha[17 * size + 8])
+        assertTrue("the page stays, dimmed", alpha[8 * size + 18] in 60..160)
+        assertEquals(0, alpha[8 * size + 6])
+    }
+
+    @Test
     fun aGradientTileHasNoGlyphSoTheAppKeepsItsColours() {
         val gradient = picture { x, _ -> (0xFF shl 24) or ((x * 255 / (size - 1)) shl 16) or 0x2040 }
 
