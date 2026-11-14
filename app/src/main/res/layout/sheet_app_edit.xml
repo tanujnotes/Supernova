@@ -33,13 +33,14 @@
         android:textSize="@dimen/text_caption"
         android:visibility="gone" />
 
-    <LinearLayout
+    <!-- The preview sits on the real wallpaper, seen through the sheet,
+         as the icon will on home. -->
+    <com.supernova.launcher.ui.WallpaperWell
         android:id="@+id/previewCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="@dimen/space_ml"
         android:layout_marginTop="@dimen/space_sm"
-        android:background="@drawable/bg_edit_preview"
         android:baselineAligned="false"
         android:gravity="center_vertical"
         android:orientation="horizontal"
@@ -58,15 +59,17 @@
                 android:contentDescription="@string/edit_preview"
                 android:scaleType="fitCenter" />
 
-            <TextView
+            <com.supernova.launcher.ui.FadingTextView
                 android:id="@+id/previewLabel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_xs"
-                android:ellipsize="end"
                 android:gravity="center_horizontal"
                 android:maxLines="1"
-                android:textColor="@color/textPrimary"
+                android:shadowColor="#99000000"
+                android:shadowDy="1"
+                android:shadowRadius="3"
+                android:textColor="@color/onWallpaper"
                 android:textSize="@dimen/text_caption" />
         </LinearLayout>
 
@@ -81,8 +84,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:fontFamily="sans-serif-medium"
+                android:shadowColor="#99000000"
+                android:shadowDy="1"
+                android:shadowRadius="3"
                 android:text="@string/edit_preview"
-                android:textColor="@color/textSecondary"
+                android:textColor="@color/onWallpaper"
                 android:textSize="@dimen/text_caption" />
 
             <com.google.android.material.chip.ChipGroup
@@ -93,7 +99,7 @@
                 app:chipSpacingHorizontal="@dimen/space_xs"
                 app:chipSpacingVertical="@dimen/space_xs" />
         </LinearLayout>
-    </LinearLayout>
+    </com.supernova.launcher.ui.WallpaperWell>
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -105,12 +111,16 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <!-- The app's own name shows in the empty field, and is what an
+                 empty name saves as. -->
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/editLabelLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="@dimen/space_ml"
                 android:layout_marginTop="@dimen/space_md"
-                android:hint="@string/rename">
+                android:hint="@string/edit_name"
+                app:expandedHintEnabled="false">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/editLabel"

@@ -63,21 +63,23 @@ object AppEditSheet {
         val rawLabel = shortcut?.label ?: app?.let(viewModel::rawLabelOf).orEmpty()
         val current = shortcut?.edit ?: app?.let(viewModel::overrideFor) ?: AppOverride()
 
-        binding.editTitle.text = rawLabel
+        dressForPreview(context, dialog, binding)
         if (viewModel.state.value.prefs.labsShowComponent && app != null && shortcut == null) {
             binding.editComponent.text = "${app.packageName}/${app.className}"
             binding.editComponent.visibility = android.view.View.VISIBLE
         }
-        binding.editLabel.setText(current.customLabel ?: rawLabel)
         binding.hideLabelSwitch.isChecked = current.hideLabel
         // The whole row toggles it, as the sheet's other switch rows do.
         binding.hideLabelRow.setOnClickListener { binding.hideLabelSwitch.toggle() }
 
-        val draft = AppEditDraft(
-            binding, scope, viewModel,
-            defaultLabel = shortcut?.let { it.originalLabel ?: it.label } ?: rawLabel,
-            saved = current
-        )
+        // The name with no edit: shown in the empty field, and saved when the
+        // field is left empty.
+        val defaultLabel = shortcut?.let { it.originalLabel ?: it.label } ?: rawLabel
+        binding.editLabelLayout.placeholderText = defaultLabel
+        // Only a name of the user's own is in the field; the real one is
+        // the placeholder.
+        binding.editLabel.setText((shortcut?.label ?: current.customLabel)?.takeIf { it != defaultLabel }.orEmpty())
+        val draft = AppEditDraft(binding, scope, viewModel, defaultLabel, saved = current)
         draft.preview = shortcut?.preview ?: app?.let { a -> { edit -> viewModel.appCatalog().previewIcon(a, edit) } }
         draft.bind()
         bindIconRow(scope, viewModel, draft, pickPhoto)
@@ -111,7 +113,7 @@ object AppEditSheet {
             }
             binding.saveButton.setOnClickListener {
                 // A shortcut's name is saved on the item, not in the edit.
-                shortcut.onSave(draft.typedLabel(), draft.edit().copy(customLabel = null))
+                shortcut.onSave(draft.typedLabel().ifEmpty { defaultLabel }, draft.edit().copy(customLabel = null))
                 dialog.dismiss()
             }
             dialog.show()
@@ -132,6 +134,34 @@ object AppEditSheet {
 
         dialog.show()
     }
+
+    // The preview names the item, so the sheet has no title of its own. Its
+    // card is a hole through the sheet (WallpaperWell); what shows through
+    // it is the launcher's window, so the launcher's own content fades out
+    // while the sheet is up, leaving that window showing only the wallpaper,
+    // and the sheet doesn't dim it. The sheet covers nearly the whole
+    // screen, so nothing is lost; the content comes back as it closes.
+    private fun dressForPreview(context: Context, dialog: android.app.Dialog, binding: SheetAppEditBinding) {
+        binding.editTitle.visibility = android.view.View.GONE
+        dialog.window?.let { window ->
+            window.setFormat(android.graphics.PixelFormat.TRANSLUCENT)
+            window.setDimAmount(0f)
+        }
+        val home = context.findActivity()?.findViewById<android.view.View>(android.R.id.content) ?: return
+        home.animate().alpha(0f).setDuration(HOME_FADE_MS)
+        dialog.setOnDismissListener { home.animate().alpha(1f).setDuration(HOME_FADE_MS) }
+    }
+
+    private fun Context.findActivity(): android.app.Activity? {
+        var current: Context? = this
+        while (current is android.content.ContextWrapper) {
+            if (current is android.app.Activity) return current
+            current = current.baseContext
+        }
+        return null
+    }
+
+    private const val HOME_FADE_MS = 150L
 
     // One row for the icon, wherever it comes from: Default, another app's
     // icon, a photo or an icon pack. A pick lands in the draft, and the

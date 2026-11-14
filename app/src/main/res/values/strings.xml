@@ -15,7 +15,6 @@
     <string name="add_to_home">Add to Home</string>
     <string name="app_info">App info</string>
     <string name="uninstall">Uninstall</string>
-    <string name="rename">Rename</string>
     <string name="remove">Remove</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
@@ -1106,6 +1105,7 @@
     <string name="variant_original_hint">The icon as the app made it. Only a shape picked here applies.</string>
     <!-- Edit sheet preview: the icon as it will look, and what differs from the default. -->
     <string name="edit_preview">Preview</string>
+    <string name="edit_name">Name</string>
     <string name="edit_no_changes">No changes</string>
     <string name="edit_change_renamed">Renamed</string>
     <string name="edit_change_hidden">Name hidden</string>
