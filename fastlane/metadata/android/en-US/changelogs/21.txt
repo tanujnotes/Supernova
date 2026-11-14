@@ -1,0 +1,10 @@
+A new first-run setup, undo for widgets and hidden apps, and phone landscape.
+
+- First run: six one-tap choices over a live home preview
+- Undo after removing a widget or hiding an app
+- Greyed settings say what they need; new Permissions page
+- About: What's new and Report an issue
+- Phone landscape: search bar and dock share a row
+- Dock background: a switch with opacity and corner radius
+- Colour swatches in colour menus; haptics while dragging
+- Fixed "No room" when another page had space
