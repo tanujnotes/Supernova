@@ -421,6 +421,7 @@ class SettingsActivity : AppCompatActivity() {
             pickIconPack = ::showIconPackPicker,
             pickIconShape = ::showIconShapePicker,
             resetCustomIcons = ::confirmResetCustomIcons,
+            resetHiddenLabels = ::confirmResetHiddenLabels,
             exportIcons = { exportIconsLauncher.launch("supernova-icons.zip") },
             managePermission = ::manageLabsPermission,
             clearIconCache = {
@@ -1673,6 +1674,19 @@ class SettingsActivity : AppCompatActivity() {
             .setTitle(R.string.reset_custom_icons)
             .setMessage(R.string.reset_custom_icons_message)
             .setPositiveButton(R.string.reset) { _, _ -> viewModel.resetCustomIcons() }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun confirmResetHiddenLabels() {
+        if (viewModel.hiddenLabels().total == 0) {
+            Toast.makeText(this, R.string.reset_hidden_labels_none_toast, Toast.LENGTH_SHORT).show()
+            return
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.reset_hidden_labels)
+            .setMessage(R.string.reset_hidden_labels_message)
+            .setPositiveButton(R.string.reset) { _, _ -> viewModel.resetHiddenLabels() }
             .setNegativeButton(R.string.cancel, null)
             .show()
     }

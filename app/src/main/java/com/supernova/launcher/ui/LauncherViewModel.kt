@@ -25,6 +25,7 @@ import com.supernova.launcher.data.DrawerTarget
 import com.supernova.launcher.data.FolderMove
 import com.supernova.launcher.data.FolderToDrawer
 import com.supernova.launcher.data.GroupPick
+import com.supernova.launcher.data.HiddenLabels
 import com.supernova.launcher.data.IconPack
 import com.supernova.launcher.data.IconShape
 import com.supernova.launcher.data.ItemType
@@ -1101,6 +1102,11 @@ class LauncherViewModel(
             }
         }
     }
+
+    fun hiddenLabels(): HiddenLabels.Count =
+        HiddenLabels.count(state.value.model)
+
+    fun resetHiddenLabels() = persist { repository.resetHiddenLabels() }
 
     // As a rename does, a custom icon makes a smart folder the user's, or the
     // next regeneration would drop it.

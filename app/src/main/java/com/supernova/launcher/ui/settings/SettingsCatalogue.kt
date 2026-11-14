@@ -67,6 +67,7 @@ object SettingsCatalogue {
         val pickIconPack: () -> Unit = {},
         val pickIconShape: () -> Unit = {},
         val resetCustomIcons: () -> Unit = {},
+        val resetHiddenLabels: () -> Unit = {},
         val clearIconCache: () -> Unit = {},
         val exportIcons: () -> Unit = {},
         val managePermission: (LabsPermission) -> Unit = {},
@@ -1549,6 +1550,26 @@ object SettingsCatalogue {
                 ),
                 SettingItem.Header(R.string.group_label_rows),
                 rows.color(R.string.label_color, { it.labelColor }) { viewModel.set(Pref.labelColor, it) },
+                // Bulk undo for labels hidden one app or shortcut at a time.
+                SettingItem.Row(
+                    R.string.reset_hidden_labels,
+                    subtitle = { _ ->
+                        val count = viewModel.hiddenLabels()
+                        if (count.total == 0) {
+                            context.getString(R.string.reset_hidden_labels_none)
+                        } else {
+                            listOfNotNull(
+                                count.apps.takeIf { it > 0 }?.let {
+                                    context.resources.getQuantityString(R.plurals.custom_icon_apps, it, it)
+                                },
+                                count.shortcuts.takeIf { it > 0 }?.let {
+                                    context.resources.getQuantityString(R.plurals.custom_icon_shortcuts, it, it)
+                                }
+                            ).joinToString(", ")
+                        }
+                    },
+                    onClick = actions.resetHiddenLabels
+                ),
                 SettingItem.Header(R.string.group_badges),
                 SettingItem.Toggle(
                     R.string.badges,

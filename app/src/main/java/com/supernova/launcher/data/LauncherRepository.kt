@@ -786,6 +786,10 @@ class LauncherRepository(private val context: Context) {
         mutate { CustomIcons.reset(it) }
     }
 
+    suspend fun resetHiddenLabels() {
+        mutate { HiddenLabels.reset(it) }
+    }
+
     // Feed cards (model v5). Upsert-by-id so the editor's save path is one
     // call for both create and edit. An existing card keeps its slot: the
     // stored order is the feed's order within each group, and a pin/edit
