@@ -23,4 +23,6 @@
 
     <!-- The smallest comfortable touch target. -->
     <dimen name="touch_min">48dp</dimen>
+    <!-- The folder icon in the Move to drawer dialog. -->
+    <dimen name="move_folder_icon">40dp</dimen>
 </resources>

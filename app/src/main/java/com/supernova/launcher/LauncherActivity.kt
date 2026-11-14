@@ -35,6 +35,8 @@ import androidx.core.view.updateLayoutParams
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
@@ -63,6 +65,8 @@ import com.supernova.launcher.ui.WorkspaceCanvas
 import com.supernova.launcher.data.AppOverride
 import com.supernova.launcher.data.ContainerType
 import com.supernova.launcher.data.DrawerGroup
+import com.supernova.launcher.data.DrawerTarget
+import com.supernova.launcher.data.FolderToDrawer
 import com.supernova.launcher.data.ItemType
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.LaunchableApp
@@ -72,6 +76,7 @@ import com.supernova.launcher.data.isLargeIcon
 import com.supernova.launcher.data.LauncherRepository
 import com.supernova.launcher.data.WorkspaceGeometry
 import com.supernova.launcher.databinding.ActivityLauncherBinding
+import com.supernova.launcher.databinding.DialogMoveToDrawerBinding
 import com.supernova.launcher.databinding.ItemIconBinding
 import com.supernova.launcher.gesture.Gesture
 import com.supernova.launcher.gesture.GestureAction
@@ -3551,7 +3556,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // unlocked desktop, for a folder holding an app. `first` runs before the
     // dialog opens (the open folder closes).
     private fun addMoveToDrawerRow(menu: SupernovaPopupMenu, folder: LauncherItem, first: () -> Unit = {}) {
-        val movable = com.supernova.launcher.data.FolderToDrawer.movable(viewModel.folderMembers(folder.id))
+        val movable = FolderToDrawer.movable(viewModel.folderMembers(folder.id))
         if (desktopLocked || movable.isEmpty()) return
         menu.addRow(getString(R.string.move_to_drawer), R.drawable.ic_menu_export) {
             first()
@@ -3563,26 +3568,56 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // main list or in a tab, or a tab of its own. Its apps go with it; what a
     // drawer group can't hold (shortcuts, contacts) stays on the home screen.
     private fun promptMoveFolderToDrawer(folder: LauncherItem) {
-        val tabs = viewModel.drawerTabGroups()
-        val targets = listOf(com.supernova.launcher.data.DrawerTarget.MainList) +
-            tabs.map { com.supernova.launcher.data.DrawerTarget.InTab(it.name) } +
-            com.supernova.launcher.data.DrawerTarget.OwnTab
-        val choices = targets.map { target ->
-            when (target) {
-                com.supernova.launcher.data.DrawerTarget.MainList ->
-                    getString(R.string.move_to_drawer_folder_in, getString(R.string.drawer_all))
-                is com.supernova.launcher.data.DrawerTarget.InTab ->
-                    getString(R.string.move_to_drawer_folder_in, target.tab)
-                com.supernova.launcher.data.DrawerTarget.OwnTab -> getString(R.string.move_to_drawer_tab)
-            }
+        val members = viewModel.folderMembers(folder.id)
+        val apps = FolderToDrawer.movable(members).size
+        val stays = members.size - apps
+        val name = FolderToDrawer.uniqueName(folder.label, viewModel.drawerGroups().map { it.name })
+        val view = DialogMoveToDrawerBinding.inflate(layoutInflater)
+        val iconSize = resources.getDimensionPixelSize(R.dimen.move_folder_icon)
+        val icon = itemIcons.folderPreviewDrawable(folder).apply { setBounds(0, 0, iconSize, iconSize) }
+        view.moveFolderSummary.setCompoundDrawablesRelative(icon, null, null, null)
+        // The folder as the home screen names it; the drawer may number it.
+        val shown = FolderToDrawer.uniqueName(folder.label, emptyList())
+        view.moveFolderSummary.text = resources.getQuantityString(R.plurals.move_to_drawer_summary, apps, shown, apps)
+        view.moveTabHint.text = getString(R.string.move_to_drawer_tab_hint, name)
+        view.moveLeftBehind.isVisible = stays > 0
+        view.moveLeftBehind.text = resources.getQuantityString(R.plurals.move_to_drawer_stays, stays, stays)
+        val tabTargets = addMoveTabChips(view.moveTabs)
+        view.moveType.addOnButtonCheckedListener { _, id, checked ->
+            if (!checked) return@addOnButtonCheckedListener
+            view.moveTabSection.isVisible = id == R.id.moveAsFolder
+            view.moveTabHint.isVisible = id == R.id.moveAsTab
         }
-        MaterialAlertDialogBuilder(this)
+        val dialog = MaterialAlertDialogBuilder(this)
             .setTitle(R.string.move_to_drawer)
-            .setItems(choices.toTypedArray()) { _, which ->
-                viewModel.moveFolderToDrawer(folder, targets[which])?.let(::showFolderMovedBar)
-            }
-            .setNegativeButton(android.R.string.cancel, null)
+            .setView(view.root)
             .show()
+        view.moveCancel.setOnClickListener { dialog.dismiss() }
+        view.moveConfirm.setOnClickListener {
+            dialog.dismiss()
+            val target = if (view.moveType.checkedButtonId == R.id.moveAsTab) {
+                DrawerTarget.OwnTab
+            } else {
+                tabTargets[view.moveTabs.checkedChipId] ?: DrawerTarget.MainList
+            }
+            viewModel.moveFolderToDrawer(folder, target)?.let(::showFolderMovedBar)
+        }
+    }
+
+    // The Put it in chips: All, then each drawer tab, All chosen. Returns
+    // each chip's id with the place it stands for.
+    private fun addMoveTabChips(group: ChipGroup): Map<Int, DrawerTarget> {
+        val targets = listOf(DrawerTarget.MainList) +
+            viewModel.drawerTabGroups().map { DrawerTarget.InTab(it.name) }
+        val byId = targets.associateBy { View.generateViewId() }
+        byId.forEach { (id, target) ->
+            val chip = layoutInflater.inflate(R.layout.chip_move_tab, group, false) as Chip
+            chip.id = id
+            chip.text = if (target is DrawerTarget.InTab) target.tab else getString(R.string.drawer_all)
+            group.addView(chip)
+        }
+        group.check(byId.keys.first())
+        return byId
     }
 
     // Says what stayed on the home screen, and offers the move back.

@@ -189,8 +189,19 @@
     <string name="drawer_tab_empty">No apps in this tab yet</string>
     <string name="sort">Sort</string>
     <string name="move_to_drawer">Move to drawer</string>
-    <string name="move_to_drawer_folder_in">Folder in %1$s</string>
+    <string name="move_to_drawer_as_folder">Drawer folder</string>
     <string name="move_to_drawer_tab">New tab</string>
+    <string name="move_to_drawer_put_in">Put it in</string>
+    <string name="move_to_drawer_tab_hint">Its apps get a tab of their own, named “%1$s”.</string>
+    <string name="move">Move</string>
+    <plurals name="move_to_drawer_summary">
+        <item quantity="one">“%1$s” · %2$d app</item>
+        <item quantity="other">“%1$s” · %2$d apps</item>
+    </plurals>
+    <plurals name="move_to_drawer_stays">
+        <item quantity="one">%d shortcut can’t go in the drawer, so it stays on Home.</item>
+        <item quantity="other">%d shortcuts can’t go in the drawer, so they stay on Home.</item>
+    </plurals>
     <string name="moved_to_drawer">Moved to the drawer</string>
     <plurals name="moved_to_drawer_left_behind">
         <item quantity="one">Moved to the drawer. %d shortcut stayed on Home</item>
