@@ -21,6 +21,8 @@ jobs:
                 
       - uses: thecodemonkey/action-get-gradle-version@master
         id: gradleversion
+        with: 
+          file: build.gradle.kts        
         
       - name: Show Grade Version          
         run: | 
