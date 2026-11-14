@@ -435,7 +435,7 @@ class AppCatalog(
         } else {
             generatedGlyph(icon, pick) ?: return null
         }
-        return android.graphics.drawable.AdaptiveIconDrawable(android.graphics.drawable.ColorDrawable(themedIconBg), fg)
+        return android.graphics.drawable.AdaptiveIconDrawable(ThemedPlate(themedIconBg), fg)
     }
 
     // Lets `pick` choose a glyph's alpha off the icon's foreground (see
@@ -447,11 +447,14 @@ class AppCatalog(
     }
 
     // An icon with no glyph to read, its whole picture in the themed
-    // colours on the themed plate (see ThemedGlyph.tinted).
+    // colours on the themed plate (see ThemedGlyph.tinted). A background of
+    // one plain colour (RAR's white) is left out: the plate stands in for it.
     private fun tintedCopy(icon: Drawable): Drawable {
-        val pixels = ThemedGlyph.tinted(iconPixels(icon, withBackground = true), themedIconBg, themedIconFg)
+        val back = (icon as? android.graphics.drawable.AdaptiveIconDrawable)?.background
+        val plainBack = back != null && ThemedGlyph.isPlain(layersPixels(listOf(back), inset = 0))
+        val pixels = ThemedGlyph.tinted(iconPixels(icon, withBackground = !plainBack), themedIconBg, themedIconFg)
         return android.graphics.drawable.AdaptiveIconDrawable(
-            android.graphics.drawable.ColorDrawable(themedIconBg),
+            ThemedPlate(themedIconBg),
             pixelsDrawable(pixels)
         )
     }
@@ -460,16 +463,16 @@ class AppCatalog(
     // (with its background too, for `withBackground`), or the whole legacy
     // icon, inset toward the safe zone so the mask doesn't crop it.
     private fun iconPixels(icon: Drawable, withBackground: Boolean): IntArray {
+        val adaptive = icon as? android.graphics.drawable.AdaptiveIconDrawable
+            ?: return layersPixels(listOf(icon), inset = (GLYPH_PX * LEGACY_INSET).toInt())
+        val layers = listOfNotNull(adaptive.background.takeIf { withBackground }, adaptive.foreground)
+        return layersPixels(layers, inset = 0)
+    }
+
+    private fun layersPixels(layers: List<Drawable>, inset: Int): IntArray {
         val size = GLYPH_PX
         val picture = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
         val canvas = android.graphics.Canvas(picture)
-        val adaptive = icon as? android.graphics.drawable.AdaptiveIconDrawable
-        val layers = when {
-            adaptive == null -> listOf(icon)
-            withBackground -> listOfNotNull(adaptive.background, adaptive.foreground)
-            else -> listOfNotNull(adaptive.foreground)
-        }
-        val inset = if (adaptive == null) (size * LEGACY_INSET).toInt() else 0
         layers.forEach {
             it.setBounds(inset, inset, size - inset, size - inset)
             it.draw(canvas)

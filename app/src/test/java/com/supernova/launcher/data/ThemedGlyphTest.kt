@@ -131,6 +131,13 @@ class ThemedGlyphTest {
     }
 
     @Test
+    fun aOneColourLayerIsPlainAndAPictureIsNot() {
+        assertTrue(ThemedGlyph.isPlain(picture { _, _ -> white }))
+        assertTrue(ThemedGlyph.isPlain(picture { x, y -> if (x == 0 && y == 0) orange else white }))
+        assertTrue(!ThemedGlyph.isPlain(picture { x, y -> if (plus(x, y)) orange else white }))
+    }
+
+    @Test
     fun coverageCountsOnlyTheVisibleMiddle() {
         val full = IntArray(size * size) { 255 }
         val rim = picture { x, y -> if (x in 5..24 && y in 5..24) 0 else 255 }

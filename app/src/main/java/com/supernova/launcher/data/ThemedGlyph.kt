@@ -64,6 +64,15 @@ object ThemedGlyph {
         }
     }
 
+    // Whether a layer is one plain colour: every drawn pixel near its
+    // commonest colour, bar a few stray ones (an anti-aliased rim).
+    fun isPlain(pixels: IntArray): Boolean {
+        val drawn = pixels.filter { it ushr ALPHA_SHIFT > 0 }
+        val common = drawn.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key ?: return true
+        val off = drawn.count { !Pixels.near(it, common, PLAIN_TOLERANCE) }
+        return off <= drawn.size * PLAIN_STRAYS
+    }
+
     // A silhouette that fills the ellipse inscribed in its own bounds - a
     // square, a circle, a squircle - is a block: its shape says nothing of
     // the logo drawn inside it.
@@ -97,18 +106,18 @@ object ThemedGlyph {
     }
 
     // 0-255, weighted the way the eye sees the three channels.
-    private fun lightness(p: Int): Int =
-        (channel(p, RED_SHIFT) * RED_WEIGHT + channel(p, GREEN_SHIFT) * GREEN_WEIGHT + channel(p, 0) * BLUE_WEIGHT) /
-            WEIGHTS
+    private fun lightness(p: Int): Int {
+        val red = Pixels.channel(p, RED_SHIFT) * RED_WEIGHT
+        val green = Pixels.channel(p, GREEN_SHIFT) * GREEN_WEIGHT
+        return (red + green + Pixels.channel(p, 0) * BLUE_WEIGHT) / WEIGHTS
+    }
 
     // `a` blended toward `b` by t/255, as an RGB int with no alpha.
     private fun mix(a: Int, b: Int, t: Int): Int =
         intArrayOf(RED_SHIFT, GREEN_SHIFT, 0).fold(0) { rgb, shift ->
-            val c = channel(a, shift) + (channel(b, shift) - channel(a, shift)) * t / FULL
+            val c = Pixels.channel(a, shift) + (Pixels.channel(b, shift) - Pixels.channel(a, shift)) * t / FULL
             rgb or (c shl shift)
         }
-
-    private fun channel(p: Int, shift: Int) = p shr shift and FULL
 
     private fun reads(alpha: IntArray, width: Int, height: Int): Boolean =
         coverage(alpha, width, height) in MIN_COVERAGE..MAX_COVERAGE
@@ -140,4 +149,8 @@ object ThemedGlyph {
 
     // Lightness range (0-255) under which a picture counts as one flat shade.
     private const val MIN_SPAN = 32
+
+    // A plain layer: how far a channel may stray, and what share of pixels may.
+    private const val PLAIN_TOLERANCE = 16
+    private const val PLAIN_STRAYS = 0.01f
 }
