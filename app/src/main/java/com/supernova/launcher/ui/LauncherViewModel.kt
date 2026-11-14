@@ -27,6 +27,7 @@ import com.supernova.launcher.data.IconShape
 import com.supernova.launcher.data.ItemType
 import com.supernova.launcher.data.LabelOrder
 import com.supernova.launcher.data.LaunchableApp
+import com.supernova.launcher.data.LARGE_ICON_SPAN
 import com.supernova.launcher.data.LauncherItem
 import com.supernova.launcher.data.LauncherPreferences
 import com.supernova.launcher.data.LauncherPrefs
@@ -36,6 +37,7 @@ import com.supernova.launcher.data.PrefSpec
 import com.supernova.launcher.data.PrivateSpace
 import com.supernova.launcher.data.TabFolders
 import com.supernova.launcher.data.WorkspaceGeometry
+import com.supernova.launcher.data.isLargeIcon
 import com.supernova.launcher.data.imports.BackupFiles
 import com.supernova.launcher.data.imports.LayoutConverter
 import com.supernova.launcher.data.imports.PickedBackup
@@ -199,7 +201,11 @@ class LauncherViewModel(
             }
         }
         viewModelScope.launch {
-            preferences.flow.collect { prefs ->
+            // A large icon draws at twice the desktop size, so the icons
+            // render for it while there is one.
+            val largeIcons = repository.modelFlow.map { model -> model.items.any { it.isLargeIcon } }
+                .distinctUntilChanged()
+            preferences.flow.combine(largeIcons) { prefs, large -> prefs to large }.collect { (prefs, large) ->
                 WorkspaceGeometry.allowWidgetOverlap = prefs.widgetOverlap
                 WorkspaceGeometry.allowPlacementOverlap = prefs.overlapWhenPlacing
                 val packChanged = prefs.iconPack != appliedIconPack
@@ -211,7 +217,7 @@ class LauncherViewModel(
                 val glassChanged = prefs.iconGlass != appliedGlass
                 val themedSig = themedIconSignature(prefs)
                 val themedChanged = themedSig != appliedThemedSig
-                val resolution = iconResolution(prefs)
+                val resolution = iconResolution(prefs, large)
                 val resolutionChanged = resolution != appliedResolution
                 val changes = listOf(
                     packChanged, shapeChanged, normalizeChanged, shadowChanged,
@@ -535,9 +541,9 @@ class LauncherViewModel(
 
     // The largest icon size any surface draws at, rounded up to a fifth so a
     // size slider's drag re-renders at a few steps rather than every tick.
-    private fun iconResolution(prefs: com.supernova.launcher.data.LauncherPrefs): Float {
+    private fun iconResolution(prefs: com.supernova.launcher.data.LauncherPrefs, largeIcons: Boolean): Float {
         val scales = listOf(
-            prefs.iconScale,
+            if (largeIcons) prefs.iconScale * LARGE_ICON_SPAN else prefs.iconScale,
             if (prefs.dockMatchDesktop) prefs.iconScale else prefs.dockIconScale,
             if (prefs.drawerMatchDesktop) prefs.iconScale else prefs.drawerIconScale,
             if (prefs.folderMatchDesktop) prefs.iconScale else prefs.folderIconScale
@@ -633,6 +639,18 @@ class LauncherViewModel(
     }
 
     fun restackItem(itemId: String, toFront: Boolean) = persist { repository.restackItem(itemId, toFront) }
+
+    // Long-press > Large icon / Normal icon. False, and nothing written,
+    // when the page has no room for a large one.
+    fun setIconSize(itemId: String, large: Boolean): Boolean {
+        val current = state.value
+        val cols = current.prefs.gridCols
+        val rows = current.prefs.gridRows
+        val shown = WorkspaceGeometry.fitted(current.model, cols, rows)
+        if (com.supernova.launcher.data.LargeIcons.withIconSize(shown, itemId, large, cols, rows) == null) return false
+        persist { repository.setIconSize(itemId, large, cols, rows) }
+        return true
+    }
 
     // A widget's padding in dp: its own, or the Widget padding setting's.
     fun widgetPaddingDp(item: LauncherItem): Int = item.widgetPadding ?: state.value.prefs.widgetPadding

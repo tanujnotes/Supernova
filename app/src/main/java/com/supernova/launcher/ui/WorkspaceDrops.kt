@@ -16,6 +16,7 @@ import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.data.LauncherItem
 import com.supernova.launcher.data.LauncherModel
 import com.supernova.launcher.data.WorkspaceGeometry
+import com.supernova.launcher.data.isLargeIcon
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -103,12 +104,13 @@ class WorkspaceDrops(
                     pulseFolderTarget(page, rawCellX, rawCellY, movingItem.id)
                     return true
                 }
-                val target = if (widget) {
-                    widgetDropRect(movingItem, cellX, cellY, rawCellX, rawCellY)
-                } else {
-                    iconRectAt(workspaceX, workspaceY, prefs.gridCols, prefs.gridRows)
+                val large = movingItem.isLargeIcon
+                val target = when {
+                    widget -> widgetDropRect(movingItem, cellX, cellY, rawCellX, rawCellY)
+                    large -> largeIconRect(movingItem, rawCellX, rawCellY)
+                    else -> iconRectAt(workspaceX, workspaceY, prefs.gridCols, prefs.gridRows)
                 }
-                val (spanX, spanY) = if (widget) WorkspaceGeometry.wholeSpans(target) else 1 to 1
+                val (spanX, spanY) = if (widget || large) WorkspaceGeometry.wholeSpans(target) else 1 to 1
                 val moves = WorkspaceGeometry.solveReorder(
                     model, page, target, prefs.gridCols, prefs.gridRows, setOf(movingItem.id)
                 )
@@ -118,6 +120,14 @@ class WorkspaceDrops(
                 }
                 if (widget) {
                     viewModel.moveWidget(payload.itemId, page, target, moves.orEmpty())
+                } else if (large) {
+                    // On the 2x2 the hover outlined, centred on it.
+                    viewModel.moveItemToWorkspace(
+                        payload.itemId, page, target.left.roundToInt(), target.top.roundToInt(),
+                        (target.left + target.right) / 2f / prefs.gridCols,
+                        (target.top + target.bottom) / 2f / prefs.gridRows,
+                        moves.orEmpty(), mergeFolders = false
+                    )
                 } else {
                     viewModel.moveItemToWorkspace(
                         payload.itemId, page, cellX, cellY, workspaceX, workspaceY,
@@ -271,6 +281,16 @@ class WorkspaceDrops(
         }
     }
 
+    // The whole cells a large icon dropped here takes: the square of its
+    // span nearest the picture's centre (`rawCellX`, `rawCellY`), inside the
+    // grid. Whole cells, subgrid or not, as a large icon is made on them.
+    private fun largeIconRect(item: LauncherItem, rawCellX: Float, rawCellY: Float): WorkspaceGeometry.CellRect {
+        val prefs = viewModel.state.value.prefs
+        val left = (rawCellX - item.spanX / 2f).roundToInt().coerceIn(0, (prefs.gridCols - item.spanX).coerceAtLeast(0))
+        val top = (rawCellY - item.spanY / 2f).roundToInt().coerceIn(0, (prefs.gridRows - item.spanY).coerceAtLeast(0))
+        return WorkspaceGeometry.cellRect(left, top, item.spanX, item.spanY)
+    }
+
     // The one-cell square an icon occupies when dropped at a normalized
     // position - the same rect WorkspaceGeometry.itemRect derives for it.
     private fun iconRectAt(workspaceX: Float, workspaceY: Float, cols: Int, rows: Int): WorkspaceGeometry.CellRect {
@@ -290,6 +310,8 @@ class WorkspaceDrops(
             is DragPayload.ExistingItem -> {
                 val item = viewModel.state.value.model.items.firstOrNull { it.id == payload.itemId } ?: return false
                 if (item.itemType != ItemType.APP && item.itemType != ItemType.SHORTCUT) return false
+                // A large icon makes room where it lands rather than a folder.
+                if (item.isLargeIcon) return false
                 excludeId = item.id
             }
             // Nor does a sheet's widget or shortcut row, still to be made.
@@ -343,6 +365,8 @@ class WorkspaceDrops(
                 val item = viewModel.state.value.model.items.firstOrNull { it.id == payload.itemId } ?: return null
                 if (item.itemType == ItemType.WIDGET) {
                     widgetDropRect(item, cellX, cellY, rawCellX, rawCellY) to setOf(item.id)
+                } else if (item.isLargeIcon) {
+                    largeIconRect(item, rawCellX, rawCellY) to setOf(item.id)
                 } else {
                     snappedIconRect() to setOf(item.id)
                 }

@@ -6,8 +6,8 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 // Collision model for the workspace, in cell units: widgets occupy their exact
-// cell rectangle, free-positioned icons a one-cell square centred on their
-// float position. Two items collide when their slightly shrunken rectangles
+// cell rectangle, free-positioned icons a square of their span (one cell, two
+// for a large icon) centred on their float position. Two items collide when their slightly shrunken rectangles
 // intersect - the shrink lets snapped neighbours share an edge exactly.
 object WorkspaceGeometry {
 
@@ -47,7 +47,9 @@ object WorkspaceGeometry {
         } else {
             val centerX = item.workspaceX * cols
             val centerY = item.workspaceY * rows
-            CellRect(centerX - 0.5f, centerY - 0.5f, centerX + 0.5f, centerY + 0.5f)
+            val halfX = item.spanX / 2f
+            val halfY = item.spanY / 2f
+            CellRect(centerX - halfX, centerY - halfY, centerX + halfX, centerY + halfY)
         }
     }
 
@@ -101,18 +103,20 @@ object WorkspaceGeometry {
         val y = item.workspaceY
         return inBounds(itemRect(item, cols, rows), cols, rows) &&
             (item.itemType == ItemType.WIDGET || x == null || y == null ||
-                onOwnGrid(x * cols, item.cellX) && onOwnGrid(y * rows, item.cellY))
+                onOwnGrid(x * cols, item.cellX, item.spanX) && onOwnGrid(y * rows, item.cellY, item.spanY))
     }
 
-    // A spot set on this grid sits on its cells and by its own cell.
-    private fun onOwnGrid(center: Float, cell: Int): Boolean =
-        aligned(center) && kotlin.math.abs(center - 0.5f - cell) <= 0.5f + EPSILON
+    // A spot set on this grid sits on its cells and by its own cell (the
+    // top-left one of a large icon).
+    private fun onOwnGrid(center: Float, cell: Int, span: Int): Boolean =
+        aligned(center - (span - 1) / 2f) && kotlin.math.abs(center - span / 2f - cell) <= 0.5f + EPSILON
 
     private fun refit(item: LauncherItem, taken: List<CellRect>, cols: Int, rows: Int): LauncherItem {
         val rect = itemRect(item, cols, rows)
         val widget = item.itemType == ItemType.WIDGET
-        val spanX = if (widget) ceil(rect.right - rect.left - EPSILON).toInt().coerceIn(1, cols) else 1
-        val spanY = if (widget) ceil(rect.bottom - rect.top - EPSILON).toInt().coerceIn(1, rows) else 1
+        // An icon keeps its span: a large icon stays large on a new grid.
+        val spanX = if (widget) ceil(rect.right - rect.left - EPSILON).toInt().coerceIn(1, cols) else item.spanX
+        val spanY = if (widget) ceil(rect.bottom - rect.top - EPSILON).toInt().coerceIn(1, rows) else item.spanY
         fun free(cell: Pair<Int, Int>): Boolean {
             val area = cellRect(cell.first, cell.second, spanX, spanY)
             return inBounds(area, cols, rows) && taken.none { overlaps(it, area) }
@@ -123,7 +127,7 @@ object WorkspaceGeometry {
             widget ->
                 floor(rect.left + EPSILON).toInt().coerceIn(0, cols - spanX) to
                     floor(rect.top + EPSILON).toInt().coerceIn(0, rows - spanY)
-            item.cellX in 0 until cols && item.cellY in 0 until rows -> item.cellX to item.cellY
+            item.cellX in 0..(cols - spanX) && item.cellY in 0..(rows - spanY) -> item.cellX to item.cellY
             else -> null
         }
         val near = (rect.left + rect.right) / 2f to (rect.top + rect.bottom) / 2f
@@ -138,7 +142,7 @@ object WorkspaceGeometry {
             item.itemType == ItemType.WIDGET -> widgetOn(item, area)
             item.workspaceX == null || item.workspaceY == null -> item.copy(cellX = x, cellY = y)
             else -> {
-                val (wx, wy) = cellCenteredPosition(x, y, cols, rows)
+                val (wx, wy) = cellCenteredPosition(x, y, cols, rows, item.spanX to item.spanY)
                 item.copy(cellX = x, cellY = y, workspaceX = wx, workspaceY = wy)
             }
         }
@@ -373,8 +377,15 @@ object WorkspaceGeometry {
         return cellRect(x, y, spanX, spanY)
     }
 
-    fun cellCenteredPosition(cellX: Int, cellY: Int, cols: Int, rows: Int): Pair<Float, Float> =
-        ((cellX + 0.5f) / cols) to ((cellY + 0.5f) / rows)
+    // The normalized centre of `span` (x to y) cells from (`cellX`, `cellY`):
+    // where an icon of that span sits on them.
+    fun cellCenteredPosition(
+        cellX: Int,
+        cellY: Int,
+        cols: Int,
+        rows: Int,
+        span: Pair<Int, Int> = 1 to 1
+    ): Pair<Float, Float> = ((cellX + span.first / 2f) / cols) to ((cellY + span.second / 2f) / rows)
 
     // --- Reorder: making room under a dragged item (Launcher3-style push).
 
@@ -387,8 +398,8 @@ object WorkspaceGeometry {
         val snapToCell: Boolean = false
     )
 
-    // Makes room for a drop occupying `target` (widgets: their cell rect;
-    // icons: a one-cell square centred on the drop position): returns the
+    // Makes room for a drop occupying `target` (widgets and large icons: their
+    // cell rect; icons: a one-cell square centred on the drop position): returns the
     // moves that clear the area (empty when it is already free), or null when
     // no arrangement exists. Overlapped items are pushed away from the target in
     // cascading whole-cell steps - the push direction that most agrees with

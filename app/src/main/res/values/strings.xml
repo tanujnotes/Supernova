@@ -24,6 +24,9 @@
     <string name="remove_from_folder">Move to Home</string>
     <string name="widget">Widget</string>
     <string name="widget_resize">Resize</string>
+    <!-- Long-press menu of a home screen icon or folder: makes it 2x2 cells, its icon twice the size, and back. -->
+    <string name="large_icon">Large icon</string>
+    <string name="normal_icon">Normal icon</string>
     <string name="padding">Padding</string>
     <string name="bring_to_front">Bring to front</string>
     <string name="send_to_back">Send to back</string>

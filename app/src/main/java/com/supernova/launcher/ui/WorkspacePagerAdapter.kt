@@ -10,10 +10,12 @@ import androidx.viewpager2.widget.ViewPager2
 import com.supernova.launcher.R
 import com.supernova.launcher.data.ContainerType
 import com.supernova.launcher.data.ItemType
+import com.supernova.launcher.data.LARGE_ICON_SPAN
 import com.supernova.launcher.data.LauncherItem
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.LauncherRepository
 import com.supernova.launcher.data.WorkspaceGeometry
+import com.supernova.launcher.data.isLargeIcon
 import com.supernova.launcher.databinding.ViewWorkspaceAddPageBinding
 import com.supernova.launcher.databinding.ViewWorkspacePageBinding
 import com.supernova.launcher.widget.WidgetResizeFrame
@@ -523,10 +525,11 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
                         // layout, against the size it has then: it is on its
                         // point before the first draw, and stays on it when
                         // the canvas resizes after this bind.
-                        val centerX = item.workspaceX ?: ((item.cellX + 0.5f) / max(1, cols))
-                        val centerY = item.workspaceY ?: ((item.cellY + 0.5f) / max(1, rows))
+                        val span = if (item.isLargeIcon) LARGE_ICON_SPAN else 1
+                        val centerX = item.workspaceX ?: ((item.cellX + span / 2f) / max(1, cols))
+                        val centerY = item.workspaceY ?: ((item.cellY + span / 2f) / max(1, rows))
                         val fit = child.getTag(R.id.tag_icon_fit) as? WorkspaceCanvas.IconFit
-                        canvas.addView(child, WorkspaceCanvas.IconParams(centerX, centerY, cols, rows, fit))
+                        canvas.addView(child, WorkspaceCanvas.IconParams(centerX, centerY, cols, rows, fit, span))
                     }
                 }
             }

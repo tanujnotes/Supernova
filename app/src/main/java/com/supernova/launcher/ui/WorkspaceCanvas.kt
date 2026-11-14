@@ -67,13 +67,15 @@ class WorkspaceCanvas @JvmOverloads constructor(
     class IconFit(val needW: Int, val needH: Int, val apply: (scale: Float) -> Unit)
 
     // `cols` x `rows` is the grid, which sets the cell an icon widens to and,
-    // with a `fit`, shrinks into; 0 leaves it at its own size.
+    // with a `fit`, shrinks into; 0 leaves it at its own size. A large
+    // icon's `span` makes that cell `span` cells a side.
     class IconParams(
         val centerX: Float,
         val centerY: Float,
         val cols: Int = 0,
         val rows: Int = 0,
-        val fit: IconFit? = null
+        val fit: IconFit? = null,
+        val span: Int = 1
     ) : FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT) {
         // The scale the icon was last shrunk to.
         var fitScale = 1f
@@ -121,7 +123,7 @@ class WorkspaceCanvas @JvmOverloads constructor(
             val child = getChildAt(i)
             val params = child.layoutParams as? IconParams ?: continue
             if (params.cols <= 0 || child.visibility == GONE) continue
-            val cell = cellSize(width, params.cols)
+            val cell = cellSize(width, params.cols) * params.span
             if (child.measuredWidth >= cell) continue
             child.measure(
                 MeasureSpec.makeMeasureSpec(cell, MeasureSpec.EXACTLY),
@@ -138,7 +140,10 @@ class WorkspaceCanvas @JvmOverloads constructor(
             val params = getChildAt(i).layoutParams as? IconParams ?: continue
             val fit = params.fit ?: continue
             if (params.cols <= 0 || params.rows <= 0) continue
-            val scale = iconFitScale(cellSize(width, params.cols), cellSize(height, params.rows), fit.needW, fit.needH)
+            val scale = iconFitScale(
+                cellSize(width, params.cols) * params.span, cellSize(height, params.rows) * params.span,
+                fit.needW, fit.needH
+            )
             if (scale == params.fitScale) continue
             params.fitScale = scale
             fit.apply(scale)

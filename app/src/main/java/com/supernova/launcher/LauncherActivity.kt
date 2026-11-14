@@ -66,7 +66,9 @@ import com.supernova.launcher.data.DrawerGroup
 import com.supernova.launcher.data.ItemType
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.LaunchableApp
+import com.supernova.launcher.data.LARGE_ICON_SPAN
 import com.supernova.launcher.data.LauncherItem
+import com.supernova.launcher.data.isLargeIcon
 import com.supernova.launcher.data.LauncherRepository
 import com.supernova.launcher.data.WorkspaceGeometry
 import com.supernova.launcher.databinding.ActivityLauncherBinding
@@ -2123,6 +2125,18 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // big icon's item may be larger than its cell.
     override fun desktopIconBoxPx(prefs: LauncherPrefs): Int = (dp(ICON_BASE_DP) * prefs.iconScale).toInt()
 
+    // How many cells a side a desktop icon takes, and how many times the
+    // desktop size its icon is drawn: 2 for a large icon.
+    private fun iconSpan(item: LauncherItem): Int = if (item.isLargeIcon) LARGE_ICON_SPAN else 1
+
+    // The room a large icon takes: its box `span` times the size, the
+    // padding and label as they are.
+    override fun desktopIconNeedPx(prefs: LauncherPrefs, span: Int): android.util.Size {
+        val need = desktopIconNeedPx(prefs)
+        val grow = desktopIconBoxPx(prefs) * (span - 1)
+        return android.util.Size(need.width + grow, need.height + grow)
+    }
+
     // The room a desktop icon takes at its own size: its box inside the
     // item's padding, over a line of label when labels show. A cell smaller
     // than that shrinks the icon into it (WorkspaceCanvas.IconFit).
@@ -3193,6 +3207,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                             viewModel.sortFolder(item.id)
                         }
                     }
+                    addIconSizeRow(menu, item)
                 }
                 // Folder Edit: name, icon, Swipe to open folder and the swipe
                 // actions in one sheet, as an app's Edit holds its label, icon
@@ -3266,6 +3281,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                         widgets.showPickerFor(item.packageName)
                     }
                 }
+                if (!locked) addIconSizeRow(menu, item)
                 // A launcher action or a picked activity has no package, and
                 // the row did nothing for it.
                 item.packageName?.let { pkg ->
@@ -3306,6 +3322,21 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
         menu.show(anchor, menuTouchX)
         return menu
+    }
+
+    // Large icon / Normal icon, for an icon or folder on the desktop: a large
+    // one takes 2x2 cells and draws its icon twice the size. A grid too
+    // small for one has no row; a page with no room says so.
+    private fun addIconSizeRow(menu: SupernovaPopupMenu, item: LauncherItem) {
+        if (item.container != ContainerType.WORKSPACE) return
+        val prefs = viewModel.state.value.prefs
+        val large = item.isLargeIcon
+        if (!large && (prefs.gridCols < LARGE_ICON_SPAN || prefs.gridRows < LARGE_ICON_SPAN)) return
+        menu.addRow(getString(if (large) R.string.normal_icon else R.string.large_icon), R.drawable.ic_menu_resize) {
+            if (!viewModel.setIconSize(item.id, !large)) {
+                Toast.makeText(this, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     // Edit for a placed workspace item: the app-level fields (label, icon)
@@ -4242,8 +4273,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             // item now measures what it draws, so the label sits below the
             // icon at any size. The label fills the item, which the page's
             // canvas widens to its cell (WorkspaceCanvas), so it runs the
-            // cell's width, whatever the icon's size.
-            val box = desktopIconBoxPx(prefs)
+            // cell's width, whatever the icon's size. A large icon's box is
+            // twice the size, over its 2x2 cells.
+            val box = desktopIconBoxPx(prefs) * iconSpan(item)
             iconBinding.icon.updateLayoutParams { width = box; height = box }
         }
         val displayLabel = override?.customLabel ?: item.label
@@ -4254,7 +4286,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             else com.supernova.launcher.ui.LabelContext.DESKTOP
         )
         iconBinding.label.visibility = if (labelVisible) View.VISIBLE else View.GONE
-        if (!inDock) iconBinding.root.setTag(R.id.tag_icon_fit, desktopIconFit(iconBinding, prefs))
+        if (!inDock) iconBinding.root.setTag(R.id.tag_icon_fit, desktopIconFit(iconBinding, prefs, iconSpan(item)))
         // Announce what the icon actually is; the label may be hidden.
         iconBinding.root.contentDescription = when (item.itemType) {
             ItemType.FOLDER -> getString(R.string.folder_desc, displayLabel)
@@ -4304,12 +4336,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // page's canvas decides: icon, label and padding by the same scale, and
     // the label on one line, so icons in a dense grid stay clear of their
     // neighbours. Scale 1 puts it back as bound.
-    private fun desktopIconFit(iconBinding: ItemIconBinding, prefs: LauncherPrefs): WorkspaceCanvas.IconFit {
-        val box = desktopIconBoxPx(prefs)
+    private fun desktopIconFit(iconBinding: ItemIconBinding, prefs: LauncherPrefs, span: Int): WorkspaceCanvas.IconFit {
+        val box = desktopIconBoxPx(prefs) * span
         val textPx = iconBinding.label.textSize
         val lines = iconBinding.label.maxLines
         val pad = iconBinding.root.paddingTop
-        val need = desktopIconNeedPx(prefs)
+        val need = desktopIconNeedPx(prefs, span)
         return WorkspaceCanvas.IconFit(need.width, need.height) { scale ->
             val size = (box * scale).roundToInt()
             iconBinding.icon.updateLayoutParams { width = size; height = size }

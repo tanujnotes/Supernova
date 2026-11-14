@@ -856,7 +856,7 @@
     <ID>ReturnCount:LauncherActivity.kt$LauncherActivity$private fun trackDrawerPull(ev: MotionEvent): Boolean</ID>
     <ID>ReturnCount:LauncherRepository.kt$LauncherRepository.Companion$internal fun movedToDock(current: LauncherModel, itemId: String, rank: Int): LauncherModel</ID>
     <ID>ReturnCount:LauncherRepository.kt$LauncherRepository.Companion$internal fun withSparseFolderDissolved(current: LauncherModel, folderId: String?): LauncherModel</ID>
-    <ID>ReturnCount:LauncherRepository.kt$LauncherRepository.Companion$private fun applyDisplacement( current: LauncherModel, displace: List&lt;WorkspaceGeometry.ReorderMove&gt;, movingId: String?, cols: Int, rows: Int ): LauncherModel?</ID>
+    <ID>ReturnCount:LauncherRepository.kt$LauncherRepository.Companion$internal fun applyDisplacement( current: LauncherModel, displace: List&lt;WorkspaceGeometry.ReorderMove&gt;, movingId: String?, cols: Int, rows: Int ): LauncherModel?</ID>
     <ID>ReturnCount:LauncherRepository.kt$LauncherRepository.Companion$private fun resolvePlacement( current: LauncherModel, item: LauncherItem, cols: Int, rows: Int ): LauncherItem?</ID>
     <ID>ReturnCount:LauncherViewModel.kt$LauncherViewModel$fun overrideFor(item: LauncherItem): AppOverride?</ID>
     <ID>ReturnCount:LiveDragController.kt$LiveDragController$fun routeGesture(ev: MotionEvent, window: android.widget.PopupWindow?): Boolean</ID>

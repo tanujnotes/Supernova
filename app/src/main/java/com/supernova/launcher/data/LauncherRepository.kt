@@ -544,6 +544,12 @@ class LauncherRepository(private val context: Context) {
         }
     }
 
+    // Long-press > Large icon / Normal icon. Nothing changes where the
+    // page has no room for it (the caller says so first).
+    suspend fun setIconSize(itemId: String, large: Boolean, cols: Int, rows: Int) {
+        mutateFitted(cols, rows) { current -> LargeIcons.withIconSize(current, itemId, large, cols, rows) ?: current }
+    }
+
     suspend fun restackItem(itemId: String, toFront: Boolean) {
         mutate { current ->
             current.copy(items = WorkspaceGeometry.restacked(current.items, itemId, toFront))
@@ -1092,6 +1098,9 @@ class LauncherRepository(private val context: Context) {
             cellY = target.cellY,
             workspaceX = target.workspaceX,
             workspaceY = target.workspaceY,
+            // A folder made on a large icon is as large.
+            spanX = target.spanX,
+            spanY = target.spanY,
             label = "Folder"
         )
 
@@ -1130,7 +1139,7 @@ class LauncherRepository(private val context: Context) {
             // Never over a layout this build couldn't read: an edit to the
             // empty stand-in would replace it for good.
             val current = decode(context.supernovaStore.data.first()[StoreKeys.model]) ?: return
-            val next = block(current)
+            val next = LargeIcons.withSmallIconsOffDesktop(block(current))
             if (next == current) return
             context.supernovaStore.edit { prefs ->
                 prefs[StoreKeys.model] = json.encodeToString(next)
@@ -1185,7 +1194,7 @@ class LauncherRepository(private val context: Context) {
         // displaced item's new spot is re-validated against the (possibly stale)
         // model this write actually sees; any mismatch abandons the whole
         // displacement rather than corrupting the layout.
-        private fun applyDisplacement(
+        internal fun applyDisplacement(
             current: LauncherModel,
             displace: List<WorkspaceGeometry.ReorderMove>,
             movingId: String?,
@@ -1204,12 +1213,14 @@ class LauncherRepository(private val context: Context) {
                             item, WorkspaceGeometry.displaced(WorkspaceGeometry.itemRect(item, cols, rows), m)
                         )
                     }
-                    val newCellX = (item.cellX + m.dCellX).coerceIn(0, cols - 1)
-                    val newCellY = (item.cellY + m.dCellY).coerceIn(0, rows - 1)
+                    val newCellX = (item.cellX + m.dCellX).coerceIn(0, (cols - item.spanX).coerceAtLeast(0))
+                    val newCellY = (item.cellY + m.dCellY).coerceIn(0, (rows - item.spanY).coerceAtLeast(0))
                     if (item.workspaceX == null || item.workspaceY == null || item.itemType == ItemType.WIDGET) {
                         item.copy(cellX = newCellX, cellY = newCellY)
                     } else if (m.snapToCell) {
-                        val (wx, wy) = WorkspaceGeometry.cellCenteredPosition(newCellX, newCellY, cols, rows)
+                        val (wx, wy) = WorkspaceGeometry.cellCenteredPosition(
+                            newCellX, newCellY, cols, rows, item.spanX to item.spanY
+                        )
                         item.copy(cellX = newCellX, cellY = newCellY, workspaceX = wx, workspaceY = wy)
                     } else {
                         // A pushed subgrid icon keeps its fractional offset.
@@ -1332,7 +1343,9 @@ class LauncherRepository(private val context: Context) {
             } else if (item.workspaceX == null || item.workspaceY == null) {
                 item.copy(cellX = cell.first, cellY = cell.second)
             } else {
-                val (centerX, centerY) = WorkspaceGeometry.cellCenteredPosition(cell.first, cell.second, cols, rows)
+                val (centerX, centerY) = WorkspaceGeometry.cellCenteredPosition(
+                    cell.first, cell.second, cols, rows, item.spanX to item.spanY
+                )
                 item.copy(cellX = cell.first, cellY = cell.second, workspaceX = centerX, workspaceY = centerY)
             }
         }
@@ -1459,6 +1472,9 @@ class LauncherRepository(private val context: Context) {
                 cellY = folder.cellY,
                 workspaceX = folder.workspaceX,
                 workspaceY = folder.workspaceY,
+                // A large folder's last app is as large.
+                spanX = folder.spanX,
+                spanY = folder.spanY,
                 rank = folder.rank,
                 folderId = null
             )
