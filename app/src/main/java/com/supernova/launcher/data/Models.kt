@@ -328,8 +328,9 @@ data class LauncherPrefs(
     val iconSwipeIndicator: Boolean = true,
     // Draw adaptive icons' monochrome layer, palette-tinted (API 33+).
     val themedIcons: Boolean = false,
-    // Synthesize a monochrome layer for apps that ship none (D8).
-    val themedIconsAutogen: Boolean = false,
+    // Synthesize a monochrome layer for apps that ship none (D8). On, so
+    // Themed icons alone themes every app.
+    val themedIconsAutogen: Boolean = true,
     // Screen-lock mechanism: ACCESSIBILITY (default) or DEVICE_ADMIN.
     val lockMethod: LockMethod = LockMethod.ACCESSIBILITY,
     val badgeColor: String = "",
