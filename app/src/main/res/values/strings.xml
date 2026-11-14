@@ -318,7 +318,6 @@
     <string name="folder_icon_appearance">Folder icon appearance</string>
     <string name="folder_icon_shape">Background shape</string>
     <string name="folder_icon_outline">Accent outline</string>
-    <string name="folder_clip_to_bg">Keep icons inside the background</string>
     <string name="folder_match_window_color">Match folder window color</string>
     <string name="folder_plate_color">Color</string>
     <string name="folder_columns">Columns</string>

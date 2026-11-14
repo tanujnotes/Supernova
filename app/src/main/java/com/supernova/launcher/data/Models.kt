@@ -369,8 +369,6 @@ data class LauncherPrefs(
     val folderIconShape: String = "",
     // 2dp FOLDER-accent stroke around the plate.
     val folderIconOutline: Boolean = false,
-    // Member icons clipped inside the plate vs allowed to overflow it.
-    val folderClipToBg: Boolean = true,
     // Plate uses the resolved FOLDER window surface instead of the
     // translucent default plate.
     val folderMatchWindowColor: Boolean = false,

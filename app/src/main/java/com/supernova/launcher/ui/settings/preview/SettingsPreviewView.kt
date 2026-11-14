@@ -494,7 +494,6 @@ class SettingsPreviewView @JvmOverloads constructor(
                 customSpec = com.supernova.launcher.data.CustomShapeSpec.decode(prefs.iconShapeCustom),
                 outlineColor = if (prefs.folderIconOutline) resolved.accent else 0,
                 outlineWidthPx = 2f * resources.displayMetrics.density,
-                clipMembers = prefs.folderClipToBg,
                 prioritizeFirst = prefs.folderPrioritizeFirst,
                 glass = FolderIconDrawable.glassFor(prefs),
                 shadow = prefs.iconShadow

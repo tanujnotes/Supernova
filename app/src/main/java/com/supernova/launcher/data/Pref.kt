@@ -263,7 +263,6 @@ object Pref {
     val folderScroll = choice("folder_scroll", FolderScroll.entries)
     val folderIconShape = text("folder_icon_shape")
     val folderIconOutline = bool("folder_icon_outline")
-    val folderClipToBg = bool("folder_clip_to_bg")
     val folderMatchWindowColor = bool("folder_match_window_color")
     val folderPlateColor = text("folder_plate_color")
     val folderBadges = bool("folder_badges")

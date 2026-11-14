@@ -73,7 +73,6 @@ class BackupRoundTripTest {
         folderScroll = FolderScroll.HORIZONTAL,
         folderIconShape = "CIRCLE",
         folderIconOutline = true,
-        folderClipToBg = false,
         folderMatchWindowColor = true,
         folderBadges = true,
         paletteSource = PaletteSourceMode.WALLPAPER,

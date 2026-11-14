@@ -1391,7 +1391,7 @@ class SettingsActivity : AppCompatActivity() {
             .show()
     }
 
-    // Folder icon appearance: shape + outline/clip/window-color toggles, all
+    // Folder icon appearance: shape + outline/window-color toggles, all
     // edited against a live FolderIconDrawable preview of placeholder tiles.
     // Only OK commits the prefs.
     private fun showFolderIconEditor() {
@@ -1400,7 +1400,6 @@ class SettingsActivity : AppCompatActivity() {
         var shapeName = prefs.folderIconShape
         var plateColor = prefs.folderPlateColor
         dialogBinding.outlineCheck.isChecked = prefs.folderIconOutline
-        dialogBinding.clipCheck.isChecked = prefs.folderClipToBg
         dialogBinding.matchColorCheck.isChecked = prefs.folderMatchWindowColor
 
         // Placeholder members: colored tiles, so the preview needs no app icons.
@@ -1435,7 +1434,6 @@ class SettingsActivity : AppCompatActivity() {
                     customSpec = CustomShapeSpec.decode(prefs.iconShapeCustom),
                     outlineColor = if (dialogBinding.outlineCheck.isChecked) resolved.accent else 0,
                     outlineWidthPx = 2f * resources.displayMetrics.density,
-                    clipMembers = dialogBinding.clipCheck.isChecked,
                     prioritizeFirst = prefs.folderPrioritizeFirst,
                     glass = com.supernova.launcher.ui.FolderIconDrawable.glassFor(prefs),
                     shadow = prefs.iconShadow
@@ -1468,7 +1466,6 @@ class SettingsActivity : AppCompatActivity() {
         }
         listOf(
             dialogBinding.outlineRow to dialogBinding.outlineCheck,
-            dialogBinding.clipRow to dialogBinding.clipCheck,
             dialogBinding.matchColorRow to dialogBinding.matchColorCheck
         ).forEach { (row, box) ->
             row.setOnClickListener { box.toggle() }
@@ -1482,7 +1479,6 @@ class SettingsActivity : AppCompatActivity() {
             .setPositiveButton(R.string.ok) { _, _ ->
                 viewModel.set(Pref.folderIconShape, shapeName)
                 viewModel.set(Pref.folderIconOutline, dialogBinding.outlineCheck.isChecked)
-                viewModel.set(Pref.folderClipToBg, dialogBinding.clipCheck.isChecked)
                 viewModel.set(Pref.folderMatchWindowColor, dialogBinding.matchColorCheck.isChecked)
                 viewModel.set(Pref.folderPlateColor, plateColor)
             }

@@ -110,42 +110,6 @@
         android:background="@color/settingsDivider" />
 
     <LinearLayout
-        android:id="@+id/clipRow"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?attr/selectableItemBackground"
-        android:gravity="center_vertical"
-        android:minHeight="56dp"
-        android:orientation="horizontal"
-        android:paddingStart="@dimen/space_lg"
-        android:paddingEnd="@dimen/space_sm">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:fontFamily="sans-serif-medium"
-            android:text="@string/folder_clip_to_bg"
-            android:textColor="@color/textPrimary"
-            android:textSize="@dimen/text_body" />
-
-        <com.google.android.material.checkbox.MaterialCheckBox
-            android:id="@+id/clipCheck"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="@dimen/space_md"
-            android:clickable="false"
-            android:focusable="false"
-            android:minWidth="48dp" />
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginStart="@dimen/space_lg"
-        android:background="@color/settingsDivider" />
-
-    <LinearLayout
         android:id="@+id/matchColorRow"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
