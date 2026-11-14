@@ -33,4 +33,10 @@ object StoreKeys {
     // gate, so the starting layout is a property of this install and a
     // restored backup never brings it back. See DefaultLayoutBuilder.
     val defaultLayoutSeeded: Preferences.Key<Boolean> = booleanPreferencesKey("default_layout_seeded")
+
+    // Settings > Folders "Sort apps A-Z", retired (#156): it showed every
+    // folder A-Z without changing its order, and kept apps from being
+    // dragged into an order of their own. Read only to sort the folders of
+    // a store or backup that had it on (FolderSort.allSorted), then dropped.
+    val retiredFolderSortAz: Preferences.Key<Boolean> = booleanPreferencesKey("folder_sort_az")
 }

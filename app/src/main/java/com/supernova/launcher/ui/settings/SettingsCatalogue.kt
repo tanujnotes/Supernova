@@ -1378,11 +1378,6 @@ object SettingsCatalogue {
                     display = { if (it == 0) context.getString(R.string.folder_columns_auto) else it.toString() }
                 ),
                 SettingItem.Toggle(
-                    R.string.folder_sort_az,
-                    get = { it.folderSortAz },
-                    set = { viewModel.set(Pref.folderSortAz, it) }
-                ),
-                SettingItem.Toggle(
                     R.string.dock_match_desktop,
                     get = { it.folderMatchDesktop },
                     set = { viewModel.set(Pref.folderMatchDesktop, it) }

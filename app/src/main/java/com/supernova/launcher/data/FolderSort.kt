@@ -1,13 +1,19 @@
 package com.supernova.launcher.data
 
-// A folder's order. Sort: its members re-ranked by label, the key the A-Z
-// folder setting sorts by. Apps with the same label keep their order.
+// A folder's order. Sort: its members re-ranked by label (LabelOrder).
+// Apps with the same label keep their order.
 // Reordered: an app dragged to a new place in the open folder. Either way
 // nothing else in the model moves.
 object FolderSort {
 
     fun sorted(current: LauncherModel, folderId: String): LauncherModel =
         ranked(current, LabelOrder.sorted(members(current, folderId)) { it.label })
+
+    // Every folder sorted, once: what the retired "Sort apps A-Z" folder
+    // setting showed, made each folder's own order (#156).
+    fun allSorted(current: LauncherModel): LauncherModel =
+        current.items.filter { it.itemType == ItemType.FOLDER }
+            .fold(current) { model, folder -> sorted(model, folder.id) }
 
     // The members in the order `orderedIds` lists them. One the list doesn't
     // name (added while the folder was open) follows, in its old order.

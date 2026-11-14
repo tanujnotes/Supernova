@@ -347,7 +347,6 @@ data class LauncherPrefs(
     val folderPrioritizeFirst: Boolean = false,
     // 0 = derive from member count.
     val folderColumns: Int = 0,
-    val folderSortAz: Boolean = false,
     val folderCloseOnLaunch: Boolean = true,
     // Scale of member icons inside the open folder window; matchDesktop
     // follows iconScale instead and hides the slider.

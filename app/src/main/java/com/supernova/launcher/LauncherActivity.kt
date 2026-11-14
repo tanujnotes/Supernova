@@ -3296,11 +3296,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     menu.addRow(getString(R.string.select_apps), R.drawable.ic_menu_select_apps) {
                         showFolderChecklist(item)
                     }
-                    // An A-Z folder shows its apps sorted whatever their order.
-                    if (!viewModel.state.value.prefs.folderSortAz) {
-                        menu.addRow(getString(R.string.sort), R.drawable.ic_menu_sort) {
-                            sortFolderWithUndo(item.id)
-                        }
+                    menu.addRow(getString(R.string.sort), R.drawable.ic_menu_sort) {
+                        sortFolderWithUndo(item.id)
                     }
                     addIconSizeRow(menu, item)
                 }
@@ -3876,19 +3873,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         var memberMenu: SupernovaPopupMenu? = null
 
         // The folder shows its members again once a change is saved - waited
-        // for, not guessed at with a delay - and in the order it shows them:
-        // re-listed in stored order, an A-Z folder jumped out of order after
-        // every action.
+        // for, not guessed at with a delay.
         fun applied(before: com.supernova.launcher.data.LauncherModel) {
             lifecycleScope.launch {
                 withTimeoutOrNull(FOLDER_SAVE_WAIT_MS) { viewModel.state.first { it.model !== before } }
                 val remaining = viewModel.folderMembers(folder.id)
-                when {
-                    remaining.isEmpty() -> popup?.dismiss()
-                    viewModel.state.value.prefs.folderSortAz ->
-                        folderAdapter?.submit(com.supernova.launcher.data.LabelOrder.sorted(remaining) { it.label })
-                    else -> folderAdapter?.submit(remaining)
-                }
+                if (remaining.isEmpty()) popup?.dismiss() else folderAdapter?.submit(remaining)
             }
         }
 
@@ -3905,8 +3895,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             // An app in a home folder is a home icon like any other: its
             // menu while the finger is held, and a drag once it moves - to
             // another place in the folder, or out past the card's edge onto
-            // the home screen or the dock. An A-Z folder has no order of its
-            // own to change, so its apps only come out. The card is its own
+            // the home screen or the dock. The card is its own
             // window, so the gesture's touches come in through its
             // interceptor (below), not dispatchTouchEvent.
             onLongPress = { memberView, member ->
@@ -3917,7 +3906,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                         memberMenu = it
                     }
                 }
-                reorder?.takeUnless { viewModel.state.value.prefs.folderSortAz }?.let(drag::armWindowDrag)
+                reorder?.let(drag::armWindowDrag)
             }
         )
         adapter.decorateIcon = { icon, member ->
@@ -3936,7 +3925,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             members = viewModel.folderMembers(folder.id),
             adapter = adapter,
             columnsOverride = prefs.folderColumns,
-            sortAz = prefs.folderSortAz,
             mode = prefs.folderMode,
             scroll = prefs.folderScroll,
             surfaceColor = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
@@ -3965,12 +3953,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     popup?.dismiss()
                     showFolderChecklist(folder)
                 }
-                if (!viewModel.state.value.prefs.folderSortAz) {
-                    menu.addRow(getString(R.string.sort), R.drawable.ic_menu_sort) {
-                        // The folder's window covers the activity's, so its
-                        // Undo bar shows in the folder's own window.
-                        sortFolderWithUndo(folder.id, popup?.contentView, ::applied)
-                    }
+                menu.addRow(getString(R.string.sort), R.drawable.ic_menu_sort) {
+                    // The folder's window covers the activity's, so its
+                    // Undo bar shows in the folder's own window.
+                    sortFolderWithUndo(folder.id, popup?.contentView, ::applied)
                 }
                 addMoveToDrawerRow(menu, folder) { popup?.dismiss() }
                 drag.activeItemPopup = menu
@@ -4121,7 +4107,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             members = items,
             adapter = adapter,
             columnsOverride = prefs.folderColumns,
-            sortAz = prefs.folderSortAz,
             mode = prefs.folderMode,
             scroll = prefs.folderScroll,
             surfaceColor = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)

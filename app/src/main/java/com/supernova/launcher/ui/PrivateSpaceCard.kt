@@ -14,7 +14,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.withResumed
 import com.supernova.launcher.R
 import com.supernova.launcher.data.ItemType
-import com.supernova.launcher.data.LabelOrder
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.data.LauncherItem
 import com.supernova.launcher.runLogged
@@ -153,7 +152,6 @@ class PrivateSpaceCard(
             members = items(appsById),
             adapter = adapter,
             columnsOverride = prefs.folderColumns,
-            sortAz = prefs.folderSortAz,
             mode = prefs.folderMode,
             scroll = prefs.folderScroll,
             surfaceColor = surface.surface,
@@ -236,12 +234,9 @@ class PrivateSpaceCard(
         runLogged("start private space sender") { PendingStarts.start(activity, sender) }
     }
 
-    // In the order the card shows them: the drawer's, or A-Z with the
-    // folder setting.
+    // In the order the card shows them: the drawer's.
     private fun privateAppsById(): Map<String, LaunchableApp> {
-        val apps = viewModel.privateApps()
-        val ordered = if (viewModel.state.value.prefs.folderSortAz) LabelOrder.sorted(apps) { it.label } else apps
-        return ordered.associateBy { "private/${it.userSerial}/${it.packageName}/${it.className}" }
+        return viewModel.privateApps().associateBy { "private/${it.userSerial}/${it.packageName}/${it.className}" }
     }
 
     private fun items(apps: Map<String, LaunchableApp>): List<LauncherItem> = apps.map { (id, app) ->

@@ -253,7 +253,6 @@ object Pref {
     val folderPreviewStyle = choice("folder_preview_style", FolderPreviewStyle.entries)
     val folderPrioritizeFirst = bool("folder_prioritize_first")
     val folderColumns = int("folder_columns", 0..GridLimits.FOLDER_COLUMNS_BIG)
-    val folderSortAz = bool("folder_sort_az")
     val folderCloseOnLaunch = bool("folder_close_on_launch")
     val folderIconScale = float("folder_icon_scale", ICON_SCALE_MIN..ICON_SCALE_MAX)
     val folderMatchDesktop = bool("folder_match_desktop")

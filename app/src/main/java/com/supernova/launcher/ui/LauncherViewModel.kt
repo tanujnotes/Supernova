@@ -451,6 +451,8 @@ class LauncherViewModel(
 
     init {
         registerProfileReceiver()
+        // A retired setting still has something to settle in the store.
+        persist { repository.retireFolderSortAz() }
     }
 
     private fun registerProfileReceiver() {
@@ -623,15 +625,8 @@ class LauncherViewModel(
     }
 
     // The app a swipe-to-open folder's tap launches: the first one its window
-    // shows, which is A-Z when the folder sort says so.
-    fun folderFirstMember(folderId: String): LauncherItem? {
-        val members = folderMembers(folderId)
-        return if (state.value.prefs.folderSortAz) {
-            members.minWithOrNull(LabelOrder.by { it.label })
-        } else {
-            members.firstOrNull()
-        }
-    }
+    // shows.
+    fun folderFirstMember(folderId: String): LauncherItem? = folderMembers(folderId).firstOrNull()
 
     fun setFolderSwipeToOpen(folderId: String, on: Boolean) = persist { repository.setFolderSwipeToOpen(folderId, on) }
 

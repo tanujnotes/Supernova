@@ -15,6 +15,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 
 class LauncherRepository(private val context: Context) {
@@ -67,6 +70,22 @@ class LauncherRepository(private val context: Context) {
             }
             .getOrNull()
             ?.let(ModelMigrations::migrate)
+    }
+
+    // The retired folder A-Z setting (StoreKeys.retiredFolderSortAz): left
+    // on, every folder is sorted once so none looks different; either way
+    // the key goes. Not over a layout this build can't read.
+    suspend fun retireFolderSortAz() {
+        lock.withLock {
+            val values = context.supernovaStore.data.first()
+            val on = values[StoreKeys.retiredFolderSortAz] ?: return
+            val current = decode(values[StoreKeys.model]) ?: return
+            val sorted = if (on) FolderSort.allSorted(current) else current
+            context.supernovaStore.edit { prefs ->
+                if (sorted != current) prefs[StoreKeys.model] = json.encodeToString(sorted)
+                prefs.remove(StoreKeys.retiredFolderSortAz)
+            }
+        }
     }
 
     // False while the stored layout can't be decoded: nothing may act on the
@@ -910,7 +929,17 @@ class LauncherRepository(private val context: Context) {
         val payload = runCatching { json.decodeFromString<BackupPayload>(raw) }.getOrElse {
             throw com.supernova.launcher.data.imports.UnreadableBackupException("not a launcher backup")
         }
-        return restore(payload, currentPrefs, isInstalled, widgetBound)
+        return restore(withRetiredFolderSort(raw, payload), currentPrefs, isInstalled, widgetBound)
+    }
+
+    // A backup from before the folder A-Z setting was retired, taken with it
+    // on: its folders come back sorted, as they showed.
+    private fun withRetiredFolderSort(raw: String, payload: BackupPayload): BackupPayload {
+        val on = runCatching {
+            val prefs = json.parseToJsonElement(raw).jsonObject["prefs"]?.jsonObject
+            prefs?.get("folderSortAz")?.jsonPrimitive?.booleanOrNull
+        }.getOrNull() == true
+        return if (on) payload.copy(model = FolderSort.allSorted(payload.model)) else payload
     }
 
     // Another launcher's home screen in place of this one: its icons, folders
@@ -977,6 +1006,7 @@ class LauncherRepository(private val context: Context) {
             context.supernovaStore.edit { prefs ->
                 prefs[StoreKeys.model] = json.encodeToString(validated)
                 LauncherPreferences.writeAll(prefs, restoredPrefs)
+                prefs.remove(StoreKeys.retiredFolderSortAz)
             }
         }
 

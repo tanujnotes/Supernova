@@ -319,7 +319,6 @@
     <string name="folder_plate_color">Color</string>
     <string name="folder_columns">Columns</string>
     <string name="folder_columns_auto">Auto</string>
-    <string name="folder_sort_az">Sort apps A-Z</string>
     <string name="folder_labels">Icon labels</string>
     <string name="folder_close_on_launch">Close after launching</string>
     <string name="color_default">Default</string>
