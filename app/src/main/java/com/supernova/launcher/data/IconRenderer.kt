@@ -160,8 +160,8 @@ class IconRenderer(context: Context) {
     // An app's own icon, left as it comes. A legacy one that is a tile of its
     // own takes the icon shape at full size, as an adaptive icon does;
     // rescaling it as a glyph left it smaller than the icons around it, and
-    // overfilling a chosen shape cropped its art. In a chosen shape a legacy
-    // logo is kept whole too (see legacyLogo). A pack's art, a picked picture
+    // overfilling a chosen shape cropped its art. A legacy logo is kept
+    // whole on a plate of that shape (see legacyLogo). A pack's art, a picked picture
     // and the Original variant don't come here.
     fun renderOwnIcon(source: Drawable, shape: IconShape, customShape: CustomShapeSpec?, glass: IconGlass): Drawable {
         val reshapes = source !is AdaptiveIconDrawable && reshapeLegacy != ReshapeLegacy.OFF && glass == IconGlass.OFF
@@ -172,7 +172,9 @@ class IconRenderer(context: Context) {
             source.draw(Canvas(picture))
             val shapePath = shape.pathFor(size.toFloat(), customShape)
             val mask = shapePath ?: glassPainter.systemMask(AdaptiveIconDrawable(Color.BLACK.toDrawable(), null), size)
-            legacyTile(picture, mask) ?: shapePath?.let { legacyLogo(picture, it) }
+            // Auto with the system shape only resizes, as render does.
+            val plated = shapePath != null || reshapeLegacy == ReshapeLegacy.ON
+            legacyTile(picture, mask) ?: if (plated) legacyLogo(picture, mask) else null
         } else {
             null
         }
@@ -192,8 +194,9 @@ class IconRenderer(context: Context) {
         return filledMask(picture, box, mask, cover.coerceAtLeast(1f))
     }
 
-    // A legacy logo in a chosen shape: whole, at the uniform size, on a
-    // plate cut to the shape (Reshape legacy On) or on nothing (Auto). Drawn
+    // A legacy logo: whole, at the uniform size, on a plate cut to the
+    // icon's shape - the chosen one, or the system's, so it matches the
+    // icons beside it - (Reshape legacy On) or on nothing (Auto). Drawn
     // across the shape as a tile would be, it lost its edges to the clip.
     private fun legacyLogo(picture: Bitmap, shapePath: Path): Drawable {
         val logo = normalized(picture)
@@ -462,7 +465,7 @@ class IconRenderer(context: Context) {
         private const val PLATE_COLOR = 0xFFF3F3F3.toInt()
         private const val PLATE_RADIUS_FRACTION = 0.25f
         private const val PLATE_CONTENT = 0.66f
-        // On a plate cut to a chosen shape the logo is the whole icon, not a
+        // On a plate cut to the icon's shape the logo is the whole icon, not a
         // glyph in a safe zone: about 68% of the shape with the uniform size,
         // which a square logo's corners still clear in a circle.
         private const val SHAPED_PLATE_CONTENT = 0.94f
