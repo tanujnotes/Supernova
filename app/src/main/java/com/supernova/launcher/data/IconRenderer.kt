@@ -158,30 +158,47 @@ class IconRenderer(context: Context) {
     }
 
     // An app's own icon, left as it comes. A legacy one that is a tile of its
-    // own takes the system shape at full size, as an adaptive icon does;
-    // rescaling it as a glyph left it smaller than the icons around it. A pack's
-    // art, a picked picture and the Original variant don't come here.
+    // own takes the icon shape at full size, as an adaptive icon does;
+    // rescaling it as a glyph left it smaller than the icons around it, and
+    // overfilling a chosen shape cropped its art. In a chosen shape a legacy
+    // logo is kept whole too (see legacyLogo). A pack's art, a picked picture
+    // and the Original variant don't come here.
     fun renderOwnIcon(source: Drawable, shape: IconShape, customShape: CustomShapeSpec?, glass: IconGlass): Drawable {
-        val fillsShape = source !is AdaptiveIconDrawable && reshapeLegacy != ReshapeLegacy.OFF &&
-            glass == IconGlass.OFF && shape.pathFor(iconSizePx.toFloat(), customShape) == null
-        return (if (fillsShape) legacyTile(source) else null) ?: render(source, null, shape, customShape, glass)
+        val reshapes = source !is AdaptiveIconDrawable && reshapeLegacy != ReshapeLegacy.OFF && glass == IconGlass.OFF
+        val reshaped = if (reshapes) {
+            val size = iconSizePx
+            val picture = createBitmap(size, size)
+            source.setBounds(0, 0, size, size)
+            source.draw(Canvas(picture))
+            val shapePath = shape.pathFor(size.toFloat(), customShape)
+            val mask = shapePath ?: glassPainter.systemMask(AdaptiveIconDrawable(Color.BLACK.toDrawable(), null), size)
+            legacyTile(picture, mask) ?: shapePath?.let { legacyLogo(picture, it) }
+        } else {
+            null
+        }
+        return reshaped ?: render(source, null, shape, customShape, glass)
     }
 
-    // The tile of a legacy icon cut to the system shape; null for one with no
+    // The tile of a legacy icon cut to the icon's shape; null for one with no
     // tile, which stays a legacy icon.
-    private fun legacyTile(source: Drawable): Drawable? {
+    private fun legacyTile(picture: Bitmap, mask: Path): Drawable? {
         val size = iconSizePx
-        val picture = createBitmap(size, size)
-        source.setBounds(0, 0, size, size)
-        source.draw(Canvas(picture))
         val pixels = IntArray(size * size)
         picture.getPixels(pixels, 0, size, 0, 0, size, size)
         val box = PictureFrame.tile(pixels, size) ?: return null
-        val mask = glassPainter.systemMask(AdaptiveIconDrawable(Color.BLACK.toDrawable(), null), size)
         // Only as far as its own corners need to reach the mask's, so the art
         // on a rounder tile isn't cropped more than it has to be.
         val cover = PictureFrame.reach(maskPixels(mask, size), size) / PictureFrame.boxReach(pixels, size, box)
         return filledMask(picture, box, mask, cover.coerceAtLeast(1f))
+    }
+
+    // A legacy logo in a chosen shape: whole, at the uniform size, on a
+    // plate cut to the shape (Reshape legacy On) or on nothing (Auto). Drawn
+    // across the shape as a tile would be, it lost its edges to the clip.
+    private fun legacyLogo(picture: Bitmap, shapePath: Path): Drawable {
+        val logo = normalized(picture)
+        val flat = if (reshapeLegacy == ReshapeLegacy.ON) withPlate(logo, shapePath, SHAPED_PLATE_CONTENT) else logo
+        return if (shadow) withShadow(flat) else flat.toDrawable(resources)
     }
 
     // The picture's box drawn across the mask, enlarged by cover.
@@ -266,18 +283,14 @@ class IconRenderer(context: Context) {
         return glassMask
     }
 
-    // A neutral rounded plate with the icon content inset onto it, matching
-    // the footprint adaptive icons render at.
-    private fun withPlate(bitmap: Bitmap): Bitmap {
+    // A neutral plate - rounded, or cut to a chosen shape - with the icon
+    // content inset onto it, matching the footprint adaptive icons render at.
+    private fun withPlate(bitmap: Bitmap, shapePath: Path? = null, content: Float = PLATE_CONTENT): Bitmap {
         val output = Bitmap.createBitmap(iconSizePx, iconSizePx, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(output)
         val platePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = PLATE_COLOR }
-        val radius = iconSizePx * PLATE_RADIUS_FRACTION
-        canvas.drawRoundRect(
-            RectF(0f, 0f, iconSizePx.toFloat(), iconSizePx.toFloat()),
-            radius, radius, platePaint
-        )
-        val inset = (iconSizePx * (1f - PLATE_CONTENT) / 2f)
+        canvas.drawPath(shapePath ?: platePath(iconSizePx, PLATE_RADIUS_FRACTION), platePaint)
+        val inset = (iconSizePx * (1f - content) / 2f)
         canvas.drawBitmap(
             bitmap, null,
             RectF(inset, inset, iconSizePx - inset, iconSizePx - inset),
@@ -449,6 +462,10 @@ class IconRenderer(context: Context) {
         private const val PLATE_COLOR = 0xFFF3F3F3.toInt()
         private const val PLATE_RADIUS_FRACTION = 0.25f
         private const val PLATE_CONTENT = 0.66f
+        // On a plate cut to a chosen shape the logo is the whole icon, not a
+        // glyph in a safe zone: about 68% of the shape with the uniform size,
+        // which a square logo's corners still clear in a circle.
+        private const val SHAPED_PLATE_CONTENT = 0.94f
         private const val SHADOW_BLUR_DP = 2f
         private const val SHADOW_OFFSET_Y_DP = 1f
         private const val SHADOW_COLOR = 0x4D000000
