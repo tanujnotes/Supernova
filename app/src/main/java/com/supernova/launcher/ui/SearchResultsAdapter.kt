@@ -34,8 +34,13 @@ import kotlin.math.roundToInt
 // lists, so every submit is a full rebind (the item animator is off).
 class SearchResultsAdapter(
     private val appCatalog: AppCatalog,
-    private val callbacks: Callbacks
+    private val callbacks: Callbacks,
+    // The serials of the paused work profiles, whose apps show greyed.
+    private val pausedProfiles: () -> Set<Long> = { emptySet() }
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+    private fun iconFor(app: LaunchableApp) =
+        PausedIcon.of(appCatalog.iconFor(app), app.userSerial in pausedProfiles())
 
     class Callbacks(
         val onApp: (View, LaunchableApp) -> Unit,
@@ -340,7 +345,7 @@ class SearchResultsAdapter(
         fun bind(hit: TopHit) {
             val context = binding.root.context
             (binding.root.background?.mutate() as? android.graphics.drawable.GradientDrawable)?.setColor(cardColor)
-            binding.topHitIcon.setImageDrawable(appCatalog.iconFor(hit.app))
+            binding.topHitIcon.setImageDrawable(iconFor(hit.app))
             // Hidden while it was dragged; the holder comes back for the next
             // query.
             binding.topHitIcon.alpha = 1f
@@ -423,7 +428,7 @@ class SearchResultsAdapter(
                 val tile = ItemDrawerAppBinding.bind(grid.getChildAt(folders.size + index))
                 // Hidden while it was dragged.
                 tile.root.alpha = 1f
-                tile.appIcon.setImageDrawable(appCatalog.iconFor(app))
+                tile.appIcon.setImageDrawable(iconFor(app))
                 prefs?.let {
                     LabelStyler.apply(tile.appLabel, it, onWallpaper = false, context = LabelContext.DRAWER)
                 }
@@ -708,7 +713,7 @@ class SearchResultsAdapter(
             view.bindLabeled(
                 apps.map { app ->
                     FrequentAppsRowView.Entry(
-                        app.label, appCatalog.iconFor(app),
+                        app.label, iconFor(app),
                         onLongPress = { anchor -> callbacks.onAppLongPress(anchor, app) }
                     ) { anchor ->
                         callbacks.onFrequentApp(anchor, app)

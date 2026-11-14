@@ -1154,7 +1154,12 @@ class DrawerController(
         // A tile's content height follows the icon size and the labels.
         if (adapter.setDisplay(drawerScale, state.prefs.drawerLabels, state.prefs)) refreshGridRows(state.prefs)
         rebuildTabs(state.prefs)
-        val iconsChanged = state.iconGeneration != lastIconGeneration
+        // Work apps pausing or turning back on greys or restores their icons
+        // in the list and the recents row alike.
+        val pausedChanged = state.pausedWorkProfiles != lastPaused
+        lastPaused = state.pausedWorkProfiles
+        if (pausedChanged) frequentRowKey = null
+        val iconsChanged = state.iconGeneration != lastIconGeneration || pausedChanged
         lastIconGeneration = state.iconGeneration
         if (populated) {
             submit()
@@ -1328,6 +1333,7 @@ class DrawerController(
     // Last icon generation the list was bound at; a change means per-app
     // icons moved even though the app list is identical (DiffUtil would skip).
     private var lastIconGeneration = -1
+    private var lastPaused: Set<Long> = emptySet()
 
     private fun updateFrequentRow() {
         updateCards()

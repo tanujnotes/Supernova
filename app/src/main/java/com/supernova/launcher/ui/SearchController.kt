@@ -112,7 +112,9 @@ class SearchController(
         var appliedStyle: List<Any?>? = null
         val orchestrator: SearchOrchestrator = buildOrchestrator(cards != null)
         val adapter: SearchResultsAdapter =
-            SearchResultsAdapter(viewModel.appCatalog(), adapterCallbacks(this)).also { created ->
+            SearchResultsAdapter(viewModel.appCatalog(), adapterCallbacks(this)) {
+                viewModel.state.value.pausedWorkProfiles
+            }.also { created ->
                 cards?.let(created::setCardBinder)
                 results.adapter = created
                 results.itemAnimator = null

@@ -28,23 +28,26 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
     // Dynamic badges' pictures, rendered once per notification.
     private val badgeFaces by lazy { BadgeFaces(context.applicationContext) }
 
+    // The badge, over the icon greyed first when its work profile is paused
+    // (PausedIcon): every caller (home, dock, drawer, folders) gets both.
     fun withBadge(
         icon: Drawable?,
         packageName: String?,
         className: String?,
         userSerial: Long
     ): Drawable? {
+        val shown = PausedIcon.of(icon, viewModel.state.value, userSerial)
         val prefs = viewModel.state.value.prefs
-        if (!prefs.badges || icon == null || packageName == null) return icon
+        if (!prefs.badges || shown == null || packageName == null) return shown
         // Per-app badge filter: an empty set badges everything.
         if (prefs.badgeApps.isNotEmpty() &&
             "$userSerial/$packageName/${className.orEmpty()}" !in prefs.badgeApps
         ) {
-            return icon
+            return shown
         }
         val user = viewModel.appCatalog().userForSerial(userSerial) ?: Process.myUserHandle()
         val count = SupernovaNotificationListener.countFor(packageName, user.hashCode())
-        if (count <= 0) return icon
+        if (count <= 0) return shown
         // The icon's dominant color, computed and cached at render time: what
         // Dots are colored with and what a picture-less Dynamic badge falls
         // back to. Before the first render the badge color stands in.
@@ -56,7 +59,7 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
         } else {
             null
         }
-        return BadgeLook(prefs, context.resources.displayMetrics.density).wrap(icon, count, iconColor, face)
+        return BadgeLook(prefs, context.resources.displayMetrics.density).wrap(shown, count, iconColor, face)
     }
 
     // Summed unread count over a folder's members, honoring the badge
@@ -109,12 +112,13 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
             ?.let { return it }
         val memberIcons = previewMembers(viewModel.folderMembers(folder.id)) { it.label }
             .mapNotNull { member ->
-                member.takeIf { it.itemType == ItemType.SHORTCUT }?.let(::intentItemIcon)
+                val icon = member.takeIf { it.itemType == ItemType.SHORTCUT }?.let(::intentItemIcon)
                     ?: member.packageName?.let { pkg ->
                         member.className?.let { cls ->
                             viewModel.appCatalog().iconFor(LaunchableApp(pkg, cls, member.label, member.userSerial))
                         }
                     }
+                PausedIcon.of(icon, viewModel.state.value, member.userSerial)
             }
         return composedFolderIcon(memberIcons)
     }
@@ -123,7 +127,9 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
         customFolderIcon(group.iconBase64, group.iconPack, group.iconName, group.iconRaw, isFolder = true)
             ?: composedFolderIcon(
                 previewMembers(members) { it.label }
-                    .mapNotNull { app -> viewModel.appCatalog().iconFor(app) }
+                    .mapNotNull { app ->
+                        PausedIcon.of(viewModel.appCatalog().iconFor(app), viewModel.state.value, app.userSerial)
+                    }
             )
 
     // The members a folder's preview draws: the window's own order (A-Z

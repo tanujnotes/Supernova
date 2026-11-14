@@ -735,10 +735,12 @@ class FeedController(
                 pane.feedNoFrequent.visibility = View.GONE
                 pane.feedFrequentRow.visibility = View.VISIBLE
                 val catalog = viewModel.appCatalog()
+                val paused = viewModel.state.value.pausedWorkProfiles
                 val textColor = paneTextColor(prefs)
                 pane.feedFrequentRow.bindLabeled(
                     frequent.map { app ->
-                        FrequentAppsRowView.Entry(app.label, catalog.iconFor(app)) { view ->
+                        val icon = PausedIcon.of(catalog.iconFor(app), app.userSerial in paused)
+                        FrequentAppsRowView.Entry(app.label, icon) { view ->
                             host.launchApp(view, app)
                         }
                     },

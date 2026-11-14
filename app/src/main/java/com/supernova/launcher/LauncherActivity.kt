@@ -101,6 +101,7 @@ import com.supernova.launcher.ui.FolderIconDrawable
 import com.supernova.launcher.ui.FolderMemberAdapter
 import com.supernova.launcher.ui.FolderPopup
 import com.supernova.launcher.ui.FolderReorderDrag
+import com.supernova.launcher.ui.PausedIcon
 import com.supernova.launcher.ui.PendingStarts
 import com.supernova.launcher.ui.LauncherUiState
 import com.supernova.launcher.ui.LauncherViewModel
@@ -1747,6 +1748,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                             last.model.appOverrides != state.model.appOverrides)
                     ) {
                         search.refresh()
+                    } else if (last != null && last.pausedWorkProfiles != state.pausedWorkProfiles) {
+                        // Work apps pausing or turning back on greys or
+                        // restores their icons in the results.
+                        search.refresh()
                     }
                     workspaceAdapter.refresh()
                     workspaceAdapter.recenterIfNeeded(binding.workspacePager)
@@ -1993,13 +1998,15 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             "${item.id}:${item.rank}:${item.label}:${item.packageName}/${item.className}" +
                 // The swipes decide the icon's touch handling and its mark.
                 ":${item.swipeAction}:${item.swipeActionDown}:${item.swipeToOpen}" +
+                PausedIcon.mark(state, item.userSerial) +
                 FolderIconDrawable.customIconKey(item) +
                 // A folder's icon is drawn from its members, which are not
                 // dock items themselves, or from its own custom icon.
                 if (item.itemType == ItemType.FOLDER) {
                     viewModel.folderMembers(item.id)
                         .joinToString(",", "[", "]") {
-                            "${it.id}:${it.packageName}/${it.className}/${it.shortcutEdit?.hashCode()}"
+                            "${it.id}:${it.packageName}/${it.className}/${it.shortcutEdit?.hashCode()}" +
+                                PausedIcon.mark(state, it.userSerial)
                         }
                 } else {
                     ""
@@ -2807,6 +2814,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         userSerial: Long,
         anchor: View? = null
     ) {
+        // A paused work app's shortcut can't start (an app itself gets the
+        // system's own prompt): offer to turn work apps back on instead.
+        if (userSerial in viewModel.state.value.pausedWorkProfiles) {
+            offerTurnOnWorkApps()
+            return
+        }
         val launcherApps = getSystemService(LauncherApps::class.java) ?: return
         val user = viewModel.appCatalog().userForSerial(userSerial) ?: Process.myUserHandle()
         launchWithAnimation(anchor) { bounds, options ->
@@ -2819,6 +2832,14 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 Toast.makeText(this, R.string.shortcut_failed, Toast.LENGTH_SHORT).show()
             }.isSuccess
         }
+    }
+
+    private fun offerTurnOnWorkApps() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.work_apps_paused_title)
+            .setPositiveButton(R.string.work_apps_turn_on) { _, _ -> viewModel.setWorkPaused(false) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     // Fires an arbitrary intent stored on an item (an activity chosen from the

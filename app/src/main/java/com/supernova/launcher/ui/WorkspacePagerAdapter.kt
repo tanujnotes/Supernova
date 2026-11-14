@@ -319,6 +319,8 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
                     "${it.swipeAction},${it.swipeActionDown},${it.swipeToOpen},${it.widgetPadding}," +
                     // A restored widget's new id swaps its placeholder for the real view.
                     "${it.appWidgetId}" +
+                    // Pausing work apps greys their icons.
+                    PausedIcon.mark(state, it.userSerial) +
                     FolderIconDrawable.customIconKey(it) +
                     // A folder's icon is drawn from its members, which live
                     // in the FOLDER container: an app dropped in from the
@@ -366,7 +368,8 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
             .sortedBy { it.rank }
             .joinToString(",", prefix = "[", postfix = "]") {
                 // A shortcut member's Edit changes its tile in the preview.
-                "${it.id}:${it.packageName}/${it.className}/${it.shortcutEdit?.hashCode()}"
+                "${it.id}:${it.packageName}/${it.className}/${it.shortcutEdit?.hashCode()}" +
+                    PausedIcon.mark(state, it.userSerial)
             }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
