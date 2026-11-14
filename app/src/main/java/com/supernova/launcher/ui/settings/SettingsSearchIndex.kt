@@ -9,20 +9,25 @@ import com.supernova.launcher.ui.LauncherViewModel
 // searched by plain substring, word by word. Matching is title + section
 // title, plus the few extra words a row is given (SettingItem.searchableBy)
 // where people would look for it by another name.
-class SettingsSearchIndex private constructor(val entries: List<Entry>) {
+class SettingsSearchIndex internal constructor(val entries: List<Entry>) {
 
     class Entry(
         @StringRes val sectionTitleRes: Int,
-        @StringRes val itemTitleRes: Int,
+        // The catalogue row the entry finds, for its title and visibility.
+        val row: SettingItem,
         val sectionLabel: String,
         val itemLabel: String,
         // Lowercased "item section" haystack, prepared once at build time so
         // per-keystroke matching allocates nothing per entry.
-        val haystack: String,
-        // The row's own visibleIf: a row its page isn't showing can't be
-        // landed on, so it isn't offered.
-        val visibleIf: (LauncherPrefs) -> Boolean = { true }
-    )
+        val haystack: String
+    ) {
+        @get:StringRes
+        val itemTitleRes: Int get() = row.title
+
+        // The setting that hides the row now, if one does: the row is still
+        // offered, and the hit names that setting and leads to it (#133).
+        fun hiddenBy(prefs: LauncherPrefs): SettingItem.HiddenBy? = row.hiddenBy(prefs)
+    }
 
     fun search(query: String, prefs: LauncherPrefs, limit: Int = Int.MAX_VALUE): List<Entry> {
         // Each word on its own, so "dock labels" finds the Dock page's
@@ -31,7 +36,9 @@ class SettingsSearchIndex private constructor(val entries: List<Entry>) {
         if (words.isEmpty()) return emptyList()
         val matches = ArrayList<Entry>()
         for (entry in entries) {
-            if (words.all { entry.haystack.contains(it) } && entry.visibleIf(prefs)) {
+            // visibleIf is what no setting can change (Android version,
+            // work apps): a row it rules out isn't offered (#126).
+            if (words.all { entry.haystack.contains(it) } && entry.row.visibleIf(prefs)) {
                 matches.add(entry)
                 if (matches.size >= limit) break
             }
@@ -42,9 +49,9 @@ class SettingsSearchIndex private constructor(val entries: List<Entry>) {
     companion object {
 
         // Built from the declarative catalogue with inert Actions: the index
-        // needs only titles and visibleIf, never behavior. Every row is
-        // indexed; search() drops the ones the current prefs hide, so a
-        // result always lands on a row its page shows (#126).
+        // needs only titles and visibility, never behavior. Every row is
+        // indexed; search() drops the ones visibleIf rules out, and keeps
+        // the ones a setting hides, to name that setting (#126, #133).
         fun build(context: Context, viewModel: LauncherViewModel): SettingsSearchIndex {
             val actions = SettingsCatalogue.Actions()
             val sections = SettingsCatalogue.sections(context, viewModel, actions) +
@@ -65,11 +72,10 @@ class SettingsSearchIndex private constructor(val entries: List<Entry>) {
                             add(
                                 Entry(
                                     sectionTitleRes = section.title,
-                                    itemTitleRes = item.title,
+                                    row = item,
                                     sectionLabel = sectionLabel,
                                     itemLabel = itemLabel,
-                                    haystack = "${itemLabel.lowercase()} ${sectionLabel.lowercase()} $keywords",
-                                    visibleIf = item.visibleIf
+                                    haystack = "${itemLabel.lowercase()} ${sectionLabel.lowercase()} $keywords"
                                 )
                             )
                         }

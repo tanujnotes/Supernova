@@ -810,6 +810,10 @@
     <string name="needs_feed">Needs the feed page, in Feed page</string>
     <string name="infinite_scroll_summary">Swipe past the last page to reach the first. Swipe left and right gestures do nothing while it\'s on</string>
     <string name="settings_search_no_matches">No settings match “%1$s”</string>
+    <!-- A settings search hit its page hides: what brings it back (#133). -->
+    <string name="settings_search_needs_on">Needs %1$s on</string>
+    <string name="settings_search_needs_off">Needs %1$s off</string>
+    <string name="settings_search_depends_on">Depends on %1$s</string>
     <string name="search_bar_replace">Replace</string>
     <string name="search_bar_settings">Search bar settings</string>
     <string name="search_bar_restore">Use the built-in bar</string>

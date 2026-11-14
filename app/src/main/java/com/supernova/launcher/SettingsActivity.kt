@@ -973,14 +973,35 @@ class SettingsActivity : AppCompatActivity() {
         }
         return found.map { entry ->
             // The entry's own name: a control found inside a row (the Label
-            // card's size) is listed as itself and leads to that row.
+            // card's size) is listed as itself and leads to that row. A row
+            // a setting hides isn't on its page to land on: the hit names
+            // that setting and leads to it instead (#133).
             SettingItem.Row(
                 entry.itemTitleRes,
-                subtitle = { entry.sectionLabel },
-                onClick = { navigateTo(entry.sectionTitleRes, entry.itemTitleRes) },
+                subtitle = { prefs -> hitSubtitle(entry, entry.hiddenBy(prefs)) },
+                onClick = {
+                    val hidden = entry.hiddenBy(viewModel.state.value.prefs)
+                    if (hidden == null) {
+                        navigateTo(entry.sectionTitleRes, entry.itemTitleRes)
+                    } else {
+                        navigateTo(hidden.page.takeIf { it != 0 } ?: entry.sectionTitleRes, hidden.setting)
+                    }
+                },
                 titleText = entry.itemLabel
             )
         }
+    }
+
+    // A hit's page, and for a hidden row what brings it back:
+    // "Dock · Needs Show dock on".
+    private fun hitSubtitle(entry: SettingsSearchIndex.Entry, hidden: SettingItem.HiddenBy?): CharSequence {
+        if (hidden == null) return entry.sectionLabel
+        val reason = when (hidden.needs) {
+            SettingItem.HiddenBy.Needs.ON -> R.string.settings_search_needs_on
+            SettingItem.HiddenBy.Needs.OFF -> R.string.settings_search_needs_off
+            SettingItem.HiddenBy.Needs.OTHER -> R.string.settings_search_depends_on
+        }
+        return "${entry.sectionLabel} · ${getString(reason, getString(hidden.setting))}"
     }
 
     private fun setSearchActive(active: Boolean) {

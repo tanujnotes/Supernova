@@ -166,7 +166,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             if (opensGroup || item is SettingItem.Preview) hidden = false
             // A group label or accordion whose rows are all hidden would
             // stand alone over nothing, so it goes with them.
-            val shown = item.visibleIf(prefs) && (!opensGroup || groupHasRows(index))
+            val shown = item.shownIn(prefs) && (!opensGroup || groupHasRows(index))
             if (!hidden && shown) out.add(item)
             if (item is SettingItem.Accordion) hidden = item.title !in open
         }
@@ -180,7 +180,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
     private fun groupHasRows(index: Int): Boolean =
         items.drop(index + 1)
             .takeWhile { it !is SettingItem.Header && it !is SettingItem.Accordion && it !is SettingItem.Preview }
-            .any { it.visibleIf(prefs) }
+            .any { it.shownIn(prefs) }
 
     override fun getItemCount(): Int = visible.size
 
