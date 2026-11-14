@@ -32,6 +32,47 @@ object ThemedGlyph {
         return if (area == 0L) 0f else sum.toFloat() / (FULL * area)
     }
 
+    // A picture with no glyph to take, redrawn in two colours: each pixel's
+    // lightness, stretched over the picture's own range, runs from the
+    // darker colour to the lighter, so its detail stays readable. Alpha is
+    // kept; clear pixels stay clear.
+    fun tinted(pixels: IntArray, first: Int, second: Int): IntArray {
+        val (dark, light) = if (lightness(first) <= lightness(second)) first to second else second to first
+        var low = FULL
+        var high = 0
+        pixels.forEach {
+            if (it ushr ALPHA_SHIFT > 0) {
+                low = minOf(low, lightness(it))
+                high = maxOf(high, lightness(it))
+            }
+        }
+        val span = maxOf(high - low, 1)
+        return IntArray(pixels.size) { i ->
+            val p = pixels[i]
+            val alpha = p ushr ALPHA_SHIFT
+            if (alpha == 0) {
+                0
+            } else {
+                val t = ((lightness(p) - low) * FULL / span).coerceIn(0, FULL)
+                (alpha shl ALPHA_SHIFT) or mix(dark, light, t)
+            }
+        }
+    }
+
+    // 0-255, weighted the way the eye sees the three channels.
+    private fun lightness(p: Int): Int =
+        (channel(p, RED_SHIFT) * RED_WEIGHT + channel(p, GREEN_SHIFT) * GREEN_WEIGHT + channel(p, 0) * BLUE_WEIGHT) /
+            WEIGHTS
+
+    // `a` blended toward `b` by t/255, as an RGB int with no alpha.
+    private fun mix(a: Int, b: Int, t: Int): Int =
+        intArrayOf(RED_SHIFT, GREEN_SHIFT, 0).fold(0) { rgb, shift ->
+            val c = channel(a, shift) + (channel(b, shift) - channel(a, shift)) * t / FULL
+            rgb or (c shl shift)
+        }
+
+    private fun channel(p: Int, shift: Int) = p shr shift and FULL
+
     private fun reads(alpha: IntArray, width: Int, height: Int): Boolean =
         coverage(alpha, width, height) in MIN_COVERAGE..MAX_COVERAGE
 
@@ -39,6 +80,12 @@ object ThemedGlyph {
 
     private const val FULL = 255
     private const val ALPHA_SHIFT = 24
+    private const val RED_SHIFT = 16
+    private const val GREEN_SHIFT = 8
+    private const val RED_WEIGHT = 299
+    private const val GREEN_WEIGHT = 587
+    private const val BLUE_WEIGHT = 114
+    private const val WEIGHTS = 1000
 
     // 18dp of the 108dp canvas on each side lies outside every icon shape.
     private const val VISIBLE_INSET = 6

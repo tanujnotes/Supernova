@@ -4,6 +4,7 @@ import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ThemedGlyphTest {
@@ -69,6 +70,34 @@ class ThemedGlyphTest {
         val alpha = ThemedGlyph.forShortcut(tile, size, size)
         assertNotNull(alpha)
         assertArrayEquals(IntArray(size * size) { 255 }, alpha)
+    }
+
+    @Test
+    fun aTintedCopyRunsFromTheDarkerColourToTheLighter() {
+        val plate = 0xFF1B1B1F.toInt()
+        val glyph = 0xFFAAC7FF.toInt()
+        val black = 0xFF000000.toInt()
+        val pixels = intArrayOf(black, orange, white, clear, 0x80FFFFFF.toInt())
+
+        val tinted = ThemedGlyph.tinted(pixels, glyph, plate)
+
+        assertEquals(plate, tinted[0])
+        assertEquals(glyph, tinted[2])
+        assertEquals(0, tinted[3])
+        assertEquals(0x80, tinted[4] ushr 24)
+        assertEquals(glyph and 0xFFFFFF, tinted[4] and 0xFFFFFF)
+        val mid = tinted[1] shr 8 and 0xFF
+        assertTrue("orange lands between the two", mid in (plate shr 8 and 0xFF) + 1 until (glyph shr 8 and 0xFF))
+    }
+
+    @Test
+    fun aTintedCopyStretchesAFlatPictureOverTheWholeRange() {
+        val dull = intArrayOf(0xFF606060.toInt(), 0xFF707070.toInt())
+
+        val tinted = ThemedGlyph.tinted(dull, white, 0xFF000000.toInt())
+
+        assertEquals(0xFF000000.toInt(), tinted[0])
+        assertEquals(white, tinted[1])
     }
 
     @Test
