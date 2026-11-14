@@ -23,7 +23,8 @@ internal class ShortcutIcons(
     // should fill the shape (a contact's photo).
     fun draw(edit: AppOverride, own: Drawable?, ownPhoto: Bitmap?): Drawable? {
         val original = edit.iconVariant == ORIGINAL
-        val shape = if (original) IconShape.SYSTEM else edit.iconShape?.let(IconShape::fromName) ?: globalShape
+        // Original leaves the launcher's shape off; one picked in Edit stays.
+        val shape = edit.iconShape?.let(IconShape::fromName) ?: if (original) IconShape.SYSTEM else globalShape
         val glass = if (original) IconGlass.OFF else renderer.glass
         if (hasPickedIcon(edit)) return picked(edit, shape, glass)
         return own?.let { ownIcon(it, ownPhoto, edit, shape, glass) }

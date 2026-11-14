@@ -169,12 +169,11 @@ class AppCatalog(
             // Keys the pack's iconback choice, so an app keeps the same plate
             // between launches instead of shuffling on every cache rebuild.
             val packComponent = "${app.packageName}/${app.className}"
-            // ORIGINAL shows the app's own icon unshaped.
-            val effectiveShape = if (variant == "ORIGINAL") {
-                IconShape.SYSTEM
-            } else {
-                override?.iconShape?.let(IconShape::fromName) ?: iconShape
-            }
+            // ORIGINAL shows the app's own icon unshaped: the launcher's
+            // shape is left off, but one picked for this app in Edit still
+            // applies.
+            val ownShape = override?.iconShape?.let(IconShape::fromName)
+            val effectiveShape = ownShape ?: if (variant == "ORIGINAL") IconShape.SYSTEM else iconShape
 
             // Dynamic calendar icons: an isolated day-keyed cache entry, so the
             // date is always current and no normal icon key is touched. Falls
