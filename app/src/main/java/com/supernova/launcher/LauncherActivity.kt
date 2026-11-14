@@ -2023,18 +2023,57 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         return if (cap in 1 until available) cap else 0
     }
 
-    // A phone (not a tablet) on its side with a dock that takes room and a
-    // search bar: the two share one row.
+    // A phone (not a tablet) on its side with a dock: the dock and a search
+    // bar share one row, when the dock's icons fit beside a usable bar.
     private fun phoneSideBySide(prefs: LauncherPrefs): Boolean =
-        isLandscape && !com.supernova.launcher.data.DeviceProfile.isWide(this) &&
-            prefs.dockEnabled && !prefs.dockOverlay
+        isLandscape && !com.supernova.launcher.data.DeviceProfile.isWide(this) && prefs.dockEnabled
 
-    // Each half of that row: the window less the side insets, the 16dp
-    // outer margins and the 16dp between them, split in two.
-    private fun sideBySideWidthPx(): Int {
+    // The dock's icon box before any slot squeezes it.
+    private fun dockBoxPx(prefs: LauncherPrefs): Int =
+        (dp(ICON_BASE_DP) * if (prefs.dockMatchDesktop) prefs.iconScale else prefs.dockIconScale).toInt()
+
+    // A dock slot's width: roomy, about a portrait dock's spacing, or as
+    // tight as an icon (and its label) still reads at.
+    private fun dockSlotPx(prefs: LauncherPrefs, tight: Boolean): Int {
+        val box = dockBoxPx(prefs)
+        return if (tight) {
+            maxOf(dp(DOCK_SLOT_TIGHT_DP), box + dp(DOCK_SLOT_TIGHT_EXTRA_DP))
+        } else {
+            maxOf(dp(DOCK_SLOT_ROOMY_DP), box + dp(DOCK_SLOT_ROOMY_EXTRA_DP))
+        }
+    }
+
+    private class SharedRow(val bar: Int, val dock: Int)
+
+    // The shared row's split: the dock as wide as its icons need at a roomy
+    // spacing (tighter only to leave the bar its minimum), the bar the rest.
+    // Splitting the row in half crammed a seven-icon dock and spread three
+    // icons far apart. Null when even tight slots leave the bar too short:
+    // the two stack instead.
+    private fun sharedRowPx(prefs: LauncherPrefs): SharedRow? {
+        val available = resources.displayMetrics.widthPixels - systemInsets.left - systemInsets.right -
+            dp(SIDE_BY_SIDE_GAP_DP) * SIDE_BY_SIDE_GAPS
+        val padding = 2 * dp(prefs.dockPaddingH)
+        val count = prefs.dockCount.coerceAtLeast(1)
+        val slot = ((available - dp(SHARED_BAR_MIN_DP) - padding) / count)
+            .coerceAtMost(dockSlotPx(prefs, tight = false))
+        if (slot < dockSlotPx(prefs, tight = true)) return null
+        val dock = slot * count + padding
+        return SharedRow(available - dock, dock)
+    }
+
+    // A landscape dock on a row of its own: no wider than roomy slots need
+    // and no wider than the cap near its portrait width, so three icons
+    // don't spread across the screen; but never so narrow its icons lose
+    // their tight slots, up to the window.
+    // A tablet keeps the cap itself: its dock has room, and its bar matches.
+    private fun stackedDockWidthPx(prefs: LauncherPrefs, cap: Int): Int {
+        if (com.supernova.launcher.data.DeviceProfile.isWide(this)) return cap
         val available = resources.displayMetrics.widthPixels - systemInsets.left - systemInsets.right
-        val gaps = dp(SIDE_BY_SIDE_GAP_DP) * SIDE_BY_SIDE_GAPS
-        return ((available - gaps) / 2).coerceAtLeast(1)
+        val padding = 2 * dp(prefs.dockPaddingH)
+        val roomy = prefs.dockCount * dockSlotPx(prefs, tight = false) + padding
+        val tight = prefs.dockCount * dockSlotPx(prefs, tight = true) + padding
+        return maxOf(minOf(cap, roomy), tight).coerceAtMost(available)
     }
 
     // The dock's margin at each side. A dock without a background spans the
@@ -2047,18 +2086,25 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // else the window minus the margins applyDockChrome is about to give it.
     private fun dockContentWidth(prefs: LauncherPrefs): Int {
         val laidOut = binding.dockBar.width - binding.dockBar.paddingLeft - binding.dockBar.paddingRight
-        if (laidOut > 0) return laidOut
+        // A landscape dock's width follows its icon count and size, so the
+        // last layout's width is stale the moment one of those changes.
+        if (laidOut > 0 && !isLandscape) return laidOut
         val sideMargins = 2 * (dockSideMarginPx(prefs, false) + dp(prefs.dockPaddingH)) +
             systemInsets.left + systemInsets.right
         val prefsBar = SearchBarConfig.decode(prefs.searchBarConfig).desktop
         val barShown = SearchBarPlacement.fromName(prefsBar.placement).let {
             it != SearchBarPlacement.NONE && it != SearchBarPlacement.WIDGET
         }
-        val window = sideBySideWidthPx().takeIf { barShown && phoneSideBySide(prefs) }
-            ?.plus(systemInsets.left + systemInsets.right)
-            ?: landscapeChromeWidthPx().takeIf { it > 0 }
-            ?: resources.displayMetrics.widthPixels
-        return (window - sideMargins).coerceAtLeast(1)
+        val shared = if (barShown && phoneSideBySide(prefs)) sharedRowPx(prefs) else null
+        val content = if (shared != null) {
+            shared.dock - 2 * dp(prefs.dockPaddingH)
+        } else {
+            val window = landscapeChromeWidthPx().takeIf { it > 0 }
+                ?.let { stackedDockWidthPx(prefs, it) + systemInsets.left + systemInsets.right }
+                ?: resources.displayMetrics.widthPixels
+            window - sideMargins
+        }
+        return content.coerceAtLeast(1)
     }
 
     // The icon box a dock item draws in. The scale rides in the box size
@@ -2152,6 +2198,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             prefs.searchBarConfig, prefs.searchBarWidgetId,
             prefs.dockPaddingH, prefs.dockPaddingV,
             prefs.dockBgBehindNav, prefs.dockBgPadding,
+            // What a landscape dock's width is worked out from.
+            prefs.dockCount, prefs.iconScale, prefs.dockIconScale, prefs.dockMatchDesktop,
             swipeArrowWanted(prefs), prefs.labelColor,
             prefs.pageIndicatorStyle != IndicatorStyle.NONE, prefs.desktopPaddingV,
             systemInsets, dockHeightPx, isLandscape
@@ -2192,10 +2240,11 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // A phone on its side shares one row between the bar (left) and the
         // dock (right): stacked, the two took a third of the short window
         // and the grid's icons shrank to half size to fit what was left.
-        val sideBySide = slot != null && phoneSideBySide(prefs)
+        val shared = if (slot != null && phoneSideBySide(prefs)) sharedRowPx(prefs) else null
+        val sideBySide = shared != null
         // Behind-nav mode drops the side and bottom margins so the background
         // slab runs flush to the window's bottom edge. Neither edge-to-edge
-        // style fits a dock that has half a row.
+        // style fits a dock that has only part of a row.
         val dockBehindNav = !sideBySide && prefs.dockBgBehindNav &&
             prefs.dockBgStyle != DockBgStyle.NONE &&
             slot != BarSlot.BELOW_DOCK
@@ -2257,16 +2306,15 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // it, so the dock reads as one row rather than a scattered line. The
         // edge-to-edge background styles are the exception - a slab that
         // stops short of the edges is not the thing they are asking for.
-        val half = if (sideBySide) sideBySideWidthPx() else 0
         val dockCap = landscapeChromeWidthPx()
-        if (half > 0) {
-            dockParams.width = half
+        if (shared != null) {
+            dockParams.width = shared.dock
             // The bar's 16dp, mirrored at the other edge.
             dockParams.rightMargin = dp(SIDE_BY_SIDE_GAP_DP) + systemInsets.right
             (dockParams as? androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams)
                 ?.gravity = Gravity.BOTTOM or Gravity.END
         } else if (dockCap > 0 && !dockBehindNav && !dockFullBleed) {
-            dockParams.width = dockCap
+            dockParams.width = stackedDockWidthPx(prefs, dockCap)
             (dockParams as? androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams)
                 ?.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
         } else {
@@ -2282,14 +2330,14 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         barParams.rightMargin = dp(16) + systemInsets.right
         // Same landscape cap the dock takes: a search field running the full
         // width of a landscape window is a very long, very empty box.
-        // Side by side it takes the row's other half, at the start.
+        // Side by side it takes what the dock leaves of the row, at the start.
         val barWidth = when {
-            half > 0 -> half
+            shared != null -> shared.bar
             dockCap > 0 -> dockCap
             else -> ViewGroup.LayoutParams.MATCH_PARENT
         }
         val barGravity = when {
-            half > 0 -> Gravity.BOTTOM or Gravity.START
+            shared != null -> Gravity.BOTTOM or Gravity.START
             dockCap > 0 -> Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             else -> Gravity.BOTTOM
         }
@@ -4633,6 +4681,13 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         private const val SIDE_BY_SIDE_GAP_DP = 16
         // Start, middle and end.
         private const val SIDE_BY_SIDE_GAPS = 3
+        // The shortest bar the shared row keeps; a dock that leaves less stacks.
+        private const val SHARED_BAR_MIN_DP = 200
+        // Dock slots in landscape: a roomy one, and the tightest kept.
+        private const val DOCK_SLOT_ROOMY_DP = 72
+        private const val DOCK_SLOT_ROOMY_EXTRA_DP = 24
+        private const val DOCK_SLOT_TIGHT_DP = 56
+        private const val DOCK_SLOT_TIGHT_EXTRA_DP = 8
 
         // The space inside a dialog's outlined name field, as the app
         // checklist's search field has: the box draws none of its own.
