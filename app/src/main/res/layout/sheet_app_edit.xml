@@ -9,6 +9,7 @@
      is in reach however many rows the item has. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -388,13 +389,16 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
+    <!-- Reset stands apart on the left, as it undoes every edit; Cancel
+         still comes before Save, which is what ButtonOrder asks for. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_sm"
         android:gravity="end|center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="@dimen/space_ml">
+        android:paddingHorizontal="@dimen/space_ml"
+        tools:ignore="ButtonOrder">
 
         <Button
             android:id="@+id/resetButton"
@@ -402,6 +406,18 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/reset" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/cancelButton"
+            style="@style/Widget.Supernova.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cancel" />
 
         <Button
             android:id="@+id/saveButton"

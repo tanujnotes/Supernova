@@ -135,7 +135,8 @@ object AppEditSheet {
         dialog.show()
     }
 
-    // The preview names the item, so the sheet has no title of its own. Its
+    // The preview names the item, so the sheet has no title of its own;
+    // Cancel closes it without saving. Its
     // card is a hole through the sheet (WallpaperWell); what shows through
     // it is the launcher's window, so the launcher's own content fades out
     // while the sheet is up, leaving that window showing only the wallpaper,
@@ -143,6 +144,7 @@ object AppEditSheet {
     // screen, so nothing is lost; the content comes back as it closes.
     private fun dressForPreview(context: Context, dialog: android.app.Dialog, binding: SheetAppEditBinding) {
         binding.editTitle.visibility = android.view.View.GONE
+        binding.cancelButton.setOnClickListener { dialog.dismiss() }
         dialog.window?.let { window ->
             window.setFormat(android.graphics.PixelFormat.TRANSLUCENT)
             window.setDimAmount(0f)

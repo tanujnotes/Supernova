@@ -88,6 +88,7 @@ object FolderEditSheet {
             onEditSwipe(true) { picked -> downLabel = picked; renderSwipes() }
         }
 
+        binding.cancelButton.setOnClickListener { dialog.dismiss() }
         binding.saveButton.setOnClickListener {
             val typed = binding.editLabel.text?.toString().orEmpty().trim()
             if (typed.isNotEmpty() && typed != originalName) {
@@ -130,6 +131,7 @@ object FolderEditSheet {
         binding.swipeDownRow.visibility = View.GONE
         bindIconRows(scope, viewModel, binding, icon, pickPhoto)
 
+        binding.cancelButton.setOnClickListener { dialog.dismiss() }
         binding.saveButton.setOnClickListener {
             val typed = binding.editLabel.text?.toString().orEmpty().trim()
             val name = if (typed.isEmpty()) group.name else viewModel.renameGroup(group, typed)
