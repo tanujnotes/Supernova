@@ -186,6 +186,8 @@
     <string name="drawer_default_tab">Default tab</string>
     <string name="drawer_hide_all_tab">Hide the All tab</string>
     <string name="edit">Edit</string>
+    <!-- The app and shortcut menu row that opens the Edit sheet. -->
+    <string name="edit_icon">Edit icon</string>
     <string name="hide_label">Hide label</string>
     <string name="change_icon">Change icon</string>
     <string name="select_apps">Select apps</string>

@@ -3104,7 +3104,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 startActivity(viewModel.appCatalog().uninstallIntent(app.packageName, app.userSerial))
             }
         }
-        menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) {
+        menu.addRow(getString(R.string.edit_icon), R.drawable.ic_menu_edit) {
             source?.dismiss()
             AppEditSheet.show(this, lifecycleScope, viewModel, app, ::pickPhoto)
         }
@@ -3382,7 +3382,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                         viewModel.appCatalog().openAppInfo(pkg, item.className, item.userSerial)
                     }
                 }
-                menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) {
+                menu.addRow(getString(R.string.edit_icon), R.drawable.ic_menu_edit) {
                     showItemEditSheet(item, allowSwipe = !locked)
                 }
                 item.toLaunchableApp()?.let { app ->
@@ -3816,7 +3816,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 viewModel.appCatalog().openAppInfo(pkg, member.className, member.userSerial)
             }
         }
-        menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) {
+        menu.addRow(getString(R.string.edit_icon), R.drawable.ic_menu_edit) {
             // The folder closes first: as a focusable window it
             // would keep the keyboard from the sheet's name field.
             closeFolder()
