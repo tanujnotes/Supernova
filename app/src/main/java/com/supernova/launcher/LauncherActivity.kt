@@ -3055,7 +3055,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             source?.dismiss()
             AppEditSheet.show(this, lifecycleScope, viewModel, app, ::pickPhoto)
         }
-        // A hidden app only gets here through search, whatever the row setting.
+        // A hidden app only gets here through search or Show hidden apps,
+        // whatever the row setting.
         if (viewModel.isAppHidden(app)) {
             menu.addRow(getString(R.string.unhide_app), R.drawable.ic_menu_hide) {
                 viewModel.setAppHidden(app, false)
@@ -3066,8 +3067,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 viewModel.setAppHidden(app, true)
                 source?.dismiss()
                 // Where it went, and the way back.
+                // Raised over the drawer and the search window it was hidden
+                // from: at its own elevation it drew under them, and a tap
+                // on Undo opened the app beneath (#137).
                 Snackbar.make(binding.root, getString(R.string.app_hidden, app.label), Snackbar.LENGTH_LONG)
                     .setAction(R.string.undo) { viewModel.setAppHidden(app, false) }
+                    .apply { view.elevation = dp(OVER_OVERLAYS_ELEVATION_DP) }
                     .show()
             }
         }
@@ -4749,6 +4754,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
         // Undo snackbar lifetime after a removal.
         private const val UNDO_DURATION_MS = 4000
+        // Above the drawer (12dp), the edit sheet (14dp) and the search
+        // window (16dp); below the drop targets (20dp).
+        private const val OVER_OVERLAYS_ELEVATION_DP = 18f
 
         // The icon box and item padding item_icon declares, and the padding a
         // dock icon column keeps around it instead. Kept here because the

@@ -1251,7 +1251,7 @@ class DrawerController(
             // ones too.
             val pool = if (hiddenAppsShown) viewModel.appsForPicking() else viewModel.visibleApps()
             val all = if (workTabActive()) pool.filter { it.userSerial == 0L } else pool
-            val isolated = viewModel.isolatedTabKeys()
+            val isolated = viewModel.isolatedTabKeys() - peekedHiddenKeys()
             if (isolated.isEmpty()) all else all.filterNot { viewModel.hiddenKey(it) in isolated }
         }
         // Paused work apps give way to the card that turns them back on.
@@ -1292,7 +1292,7 @@ class DrawerController(
         val excluded = if (tab == null) {
             viewModel.drawerFolderGroups()
                 .filter { viewModel.leavesMainList(it) }
-                .flatMapTo(mutableSetOf()) { it.members }
+                .flatMapTo(mutableSetOf()) { it.members } - peekedHiddenKeys()
         } else {
             emptySet()
         }
@@ -1485,6 +1485,12 @@ class DrawerController(
         private set
 
     fun toggleHiddenApps() = showHiddenApps(!hiddenAppsShown)
+
+    // While shown, a hidden app stays on the All list even when a folder or
+    // an isolated tab holds it: those list visible apps only, so it would
+    // show nowhere and could never be unhidden from the drawer (#137).
+    private fun peekedHiddenKeys(): Set<String> =
+        if (hiddenAppsShown) viewModel.state.value.prefs.hiddenApps else emptySet()
 
     private fun showHiddenApps(show: Boolean) {
         if (show == hiddenAppsShown) return
