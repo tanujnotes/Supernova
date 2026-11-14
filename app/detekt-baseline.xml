@@ -57,7 +57,7 @@
     <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun launchWithAnimation(item: View?, launch: (Rect?, android.os.Bundle?) -&gt; Boolean)</ID>
     <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun observeState()</ID>
     <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun pressOnItem(rawX: Float, rawY: Float): Boolean</ID>
-    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun resetToHome(animate: Boolean, keepDrawer: Boolean): Boolean</ID>
+    <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun resetToHome(animate: Boolean, keepDrawer: Boolean, keepPage: Boolean = false): Boolean</ID>
     <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun showDrawerItemMenu( anchor: View, app: LaunchableApp, source: android.widget.PopupWindow? = null ): SupernovaPopupMenu</ID>
     <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun showWorkspaceItemMenu(anchor: View, item: LauncherItem): SupernovaPopupMenu</ID>
     <ID>CyclomaticComplexMethod:LauncherActivity.kt$LauncherActivity$private fun trackDrawerPull(ev: MotionEvent): Boolean</ID>

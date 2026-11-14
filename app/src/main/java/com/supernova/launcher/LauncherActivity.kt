@@ -961,6 +961,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         // Ahead of every route below: it has to see each stream's lift.
         if (::binding.isInitialized) pageSwipeGuard.onTouch(ev)
+        // A press on the home screen: a home press after it is the user's
+        // own, not the close of an unlock prompt that just went (#135).
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) privateSpaceCard.prompt.onHomeTouched()
         if (::pageDrag.isInitialized && pageDrag.isActive) {
             pageDrag.onTouch(ev)
             return true
@@ -2502,10 +2505,11 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     //
     // Returns whether any of it was actually open, which the home press needs
     // to tell a press with a job to do from a second press with none.
-    // keepDrawer spares the drawer alone (the drawerAutoClose pref), and
-    // animate = false makes the whole reset instant, for a screen nobody is
-    // looking at.
-    private fun resetToHome(animate: Boolean, keepDrawer: Boolean): Boolean {
+    // keepDrawer spares the drawer alone (the drawerAutoClose pref), keepPage
+    // the page (a press that only closed the private space's unlock prompt),
+    // and animate = false makes the whole reset instant, for a screen nobody
+    // is looking at.
+    private fun resetToHome(animate: Boolean, keepDrawer: Boolean, keepPage: Boolean = false): Boolean {
         var closed = false
         homeMenuDialog?.let {
             it.dismiss()
@@ -2544,7 +2548,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             search.hide()
             closed = true
         }
-        binding.workspacePager.setCurrentItem(defaultPagePosition(), animate)
+        if (!keepPage) binding.workspacePager.setCurrentItem(defaultPagePosition(), animate)
         return closed
     }
 
@@ -2574,7 +2578,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // A sheet or dialog left open is one too: the Edit sheet stayed up
         // and the drawer opened behind it (#91). `or`, so both run.
         // A private space card still waiting on its unlock is called off too,
-        // and a swipe home over its unlock prompt is that prompt's close.
+        // and a swipe home over its unlock prompt is that prompt's close:
+        // the home screen stays on its page under it (#135), even when the
+        // prompt finished as the swipe began and the launcher is already
+        // back in front.
         val promptClosed = privateSpaceCard.cancelPending()
         // With animations off (the launcher's or the system's) home lands
         // at once instead of scrolling past every page in between (#123).
@@ -2582,7 +2589,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // A folder card the same swipe closed on its first touch (#110), read
         // after the reset, whose own closes don't count twice.
         val closed = com.supernova.launcher.ui.OpenDialogs.dismissAll(this) or
-            resetToHome(animate = scroll, keepDrawer = keepDrawerOpen) or
+            resetToHome(animate = scroll, keepDrawer = keepDrawerOpen, keepPage = promptClosed) or
             cardSwipeClose.takeFor(SystemClock.uptimeMillis()) or promptClosed
         // The double-home action: pressing home when there was nothing to
         // close and nowhere to scroll runs the configured action instead of
