@@ -100,17 +100,14 @@ class HomeEditController(
             binding.editWidgetRecycler.setPadding(
                 0, 0, 0, (24 * density).toInt() + maxOf(barInsets.bottom, keyboard)
             )
-            // Expanded, the sheet stops under the status bar rather than
-            // running its handle up into it: a sheet ends its parent's height
-            // minus this margin, and opens to its own height.
-            (view.layoutParams as? android.view.ViewGroup.MarginLayoutParams)?.let { params ->
-                if (params.topMargin != barInsets.top) {
-                    params.topMargin = barInsets.top
-                    view.layoutParams = params
-                }
-            }
+            fitSheetHeight()
             overlay?.let(::applyOverlayInsets)
             insets
+        }
+        // The parent's height can change after the insets land (first layout,
+        // rotation, split screen); the sheet's height follows it.
+        binding.root.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            if (bottom - top != oldBottom - oldTop) binding.root.post { fitSheetHeight() }
         }
         binding.editWidgetRecycler.layoutManager = LinearLayoutManager(activity)
         binding.editWidgetRecycler.adapter = adapter
@@ -147,6 +144,23 @@ class HomeEditController(
         } else {
             exit()
             action()
+        }
+    }
+
+    // Expanded, the sheet stops under the status bar rather than running its
+    // handle up into it: a sheet opens to its own height, so it is the parent's
+    // height less the bar. Not a top margin: the behaviour adds a margin to
+    // the collapsed sheet when it lays it out but not when it settles after a
+    // drag, so the sheet came back a status bar higher, over the chips (#161).
+    private fun fitSheetHeight() {
+        val sheet = binding.editWidgetSheet
+        val parentHeight = binding.root.height
+        if (parentHeight <= 0) return
+        val height = parentHeight - barInsets.top
+        val params = sheet.layoutParams
+        if (params.height != height) {
+            params.height = height
+            sheet.layoutParams = params
         }
     }
 
@@ -195,12 +209,9 @@ class HomeEditController(
         val rootHeight = binding.root.height
         // The sheet runs under the navigation bar, so the bar's height is
         // added: what shows above it is the same on gesture and 3-button nav.
-        // Its top margin (the status bar, see the insets listener) moves the
-        // collapsed sheet down by as much, so that goes back on too.
         val peek = (rootHeight * PEEK_FRACTION).toInt() + barInsets.bottom
-        val topMargin =
-            (binding.editWidgetSheet.layoutParams as? android.view.ViewGroup.MarginLayoutParams)?.topMargin ?: 0
-        behavior.peekHeight = peek + topMargin
+        fitSheetHeight()
+        behavior.peekHeight = peek
         val chips = ov.editChips
         (chips.layoutParams as FrameLayout.LayoutParams).bottomMargin = peek + activity.dp(12)
         chips.requestLayout()
