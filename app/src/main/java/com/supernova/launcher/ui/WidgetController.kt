@@ -9,6 +9,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.Rect
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.SizeF
 import android.view.Gravity
 import android.view.MotionEvent
@@ -195,10 +196,18 @@ class WidgetController(
     private val touchSlop = android.view.ViewConfiguration.get(activity).scaledTouchSlop
     private var hostedSearchWidgetId: Int = 0
 
+    // For the crash log when an add fails (WidgetAddTrail): this screen's
+    // age, where its pending add came from, and when a setup screen opened.
+    private val createdAt = SystemClock.elapsedRealtime()
+    private var pendingFrom = "add kept in view model"
+    private var setupOpenedAt = 0L
+
     private val bindWidgetLauncher = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val pending = pendingWidget
+        WidgetAddTrail.step("allow screen answered ${WidgetAddTrail.answer(result.resultCode)}")
         if (pending == null) {
             // Process was recreated mid-flow: abort deterministically.
+            WidgetAddTrail.fail("interrupted at the allow screen", launcherState(result.resultCode, result.data))
             deleteWidgetIdFromResult(result.data)
             Toast.makeText(activity, R.string.widget_add_interrupted, Toast.LENGTH_SHORT).show()
             return@registerForActivityResult
@@ -206,6 +215,7 @@ class WidgetController(
         if (result.resultCode == Activity.RESULT_OK) {
             val info = appWidgetManager.getAppWidgetInfo(pending.widgetId)
             if (info == null) {
+                WidgetAddTrail.fail("provider gone after the allow screen", launcherState(result.resultCode))
                 abortPendingWidget()
                 Toast.makeText(activity, R.string.widget_provider_missing, Toast.LENGTH_SHORT).show()
             } else {
@@ -226,9 +236,14 @@ class WidgetController(
     init {
         val registry = activity.savedStateRegistry
         if (pendingWidget == null) {
-            registry.consumeRestoredStateForKey(PENDING_WIDGET_STATE)
-                ?.let(PendingWidget::fromBundle)
-                ?.let { pendingWidget = it }
+            val restored = registry.consumeRestoredStateForKey(PENDING_WIDGET_STATE)
+            val fromState = restored?.let(PendingWidget::fromBundle)
+            fromState?.let { pendingWidget = it }
+            pendingFrom = when {
+                fromState != null -> "add restored from saved state"
+                restored != null -> "saved state, no add in it"
+                else -> "no saved state"
+            }
         }
         registry.registerSavedStateProvider(PENDING_WIDGET_STATE) { pendingWidget?.toBundle() ?: Bundle() }
     }
@@ -743,6 +758,7 @@ class WidgetController(
         val spans = WidgetSizing.defaultSpans(activity, info, cellWidth, cellHeight, prefs.gridCols, prefs.gridRows)
         val widgetId = appWidgetHost.allocateAppWidgetId()
         pendingWidget = PendingWidget(widgetId, info.provider, target)
+        WidgetAddTrail.start(widgetId, info.provider.flattenToShortString())
 
         val options = WidgetSizing.initialBindOptions(
             spans.first, spans.second, cellWidth, cellHeight, activity.resources.displayMetrics.density
@@ -752,9 +768,11 @@ class WidgetController(
         }.getOrDefault(false)
 
         if (bound) {
+            WidgetAddTrail.step("bound")
             proceedToConfigure(info)
             return
         }
+        WidgetAddTrail.step("asking to allow")
         // Some builds ship without the system's "allow widgets" screen.
         val asked = runCatching {
             bindWidgetLauncher.launch(
@@ -766,6 +784,8 @@ class WidgetController(
             )
         }
         if (asked.isFailure) {
+            WidgetAddTrail.step("no allow screen: ${asked.exceptionOrNull()}")
+            WidgetAddTrail.fail("allow screen would not open", launcherState())
             abortPendingWidget()
             Toast.makeText(activity, R.string.widget_bind_failed, Toast.LENGTH_SHORT).show()
         }
@@ -786,9 +806,11 @@ class WidgetController(
     private fun proceedToConfigure(info: AppWidgetProviderInfo) {
         val pending = pendingWidget ?: return
         if (!WidgetFeatures.needsSetup(info)) {
+            WidgetAddTrail.step("no setup screen")
             finalizeWidget()
             return
         }
+        setupOpenedAt = SystemClock.elapsedRealtime()
 
         // Preferred path: the host launches configure with a system permission
         // token, which also works for non-exported configure activities. Its
@@ -798,7 +820,11 @@ class WidgetController(
                 activity, pending.widgetId, 0, REQUEST_CONFIGURE_WIDGET, null
             )
         }
-        if (tokenLaunch.isSuccess) return
+        if (tokenLaunch.isSuccess) {
+            WidgetAddTrail.step("setup screen opened")
+            return
+        }
+        WidgetAddTrail.step("setup screen refused the system launch: ${tokenLaunch.exceptionOrNull()}")
 
         val plainLaunch = runCatching {
             configureWidgetLauncher.launch(
@@ -808,8 +834,13 @@ class WidgetController(
                 }
             )
         }
-        if (plainLaunch.isSuccess) return
+        if (plainLaunch.isSuccess) {
+            WidgetAddTrail.step("setup screen opened directly")
+            return
+        }
+        WidgetAddTrail.step("setup screen refused a direct launch: ${plainLaunch.exceptionOrNull()}")
 
+        WidgetAddTrail.fail("setup screen would not open", launcherState())
         abortPendingWidget()
         Toast.makeText(activity, R.string.widget_configure_failed, Toast.LENGTH_SHORT).show()
     }
@@ -842,7 +873,9 @@ class WidgetController(
     }
 
     private fun handleConfigureResult(resultCode: Int, data: Intent?) {
+        WidgetAddTrail.step("setup screen answered ${WidgetAddTrail.answer(resultCode)}")
         if (pendingWidget == null) {
+            WidgetAddTrail.fail("interrupted at the setup screen", launcherState(resultCode, data))
             deleteWidgetIdFromResult(data)
             Toast.makeText(activity, R.string.widget_add_interrupted, Toast.LENGTH_SHORT).show()
             return
@@ -850,7 +883,26 @@ class WidgetController(
         if (resultCode == Activity.RESULT_OK) {
             finalizeWidget()
         } else {
+            // Closing it is the user's call; closing on its own before anyone
+            // could have touched it is a setup screen (or a system) refusing.
+            val openFor = SystemClock.elapsedRealtime() - setupOpenedAt
+            if (setupOpenedAt != 0L && openFor < QUICK_SETUP_CANCEL_MS) {
+                WidgetAddTrail.fail("setup screen closed at once", launcherState(resultCode, data))
+            }
             abortPendingWidget()
+        }
+    }
+
+    // This screen's side of a failed add, plus the answer that found it.
+    private fun launcherState(resultCode: Int? = null, data: Intent? = null): String = buildString {
+        append("screen ").append((SystemClock.elapsedRealtime() - createdAt) / MS_PER_S).append("s old, ")
+        append(pendingFrom)
+        pendingWidget?.let { append(", waiting for id ").append(it.widgetId) }
+        if (resultCode != null) append(", answer ").append(WidgetAddTrail.answer(resultCode))
+        data?.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)?.takeIf { it > 0 }?.let { id ->
+            append(" for id ").append(id)
+            append(" (").append(appWidgetManager.getAppWidgetInfo(id)?.provider?.flattenToShortString() ?: "unbound")
+            append(')')
         }
     }
 
@@ -871,10 +923,12 @@ class WidgetController(
     private fun finalizeLoaded(pending: PendingWidget) {
         val info = appWidgetManager.getAppWidgetInfo(pending.widgetId)
         if (info == null) {
+            WidgetAddTrail.fail("provider gone before placing", launcherState())
             abortPendingWidget()
             Toast.makeText(activity, R.string.widget_provider_missing, Toast.LENGTH_SHORT).show()
             return
         }
+        WidgetAddTrail.step("placed")
         when (val target = pending.target) {
             is Target.Workspace -> {
                 val prefs = viewModel.state.value.prefs
@@ -930,6 +984,9 @@ class WidgetController(
         private const val REQUEST_CONFIGURE_WIDGET = 4001
         private const val REQUEST_RECONFIGURE_WIDGET = 4002
         private const val PENDING_WIDGET_STATE = "supernova:pending_widget"
+        // A setup screen that answers "cancel" sooner than this closed itself.
+        private const val QUICK_SETUP_CANCEL_MS = 1500L
+        private const val MS_PER_S = 1000
         // Widget resize: each snap to a new cell edge eases there.
         private const val RESIZE_SNAP_MS = 120L
         // The dim behind the padding dialog, which previews on the home screen.
