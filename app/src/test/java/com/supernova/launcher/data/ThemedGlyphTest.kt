@@ -79,7 +79,7 @@ class ThemedGlyphTest {
         val black = 0xFF000000.toInt()
         val pixels = intArrayOf(black, orange, white, clear, 0x80FFFFFF.toInt())
 
-        val tinted = ThemedGlyph.tinted(pixels, glyph, plate)
+        val tinted = ThemedGlyph.tinted(pixels, plate, glyph)
 
         assertEquals(plate, tinted[0])
         assertEquals(glyph, tinted[2])
@@ -91,13 +91,43 @@ class ThemedGlyphTest {
     }
 
     @Test
-    fun aTintedCopyStretchesAFlatPictureOverTheWholeRange() {
-        val dull = intArrayOf(0xFF606060.toInt(), 0xFF707070.toInt())
+    fun aTintedCopyStretchesADullPictureOverTheWholeRange() {
+        val dull = intArrayOf(0xFF404040.toInt(), 0xFF909090.toInt())
 
-        val tinted = ThemedGlyph.tinted(dull, white, 0xFF000000.toInt())
+        val tinted = ThemedGlyph.tinted(dull, 0xFF000000.toInt(), white)
 
         assertEquals(0xFF000000.toInt(), tinted[0])
         assertEquals(white, tinted[1])
+    }
+
+    @Test
+    fun aFlatPictureIsTintedInTheGlyphColourNotThePlates() {
+        val plate = 0xFF1B1B1F.toInt()
+        val glyph = 0xFFAAC7FF.toInt()
+
+        val tinted = ThemedGlyph.tinted(intArrayOf(orange, orange, clear), plate, glyph)
+
+        assertEquals(glyph, tinted[0])
+        assertEquals(glyph, tinted[1])
+        assertEquals(0, tinted[2])
+    }
+
+    @Test
+    fun aBlockOfColoursOnAClearBackgroundIsNoGlyph() {
+        val stripes = intArrayOf(0xFFE53935.toInt(), 0xFF1E88E5.toInt(), 0xFF43A047.toInt())
+        val books = picture { x, y -> if (x in 9..20 && y in 9..20) stripes[(y - 9) / 4] else clear }
+
+        assertNull(ThemedGlyph.forApp(books, size, size))
+    }
+
+    @Test
+    fun aRingIsAGlyphNotABlock() {
+        val ring = picture { x, y ->
+            val d = (x - 14.5f) * (x - 14.5f) + (y - 14.5f) * (y - 14.5f)
+            if (d in 16f..36f) white else clear
+        }
+
+        assertNotNull(ThemedGlyph.forApp(ring, size, size))
     }
 
     @Test
