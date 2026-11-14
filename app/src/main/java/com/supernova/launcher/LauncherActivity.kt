@@ -195,6 +195,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     this@LauncherActivity.launchShortcut(packageName, shortcutId, userSerial)
                 override fun launchIntentUri(uri: String) = this@LauncherActivity.launchIntentUri(uri, null)
                 override fun toggleDock() = this@LauncherActivity.toggleDock()
+                override fun showMainDockPage() =
+                    this@LauncherActivity.showMainDockPage(Animations.scrollPages(viewModel.state.value.prefs))
                 override fun showDesktopPreviews() = desktopPreviews.show()
                 override fun openFeed() = feed.open()
                 override fun openPrivateSpace(anchor: View?) = privateSpaceCard.open(anchor)
@@ -386,7 +388,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     private var lastWallpaperPages = -1
 
     // Which dock page is showing (transient) and the applied dock chrome guard.
+    // Page 0 is the main one, drawn in the middle (DockPages).
     private var dockPage = 0
+    private val dockSlide by lazy { com.supernova.launcher.ui.DockSlide(binding.dockBar) }
     private var appliedDockChrome: List<Any>? = null
 
     // The window shape the chrome was last laid out against. The activity
@@ -936,6 +940,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // the lifted icon comes back.
         launchPrelude.clear()
         if (::drag.isInitialized) drag.cancel()
+        if (!viewModel.state.value.prefs.dockRememberPosition) showMainDockPage(animate = false)
         widgets.stopListening()
         runCatching { unregisterReceiver(dateChangeReceiver) }
         super.onStop()
@@ -1214,14 +1219,21 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 dockTouchDownX = Float.NaN
                 val quick = ev.eventTime - dockTouchDownAt < 350
                 if (quick && kotlin.math.abs(dx) > dp(56) && kotlin.math.abs(dy) < dp(48)) {
-                    val pages = prefs.dockPages
-                    val next = dockPage + if (dx < 0) 1 else -1
-                    dockPage = if (prefs.dockInfiniteScroll) next.mod(pages) else next.coerceIn(0, pages - 1)
-                    if (prefs.dockRememberPosition) viewModel.persistDockPage(dockPage)
-                    renderDock(viewModel.state.value)
+                    // A flick to the left brings in the page on the right.
+                    turnDockPage(prefs, toRight = dx < 0)
                 }
             }
         }
+    }
+
+    private fun turnDockPage(prefs: LauncherPrefs, toRight: Boolean) {
+        val next = com.supernova.launcher.ui.DockPages.step(
+            dockPage, prefs.dockPages, toRight, prefs.dockInfiniteScroll
+        )
+        if (next == dockPage) return
+        dockPage = next
+        if (prefs.dockRememberPosition) viewModel.persistDockPage(dockPage)
+        renderDock(viewModel.state.value, slide = if (toRight) 1 else -1)
     }
 
     private fun setupWorkspace() {
@@ -1689,6 +1701,19 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
     // dockRememberPosition: pull the persisted page back in (0 when the pref
     // is off); renderDock clamps it against the current page count.
+    // Back to the dock's main page (page 0, the middle one): a Home press on
+    // the home screen and the Default page action slide it there; leaving home
+    // with Remember position off puts it there unseen.
+    private fun showMainDockPage(animate: Boolean) {
+        if (dockPage == 0) return
+        val state = viewModel.state.value
+        val direction = com.supernova.launcher.ui.DockPages.direction(dockPage, 0, state.prefs.dockPages)
+        dockPage = 0
+        if (state.prefs.dockRememberPosition) viewModel.persistDockPage(0)
+        // Not yet bindable: the emission that flips iconsReady renders page 0.
+        if (state.iconsReady) renderDock(state, slide = if (animate) direction else 0)
+    }
+
     private fun restoreDockPage() {
         lifecycleScope.launch {
             val saved = viewModel.restoredDockPage()
@@ -1931,18 +1956,30 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // force: the dock's content changed without anything in its signature
     // moving. Two callers need it - a badge count, and the day rolling over
     // under a calendar icon - because neither lives in the prefs or the model.
-    private fun renderDock(state: LauncherUiState, force: Boolean = false) {
+    // slide: a page turn to animate, 1 when the new page comes in from the
+    // right and -1 from the left; 0 rebuilds in place.
+    // A page turn slides when animations are on and the dock is on screen,
+    // never under a drag (its drop lookup reads the slots' places).
+    private fun dockSlides(slide: Int, prefs: LauncherPrefs): Boolean {
+        val wanted = slide != 0 && Animations.enabled(prefs)
+        return wanted && binding.dockBar.isShown && !drag.isActive
+    }
+
+    private fun renderDock(state: LauncherUiState, force: Boolean = false, slide: Int = 0) {
         val key = dockSignature(state)
         if (!force && renderedDock == key) return
         renderedDock = key
         val prefs = state.prefs
+        dockSlide.cancel()
+        val leaving = if (dockSlides(slide, prefs)) dockSlide.capture() else null
         binding.dockBar.removeAllViews()
         if (!prefs.dockEnabled) {
             applyDockChrome(prefs)
             return
         }
 
-        if (dockPage >= prefs.dockPages) dockPage = prefs.dockPages - 1
+        // Fewer pages than the one showing: back to the main page.
+        if (dockPage >= prefs.dockPages) dockPage = 0
         val dockByRank = viewModel.dockItems().associateBy { it.rank }
         val rankBase = dockPage * prefs.dockCount
         // What each icon column has to work with, so the icon can be sized to
@@ -1994,6 +2031,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // up whether or not its neighbour's label wrapped. The chrome goes on
         // after the slots: the height it spaces from is theirs.
         applyDockChrome(prefs)
+        leaving?.let { dockSlide.play(it, slide, Animations.duration(prefs, DOCK_SLIDE_MS)) }
     }
 
     // Everything the dock draws from. renderDock tears the row down with
@@ -2591,7 +2629,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // itself is frontmost still resets it like any launcher.
         val keepDrawerOpen = !viewModel.state.value.prefs.drawerAutoClose && cameFromBackground
         // Read before the reset moves the pager off it.
-        val wasOnDefaultPage = binding.workspacePager.currentItem == defaultPagePosition()
+        // The dock counts too: a press on home with the dock on a side page
+        // brings it back to its main page rather than running the action.
+        val wasOnDefaultPage = binding.workspacePager.currentItem == defaultPagePosition() && dockPage == 0
         // Whether this press had a job of its own. Anything dismissed by the
         // reset is what the press was for, so the home-button action stays out
         // of it.
@@ -2611,6 +2651,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         val closed = com.supernova.launcher.ui.OpenDialogs.dismissAll(this) or
             resetToHome(animate = scroll, keepDrawer = keepDrawerOpen, keepPage = promptClosed) or
             cardSwipeClose.takeFor(SystemClock.uptimeMillis()) or promptClosed
+        // A press on the home screen itself also slides the dock back to its
+        // main page. One made in another app leaves it, unless onStop already
+        // put it there (Remember position off).
+        if (!cameFromBackground && !promptClosed) showMainDockPage(animate = scroll)
         // The double-home action: pressing home when there was nothing to
         // close and nowhere to scroll runs the configured action instead of
         // no-opping. homeButtonAction supersedes the legacy homeSearch flag
@@ -4837,6 +4881,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         private const val DOCK_ITEM_PADDING_H_DP = 2
         private const val DOCK_ITEM_PADDING_V_DP = 4
         private const val DOCK_SLOT_PADDING_V_DP = 2
+        // A dock page turn; Launcher3 settles a flicked page in about this.
+        private const val DOCK_SLIDE_MS = 300L
         // The dock background's room above and below the icons.
         private const val DOCK_BG_PADDING_V_DP = 8
 
