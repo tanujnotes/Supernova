@@ -6,8 +6,8 @@
     android:foreground="?attr/selectableItemBackgroundBorderless"
     android:gravity="center_horizontal"
     android:orientation="vertical"
-    android:paddingTop="4dp"
-    android:paddingBottom="10dp">
+    android:paddingTop="@dimen/space_xs"
+    android:paddingBottom="@dimen/space_ms">
 
     <FrameLayout
         android:id="@+id/shapeTile"
@@ -26,10 +26,10 @@
         android:id="@+id/shapeLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="@dimen/space_sm"
         android:ellipsize="end"
         android:gravity="center"
         android:maxLines="2"
         android:textColor="@color/textSecondary"
-        android:textSize="12sp" />
+        android:textSize="@dimen/text_caption" />
 </LinearLayout>

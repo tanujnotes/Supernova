@@ -75,6 +75,8 @@ object AppEditSheet {
         }
         binding.editLabel.setText(current.customLabel ?: rawLabel)
         binding.hideLabelSwitch.isChecked = current.hideLabel
+        // The whole row toggles it, as the sheet's other switch rows do.
+        binding.hideLabelRow.setOnClickListener { binding.hideLabelSwitch.toggle() }
 
         fun refreshRows() {
             val shapeLabel = chosenShape?.let { context.getString(EnumLabels.of(IconShape.fromName(it))) }

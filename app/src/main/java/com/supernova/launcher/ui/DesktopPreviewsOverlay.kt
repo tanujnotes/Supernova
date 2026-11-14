@@ -170,7 +170,7 @@ class DesktopPreviewsOverlay(
                 TextView(context).apply {
                     text = (page + 1).toString()
                     setTextColor(Color.WHITE)
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
+                    textSizeOf(R.dimen.text_headline)
                     gravity = Gravity.CENTER
                 },
                 FrameLayout.LayoutParams(

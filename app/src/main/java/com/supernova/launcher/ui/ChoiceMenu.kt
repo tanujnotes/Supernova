@@ -42,6 +42,8 @@ object ChoiceMenu {
     private const val CHECKED_ALPHA_DARK = 0x2E
     private const val OPAQUE = 0xFF000000.toInt()
     private const val HALF = 0.5
+    private const val SWATCH_DP = 20
+    private const val RING_ALPHA = 0x66
 
     // The card's lift, and the room the window has to leave around it for the
     // shadow that lift casts. A PopupWindow is sized to its content, so a
@@ -75,6 +77,8 @@ object ChoiceMenu {
         // the touch, so the tick lands in the column of the chevron that
         // opened it: the row spans its card, so its end is the card's.
         alignToAnchorEnd: Boolean = false,
+        // A colour per option, drawn as a dot before its label; null for none.
+        swatches: List<Int?>? = null,
         onPick: (Int) -> Unit
     ) {
         val context = anchor.context
@@ -154,7 +158,8 @@ object ChoiceMenu {
         }
 
         labels.forEachIndexed { index, label ->
-            content.addView(row(context, surface, label, index == selected, density) {
+            val swatch = swatches?.let { Swatch(it.getOrNull(index)) }
+            content.addView(row(context, surface, Option(label, index == selected, swatch), density) {
                 popup.dismiss()
                 onPick(index)
             })
@@ -175,8 +180,12 @@ object ChoiceMenu {
         // is what stranded a long list: too tall for either side, it overflowed
         // the screen, got clamped to the top, and ended up floating nowhere
         // near the row it came from.
-        val roomBelow = window.height - (location[1] + anchor.height) - pad
-        val roomAbove = location[1] - pad
+        // The system bars are off limits too: edge to edge, the window runs
+        // under them, and a long list ended under the navigation bar.
+        val bars = androidx.core.view.ViewCompat.getRootWindowInsets(anchor)
+            ?.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        val roomBelow = window.height - (location[1] + anchor.height) - pad - (bars?.bottom ?: 0)
+        val roomAbove = location[1] - pad - (bars?.top ?: 0)
         val below = roomBelow >= roomAbove
         // The fraction still applies on top of that: even with the room for
         // it, a menu that covers the screen stops reading as a menu.
@@ -225,11 +234,12 @@ object ChoiceMenu {
     private fun row(
         context: Context,
         surface: ResolvedSurface,
-        label: CharSequence,
-        checked: Boolean,
+        option: Option,
         density: Float,
         onClick: () -> Unit
     ): View {
+        val label = option.label
+        val checked = option.checked
         fun dp(value: Int) = (value * density).toInt()
         val dark = androidx.core.graphics.ColorUtils.calculateLuminance(surface.surface or OPAQUE) < HALF
         return LinearLayout(context).apply {
@@ -246,11 +256,18 @@ object ChoiceMenu {
             foreground = rippleFor(context)
             setOnClickListener { onClick() }
 
+            option.swatch?.let { swatch ->
+                addView(
+                    swatchDot(context, surface, swatch, density),
+                    LinearLayout.LayoutParams(dp(SWATCH_DP), dp(SWATCH_DP)).apply { marginEnd = dp(14) }
+                )
+            }
+
             addView(
                 TextView(context).apply {
                     text = label
                     setTextColor(if (checked) surface.accent else surface.text)
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+                    textSizeOf(R.dimen.text_body)
                     if (checked) {
                         typeface = android.graphics.Typeface.create(MEDIUM_FAMILY, android.graphics.Typeface.NORMAL)
                     }
@@ -274,6 +291,44 @@ object ChoiceMenu {
             )
         }
     }
+
+    // A plain list of things to do off a button (a card's ⋮): this menu,
+    // styled by the POPUP surface as item menus are, against the button.
+    fun showActions(
+        anchor: View,
+        prefs: com.supernova.launcher.data.LauncherPrefs,
+        labels: List<CharSequence>,
+        onPick: (Int) -> Unit
+    ) {
+        val location = IntArray(2).also(anchor::getLocationInWindow)
+        show(
+            anchor, location[0].toFloat(),
+            com.supernova.launcher.ui.theme.Styles.resolve(anchor.context, prefs)
+                .of(com.supernova.launcher.ui.theme.SurfaceId.POPUP),
+            labels, selected = -1, animate = Animations.enabled(prefs), alignToAnchorEnd = true, onPick = onPick
+        )
+    }
+
+    private class Swatch(val color: Int?)
+
+    private class Option(val label: CharSequence, val checked: Boolean, val swatch: Swatch?)
+
+    // An option's colour; with none of its own (Default), a ring.
+    private fun swatchDot(context: Context, surface: ResolvedSurface, swatch: Swatch, density: Float): View =
+        View(context).apply {
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                if (swatch.color != null) {
+                    setColor(swatch.color)
+                } else {
+                    setStroke(
+                        (2 * density).toInt(),
+                        androidx.core.graphics.ColorUtils.setAlphaComponent(surface.text, RING_ALPHA)
+                    )
+                }
+            }
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }
 
     private fun rippleFor(context: Context): android.graphics.drawable.Drawable? {
         val attrs = intArrayOf(android.R.attr.selectableItemBackground)

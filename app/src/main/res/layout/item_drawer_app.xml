@@ -10,8 +10,8 @@
     android:gravity="center_horizontal"
     android:minHeight="98dp"
     android:orientation="vertical"
-    android:paddingHorizontal="4dp"
-    android:paddingVertical="12dp"
+    android:paddingHorizontal="@dimen/space_xs"
+    android:paddingVertical="@dimen/space_ms"
     android:clipChildren="false"
     android:clipToPadding="false">
 
@@ -26,10 +26,10 @@
         android:id="@+id/appLabel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="7dp"
-        android:paddingHorizontal="2dp"
+        android:layout_marginTop="@dimen/space_sm"
+        android:paddingHorizontal="@dimen/space_xxs"
         android:gravity="center"
         android:maxLines="2"
         android:textColor="@color/textPrimary"
-        android:textSize="13sp" />
+        android:textSize="@dimen/text_secondary" />
 </LinearLayout>

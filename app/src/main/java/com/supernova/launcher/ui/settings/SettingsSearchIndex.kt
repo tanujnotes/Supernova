@@ -6,9 +6,9 @@ import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.ui.LauncherViewModel
 
 // A flat, resolved-string index over every catalogue row, built once and
-// searched by plain substring, word by word. Matching is title + section title only: the
-// catalogue's titles are already the user-facing vocabulary, so a keywords
-// side-channel wasn't worth threading through every SettingItem constructor.
+// searched by plain substring, word by word. Matching is title + section
+// title, plus the few extra words a row is given (SettingItem.searchableBy)
+// where people would look for it by another name.
 class SettingsSearchIndex private constructor(val entries: List<Entry>) {
 
     class Entry(
@@ -59,6 +59,7 @@ class SettingsSearchIndex private constructor(val entries: List<Entry>) {
                         if (item is SettingItem.Header || item is SettingItem.Accordion) continue
                         // A row's inner controls are listed under their own
                         // names but lead to the row that holds them.
+                        val keywords = if (item.keywords != 0) context.getString(item.keywords).lowercase() else ""
                         for (titleRes in listOf(item.title) + item.searchTitles) {
                             val itemLabel = context.getString(titleRes)
                             add(
@@ -67,7 +68,7 @@ class SettingsSearchIndex private constructor(val entries: List<Entry>) {
                                     itemTitleRes = item.title,
                                     sectionLabel = sectionLabel,
                                     itemLabel = itemLabel,
-                                    haystack = "${itemLabel.lowercase()} ${sectionLabel.lowercase()}",
+                                    haystack = "${itemLabel.lowercase()} ${sectionLabel.lowercase()} $keywords",
                                     visibleIf = item.visibleIf
                                 )
                             )

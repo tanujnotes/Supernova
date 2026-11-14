@@ -11,9 +11,9 @@
     android:gravity="center_vertical"
     android:minHeight="64dp"
     android:orientation="horizontal"
-    android:paddingVertical="10dp"
-    android:paddingStart="24dp"
-    android:paddingEnd="20dp">
+    android:paddingVertical="@dimen/space_ms"
+    android:paddingStart="@dimen/space_lg"
+    android:paddingEnd="@dimen/space_ml">
 
     <LinearLayout
         android:layout_width="0dp"
@@ -29,7 +29,7 @@
             android:fontFamily="sans-serif-medium"
             android:maxLines="1"
             android:textColor="@color/textPrimary"
-            android:textSize="16sp" />
+            android:textSize="@dimen/text_body" />
 
         <!-- GONE until the previews load, and for the system-default row,
              which has no pack to sample. -->
@@ -37,7 +37,7 @@
             android:id="@+id/packPreview"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/space_sm"
             android:orientation="horizontal"
             android:visibility="gone" />
     </LinearLayout>
@@ -46,9 +46,9 @@
         android:id="@+id/packSelected"
         android:layout_width="48dp"
         android:layout_height="22dp"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="@dimen/space_sm"
         android:importantForAccessibility="no"
-        android:paddingHorizontal="13dp"
+        android:paddingHorizontal="@dimen/space_ms"
         android:src="@drawable/ic_check"
         app:tint="?attr/colorAccent" />
 </LinearLayout>

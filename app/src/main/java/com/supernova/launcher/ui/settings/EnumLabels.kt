@@ -278,7 +278,6 @@ object EnumLabels {
         DrawerSort.INSTALL_DATE -> R.string.sort_install
         DrawerSort.MOST_USED -> R.string.sort_most_used
         DrawerSort.RECENTLY_USED -> R.string.sort_recently_used
-        DrawerSort.APP_SIZE -> R.string.sort_app_size
     }
 
     @StringRes
@@ -292,7 +291,6 @@ object EnumLabels {
     @StringRes
     fun of(style: DockBgStyle): Int = when (style) {
         DockBgStyle.NONE -> R.string.dock_bg_none
-        DockBgStyle.PILL -> R.string.dock_bg_pill
         DockBgStyle.ROUNDED -> R.string.dock_bg_rounded
         DockBgStyle.SQUARE -> R.string.dock_bg_square
     }
@@ -306,8 +304,8 @@ object EnumLabels {
     }
 
     @StringRes
-    fun of(orientation: HomeOrientation): Int = when (orientation) {
-        HomeOrientation.DEFAULT -> R.string.orientation_default
+    fun of(orientation: HomeOrientation, wide: Boolean = false): Int = when (orientation) {
+        HomeOrientation.DEFAULT -> if (wide) R.string.orientation_default_tablet else R.string.orientation_default
         HomeOrientation.AUTO_ROTATE -> R.string.orientation_auto_rotate
         HomeOrientation.PORTRAIT -> R.string.orientation_portrait
         HomeOrientation.LANDSCAPE -> R.string.orientation_landscape

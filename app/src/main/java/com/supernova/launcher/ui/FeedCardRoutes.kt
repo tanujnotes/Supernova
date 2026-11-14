@@ -3,7 +3,6 @@ package com.supernova.launcher.ui
 import android.graphics.drawable.Drawable
 import android.text.format.DateUtils
 import android.view.View
-import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.supernova.launcher.R
@@ -28,7 +27,10 @@ class FeedCardRoutes(
     fun edit(card: FeedCard?) {
         CustomCardEditorSheet.show(
             activity, viewModel, card,
-            onPickWidget = { cardId -> widgets().showPickerForCard(cardId) }
+            widgetFlow = CustomCardEditorSheet.WidgetFlow(
+                pick = { onPicked -> widgets().showPickerForCard(onPicked) },
+                bind = { info, cardId -> widgets().bindToCard(info, cardId) }
+            )
         )
     }
 
@@ -118,18 +120,30 @@ class FeedCardRoutes(
         }
     }
 
-    // The card menu: Settings (edit) and Pin.
+    // The card menu: Settings (edit), Pin, and Delete with an Undo.
     private fun showCardMenu(card: FeedCard, anchor: View) {
-        val menu = PopupMenu(activity, anchor)
-        menu.menu.add(0, 1, 0, R.string.card_menu_edit)
-        menu.menu.add(0, 2, 1, if (card.pinned) R.string.card_menu_unpin else R.string.card_menu_pin)
-        menu.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                1 -> edit(card)
-                2 -> viewModel.setFeedCardPinned(card.id, !card.pinned)
+        ChoiceMenu.showActions(
+            anchor, viewModel.state.value.prefs,
+            listOf(
+                activity.getString(R.string.card_menu_edit),
+                activity.getString(if (card.pinned) R.string.card_menu_unpin else R.string.card_menu_pin),
+                activity.getString(R.string.card_delete)
+            )
+        ) { which ->
+            when (which) {
+                0 -> edit(card)
+                1 -> viewModel.setFeedCardPinned(card.id, !card.pinned)
+                2 -> {
+                    viewModel.removeFeedCard(card.id)
+                    com.google.android.material.snackbar.Snackbar
+                        .make(
+                            anchor.rootView, R.string.card_deleted,
+                            com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+                        )
+                        .setAction(R.string.undo) { viewModel.upsertFeedCard(card) }
+                        .show()
+                }
             }
-            true
         }
-        menu.show()
     }
 }

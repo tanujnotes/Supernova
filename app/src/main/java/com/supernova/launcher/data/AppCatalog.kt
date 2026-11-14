@@ -77,6 +77,7 @@ class AppCatalog(
     // Serializes icon composition: the pack drawables and renderer state are
     // shared and mutated during render, and pre-warm runs off the main thread.
     private val renderLock = Any()
+    private val waiters = IconWaiters()
     private var changeCallback: LauncherApps.Callback? = null
     // One listener per live view model; the system callback behind them is
     // registered once and stays for as long as any of them does.
@@ -84,7 +85,6 @@ class AppCatalog(
 
     fun listLaunchableApps(): List<LaunchableApp> {
         val infoCache = mutableMapOf<String, LauncherActivityInfo>()
-        val sizes = mutableMapOf<String, Long>()
         val privateUser = privateSpaceUser()
         val apps = launcherApps.profiles.flatMap { user ->
             val serial = serialFor(user)
@@ -100,7 +100,6 @@ class AppCatalog(
                     label = info.label?.toString().orEmpty(),
                     userSerial = serial,
                     installTime = info.firstInstallTime,
-                    sizeBytes = sizes.getOrPut("$serial/${component.packageName}") { installedSize(info) },
                     privateSpace = isPrivate
                 )
             }
@@ -152,7 +151,11 @@ class AppCatalog(
         }
     }
 
-    fun iconFor(app: LaunchableApp): Drawable? {
+    // An app's icon, rendered now if it isn't cached. Whoever waits here (a
+    // bind, the first run's preview) goes ahead of the background warm.
+    fun iconFor(app: LaunchableApp): Drawable? = waiters.ahead { renderIcon(app) }
+
+    private fun renderIcon(app: LaunchableApp): Drawable? {
         val cacheKey = "${app.userSerial}/${app.packageName}/${app.className}"
         iconCache.get(cacheKey)?.let { return it }
         val user = userForSerial(app.userSerial) ?: return null
@@ -321,8 +324,14 @@ class AppCatalog(
 
     // Renders every app's icon into the cache off the main thread, so binds
     // become cache-hit-only. Safe to call repeatedly; hits return instantly.
+    // It pauses between icons while anyone waits in iconFor: a change of
+    // icon settings starts a warm of every app, and the icons on screen
+    // queued behind it for the render lock, a whole warm late.
     fun warmIcons(apps: List<LaunchableApp>) {
-        apps.forEach { iconFor(it) }
+        for (app in apps) {
+            waiters.stepAside()
+            renderIcon(app)
+        }
     }
 
     fun applyIconPack(packageName: String?) = synchronized(renderLock) {
@@ -523,15 +532,6 @@ class AppCatalog(
             userSerial = userSerial,
             installTime = info.firstInstallTime
         )
-    }
-
-    // The app's APKs on disk, the "App size" line of its system info page.
-    // Data and cache would need usage access (StorageStatsManager), so they
-    // are left out; a file that can't be read counts as nothing.
-    private fun installedSize(info: LauncherActivityInfo): Long {
-        val app = info.applicationInfo
-        val paths = listOfNotNull(app.sourceDir) + app.splitSourceDirs.orEmpty()
-        return paths.sumOf { path -> runCatching { java.io.File(path).length() }.getOrDefault(0L) }
     }
 
     // ApplicationInfo.category for Smart Folders; UNDEFINED when the package
@@ -875,6 +875,7 @@ class AppCatalog(
     }
 
     companion object {
+
         // The size charged for a cached icon that reports none of its own.
         private const val FALLBACK_ICON_PX = 192
 

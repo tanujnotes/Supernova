@@ -37,6 +37,9 @@ class FolderPopup(private val context: Context) {
         scroll: FolderScroll = FolderScroll.VERTICAL,
         // Resolved FOLDER surface; null keeps the drawable's default color.
         surfaceColor: Int? = null,
+        // The resolved FOLDER text, for the name, its hint, the count and the
+        // menu button; null keeps the theme's text color.
+        textColor: Int? = null,
         // Style-engine radii/cuts for the card, in dp; null keeps bg_folder's
         // built-in 24dp round corners.
         cornerRadiiDp: FloatArray? = null,
@@ -89,6 +92,13 @@ class FolderPopup(private val context: Context) {
                 (binding.folderCard.background?.mutate() as? GradientDrawable)?.setColor(color)
             }
         }
+        // The title row reads on the card's own color: a fixed hint was white
+        // on the light theme's white card, so an unnamed folder showed nothing.
+        val text = textColor ?: context.getColor(com.supernova.launcher.R.color.textPrimary)
+        binding.folderTitle.setTextColor(text)
+        binding.folderTitle.setHintTextColor(androidx.core.graphics.ColorUtils.setAlphaComponent(text, HINT_ALPHA))
+        binding.folderCount.setTextColor(androidx.core.graphics.ColorUtils.setAlphaComponent(text, COUNT_ALPHA))
+        binding.folderEditButton.imageTintList = android.content.res.ColorStateList.valueOf(text)
         binding.folderTitle.visibility = if (showTitle) View.VISIBLE else View.GONE
         if (!titleEditable) {
             binding.folderTitle.apply {
@@ -135,7 +145,7 @@ class FolderPopup(private val context: Context) {
                     width = gridWidth
                     height = visibleRows * cellHeight
                 }
-                attachColumnPaging(binding.folderGrid, gridWidth)
+                attachColumnPaging(binding.folderGrid, gridWidth, smooth = animate)
             }
         }
 
@@ -334,8 +344,15 @@ class FolderPopup(private val context: Context) {
     // centred a single column instead, so with an even column count the
     // tiles at both edges were cut in half after every swipe, and a fling
     // moved one column.
-    private fun attachColumnPaging(grid: androidx.recyclerview.widget.RecyclerView, pageWidth: Int) {
+    private fun attachColumnPaging(
+        grid: androidx.recyclerview.widget.RecyclerView,
+        pageWidth: Int,
+        smooth: Boolean
+    ) {
         if (pageWidth <= 0) return
+        // With animations off a page lands at once.
+        fun scrollBy(rv: androidx.recyclerview.widget.RecyclerView, dx: Int) =
+            if (smooth) rv.smoothScrollBy(dx, 0) else rv.scrollBy(dx, 0)
         fun maxOffset(rv: androidx.recyclerview.widget.RecyclerView) =
             (rv.computeHorizontalScrollRange() - rv.computeHorizontalScrollExtent()).coerceAtLeast(0)
         grid.onFlingListener = object : androidx.recyclerview.widget.RecyclerView.OnFlingListener() {
@@ -343,7 +360,7 @@ class FolderPopup(private val context: Context) {
                 val offset = grid.computeHorizontalScrollOffset()
                 val page = offset / pageWidth
                 val target = (if (velocityX > 0) page + 1 else page) * pageWidth
-                grid.smoothScrollBy(target.coerceIn(0, maxOffset(grid)) - offset, 0)
+                scrollBy(grid, target.coerceIn(0, maxOffset(grid)) - offset)
                 return true
             }
         }
@@ -353,7 +370,7 @@ class FolderPopup(private val context: Context) {
                 // A drag let go without a fling settles on the nearer page.
                 val offset = rv.computeHorizontalScrollOffset()
                 val target = (((offset + pageWidth / 2) / pageWidth) * pageWidth).coerceIn(0, maxOffset(rv))
-                if (target != offset) rv.smoothScrollBy(target - offset, 0)
+                if (target != offset) scrollBy(rv, target - offset)
             }
         })
     }
@@ -371,6 +388,9 @@ class FolderPopup(private val context: Context) {
     }
 
     companion object {
+        private const val HINT_ALPHA = 0x80
+        private const val COUNT_ALPHA = 0xB3
+
         // A member's icon box grows with the folder's icon size
         // (FolderMemberAdapter), so its cell grows with it, as the drawer's
         // automatic cell does; a smaller icon keeps the base cell for its

@@ -4,8 +4,8 @@
     android:id="@+id/headerLabel"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingHorizontal="24dp"
-    android:paddingTop="18dp"
-    android:paddingBottom="6dp"
+    android:paddingHorizontal="@dimen/space_lg"
+    android:paddingTop="@dimen/space_ml"
+    android:paddingBottom="@dimen/space_sm"
     android:textColor="@color/textPrimary"
-    android:textSize="16sp" />
+    android:textSize="@dimen/text_body" />

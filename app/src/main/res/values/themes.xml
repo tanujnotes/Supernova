@@ -71,7 +71,7 @@
     <!-- Drawer group tabs: title case at label weight, not Material's
          all-caps micro-type. -->
     <style name="TextAppearance.Supernova.DrawerTab" parent="TextAppearance.MaterialComponents.Button">
-        <item name="android:textSize">14sp</item>
+        <item name="android:textSize">@dimen/text_secondary</item>
         <item name="android:textAllCaps">false</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:letterSpacing">0</item>
@@ -82,7 +82,7 @@
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">48dp</item>
         <item name="android:gravity">center</item>
-        <item name="android:paddingHorizontal">12dp</item>
+        <item name="android:paddingHorizontal">@dimen/space_ms</item>
         <item name="android:background">?attr/selectableItemBackground</item>
         <item name="android:textAppearance">@style/TextAppearance.Supernova.DrawerTab</item>
         <item name="android:textColor">@color/textPrimary</item>
@@ -222,13 +222,13 @@
 
     <style name="TextAppearance.Supernova.DialogTitle" parent="MaterialAlertDialog.MaterialComponents.Title.Text">
         <item name="android:textColor">@color/textPrimary</item>
-        <item name="android:textSize">22sp</item>
+        <item name="android:textSize">@dimen/text_headline</item>
         <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
     <style name="TextAppearance.Supernova.DialogBody" parent="MaterialAlertDialog.MaterialComponents.Body.Text">
         <item name="android:textColor">@color/textSecondary</item>
-        <item name="android:textSize">15sp</item>
+        <item name="android:textSize">@dimen/text_body</item>
         <item name="android:lineSpacingMultiplier">1.15</item>
     </style>
 
@@ -282,7 +282,7 @@
          to sentence-case rows. -->
     <style name="Widget.Supernova.Button" parent="Widget.MaterialComponents.Button">
         <item name="android:textAllCaps">false</item>
-        <item name="android:textSize">15sp</item>
+        <item name="android:textSize">@dimen/text_body</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:letterSpacing">0</item>
         <item name="android:minHeight">44dp</item>
@@ -295,12 +295,12 @@
 
     <style name="Widget.Supernova.Button.Text" parent="Widget.MaterialComponents.Button.TextButton">
         <item name="android:textAllCaps">false</item>
-        <item name="android:textSize">15sp</item>
+        <item name="android:textSize">@dimen/text_body</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:letterSpacing">0</item>
         <item name="android:minHeight">44dp</item>
-        <item name="android:paddingStart">16dp</item>
-        <item name="android:paddingEnd">16dp</item>
+        <item name="android:paddingStart">@dimen/space_md</item>
+        <item name="android:paddingEnd">@dimen/space_md</item>
         <item name="cornerRadius">22dp</item>
     </style>
 
@@ -316,14 +316,14 @@
          tint of the accent when chosen. -->
     <style name="Widget.Supernova.Button.Segment" parent="Widget.MaterialComponents.Button.OutlinedButton">
         <item name="android:textAllCaps">false</item>
-        <item name="android:textSize">14sp</item>
+        <item name="android:textSize">@dimen/text_secondary</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:letterSpacing">0</item>
         <item name="android:minHeight">40dp</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
-        <item name="android:paddingStart">14dp</item>
-        <item name="android:paddingEnd">14dp</item>
+        <item name="android:paddingStart">@dimen/space_md</item>
+        <item name="android:paddingEnd">@dimen/space_md</item>
         <item name="android:maxLines">1</item>
         <item name="cornerRadius">20dp</item>
         <item name="strokeColor">@color/textInputStroke</item>
@@ -335,7 +335,7 @@
     <style name="Widget.Supernova.Button.Dialog" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
         <item name="android:textAllCaps">false</item>
         <item name="android:textColor">?attr/colorAccentOnRaised</item>
-        <item name="android:textSize">15sp</item>
+        <item name="android:textSize">@dimen/text_body</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:letterSpacing">0</item>
         <item name="android:minHeight">44dp</item>
@@ -364,26 +364,6 @@
         <item name="android:textColor">@color/textPrimary</item>
     </style>
 
-    <!-- The group switch (the Label card's header) is Material 3's, the
-         thumb riding inside a wide track that the accent fills when on. It
-         reads M3 color roles this MaterialComponents theme doesn't define,
-         so the overlay maps them onto the settings palette. -->
-    <style name="Widget.Supernova.MaterialSwitch" parent="Widget.Material3.CompoundButton.MaterialSwitch">
-        <item name="materialThemeOverlay">@style/ThemeOverlay.Supernova.MaterialSwitch</item>
-        <item name="android:textAppearance">@style/TextAppearance.MaterialComponents.Body2</item>
-        <item name="android:minHeight">48dp</item>
-    </style>
-
-    <style name="ThemeOverlay.Supernova.MaterialSwitch" parent="">
-        <item name="colorOutline">@color/textSecondary</item>
-        <item name="colorOnSurfaceVariant">@color/textSecondary</item>
-        <item name="colorSurfaceContainerHighest">@color/settingsPillBg</item>
-        <!-- The thumb while pressed on; M3's own tint would all but vanish
-             into the accent track. -->
-        <item name="colorPrimaryContainer">@color/onAccent</item>
-        <item name="colorOnPrimaryContainer">?attr/colorPrimary</item>
-    </style>
-
     <!-- Text fields: outlined, rounded to match the plates they sit on. -->
     <style name="Widget.Supernova.TextInput" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
         <item name="boxCornerRadiusTopStart">14dp</item>
@@ -403,12 +383,12 @@
         <item name="android:background">@drawable/bg_settings_tab</item>
         <item name="android:foreground">?attr/selectableItemBackground</item>
         <item name="android:gravity">center_vertical</item>
-        <item name="android:paddingStart">16dp</item>
-        <item name="android:paddingEnd">20dp</item>
+        <item name="android:paddingStart">@dimen/space_md</item>
+        <item name="android:paddingEnd">@dimen/space_ml</item>
         <item name="android:drawablePadding">8dp</item>
         <item name="drawableTint">@color/bottom_nav_item</item>
         <item name="android:textColor">@color/bottom_nav_item</item>
-        <item name="android:textSize">14sp</item>
+        <item name="android:textSize">@dimen/text_secondary</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:maxLines">1</item>
     </style>
@@ -425,8 +405,8 @@
         <item name="android:orientation">horizontal</item>
         <item name="android:gravity">center_vertical</item>
         <item name="android:minHeight">56dp</item>
-        <item name="android:paddingHorizontal">20dp</item>
-        <item name="android:paddingVertical">10dp</item>
+        <item name="android:paddingHorizontal">@dimen/space_ml</item>
+        <item name="android:paddingVertical">@dimen/space_ms</item>
     </style>
 
     <style name="SheetRowTitle">
@@ -434,21 +414,21 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_weight">1</item>
         <item name="android:textColor">@color/textPrimary</item>
-        <item name="android:textSize">15sp</item>
+        <item name="android:textSize">@dimen/text_body</item>
     </style>
 
     <style name="SheetRowValue">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:layout_marginStart">12dp</item>
+        <item name="android:layout_marginStart">@dimen/space_ms</item>
         <item name="android:background">@drawable/bg_value_pill</item>
         <item name="android:maxLines">1</item>
         <item name="android:ellipsize">end</item>
         <item name="android:maxWidth">180dp</item>
-        <item name="android:paddingHorizontal">14dp</item>
-        <item name="android:paddingVertical">7dp</item>
+        <item name="android:paddingHorizontal">@dimen/space_md</item>
+        <item name="android:paddingVertical">@dimen/space_sm</item>
         <item name="android:textColor">@color/textPrimary</item>
-        <item name="android:textSize">13sp</item>
+        <item name="android:textSize">@dimen/text_secondary</item>
     </style>
 
     <!-- Card editor sections: an accent group label over a muted blurb. -->
@@ -456,37 +436,56 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:paddingTop">22dp</item>
-        <item name="android:paddingBottom">4dp</item>
+        <item name="android:paddingBottom">@dimen/space_xs</item>
         <item name="android:textColor">@color/accent</item>
-        <item name="android:textSize">13sp</item>
+        <item name="android:textSize">@dimen/text_secondary</item>
         <item name="android:textStyle">bold</item>
     </style>
 
     <style name="CardEditorDescription">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:paddingBottom">6dp</item>
+        <item name="android:paddingBottom">@dimen/space_sm</item>
         <item name="android:textColor">@color/textSecondary</item>
-        <item name="android:textSize">13sp</item>
+        <item name="android:textSize">@dimen/text_secondary</item>
     </style>
 
     <style name="SheetTitle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:paddingHorizontal">20dp</item>
-        <item name="android:paddingTop">4dp</item>
-        <item name="android:paddingBottom">4dp</item>
+        <item name="android:paddingHorizontal">@dimen/space_ml</item>
+        <item name="android:paddingTop">@dimen/space_xs</item>
+        <item name="android:paddingBottom">@dimen/space_xs</item>
         <item name="android:textColor">@color/textPrimary</item>
-        <item name="android:textSize">22sp</item>
+        <item name="android:textSize">@dimen/text_headline</item>
         <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
     <!-- The big page titles of the first run. -->
-    <style name="OnboardingTitle" parent="">
-        <item name="android:layout_marginTop">36dp</item>
-        <item name="android:layout_marginBottom">20dp</item>
-        <item name="android:textColor">@android:color/white</item>
-        <item name="android:textSize">34sp</item>
+    <!-- First run: the white pill along the bottom (Design my homescreen,
+         Next, Set as my home screen), and the plain text buttons. -->
+    <style name="OnboardingPrimaryButton" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">52dp</item>
+        <item name="android:background">@drawable/bg_onboarding_primary</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@color/onboardingBackground</item>
+        <item name="android:textSize">@dimen/text_body</item>
         <item name="android:textStyle">bold</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+    </style>
+
+    <style name="OnboardingTextButton" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingHorizontal">@dimen/space_ms</item>
+        <item name="android:textColor">@color/onboardingText</item>
+        <item name="android:textSize">@dimen/text_body</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
     </style>
 </resources>

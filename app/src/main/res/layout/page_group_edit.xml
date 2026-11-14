@@ -21,9 +21,9 @@
         android:focusable="true"
         android:focusableInTouchMode="true"
         android:orientation="vertical"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="16dp"
-        android:paddingBottom="24dp">
+        android:paddingHorizontal="@dimen/space_md"
+        android:paddingTop="@dimen/space_md"
+        android:paddingBottom="@dimen/space_lg">
 
         <LinearLayout
             android:id="@+id/groupMainCard"
@@ -35,8 +35,8 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="16dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginHorizontal="@dimen/space_md"
+                android:layout_marginTop="@dimen/space_md"
                 android:hint="@string/group_name">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -53,19 +53,19 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="16dp"
-                android:layout_marginTop="20dp"
+                android:layout_marginHorizontal="@dimen/space_md"
+                android:layout_marginTop="@dimen/space_ml"
                 android:fontFamily="sans-serif-medium"
                 android:text="@string/group_show_as"
                 android:textColor="@color/textSecondary"
-                android:textSize="13sp" />
+                android:textSize="@dimen/text_secondary" />
 
             <com.google.android.material.button.MaterialButtonToggleGroup
                 android:id="@+id/groupType"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="16dp"
-                android:layout_marginTop="8dp"
+                android:layout_marginHorizontal="@dimen/space_md"
+                android:layout_marginTop="@dimen/space_sm"
                 app:selectionRequired="true"
                 app:singleSelection="true">
 
@@ -90,11 +90,11 @@
                 android:id="@+id/groupTypeHint"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="16dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="16dp"
+                android:layout_marginHorizontal="@dimen/space_md"
+                android:layout_marginTop="@dimen/space_sm"
+                android:layout_marginBottom="@dimen/space_md"
                 android:textColor="@color/textSecondary"
-                android:textSize="13sp" />
+                android:textSize="@dimen/text_secondary" />
 
             <!-- A folder's own icon, under a hairline from the text line. -->
             <LinearLayout
@@ -117,7 +117,7 @@
                     android:gravity="center_vertical"
                     android:minHeight="64dp"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="16dp">
+                    android:paddingHorizontal="@dimen/space_md">
 
                     <ImageView
                         android:id="@+id/groupIconPreview"
@@ -128,21 +128,21 @@
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
+                        android:layout_marginStart="@dimen/space_md"
                         android:layout_weight="1"
                         android:fontFamily="sans-serif-medium"
                         android:text="@string/group_folder_icon"
                         android:textColor="@color/textPrimary"
-                        android:textSize="16sp" />
+                        android:textSize="@dimen/text_body" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
+                        android:layout_marginStart="@dimen/space_md"
                         android:fontFamily="sans-serif-medium"
                         android:text="@string/group_folder_icon_change"
                         android:textColor="?attr/colorAccentOnRaised"
-                        android:textSize="15sp" />
+                        android:textSize="@dimen/text_body" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
@@ -153,9 +153,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="24dp"
-            android:paddingBottom="8dp">
+            android:paddingHorizontal="@dimen/space_md"
+            android:paddingTop="@dimen/space_lg"
+            android:paddingBottom="@dimen/space_sm">
 
             <TextView
                 android:layout_width="0dp"
@@ -165,7 +165,7 @@
                 android:letterSpacing="0.015"
                 android:text="@string/picker_tab_apps"
                 android:textColor="@color/textSecondary"
-                android:textSize="13sp" />
+                android:textSize="@dimen/text_secondary" />
 
             <TextView
                 android:id="@+id/groupAppsCount"
@@ -173,7 +173,7 @@
                 android:layout_height="wrap_content"
                 android:fontFamily="sans-serif-medium"
                 android:textColor="@color/textSecondary"
-                android:textSize="13sp" />
+                android:textSize="@dimen/text_secondary" />
         </LinearLayout>
 
         <LinearLayout
@@ -189,9 +189,9 @@
                 android:layout_height="wrap_content"
                 android:columnCount="4"
                 android:foreground="?attr/selectableItemBackground"
-                android:paddingHorizontal="8dp"
-                android:paddingTop="16dp"
-                android:paddingBottom="4dp" />
+                android:paddingHorizontal="@dimen/space_sm"
+                android:paddingTop="@dimen/space_md"
+                android:paddingBottom="@dimen/space_xs" />
 
             <TextView
                 android:id="@+id/groupAppsEmpty"
@@ -199,15 +199,15 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:minHeight="56dp"
-                android:paddingHorizontal="16dp"
+                android:paddingHorizontal="@dimen/space_md"
                 android:text="@string/group_empty"
                 android:textColor="@color/textSecondary"
-                android:textSize="14sp" />
+                android:textSize="@dimen/text_secondary" />
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginStart="16dp"
+                android:layout_marginStart="@dimen/space_md"
                 android:background="@color/settingsDivider" />
 
             <TextView
@@ -218,20 +218,20 @@
                 android:foreground="?attr/selectableItemBackground"
                 android:gravity="center_vertical"
                 android:minHeight="52dp"
-                android:paddingHorizontal="16dp"
+                android:paddingHorizontal="@dimen/space_md"
                 android:text="@string/edit_group_apps"
                 android:textColor="?attr/colorAccentOnRaised"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_body" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/groupOptionsCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="@dimen/space_lg"
             android:background="@drawable/bg_settings_card"
             android:orientation="vertical"
-            android:paddingVertical="4dp">
+            android:paddingVertical="@dimen/space_xs">
 
             <include
                 android:id="@+id/groupKeep"
@@ -241,7 +241,7 @@
                 android:id="@+id/groupDefaultDivider"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginStart="16dp"
+                android:layout_marginStart="@dimen/space_md"
                 android:background="@color/settingsDivider" />
 
             <include
@@ -253,13 +253,13 @@
             android:id="@+id/groupDelete"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="@dimen/space_lg"
             android:background="@drawable/bg_settings_card"
             android:fontFamily="sans-serif-medium"
             android:foreground="?attr/selectableItemBackground"
             android:gravity="center"
             android:minHeight="56dp"
             android:textColor="@color/accentRedText"
-            android:textSize="15sp" />
+            android:textSize="@dimen/text_body" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

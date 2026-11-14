@@ -9,7 +9,9 @@ import androidx.core.view.accessibility.AccessibilityNodeInfoCompat.Accessibilit
 import com.supernova.launcher.R
 import com.supernova.launcher.data.AccessibleMoves
 import com.supernova.launcher.data.AccessibleMoves.Move
+import com.supernova.launcher.data.ContainerType
 import com.supernova.launcher.data.LauncherItem
+import com.supernova.launcher.data.WorkspaceGeometry
 
 // Moving a home screen icon is a long-press and a drag, which a screen
 // reader or a switch can't perform. Each dock and desktop icon offers the
@@ -22,6 +24,8 @@ class ItemMoveActions(private val host: Host) {
         fun state(): LauncherUiState
         fun moveToCell(itemId: String, target: AccessibleMoves.Target.Cell)
         fun moveToDock(itemId: String, rank: Int)
+        // A widget's new cells; done says whether there was room for them.
+        fun placeWidget(itemId: String, rect: WorkspaceGeometry.CellRect, done: (Boolean) -> Unit)
         fun announce(message: Int)
     }
 
@@ -41,6 +45,71 @@ class ItemMoveActions(private val host: Host) {
                 return true
             }
         })
+    }
+
+    // A widget is moved and resized by dragging its frame. As actions: a
+    // cell over in each direction, and a cell wider, narrower, taller or
+    // shorter (from its right and bottom edges), each only where the grid
+    // has room for it.
+    fun attachWidget(view: View, itemId: String) {
+        ViewCompat.setAccessibilityDelegate(view, object : AccessibilityDelegateCompat() {
+            override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfoCompat) {
+                super.onInitializeAccessibilityNodeInfo(host, info)
+                widgetChanges(itemId).forEach { change ->
+                    info.addAction(AccessibilityActionCompat(change.action, host.context.getString(change.label)))
+                }
+            }
+
+            override fun performAccessibilityAction(host: View, action: Int, args: Bundle?): Boolean {
+                val change = widgetChanges(itemId).firstOrNull { it.action == action }
+                    ?: return super.performAccessibilityAction(host, action, args)
+                this@ItemMoveActions.host.placeWidget(itemId, change.rect) { placed ->
+                    val said = when {
+                        !placed -> R.string.a11y_no_room
+                        change.resizes -> R.string.a11y_resized
+                        else -> R.string.a11y_moved
+                    }
+                    this@ItemMoveActions.host.announce(said)
+                }
+                return true
+            }
+        })
+    }
+
+    private class WidgetChange(
+        val action: Int,
+        val label: Int,
+        val rect: WorkspaceGeometry.CellRect,
+        val resizes: Boolean
+    )
+
+    private fun widgetChanges(itemId: String): List<WidgetChange> {
+        val state = host.state()
+        val widget = movable(state, itemId)
+            ?.takeIf { it.container == ContainerType.WORKSPACE } ?: return emptyList()
+        val cols = state.prefs.gridCols
+        val rows = state.prefs.gridRows
+        val r = WorkspaceGeometry.itemRect(widget, cols, rows)
+        val width = r.right - r.left
+        val height = r.bottom - r.top
+        fun moved(dx: Float, dy: Float) =
+            WorkspaceGeometry.CellRect(r.left + dx, r.top + dy, r.right + dx, r.bottom + dy)
+        return listOfNotNull(
+            WidgetChange(R.id.a11y_move_left, R.string.a11y_move_left, moved(-1f, 0f), false).takeIf { r.left >= 1f },
+            WidgetChange(R.id.a11y_move_right, R.string.a11y_move_right, moved(1f, 0f), false)
+                .takeIf { r.right <= cols - 1f },
+            WidgetChange(R.id.a11y_move_up, R.string.a11y_move_up, moved(0f, -1f), false).takeIf { r.top >= 1f },
+            WidgetChange(R.id.a11y_move_down, R.string.a11y_move_down, moved(0f, 1f), false)
+                .takeIf { r.bottom <= rows - 1f },
+            WidgetChange(R.id.a11y_wider, R.string.a11y_wider, r.copy(right = r.right + 1f), true)
+                .takeIf { r.right <= cols - 1f },
+            WidgetChange(R.id.a11y_narrower, R.string.a11y_narrower, r.copy(right = r.right - 1f), true)
+                .takeIf { width >= 2f },
+            WidgetChange(R.id.a11y_taller, R.string.a11y_taller, r.copy(bottom = r.bottom + 1f), true)
+                .takeIf { r.bottom <= rows - 1f },
+            WidgetChange(R.id.a11y_shorter, R.string.a11y_shorter, r.copy(bottom = r.bottom - 1f), true)
+                .takeIf { height >= 2f }
+        )
     }
 
     // Nothing while the desktop is locked: it refuses a drag, and so these.

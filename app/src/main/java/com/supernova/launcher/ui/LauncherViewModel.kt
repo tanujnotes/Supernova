@@ -143,6 +143,21 @@ class LauncherViewModel(
     // need more than their own key written keep a function of their own.
     fun <T : Any> set(spec: PrefSpec<T>, value: T) = persist { preferences.set(spec, value) }
 
+    // Several settings in one write (the first run's looks). With replant,
+    // the planted first-run layout is built again for the grid they set.
+    fun setAll(writes: List<com.supernova.launcher.data.PrefWrite<*>>, replant: Boolean = false) = persist {
+        preferences.setAll(writes)
+        if (replant) {
+            val prefs = preferences.snapshot()
+            val items = withContext(Dispatchers.Default) {
+                DefaultLayoutBuilder.buildItems(
+                    getApplication(), catalog, prefs.gridCols, prefs.gridRows, prefs.dockCount
+                )
+            }
+            repository.replantDefaultLayout(items)
+        }
+    }
+
     private var appliedIconPack: String? = null
     private var appliedIconShape: IconShape? = null
     private var appliedIconShapeCustom: String? = null
@@ -822,10 +837,15 @@ class LauncherViewModel(
 
     fun setWidgetId(itemId: String, appWidgetId: Int) = persist { repository.setWidgetId(itemId, appWidgetId) }
 
-    fun resizeWidget(itemId: String, rect: WorkspaceGeometry.CellRect, onRefused: () -> Unit = {}) {
+    fun resizeWidget(
+        itemId: String,
+        rect: WorkspaceGeometry.CellRect,
+        onRefused: () -> Unit = {},
+        onSaved: () -> Unit = {}
+    ) {
         val prefs = state.value.prefs
         viewModelScope.launch {
-            if (!repository.resizeWidget(itemId, rect, prefs.gridCols, prefs.gridRows)) onRefused()
+            if (repository.resizeWidget(itemId, rect, prefs.gridCols, prefs.gridRows)) onSaved() else onRefused()
         }
     }
 
@@ -1434,8 +1454,17 @@ class LauncherViewModel(
 
     // A backup file the user picked: Supernova's own, or another launcher's,
     // whose home screen is brought over.
-    suspend fun importBackupFile(uri: android.net.Uri): LauncherRepository.ImportResult = withContext(Dispatchers.IO) {
-        when (val picked = BackupFiles.read(getApplication(), uri)) {
+    // Read first, import after: the user confirms in between, told whether the
+    // file replaces settings too or only the home screen.
+    internal suspend fun readBackupFile(uri: android.net.Uri): PickedBackup = withContext(Dispatchers.IO) {
+        BackupFiles.read(getApplication(), uri)
+    }
+
+    internal suspend fun importPicked(picked: PickedBackup): LauncherRepository.ImportResult =
+        withContext(Dispatchers.IO) { importPickedNow(picked) }
+
+    private suspend fun importPickedNow(picked: PickedBackup): LauncherRepository.ImportResult =
+        when (picked) {
             is PickedBackup.Own -> importBackup(picked.json)
             is PickedBackup.Other -> repository.importLayout(
                 picked.layout,
@@ -1453,7 +1482,6 @@ class LauncherViewModel(
                 widgetBoundCheck()
             )
         }
-    }
 
     private fun isInstalled(packageName: String, userSerial: Long): Boolean =
         catalog.isInstalled(packageName, userSerial)
@@ -1478,6 +1506,28 @@ class LauncherViewModel(
             id in hostIds && provider != null &&
                 manager.getAppWidgetInfo(id)?.provider?.flattenToString() == provider
         }
+    }
+
+    data class FreeSpot(val page: Int, val cellX: Int, val cellY: Int)
+
+    // Where a tapped "Add to Home" puts something: the page given when it has
+    // room, else the next page with room (then the ones before it), else a
+    // new page after the last, which the pager shows once the item is on it.
+    // Null only when no page has room and no more pages can be added.
+    fun freeSpotFrom(page: Int, spanX: Int = 1, spanY: Int = 1): FreeSpot? {
+        val current = state.value
+        val model = current.model
+        val shown = maxOf(
+            1,
+            model.pageCount,
+            (model.items.filter { it.container == ContainerType.WORKSPACE }.maxOfOrNull { it.page } ?: -1) + 1
+        )
+        val start = page.coerceIn(0, shown - 1)
+        for (p in (start until shown) + (0 until start)) {
+            firstFreeWorkspaceCell(p, spanX, spanY)?.let { return FreeSpot(p, it.first, it.second) }
+        }
+        val fits = spanX <= current.prefs.gridCols && spanY <= current.prefs.gridRows
+        return if (fits && shown < LauncherRepository.MAX_PAGES) FreeSpot(shown, 0, 0) else null
     }
 
     // Null when the page has no free area of the requested size.

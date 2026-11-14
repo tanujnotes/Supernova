@@ -66,9 +66,10 @@
     <color name="textInputStroke">#4D808080</color>
     <!-- The app icons' background, the logo's warm paper. -->
     <color name="launcherIconBackground">#F4F0E9</color>
-    <!-- First run: the wallpaper at 15% under this scrim, the progress
-         line's track, and the rows' summaries. -->
-    <color name="onboardingScrim">#D9000000</color>
-    <color name="onboardingTrack">#4DFFFFFF</color>
-    <color name="onboardingSummary">#B3FFFFFF</color>
+    <!-- First run: the page (the wallpaper shows only in the preview), its
+         text, the progress segments' track, and the summaries. -->
+    <color name="onboardingBackground">#0E1014</color>
+    <color name="onboardingText">#DBFFFFFF</color>
+    <color name="onboardingTrack">#38FFFFFF</color>
+    <color name="onboardingSummary">#B8FFFFFF</color>
 </resources>

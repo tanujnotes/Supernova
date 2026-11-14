@@ -7,15 +7,15 @@
     android:layout_height="wrap_content"
     android:background="@drawable/bg_settings_preview"
     android:orientation="vertical"
-    android:paddingVertical="16dp">
+    android:paddingVertical="@dimen/space_md">
 
     <HorizontalScrollView
         android:id="@+id/previewScroll"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:clipToPadding="false"
-        android:paddingStart="16dp"
-        android:paddingEnd="8dp"
+        android:paddingStart="@dimen/space_md"
+        android:paddingEnd="@dimen/space_sm"
         android:scrollbars="none">
 
         <LinearLayout
@@ -29,19 +29,19 @@
         android:id="@+id/previewApps"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="@dimen/space_md"
         android:baselineAligned="false"
         android:orientation="horizontal"
-        android:paddingHorizontal="8dp" />
+        android:paddingHorizontal="@dimen/space_sm" />
 
     <TextView
         android:id="@+id/previewNotice"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:lineSpacingExtra="2sp"
-        android:paddingHorizontal="16dp"
+        android:paddingHorizontal="@dimen/space_md"
         android:text="@string/group_tab_bar_hidden"
         android:textColor="@color/settingsWarn"
-        android:textSize="14sp"
+        android:textSize="@dimen/text_secondary"
         android:visibility="gone" />
 </LinearLayout>

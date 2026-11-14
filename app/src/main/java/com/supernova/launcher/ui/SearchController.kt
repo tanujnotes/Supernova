@@ -43,7 +43,9 @@ class SearchController(
     private val scope: CoroutineScope,
     private val onLaunchApp: (View?, LaunchableApp) -> Unit,
     private val onLaunchShortcut: (View?, SearchResult.Shortcut) -> Unit,
-    private val onOpenUri: (String) -> Unit,
+    // A link and the page to try when no app takes it; false when nothing
+    // opened, and the search stays open.
+    private val onOpenUri: (String, String?) -> Boolean,
     // The top hit's gear: the system App info page for the app.
     private val onAppInfo: (LaunchableApp) -> Unit = {},
     // Folder search (D3): cheap name hits, match-time icons, and the opener.
@@ -87,13 +89,25 @@ class SearchController(
         val results: androidx.recyclerview.widget.RecyclerView,
         val cards: CardViewBinder?,
         // After an app or shortcut launch.
-        val afterLaunch: () -> Unit,
+        private val onLaunched: () -> Unit,
         // After anything else that leaves search behind (a web search, a
         // contact, a folder, App info).
-        val dismiss: () -> Unit,
+        private val onDismissed: () -> Unit,
         // What an empty query shows.
         val onEmptyQuery: (Surface) -> Unit
     ) {
+        // A query that led somewhere is kept for the empty window's
+        // Recent searches.
+        fun afterLaunch() {
+            rememberQuery(input.text?.toString().orEmpty())
+            onLaunched()
+        }
+
+        fun dismiss() {
+            rememberQuery(input.text?.toString().orEmpty())
+            onDismissed()
+        }
+
         var lastResults: List<SearchResult> = emptyList()
         var appliedStyle: List<Any?>? = null
         val orchestrator: SearchOrchestrator = buildOrchestrator(cards != null)
@@ -126,6 +140,7 @@ class SearchController(
             input, ghost, results, cards, afterLaunch, dismiss,
             onEmptyQuery = { it.adapter.clear() }
         )
+        surface.adapter.showNoMatches = false
         drawerSurface = surface
         return object : DrawerSearch {
             override fun query(text: String) = onQueryChanged(surface, text)
@@ -143,6 +158,48 @@ class SearchController(
 
     var isOpen = false
         private set
+
+    // The empty window's Recent searches, newest first; read when the
+    // window opens (the store is read off the main thread).
+    private var recentQueries: List<String> = emptyList()
+
+    // Not while the keyboard is in private mode: nothing typed is kept then.
+    private fun rememberQuery(query: String) {
+        val trimmed = query.trim()
+        if (trimmed.isEmpty() || viewModel.state.value.prefs.searchPrivateKeyboard) return
+        viewModel.recordSearch(trimmed)
+        recentQueries = (listOf(trimmed) + recentQueries.filterNot { it.equals(trimmed, ignoreCase = true) })
+            .take(com.supernova.launcher.data.LauncherPreferences.MAX_RECENT_SEARCHES)
+    }
+
+    private fun loadRecentQueries() {
+        scope.launch {
+            val loaded = viewModel.recentSearches()
+            if (loaded == recentQueries) return@launch
+            recentQueries = loaded
+            if (isOpen && overlay?.searchInput?.text.isNullOrBlank()) showZeroState()
+        }
+    }
+
+    private fun removeRecentQuery(query: String) {
+        recentQueries = recentQueries - query
+        scope.launch { viewModel.removeRecentSearch(query) }
+        showZeroState()
+    }
+
+    private fun clearRecentQueries() {
+        val cleared = recentQueries
+        recentQueries = emptyList()
+        scope.launch { cleared.forEach { viewModel.removeRecentSearch(it) } }
+        showZeroState()
+    }
+
+    // A recent search tapped: typed back in, so its results are on screen.
+    private fun runRecentQuery(query: String) {
+        val input = overlay?.searchInput ?: return
+        input.setText(query)
+        input.setSelection(query.length)
+    }
 
     // A pinned recent search lands here: open as usual, then type the query in
     // so the results are already on screen.
@@ -164,6 +221,7 @@ class SearchController(
         isOpen = true
         onShown(!windowMode())
         showZeroState()
+        loadRecentQueries()
         ui.root.visibility = View.VISIBLE
         ui.root.animate().cancel()
         val backdrop = binding.searchBackdrop
@@ -200,7 +258,6 @@ class SearchController(
         suppressQueryEvents = true
         ui.searchInput.text?.clear()
         suppressQueryEvents = false
-        ui.searchClear.visibility = View.GONE
         ui.searchGhost.text = null
         ui.searchInput.clearFocus()
         imm()?.hideSoftInputFromWindow(ui.searchInput.windowToken, 0)
@@ -292,16 +349,14 @@ class SearchController(
 
         val surface = Surface(
             ui.searchInput, ui.searchGhost, ui.searchResults, cardBinder,
-            afterLaunch = ::hide, dismiss = ::hide,
+            onLaunched = ::hide, onDismissed = ::hide,
             onEmptyQuery = { showZeroState() }
         )
         overlaySurface = surface
 
-        ui.searchClear.setOnClickListener { ui.searchInput.text?.clear() }
         ui.searchInput.doAfterTextChanged { text ->
             if (suppressQueryEvents) return@doAfterTextChanged
             val query = text?.toString().orEmpty()
-            ui.searchClear.visibility = if (query.isEmpty()) View.GONE else View.VISIBLE
             onQueryChanged(surface, query)
         }
         ui.searchInput.setOnEditorActionListener { _, actionId, _ ->
@@ -485,8 +540,7 @@ class SearchController(
             }
             else -> {
                 val provider = viewModel.state.value.prefs.searchWebProvider
-                onOpenUri(provider.searchUrl(query))
-                surface.dismiss()
+                if (onOpenUri(provider.searchUrl(query), null)) surface.dismiss()
             }
         }
     }
@@ -521,12 +575,10 @@ class SearchController(
             surface.dismiss()
         },
         onChip = { chip, query ->
-            onOpenUri(chip.url(query))
-            surface.dismiss()
+            if (onOpenUri(chip.url(query), chip.fallbackUrl(query))) surface.dismiss()
         },
         onWeb = { web ->
-            onOpenUri(web.provider.searchUrl(web.query))
-            surface.dismiss()
+            if (onOpenUri(web.provider.searchUrl(web.query), null)) surface.dismiss()
         },
         onCopyCalculation = ::copyToClipboard,
         onFrequentApp = { view, app ->
@@ -543,12 +595,15 @@ class SearchController(
         },
         onAppLongPress = onAppLongPress,
         onShortcutLongPress = onShortcutLongPress,
-        onFolderLongPress = onFolderLongPress
+        onFolderLongPress = onFolderLongPress,
+        onRecent = ::runRecentQuery,
+        onRemoveRecent = ::removeRecentQuery,
+        onClearRecents = ::clearRecentQueries
     )
 
-    // The empty search window: suggested shortcuts, the recently opened
-    // apps, then - under a hairline - the drawer's folders and every app
-    // that isn't in one.
+    // The empty search window: recent searches, suggested shortcuts, the
+    // recently opened apps, then - under a hairline - the drawer's folders
+    // and every app that isn't in one.
     private fun showZeroState() {
         val frequent = viewModel.recentApps(gridColumns())
         val shortcuts = SuggestedShortcuts.pills(viewModel)
@@ -566,7 +621,7 @@ class SearchController(
         ) { it.label }
         val surface = overlaySurface ?: return
         styleSurface(surface)
-        surface.adapter.submitZeroState(shortcuts, frequent, allApps, folders)
+        surface.adapter.submitZeroState(shortcuts, frequent, allApps, folders, recentQueries)
     }
 
     private fun openContact(contact: SearchResult.Contact) {
@@ -627,7 +682,6 @@ class SearchController(
         ui.searchGhost.typeface = ui.searchInput.typeface
         val iconTint = ColorStateList.valueOf(bar.text)
         ImageViewCompat.setImageTintList(ui.searchIcon, iconTint)
-        ImageViewCompat.setImageTintList(ui.searchClear, iconTint)
         overlaySurface?.let { surface ->
             surface.appliedStyle = null
             styleSurface(surface)
@@ -658,10 +712,12 @@ class SearchController(
     }
 
     // IME_FLAG_NO_PERSONALIZED_LEARNING is applied before focus, so the flag
-    // is present when the input connection starts.
+    // is present when the input connection starts. No full-screen keyboard
+    // (a phone in landscape): the live results stay in view while typing.
     private fun applyImeOptions(ui: ViewSearchOverlayBinding) {
         val privateKeyboard = viewModel.state.value.prefs.searchPrivateKeyboard
-        val target = EditorInfo.IME_ACTION_SEARCH or
+        val target = EditorInfo.IME_ACTION_SEARCH or EditorInfo.IME_FLAG_NO_EXTRACT_UI or
+            EditorInfo.IME_FLAG_NO_FULLSCREEN or
             (if (privateKeyboard) EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING else 0)
         if (ui.searchInput.imeOptions != target) {
             ui.searchInput.imeOptions = target

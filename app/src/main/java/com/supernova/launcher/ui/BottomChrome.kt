@@ -38,7 +38,10 @@ internal object BottomChrome {
         val arrowHeight: Int,
         val indicatorOn: Boolean,
         // The page padding under the grid's bottom row.
-        val pagePadding: Int
+        val pagePadding: Int,
+        // A phone in landscape: the bar and the dock share one row, side by
+        // side, so the grid loses one row's height to them instead of two.
+        val sideBySide: Boolean = false
     )
 
     class Result(
@@ -66,7 +69,9 @@ internal object BottomChrome {
         // Behind-nav mode is the one place the bottom inset becomes padding
         // instead of margin: the slab runs to the window edge, the icons stay
         // above the bar.
+        val sharedRow = s.sideBySide && s.slot != null
         val dockBottom = when {
+            sharedRow -> dp(10) + s.navInset
             s.slot == BarSlot.BELOW_DOCK -> barMargin + dp(SEARCH_BAR_HEIGHT_DP) + barToDock + s.navInset
             s.dockBehindNav -> 0
             s.dockFullBleed -> s.navInset
@@ -79,7 +84,10 @@ internal object BottomChrome {
         // Every bottom margin carries the navigation bar on top of its design
         // value, except the above-dock bar's: it clears the dock, which
         // carries the inset already.
-        val barBottom = when (s.slot) {
+        val barBottom = if (sharedRow) {
+            // Beside the dock, centred on its row.
+            dockBottom + (s.dockHeight - dp(SEARCH_BAR_HEIGHT_DP)) / 2
+        } else when (s.slot) {
             // Over the dock, the band sits on the dock as the dock sits on it
             // below: the layout is the same two rows in either order.
             BarSlot.ABOVE_DOCK ->

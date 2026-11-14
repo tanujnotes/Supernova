@@ -51,6 +51,8 @@ class ShortcutPlacer(
     // launcher action placed as an icon, or the any-activity picker. cell:
     // where a dragged row was dropped; null for a tap.
     fun pick(target: ShortcutTarget, cell: DropCell? = null) {
+        // Before an app's own shortcut screen, not after it.
+        if (DesktopLock.refused(activity, viewModel())) return
         when (target) {
             is ShortcutTarget.Create -> {
                 val intent = Intent(Intent.ACTION_CREATE_SHORTCUT)
@@ -74,14 +76,15 @@ class ShortcutPlacer(
         }
     }
 
-    // The dropped cell, or for a tap the first free cell of the page in view;
-    // null, with a toast, when that page is full.
+    // The dropped cell, or for a tap a free cell from the page in view on
+    // (TappedPlacement); null, with a toast, when there is no room anywhere.
     private fun landing(cell: DropCell?): DropCell? {
         if (cell != null) return cell
-        val page = viewModel().state.value.currentPage
-        val free = viewModel().firstFreeWorkspaceCell(page, 1, 1)
-        if (free == null) Toast.makeText(activity, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
-        return free?.let { DropCell(page, it.first, it.second) }
+        var landed: DropCell? = null
+        TappedPlacement.place(viewModel(), viewModel().state.value.currentPage) { spot ->
+            landed = DropCell(spot.page, spot.cellX, spot.cellY)
+        }
+        return landed
     }
 
     private fun addIntentItem(intentUri: String, label: String, iconBase64: String?, cell: DropCell?) {

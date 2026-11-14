@@ -53,6 +53,8 @@ class DrawerController(
     // A tab's menu, anchored to the tab: a group tab's (its group as
     // stored), or the All tab's (null).
     private val onTabMenu: (View, DrawerGroup?) -> Unit = { _, _ -> },
+    // An empty group tab's "Select apps": the picker for that group.
+    private val onSelectTabApps: (DrawerGroup) -> Unit = {},
     // A group tab's picked icon (pack, app icon or photo), null for none.
     private val customTabIcon: (DrawerGroup) -> Drawable? = { null },
     // Activated custom cards above the list (the drawer cards); null
@@ -345,10 +347,13 @@ class DrawerController(
     // else the pager for the paged style, else the grid.
     private fun applyListVisibility() {
         val paged = currentStyle == DrawerStyle.PAGED_GRID
+        // A paged drawer with nothing to page (an empty tab, no matches)
+        // shows the flat list, where the empty state and the search rows live.
+        val pagedEmpty = paged && adapter.items().isEmpty()
         binding.drawerRecycler.visibility =
-            if (searchingExternally || paged) View.GONE else View.VISIBLE
+            if (searchingExternally || (paged && !pagedEmpty)) View.GONE else View.VISIBLE
         binding.drawerPager.visibility =
-            if (!searchingExternally && paged) View.VISIBLE else View.GONE
+            if (!searchingExternally && paged && !pagedEmpty) View.VISIBLE else View.GONE
     }
 
     private fun liftSearchRow() {
@@ -463,6 +468,14 @@ class DrawerController(
                 val prefs = viewModel.state.value.prefs
                 if (currentStyle == DrawerStyle.PAGED_GRID && pageRows(prefs) != cutRows) syncPages()
             }
+        }
+        // The top row takes one app per grid column, counted from the sheet's
+        // width. A rotation reaches the row before the sheet's new layout, so
+        // it kept the old count (five portrait columns stretched over a
+        // landscape row); a change of width counts again.
+        binding.drawerSheet.addOnLayoutChangeListener { sheet, left, _, right, _, oldLeft, _, oldRight, _ ->
+            if (right - left == oldRight - oldLeft) return@addOnLayoutChangeListener
+            sheet.post { updateFrequentRow() }
         }
         // Paging is the paged style's scrolling, so it does the same.
         binding.drawerPager.registerOnPageChangeCallback(
@@ -1122,9 +1135,11 @@ class DrawerController(
     // The private keyboard setting covers the drawer's own field too, not
     // just the search overlay's. Set on every state change, well before the
     // field can take focus, so the flag is in place when the input
-    // connection starts.
+    // connection starts. Never the keyboard's full-screen text box (a
+    // phone in landscape): it would cover the results that filter live.
     private fun applyImeOptions(prefs: LauncherPrefs) {
-        val target = EditorInfo.IME_ACTION_SEARCH or
+        val target = EditorInfo.IME_ACTION_SEARCH or EditorInfo.IME_FLAG_NO_EXTRACT_UI or
+            EditorInfo.IME_FLAG_NO_FULLSCREEN or
             (if (prefs.searchPrivateKeyboard) EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING else 0)
         if (binding.drawerSearch.imeOptions != target) binding.drawerSearch.imeOptions = target
     }
@@ -1283,6 +1298,12 @@ class DrawerController(
                 "${it.userSerial}/${it.packageName}/${it.className}" in excluded
             }
         }
+        adapter.emptyState = (tab as? DrawerGroup)?.let { group ->
+            AppDrawerAdapter.EmptyState(
+                binding.root.context.getString(R.string.drawer_tab_empty),
+                binding.root.context.getString(R.string.select_apps)
+            ) { onSelectTabApps(storedTab(group)) }
+        }
         adapter.submit(apps, folders, prefs.drawerFoldersFirst, listOrder(prefs))
         // The first apps make a tile measurable.
         if (adapter.tileHeightPx == 0) refreshGridRows(prefs)
@@ -1297,8 +1318,8 @@ class DrawerController(
             DrawerSort.ALPHA -> AppDrawerAdapter.Order.A_Z
             DrawerSort.ALPHA_REVERSE -> AppDrawerAdapter.Order.Z_A
             // Already in order, and no letters to scroll by.
-            DrawerSort.INSTALL_DATE, DrawerSort.MOST_USED, DrawerSort.RECENTLY_USED,
-            DrawerSort.APP_SIZE -> AppDrawerAdapter.Order.UNSORTED
+            DrawerSort.INSTALL_DATE, DrawerSort.MOST_USED,
+            DrawerSort.RECENTLY_USED -> AppDrawerAdapter.Order.UNSORTED
         }
 
     // The top row above the list: All tab only, hidden while a query
@@ -1791,6 +1812,9 @@ class DrawerController(
             DrawerStyle.PAGED_GRID -> {
                 adapter.tileHeightPx = 0
                 adapter.displayMode = AppDrawerAdapter.DisplayMode.TILE
+                // The flat list only shows here when there is nothing to
+                // page: the empty state or the search rows, all full-width.
+                recycler.layoutManager = DrawerLayoutManager(context, 1)
             }
         }
         val paged = currentStyle == DrawerStyle.PAGED_GRID
@@ -1987,7 +2011,11 @@ class DrawerController(
     private fun syncPages() {
         if (currentStyle != DrawerStyle.PAGED_GRID) return
         val pager = binding.drawerPager
-        if (pager.height == 0) {
+        // No matches means no pages: the flat list shows instead, so the
+        // empty state has somewhere to render (applyListVisibility). Set
+        // first: a pager hidden since the start has no height to wait for.
+        applyListVisibility()
+        if (pager.height == 0 && adapter.items().isNotEmpty()) {
             pager.doOnLayout { syncPages() }
             return
         }
@@ -1997,14 +2025,6 @@ class DrawerController(
         cutRows = rows
         val perPage = (rows * columns).coerceAtLeast(1)
         val pages = adapter.items().chunked(perPage)
-        // No matches means no pages: show the flat list so the empty state has
-        // somewhere to render instead of leaving a blank pager.
-        val empty = pages.isEmpty()
-        // The search results own the container while a query is typed.
-        if (!searchingExternally) {
-            binding.drawerRecycler.visibility = if (empty) View.VISIBLE else View.GONE
-            pager.visibility = if (empty) View.GONE else View.VISIBLE
-        }
         val wasEmpty = pagerAdapter.pages.isEmpty()
         pagerAdapter.columns = columns
         pagerAdapter.infinite = prefs.drawerInfiniteScroll

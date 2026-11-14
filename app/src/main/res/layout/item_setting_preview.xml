@@ -5,5 +5,5 @@
     android:layout_height="wrap_content"
     android:clipChildren="false"
     android:clipToPadding="false"
-    android:paddingHorizontal="20dp"
-    android:paddingVertical="10dp" />
+    android:paddingHorizontal="@dimen/space_ml"
+    android:paddingVertical="@dimen/space_ms" />

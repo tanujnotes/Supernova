@@ -16,18 +16,18 @@
         android:id="@+id/newGroupKeep"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="24dp"
-        android:paddingStart="12dp"
+        android:layout_marginStart="@dimen/space_ml"
+        android:layout_marginTop="@dimen/space_sm"
+        android:layout_marginEnd="@dimen/space_lg"
+        android:paddingStart="@dimen/space_ms"
         android:paddingEnd="0dp"
         android:text="@string/group_keep_in_main" />
 
     <LinearLayout
         android:id="@+id/newGroupIconRow"
         style="@style/SheetRow"
-        android:layout_marginTop="4dp"
-        android:paddingHorizontal="24dp"
+        android:layout_marginTop="@dimen/space_xs"
+        android:paddingHorizontal="@dimen/space_lg"
         android:visibility="gone">
 
         <TextView

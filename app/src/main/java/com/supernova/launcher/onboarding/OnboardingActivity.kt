@@ -1,92 +1,114 @@
 package com.supernova.launcher.onboarding
 
-import android.Manifest
-import android.content.pm.PackageManager
+import android.app.WallpaperManager
+import android.content.ComponentName
 import android.graphics.Color
+import android.graphics.Outline
+import android.graphics.Paint
+import android.graphics.Typeface
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
-import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.view.WindowManager
+import android.view.animation.DecelerateInterpolator
+import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import com.supernova.launcher.appGraph
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.RecyclerView
-import androidx.viewpager2.widget.ViewPager2
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.materialswitch.MaterialSwitch
+import androidx.lifecycle.repeatOnLifecycle
 import com.supernova.launcher.HomeRole
 import com.supernova.launcher.R
-import com.supernova.launcher.data.IconShape
+import com.supernova.launcher.appGraph
+import com.supernova.launcher.data.ContainerType
+import com.supernova.launcher.data.CustomShapeSpec
+import com.supernova.launcher.data.DeviceProfile
+import com.supernova.launcher.data.IconRenderer
+import com.supernova.launcher.data.ItemType
+import com.supernova.launcher.data.LauncherModel
+import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.Pref
-import com.supernova.launcher.data.SearchWindowMode
+import com.supernova.launcher.data.PrefWrite
 import com.supernova.launcher.databinding.ActivityOnboardingBinding
-import com.supernova.launcher.databinding.OnboardingPageDoneBinding
-import com.supernova.launcher.databinding.OnboardingPageIconsBinding
-import com.supernova.launcher.databinding.OnboardingPageRowsBinding
-import com.supernova.launcher.databinding.OnboardingPageWelcomeBinding
-import com.supernova.launcher.databinding.OnboardingRowDropdownBinding
-import com.supernova.launcher.databinding.OnboardingRowSwitchBinding
-import com.supernova.launcher.databinding.OnboardingShapeTileBinding
 import com.supernova.launcher.runLogged
-import com.supernova.launcher.ui.ChoiceMenu
-import com.supernova.launcher.ui.DrawerBarPlacement
-import com.supernova.launcher.ui.DrawerStyle
+import com.supernova.launcher.ui.LabelFont
 import com.supernova.launcher.ui.LauncherViewModel
-import com.supernova.launcher.ui.SearchBarConfig
-import com.supernova.launcher.ui.SearchBarPlacement
 import com.supernova.launcher.ui.WideScreen
 import com.supernova.launcher.ui.settings.EnumLabels
+import com.supernova.launcher.ui.settings.preview.MiniGridView
 import com.supernova.launcher.ui.theme.AccentColor
-import com.supernova.launcher.ui.theme.Styles
-import com.supernova.launcher.ui.theme.SurfaceId
 import com.supernova.launcher.ui.theme.ThemeEngine
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.random.Random
 
-// The first-run wizard: a welcome page with Get started, Restore backup and
-// Skip setup; Search, App drawer and Icon style pages holding the settings a
-// new home screen most wants, each applied the moment it changes; and All
-// done with Go home. Get started and Go home both ask to become the default
-// home app.
+// The first-run wizard. A welcome page (Design my homescreen, Restore
+// backup, Skip setup), then six choices - a starting look, a colour, the
+// icons' shape and finish, how much a page holds, and the app names - each
+// a few tiles under a live preview of the home screen over the real
+// wallpaper, and last the finished home with Set as my home screen. Every
+// choice is applied the moment it is tapped, so the preview is the home
+// screen itself, and every one is a bundle of settings Settings already has
+// (OnboardingChoices). Nothing asks for a permission or the keyboard.
 //
 // The fresh-install home screen is planted as the wizard opens, so it is
-// there under the first run and the pages show the values the home screen
-// really has. Finishing, skipping or restoring a backup writes
-// onboarding_done and homePromptShown together, so the launcher's own home
-// prompt never asks again. Settings' "Quick start" re-runs it with
-// EXTRA_RERUN: the same pages over the current setup, back to Settings at the
-// end.
+// there under the first run and in the preview; picking another grid
+// plants it again on that grid. Finishing, skipping or restoring a backup
+// writes onboarding_done and homePromptShown together, so the launcher's own
+// home prompt never asks again. Settings' "Quick start" re-runs it with
+// EXTRA_RERUN: the same pages over the current setup, back to Settings at
+// the end.
 class OnboardingActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityOnboardingBinding
     private val viewModel: LauncherViewModel by viewModels { LauncherViewModel.Factory(appGraph) }
     private val isRerun by lazy { intent.getBooleanExtra(EXTRA_RERUN, false) }
-    private val pages = PagesAdapter()
+    private val profile by lazy { DeviceProfile.forDevice(this) }
+    private val accents by lazy { AccentColor.entries.associateWith { ThemeEngine.accentColor(this, it) } }
     private var seedJob: Job? = null
-    private var appliedAccent: AccentColor? = null
 
-    // What Get started or Go home does once the default-home prompt answers.
+    private var step = STEP_WELCOME
+
+    // The look step's Shuffle was the last pick there, so it, not a look,
+    // shows as chosen.
+    private var shuffled = false
+
+    // The current step's tiles.
+    private var tiles = OnboardingTiles(this)
+
+    // The current step's text that follows the settings (the colour's name,
+    // the shape's).
+    private var liveText: Pair<TextView, (LauncherPrefs) -> CharSequence>? = null
+
+    // What Set as my home screen does once the default-home prompt answers.
     private var afterHomeRole: (() -> Unit)? = null
-
-    // The Contact Search switch waiting on the permission it asked for.
-    private var contactSwitch: MaterialSwitch? = null
 
     // The backup brought its own home screen and settings: nothing is left
     // to set up.
@@ -99,105 +121,636 @@ class OnboardingActivity : AppCompatActivity() {
             then?.invoke()
         }
 
-    private val requestContacts =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            viewModel.set(Pref.searchContacts, granted)
-            contactSwitch?.isChecked = granted
-            contactSwitch = null
-        }
+    // A choice just tapped, as the settings will be once its write lands:
+    // the tiles and the preview show it at once rather than a round trip
+    // through the store later.
+    private var pendingPrefs: LauncherPrefs? = null
+    private val clearPending = Runnable {
+        pendingPrefs = null
+        refreshChoices(prefs)
+        rebindPreview()
+    }
+
+    // The settings as the screen shows them.
+    private val prefs: LauncherPrefs get() = pendingPrefs ?: viewModel.state.value.prefs
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val accent = viewModel.state.value.prefs.accentColor
-        appliedAccent = accent
-        ThemeEngine.applyAccent(this, accent)
+        ThemeEngine.applyAccent(this, viewModel.state.value.prefs.accentColor)
         binding = ActivityOnboardingBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        // Edge to edge over the wallpaper: light system bar
-        // icons on the scrim, and the pages clear of both bars.
+        step = savedInstanceState?.getInt(KEY_STEP, STEP_WELCOME) ?: STEP_WELCOME
+        shuffled = savedInstanceState?.getBoolean(KEY_SHUFFLED, false) ?: false
+        setUpWindow()
+        setUpPreview()
+
+        binding.onboardingWelcome.welcomeGetStarted.setOnClickListener { goTo(STEP_LOOK) }
+        binding.onboardingWelcome.welcomeRestore.setOnClickListener { backup.pickImportFile() }
+        binding.onboardingWelcome.welcomeSkip.setOnClickListener { finishOnboarding() }
+        binding.onboardingBack.setOnClickListener { goTo(step - 1) }
+        binding.onboardingSkip.setOnClickListener { goTo(STEP_DONE) }
+        binding.onboardingNext.setOnClickListener {
+            if (step == STEP_DONE) askHomeRoleThen { finishOnboarding() } else goTo(step + 1)
+        }
+        onBackPressedDispatcher.addCallback(this) {
+            when {
+                step > STEP_WELCOME -> goTo(step - 1)
+                isRerun -> finish()
+                // The first run can't be backed out of either; this points
+                // at the way to skip it.
+                else -> Toast.makeText(this@OnboardingActivity, R.string.onboarding_skip_hint, Toast.LENGTH_SHORT)
+                    .show()
+            }
+        }
+        repeat(CHOICE_STEPS) {
+            val params = LinearLayout.LayoutParams(dp(SEGMENT_DP), dp(SEGMENT_HEIGHT_DP))
+            if (it > 0) params.marginStart = dp(SEGMENT_GAP_DP)
+            binding.onboardingProgress.addView(View(this), params)
+        }
+        showStep(animate = false)
+
+        if (!isRerun) {
+            seedJob = lifecycleScope.launch {
+                withContext(NonCancellable) { viewModel.seedDefaultLayout() }
+            }
+            // The first run starts on the wallpaper's colours, so that is the
+            // colour step's pick until another is tapped. Once per run: a
+            // rotation keeps whatever was picked since.
+            if (savedInstanceState == null) choose(OnboardingChoices.wallpaperWrites(wallpaperColors?.first, accents))
+        }
+        // The preview and the chosen tiles follow the settings and the layout
+        // as they change.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.state
+                    .filter { it.loaded }
+                    .map { Triple(it.prefs, it.model, it.iconGeneration) }
+                    .distinctUntilChanged()
+                    .collectLatest { (stored, model, _) ->
+                        // The tapped choice has landed.
+                        if (stored == pendingPrefs) {
+                            pendingPrefs = null
+                            binding.root.removeCallbacks(clearPending)
+                        }
+                        refreshChoices(prefs)
+                        val icons = withContext(Dispatchers.Default) { iconsFor(model) }
+                        lastPreview = Triple(prefs, model, icons)
+                        binding.onboardingPreview.bind(prefs, model, icons + drawnIcons(prefs).orEmpty())
+                        if (prefetchStep != step) startPrefetch()
+                    }
+            }
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(KEY_STEP, step)
+        outState.putBoolean(KEY_SHUFFLED, shuffled)
+    }
+
+    // Edge to edge: light system bar icons on the dark page, the pages clear
+    // of both bars, and a centred column on a tablet.
+    private fun setUpWindow() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.attributes = window.attributes.apply {
-            layoutInDisplayCutoutMode = WindowManager.LayoutParams
-                .LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
+        @Suppress("DEPRECATION")
         window.statusBarColor = Color.TRANSPARENT
+        @Suppress("DEPRECATION")
         window.navigationBarColor = Color.TRANSPARENT
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            window.isNavigationBarContrastEnforced = false
-        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.isNavigationBarContrastEnforced = false
         WindowCompat.getInsetsController(window, binding.root).apply {
             isAppearanceLightStatusBars = false
             isAppearanceLightNavigationBars = false
         }
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
-            val bars = insets.getInsets(
-                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
-            )
-            // A centred column on a tablet rather than rows stretched across
-            // the whole window.
-            val gutter = WideScreen.gutterPx(
-                view.context, view.resources.displayMetrics.widthPixels - bars.left - bars.right
-            )
-            view.setPadding(bars.left + gutter, bars.top, bars.right + gutter, bars.bottom)
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            val width = view.resources.displayMetrics.widthPixels - bars.left - bars.right
+            val gutter = WideScreen.gutterPx(view.context, width)
+            binding.onboardingFlow.setPadding(bars.left + gutter, bars.top, bars.right + gutter, bars.bottom)
+            binding.onboardingWelcome.root.setPadding(bars.left + gutter, bars.top, bars.right + gutter, bars.bottom)
+            binding.onboardingPreview.topInset = bars.top
+            binding.onboardingPreview.bottomInset = bars.bottom
             insets
         }
+    }
 
-        binding.onboardingPager.adapter = pages
-        // The pages move on the buttons, not on a swipe.
-        binding.onboardingPager.isUserInputEnabled = false
-        binding.onboardingPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) = updateChrome(position)
-        })
-        binding.onboardingBack.setOnClickListener { goTo(binding.onboardingPager.currentItem - 1) }
-        binding.onboardingNext.setOnClickListener { goTo(binding.onboardingPager.currentItem + 1) }
-        onBackPressedDispatcher.addCallback(this) {
-            val page = binding.onboardingPager.currentItem
+    // The last state the preview drew, to draw again when its size lands.
+    private var lastPreview: Triple<LauncherPrefs, LauncherModel, Map<String, Drawable>>? = null
+
+    private fun setUpPreview() {
+        val pane = binding.onboardingPreviewPane
+        pane.showsWallpaper = true
+        pane.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(view: View, outline: Outline) {
+                outline.setRoundRect(0, 0, view.width, view.height, dp(PANE_RADIUS_DP).toFloat())
+            }
+        }
+        pane.clipToOutline = true
+        val preview = binding.onboardingPreview
+        preview.pivotX = 0f
+        preview.pivotY = 0f
+        // The phone's outline, which shows while the whole screen is in view.
+        preview.background = GradientDrawable().apply {
+            cornerRadius = dp(FRAME_RADIUS_DP).toFloat()
+            setStroke(dp(FRAME_STROKE_DP), FRAME_COLOR)
+        }
+        // The preview stands for the whole window, whatever the pane's size.
+        binding.root.addOnLayoutChangeListener { root, _, _, _, _, _, _, _, _ ->
+            if (preview.homeWidth == root.width && preview.homeHeight == root.height) return@addOnLayoutChangeListener
+            preview.homeWidth = root.width
+            preview.homeHeight = root.height
+            lastPreview?.let { (prefs, model, icons) -> preview.bind(prefs, model, icons) }
+            preview.requestLayout()
+            root.post { applyCamera(animate = false) }
+        }
+        pane.addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+            if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) {
+                pane.post { applyCamera(animate = false) }
+            }
+        }
+    }
+
+    // The whole screen in view, or up close to the bottom rows and the dock
+    // for the steps about the icons themselves.
+    private fun applyCamera(animate: Boolean) {
+        val pane = binding.onboardingPreviewPane
+        val preview = binding.onboardingPreview
+        val paneEmpty = pane.width == 0 || pane.height == 0
+        if (paneEmpty || preview.homeWidth == 0 || preview.homeHeight == 0) return
+        val homeW = preview.homeWidth.toFloat()
+        val homeH = preview.homeHeight.toFloat()
+        val scale: Float
+        val x: Float
+        val y: Float
+        if (step in CLOSE_STEPS) {
+            scale = pane.width / homeW
+            x = 0f
+            y = pane.height - homeH * scale
+        } else {
+            scale = min(pane.width / homeW, pane.height / homeH) * FIT_MARGIN
+            x = (pane.width - homeW * scale) / 2f
+            y = (pane.height - homeH * scale) / 2f
+        }
+        if (animate) {
+            preview.animate().scaleX(scale).scaleY(scale).translationX(x).translationY(y)
+                .setDuration(CAMERA_MS).setInterpolator(DecelerateInterpolator(2f)).start()
+        } else {
+            preview.animate().cancel()
+            preview.scaleX = scale
+            preview.scaleY = scale
+            preview.translationX = x
+            preview.translationY = y
+        }
+    }
+
+    // Each item's icon on the preview's page and in the dock, copies of the
+    // launcher's own so the home screen's views keep theirs.
+    private fun iconsFor(model: LauncherModel): Map<String, Drawable> {
+        val catalog = viewModel.appCatalog()
+        val components = HashMap<String, String>()
+        val icons = model.items
+            .filter { it.container == ContainerType.DOCK || it.container == ContainerType.WORKSPACE && it.page == 0 }
+            .filter { it.itemType == ItemType.APP || it.itemType == ItemType.SHORTCUT }
+            .mapNotNull { item ->
+                val pkg = item.packageName ?: return@mapNotNull null
+                val cls = item.className.takeIf { item.itemType == ItemType.APP }
+                val app = catalog.mainActivityFor(pkg, item.userSerial, cls)
+                    ?: catalog.mainActivityFor(pkg, item.userSerial)
+                    ?: return@mapNotNull null
+                // An icon edited in Settings is the launcher's to draw.
+                val edited = catalog.overrideFor(app.userSerial, app.packageName, app.className) != null
+                if (app.userSerial == 0L && !edited) components[item.id] = "${app.packageName}/${app.className}"
+                val icon = catalog.iconFor(app) ?: return@mapNotNull null
+                item.id to (icon.constantState?.newDrawable(resources)?.mutate() ?: icon)
+            }
+            .toMap()
+        previewComponents = components
+        return icons
+    }
+
+    // The preview's items' launcher components (the primary profile's), by
+    // item id, as the last pass found them: what PreviewIcons draws (an
+    // icon edited in Settings stays out).
+    @Volatile private var previewComponents: Map<String, String> = emptyMap()
+
+    private val previewIcons by lazy {
+        PreviewIcons(this) { component ->
+            ComponentName.unflattenFromString(component)?.let { name ->
+                runCatching { packageManager.getActivityIcon(name) }.getOrNull()
+            }
+        }
+    }
+    private var prefetchJob: Job? = null
+    private var prefetchStep = -1
+
+    // The preview's icons as PreviewIcons drew them for these settings, by
+    // item id; null while any is still to draw.
+    private fun drawnIcons(prefs: LauncherPrefs): Map<String, Drawable>? {
+        val components = previewComponents
+        val byComponent = previewIcons.cached(components.values, prefs) ?: return null
+        return components.mapNotNull { (id, component) -> byComponent[component]?.let { id to it } }.toMap()
+    }
+
+    // Draws every option of the step ahead of its tap, one after another.
+    private fun startPrefetch() {
+        prefetchJob?.cancel()
+        prefetchStep = step
+        val components = previewComponents.values.toList()
+        if (components.isEmpty()) return
+        val base = prefs
+        val night = night()
+        val options = when (step) {
+            STEP_LOOK -> OnboardingChoices.Look.entries.map { it.writes(base, profile, night) }
+            STEP_SHAPE -> OnboardingChoices.SHAPES.map { OnboardingChoices.shapeWrites(it) }
+            STEP_FINISH -> OnboardingChoices.Finish.entries.map { it.writes(base, night) }
+            else -> return
+        }.map { com.supernova.launcher.data.LauncherPreferences.applied(base, it) }
+        prefetchJob = lifecycleScope.launch(Dispatchers.Default) {
+            for (option in options) previewIcons.render(components, option) { isActive }
+        }
+    }
+
+    // A tap whose icons aren't drawn yet: those first, then the rest.
+    private fun drawNow(expected: LauncherPrefs) {
+        prefetchJob?.cancel()
+        val components = previewComponents.values.toList()
+        if (components.isEmpty() || !previewIcons.handles(expected)) return
+        prefetchJob = lifecycleScope.launch {
+            withContext(Dispatchers.Default) { previewIcons.render(components, expected) { isActive } }
+            if (prefs == expected) rebindPreview()
+            startPrefetch()
+        }
+    }
+
+    // The preview again with what is known now: the settings shown, and
+    // the drawn icons over the launcher's.
+    private fun rebindPreview() {
+        val (_, model, icons) = lastPreview ?: return
+        binding.onboardingPreview.bind(prefs, model, icons + drawnIcons(prefs).orEmpty())
+    }
+
+    private fun goTo(target: Int) {
+        if (target !in STEP_WELCOME..STEP_DONE || target == step) return
+        step = target
+        showStep(animate = true)
+    }
+
+    private fun showStep(animate: Boolean) {
+        val welcome = binding.onboardingWelcome.root
+        if (step == STEP_WELCOME) {
+            welcome.animate().cancel()
+            welcome.visibility = View.VISIBLE
+            welcome.alpha = 1f
+        } else if (welcome.isVisible) {
+            if (animate) {
+                welcome.animate().alpha(0f).setDuration(FADE_MS)
+                    .withEndAction { welcome.visibility = View.GONE }.start()
+            } else {
+                welcome.visibility = View.GONE
+            }
+        }
+        if (step == STEP_WELCOME) return
+
+        binding.onboardingSkip.visibility = if (step == STEP_DONE) View.INVISIBLE else View.VISIBLE
+        binding.onboardingNext.setText(
             when {
-                page > PAGE_WELCOME -> goTo(page - 1)
-                isRerun -> finish()
-                // The first run can't be backed out of either; this points
-                // at the way to skip it.
-                else -> Toast.makeText(this@OnboardingActivity, R.string.onboarding_skip_hint, Toast.LENGTH_SHORT).show()
+                step != STEP_DONE -> R.string.next
+                isRerun -> R.string.onboarding_done_rerun
+                else -> R.string.onboarding_set_home
+            }
+        )
+        for (index in 0 until binding.onboardingProgress.childCount) {
+            binding.onboardingProgress.getChildAt(index).background = GradientDrawable().apply {
+                cornerRadius = dp(SEGMENT_HEIGHT_DP).toFloat()
+                setColor(if (index < step) Color.WHITE else getColor(R.color.onboardingTrack))
             }
         }
-        updateChrome(binding.onboardingPager.currentItem)
+        buildStep()
+        startPrefetch()
+        refreshChoices(prefs)
+        applyCamera(animate)
+        if (animate) {
+            binding.onboardingPanel.alpha = 0f
+            binding.onboardingPanel.animate().alpha(1f).setDuration(FADE_MS).start()
+        }
+        binding.onboardingTitle.sendAccessibilityEvent(android.view.accessibility.AccessibilityEvent.TYPE_VIEW_FOCUSED)
+    }
 
-        // The pages read the settings as they bind: once the stored ones have
-        // loaded, bind again with them. The accent is the theme's, so a
-        // stored one the screen didn't start with makes it again, as
-        // Settings does; the view model, loaded, carries over.
-        lifecycleScope.launch {
-            val loaded = viewModel.state.first { it.loaded }
-            if (loaded.prefs.accentColor != appliedAccent) {
-                recreate()
-                return@launch
-            }
-            pages.notifyItemRangeChanged(0, PAGE_COUNT)
+    private fun buildStep() {
+        tiles = OnboardingTiles(this)
+        liveText = null
+        val options = binding.onboardingOptions
+        options.removeAllViews()
+        val content: View = when (step) {
+            STEP_LOOK -> buildLooks()
+            STEP_COLOR -> buildColors()
+            STEP_SHAPE -> buildShapes()
+            STEP_FINISH -> buildFinishes()
+            STEP_DENSITY -> buildDensities()
+            STEP_NAMES -> buildNames()
+            else -> buildDone()
         }
-        if (!isRerun) {
-            seedJob = lifecycleScope.launch {
-                withContext(NonCancellable) { viewModel.seedDefaultLayout() }
-                // The seed placed the search bar; show where.
-                pages.notifyItemChanged(PAGE_SEARCH)
+        options.addView(content, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL
+        ))
+    }
+
+    private fun setTexts(title: Int, subtitle: CharSequence) {
+        binding.onboardingTitle.setText(title)
+        binding.onboardingSubtitle.text = subtitle
+    }
+
+    private fun refreshChoices(prefs: LauncherPrefs) {
+        for (choice in tiles.choices) {
+            val chosen = choice.isChosen(prefs)
+            choice.view.isSelected = chosen
+            choice.view.contentDescription =
+                if (chosen) getString(R.string.onboarding_selected, choice.label) else choice.label
+            choice.onChosen(chosen)
+        }
+        liveText?.let { (view, text) -> view.text = text(prefs) }
+    }
+
+    // Writes a choice. A new grid on the first run plants the home screen
+    // again for it, so its apps keep their places.
+    private fun choose(writes: List<PrefWrite<*>>) {
+        val current = prefs
+        val gridMoves = writes.any {
+            it.spec == Pref.gridCols && it.value != current.gridCols ||
+                it.spec == Pref.gridRows && it.value != current.gridRows
+        }
+        viewModel.setAll(writes, replant = gridMoves && !isRerun)
+        // Shown now: the chosen tile, and the preview with the icons it has
+        // (re-rendered ones follow as they come). Should the write not come
+        // back as worked out, the stored settings take over after a moment.
+        val expected = com.supernova.launcher.data.LauncherPreferences.applied(current, writes)
+        pendingPrefs = expected
+        binding.root.removeCallbacks(clearPending)
+        binding.root.postDelayed(clearPending, PENDING_MS)
+        refreshChoices(expected)
+        val drawn = drawnIcons(expected)
+        lastPreview?.let { (_, model, icons) ->
+            binding.onboardingPreview.bind(expected, model, icons + drawn.orEmpty())
+        }
+        if (drawn == null) drawNow(expected)
+    }
+
+    // Look ---------------------------------------------------------------
+
+    private fun buildLooks(): View {
+        setTexts(R.string.onboarding_look_title, getString(R.string.onboarding_look_summary))
+        val views = OnboardingChoices.Look.entries.map { look ->
+            val minis = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(MINI_PAD_DP), dp(MINI_PAD_DP), dp(MINI_PAD_DP), dp(MINI_PAD_DP))
+                background = roundedPlate(MINI_PLATE, dp(MINI_RADIUS_DP).toFloat())
             }
+            repeat(2) { row ->
+                val line = LinearLayout(this)
+                repeat(2) { col ->
+                    val swatch = ShapeSwatchView(this)
+                    swatch.shape = look.shape
+                    swatch.color = FinishSamples.color(look.finish, LOOK_COLORS[row * 2 + col])
+                    line.addView(swatch, LinearLayout.LayoutParams(dp(MINI_DP), dp(MINI_DP)).apply {
+                        if (col > 0) marginStart = dp(MINI_GAP_DP)
+                    })
+                }
+                val params = tiles.wrap()
+                if (row > 0) params.topMargin = dp(MINI_GAP_DP)
+                minis.addView(line, params)
+            }
+            val holder = FrameLayout(this)
+            holder.addView(minis, FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER
+            ))
+            tiles.tile(getString(look.labelRes), holder, LOOK_TILE_DP, { !shuffled && look.matches(it, profile) }) {
+                shuffled = false
+                choose(look.writes(prefs, profile, night()))
+            }
+        }
+        val column = tiles.vertical()
+        column.addView(tiles.grid(LOOK_COLUMNS, views), tiles.matchWrap())
+        val label = getString(R.string.onboarding_shuffle)
+        val shuffle = tiles.tile(label, null, SHUFFLE_TILE_DP, { shuffled }, labelSp = SHUFFLE_SP) {
+            shuffled = true
+            choose(OnboardingChoices.shuffleWrites(prefs, profile, night(), accents, Random.Default))
+        }
+        column.addView(shuffle, tiles.matchWrap().apply { topMargin = dp(OnboardingTiles.GAP_DP) })
+        return column
+    }
+
+    // Colour -------------------------------------------------------------
+
+    private val wallpaperColors: Pair<Int, Int>? by lazy {
+        runCatching {
+            WallpaperManager.getInstance(this).getWallpaperColors(WallpaperManager.FLAG_SYSTEM)?.let { colors ->
+                colors.primaryColor.toArgb() to (colors.secondaryColor ?: colors.primaryColor).toArgb()
+            }
+        }.getOrNull() ?: systemColors()
+    }
+
+    // Some wallpapers report no colours; the system palette, which Android
+    // draws from the wallpaper, stands in.
+    private fun systemColors(): Pair<Int, Int>? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        getColor(android.R.color.system_accent1_300) to getColor(android.R.color.system_accent2_600)
+    } else {
+        null
+    }
+
+    private fun buildColors(): View {
+        setTexts(R.string.onboarding_color_title, getString(R.string.onboarding_color_summary))
+        val swatches = mutableListOf<View>()
+        val wallpaper = wallpaperColors
+        swatches += tiles.swatch(
+            getString(R.string.palette_wallpaper),
+            GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                intArrayOf(wallpaper?.first ?: Color.GRAY, wallpaper?.second ?: Color.DKGRAY)
+            ).apply { shape = GradientDrawable.OVAL },
+            { OnboardingChoices.colourOf(it, accents) == null }
+        ) { choose(OnboardingChoices.wallpaperWrites(wallpaper?.first, accents)) }
+        AccentColor.entries.forEach { accent ->
+            val color = accents.getValue(accent)
+            swatches += tiles.swatch(
+                getString(EnumLabels.of(accent)),
+                GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(color)
+                },
+                { OnboardingChoices.colourOf(it, accents) == accent }
+            ) { choose(OnboardingChoices.accentWrites(accent, color)) }
+        }
+        val column = tiles.vertical()
+        column.addView(tiles.grid(COLOR_COLUMNS, swatches, gapDp = OnboardingTiles.GAP_DP), tiles.matchWrap())
+        val name = TextView(this).apply {
+            setTextColor(Color.WHITE)
+            textSize = NAME_SP
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            gravity = Gravity.CENTER_HORIZONTAL
+        }
+        liveText = name to { prefs -> colourName(prefs) }
+        column.addView(name, tiles.matchWrap().apply { topMargin = dp(OnboardingTiles.GAP_DP * 2) })
+        return column
+    }
+
+    private fun colourName(prefs: LauncherPrefs): CharSequence =
+        OnboardingChoices.colourOf(prefs, accents)?.let { getString(EnumLabels.of(it)) }
+            ?: getString(R.string.palette_wallpaper)
+
+    // Shape --------------------------------------------------------------
+
+    private fun buildShapes(): View {
+        setTexts(R.string.onboarding_shape_title, "")
+        liveText = binding.onboardingSubtitle to { prefs -> getString(EnumLabels.of(prefs.iconShape)) }
+        val accent = ThemeEngine.accentColor(this, prefs.accentColor)
+        val views = OnboardingChoices.SHAPES.map { shape ->
+            val swatch = ShapeSwatchView(this)
+            swatch.shape = shape
+            val holder = FrameLayout(this)
+            holder.addView(swatch, FrameLayout.LayoutParams(dp(SHAPE_DP), dp(SHAPE_DP), Gravity.CENTER))
+            val label = getString(EnumLabels.of(shape))
+            val onChosen = { chosen: Boolean ->
+                swatch.color = if (chosen) ColorUtils.blendARGB(accent, Color.WHITE, ACCENT_LIFT) else SHAPE_IDLE
+            }
+            val isChosen = { prefs: LauncherPrefs -> prefs.iconShape == shape }
+            tiles.tile(label, holder, SHAPE_TILE_DP, isChosen, showLabel = false, onChosen = onChosen) {
+                choose(OnboardingChoices.shapeWrites(shape))
+            }
+        }
+        return tiles.grid(SHAPE_COLUMNS, views)
+    }
+
+    // Finish -------------------------------------------------------------
+
+    private fun buildFinishes(): View {
+        setTexts(R.string.onboarding_finish_title, getString(R.string.onboarding_finish_summary))
+        val source = sampleIcon()
+        val renderer = IconRenderer(this)
+        val current = prefs
+        val custom = CustomShapeSpec.decode(current.iconShapeCustom)
+        val accent = ThemeEngine.accentColor(this, current.accentColor)
+        val views = OnboardingChoices.Finish.entries.map { finish ->
+            val image = ImageView(this)
+            if (source != null) {
+                val icon = runCatching {
+                    renderer.render(source, shape = current.iconShape, customShape = custom, glass = finish.glass)
+                }.getOrNull()
+                image.setImageDrawable(icon)
+                if (finish.themed) image.colorFilter = FinishSamples.duotone(accent)
+            }
+            // Glass shows what lies under it: the plate stands in for the
+            // wallpaper.
+            val plate = FrameLayout(this)
+            plate.background = roundedPlate(MINI_PLATE, dp(MINI_RADIUS_DP).toFloat())
+            plate.addView(image, FrameLayout.LayoutParams(dp(FINISH_ICON_DP), dp(FINISH_ICON_DP), Gravity.CENTER))
+            val holder = FrameLayout(this)
+            holder.addView(plate, FrameLayout.LayoutParams(dp(FINISH_PLATE_DP), dp(FINISH_PLATE_DP), Gravity.CENTER))
+            val isChosen = { prefs: LauncherPrefs -> OnboardingChoices.Finish.of(prefs) == finish }
+            tiles.tile(getString(finish.labelRes), holder, FINISH_TILE_DP, isChosen) {
+                choose(finish.writes(prefs, night()))
+            }
+        }
+        return tiles.grid(FINISH_COLUMNS, views)
+    }
+
+    // The first dock app's own icon, unshaped, to show each finish on.
+    private fun sampleIcon(): Drawable? {
+        val items = viewModel.state.value.model.items
+        val item = items.filter { it.container == ContainerType.DOCK && it.itemType == ItemType.APP }
+            .minByOrNull { it.rank }
+            ?: items.firstOrNull { it.itemType == ItemType.APP }
+        val pkg = item?.packageName ?: return null
+        return runCatching {
+            val cls = item.className
+            if (cls != null) {
+                packageManager.getActivityIcon(ComponentName(pkg, cls))
+            } else {
+                packageManager.getApplicationIcon(pkg)
+            }
+        }.getOrNull()
+    }
+
+    // Density ------------------------------------------------------------
+
+    private fun buildDensities(): View {
+        setTexts(R.string.onboarding_density_title, getString(R.string.onboarding_density_summary))
+        val views = OnboardingChoices.Density.entries.map { density ->
+            val cols = density.cols(profile)
+            val rows = density.rows(profile)
+            val column = tiles.vertical()
+            column.gravity = Gravity.CENTER_HORIZONTAL
+            val mini = MiniGridView(this)
+            mini.cellColor = MINI_GRID
+            mini.set(rows, cols)
+            column.addView(mini, LinearLayout.LayoutParams(dp(GRID_W_DP), dp(GRID_H_DP)))
+            column.addView(TextView(this).apply {
+                text = getString(R.string.onboarding_grid_size, cols, rows)
+                setTextColor(getColor(R.color.onboardingSummary))
+                textSize = SMALL_SP
+            }, tiles.wrap().apply { topMargin = dp(OnboardingTiles.GAP_DP) })
+            val isChosen = { prefs: LauncherPrefs -> OnboardingChoices.Density.of(prefs, profile) == density }
+            tiles.tile(getString(density.labelRes), column, DENSITY_TILE_DP, isChosen) {
+                choose(density.writes(profile))
+            }
+        }
+        return tiles.grid(views.size, views)
+    }
+
+    // Names --------------------------------------------------------------
+
+    private fun buildNames(): View {
+        setTexts(R.string.onboarding_names_title, getString(R.string.onboarding_names_summary))
+        val views = OnboardingChoices.Names.entries.map { names ->
+            val sample = TextView(this).apply {
+                setText(R.string.onboarding_names_sample)
+                setTextColor(Color.WHITE)
+                textSize = SAMPLE_SP
+                gravity = Gravity.CENTER_HORIZONTAL
+                typeface = when (names.font) {
+                    LabelFont.CONDENSED -> Typeface.create("sans-serif-condensed", Typeface.NORMAL)
+                    LabelFont.SERIF -> Typeface.SERIF
+                    LabelFont.MONOSPACE -> Typeface.MONOSPACE
+                    else -> Typeface.SANS_SERIF
+                }
+                if (names.font == null) {
+                    alpha = HIDDEN_ALPHA
+                    paintFlags = paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
+                }
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            }
+            tiles.tile(getString(names.labelRes), sample, NAMES_TILE_DP, { OnboardingChoices.Names.of(it) == names }) {
+                choose(names.writes())
+            }
+        }
+        return tiles.grid(views.size, views)
+    }
+
+    // Done ---------------------------------------------------------------
+
+    private fun buildDone(): View {
+        setTexts(R.string.onboarding_done_title, "")
+        liveText = binding.onboardingSubtitle to { prefs -> summary(prefs) }
+        return TextView(this).apply {
+            if (!isRerun) setText(R.string.onboarding_done_later)
+            setTextColor(getColor(R.color.onboardingSummary))
+            textSize = SMALL_TEXT_SP
         }
     }
 
-    private fun goTo(page: Int) {
-        if (page !in 0 until PAGE_COUNT) return
-        binding.onboardingPager.setCurrentItem(page, true)
-    }
+    // What the steps came to: shape, finish, colour and grid.
+    private fun summary(prefs: LauncherPrefs): CharSequence = listOfNotNull(
+        getString(EnumLabels.of(prefs.iconShape)),
+        OnboardingChoices.Finish.of(prefs)?.let { getString(it.labelRes) },
+        colourName(prefs),
+        OnboardingChoices.Density.of(prefs, profile)?.let { getString(it.labelRes) }
+    ).joinToString(SUMMARY_SEPARATOR)
 
-    private fun updateChrome(position: Int) {
-        binding.onboardingTopBar.visibility = if (position == PAGE_WELCOME) View.INVISIBLE else View.VISIBLE
-        binding.onboardingNext.visibility =
-            if (position == PAGE_WELCOME || position == PAGE_DONE) View.GONE else View.VISIBLE
-        // A quarter a page.
-        binding.onboardingProgress.setProgressCompat(position, true)
-    }
+    // Home role and finishing ---------------------------------------------
 
-    // Asks to become the default home app on Get started and again on
-    // Go home, and carries on whatever the answer.
+    // Asked once, on Set as my home screen, and carries on whatever the
+    // answer.
     private fun askHomeRoleThen(then: () -> Unit) {
         val request = if (HomeRole.isNeeded(this)) HomeRole.requestIntent(this) else null
         if (request == null) {
@@ -231,422 +784,83 @@ class OnboardingActivity : AppCompatActivity() {
         }
     }
 
-    // Welcome ------------------------------------------------------------
-
-    private fun bindWelcome(view: View) {
-        val page = OnboardingPageWelcomeBinding.bind(view)
-        page.welcomeGetStarted.setOnClickListener {
-            askHomeRoleThen { goTo(PAGE_SEARCH) }
-        }
-        page.welcomeRestore.setOnClickListener {
-            backup.pickImportFile()
-        }
-        page.welcomeSkip.setOnClickListener { finishOnboarding() }
-    }
-
-    // Search -------------------------------------------------------------
-
-    private fun bindSearch(view: View) {
-        val rows = pageRows(view, R.string.onboarding_search)
-        val prefs = viewModel.state.value.prefs
-        val modes = listOf(SearchWindowMode.WINDOW, SearchWindowMode.IMMERSIVE)
-        addDropdown(
-            rows, R.string.onboarding_mode,
-            listOf(getString(R.string.search_window_window), getString(R.string.search_window_immersive)),
-            modes.indexOf(prefs.searchWindowMode).coerceAtLeast(0)
-        ) { viewModel.set(Pref.searchWindowMode, modes[it]) }
-        addSwitch(
-            rows, R.string.onboarding_shortcut_search, R.string.onboarding_shortcut_search_summary,
-            prefs.searchShortcuts
-        ) { checked, _ -> viewModel.set(Pref.searchShortcuts, checked) }
-        addSwitch(
-            rows, R.string.onboarding_contact_search, R.string.onboarding_contact_search_summary,
-            prefs.searchContacts && contactsGranted()
-        ) { checked, switch ->
-            when {
-                !checked -> viewModel.set(Pref.searchContacts, false)
-                contactsGranted() -> viewModel.set(Pref.searchContacts, true)
-                else -> {
-                    // On once the permission comes back granted.
-                    switch.isChecked = false
-                    contactSwitch = switch
-                    requestContacts.launch(Manifest.permission.READ_CONTACTS)
-                }
-            }
-        }
-
-        val config = SearchBarConfig.decode(prefs.searchBarConfig)
-        addHeader(rows, R.string.onboarding_home_screen)
-        val placements = listOf(
-            SearchBarPlacement.NONE, SearchBarPlacement.DOCK_ABOVE,
-            SearchBarPlacement.DOCK_BELOW, SearchBarPlacement.PERSISTENT
-        )
-        addDropdown(
-            rows, R.string.onboarding_search_bar_placement,
-            listOf(
-                getString(R.string.onboarding_placement_none), getString(R.string.onboarding_placement_dock_above),
-                getString(R.string.onboarding_placement_dock_below), getString(R.string.onboarding_placement_persistent)
-            ),
-            placements.indexOf(SearchBarPlacement.fromName(config.desktop.placement)).coerceAtLeast(0)
-        ) { index ->
-            val current = SearchBarConfig.decode(viewModel.state.value.prefs.searchBarConfig)
-            viewModel.set(
-                Pref.searchBarConfig,
-                current.copy(desktop = current.desktop.copy(placement = placements[index].name)).encode()
-            )
-        }
-
-        addHeader(rows, R.string.onboarding_app_drawer)
-        val drawerPlacements = listOf(DrawerBarPlacement.HIDDEN, DrawerBarPlacement.TOP, DrawerBarPlacement.BOTTOM)
-        addDropdown(
-            rows, R.string.onboarding_search_bar_placement,
-            listOf(
-                getString(R.string.onboarding_placement_none), getString(R.string.onboarding_drawer_bar_top),
-                getString(R.string.onboarding_drawer_bar_bottom)
-            ),
-            drawerPlacements.indexOf(DrawerBarPlacement.fromConfig(config.drawer)).coerceAtLeast(0)
-        ) { index ->
-            val placement = drawerPlacements[index]
-            val current = SearchBarConfig.decode(viewModel.state.value.prefs.searchBarConfig)
-            viewModel.set(
-                Pref.searchBarConfig,
-                current.copy(
-                    drawer = current.drawer.copy(
-                        placement = placement.name,
-                        enabled = placement != DrawerBarPlacement.HIDDEN
-                    )
-                ).encode()
-            )
-        }
-    }
-
-    private fun contactsGranted(): Boolean =
-        checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED
-
-    // App drawer ---------------------------------------------------------
-
-    private fun bindDrawer(view: View) {
-        val rows = pageRows(view, R.string.onboarding_app_drawer)
-        val prefs = viewModel.state.value.prefs
-        val styles = listOf(DrawerStyle.VERTICAL_GRID, DrawerStyle.VERTICAL_LIST, DrawerStyle.PAGED_GRID)
-        addDropdown(
-            rows, R.string.onboarding_drawer_style,
-            listOf(
-                getString(R.string.onboarding_drawer_vertical), getString(R.string.onboarding_drawer_list),
-                getString(R.string.onboarding_drawer_horizontal)
-            ),
-            styles.indexOf(prefs.drawerStyle).coerceAtLeast(0)
-        ) { viewModel.set(Pref.drawerStyle, styles[it]) }
-        addSwitch(
-            rows, R.string.onboarding_show_keyboard, R.string.onboarding_show_keyboard_summary,
-            prefs.drawerAutoKeyboard
-        ) { checked, _ -> viewModel.set(Pref.drawerAutoKeyboard, checked) }
-        addSwitch(
-            rows, R.string.onboarding_frequent_apps, R.string.onboarding_frequent_apps_summary,
-            prefs.drawerFrequentRow
-        ) { checked, _ -> viewModel.set(Pref.drawerFrequentRow, checked) }
-        addSwitch(
-            rows, R.string.onboarding_smart_folders, R.string.onboarding_smart_folders_summary,
-            prefs.smartFolders
-        ) { checked, _ -> viewModel.setSmartFolders(checked) }
-    }
-
-    // Icon style ---------------------------------------------------------
-
-    private fun bindIcons(view: View) {
-        val page = OnboardingPageIconsBinding.bind(view)
-        val prefs = viewModel.state.value.prefs
-        var scale = prefs.iconScale
-        var shape = prefs.iconShape
-        val accent = ThemeEngine.accentColor(this, prefs.accentColor)
-
-        // Four sample icons, in the shape and at the size chosen.
-        val preview = page.iconPreviewRow
-        preview.removeAllViews()
-        val samples = PREVIEW_COLORS.map { color ->
-            ShapeSwatchView(this).also { swatch ->
-                swatch.color = color
-                preview.addView(swatch, LinearLayout.LayoutParams(0, 0).apply {
-                    marginStart = dp(PREVIEW_GAP_DP / 2)
-                    marginEnd = dp(PREVIEW_GAP_DP / 2)
-                })
-            }
-        }
-        fun renderPreview() {
-            val size = (dp(PREVIEW_BASE_DP) * scale).roundToInt()
-            samples.forEach { swatch ->
-                swatch.shape = shape
-                swatch.layoutParams = swatch.layoutParams.apply { width = size; height = size }
-            }
-        }
-
-        // Icon size: the settings slider's range and steps.
-        val value = page.iconSizeValue
-        val slider = page.iconSizeSlider
-        fun percent() = ((scale * 100f).roundToInt() / SIZE_STEP * SIZE_STEP).coerceIn(SIZE_MIN, SIZE_MAX)
-        fun renderSize() {
-            value.text = getString(R.string.opacity_percent, percent())
-            slider.value = percent().toFloat()
-        }
-        fun setSize(percent: Int) {
-            val clamped = percent.coerceIn(SIZE_MIN, SIZE_MAX)
-            scale = clamped / 100f
-            viewModel.set(Pref.iconScale, scale)
-            renderSize()
-            renderPreview()
-        }
-        slider.clearOnChangeListeners()
-        slider.addOnChangeListener { _, newValue, fromUser ->
-            if (fromUser) setSize(newValue.roundToInt())
-        }
-        page.iconSizeDown.setOnClickListener { setSize(percent() - SIZE_STEP) }
-        page.iconSizeUp.setOnClickListener { setSize(percent() + SIZE_STEP) }
-
-        // The shapes: the first five, then More for the rest.
-        val grid = page.iconShapeRows
-        grid.removeAllViews()
-        val tiles = mutableListOf<Pair<OnboardingShapeTileBinding, (IconShape) -> Boolean>>()
-        lateinit var renderTiles: () -> Unit
-        fun pick(chosen: IconShape) {
-            shape = chosen
-            viewModel.setIconShape(chosen)
-            renderPreview()
-            renderTiles()
-        }
-        fun tile(row: LinearLayout, label: CharSequence, drawn: IconShape, more: Boolean, isSelected: (IconShape) -> Boolean, onTap: () -> Unit) {
-            val tile = OnboardingShapeTileBinding.inflate(LayoutInflater.from(this), row, false)
-            tile.tileShape.shape = drawn
-            tile.tileShape.more = more
-            tile.tileLabel.text = label
-            tile.root.contentDescription = label
-            tile.root.setOnClickListener { onTap() }
-            row.addView(tile.root)
-            tiles += tile to isSelected
-        }
-        fun shapeRow(): LinearLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            weightSum = SHAPES_PER_ROW.toFloat()
-            grid.addView(this, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        }
-        val first = shapeRow()
-        MAIN_SHAPES.forEach { (candidate, labelRes) ->
-            tile(first, getString(labelRes), candidate, false, { it == candidate }) { pick(candidate) }
-        }
-        val second = shapeRow()
-        tile(second, getString(R.string.shape_flower), IconShape.FLOWER, false, { it == IconShape.FLOWER }) {
-            pick(IconShape.FLOWER)
-        }
-        tile(second, getString(R.string.onboarding_shape_more), IconShape.HEXAGON, true, { it in MORE_SHAPES }) {
-            showMoreShapes(accent, { shape }) { pick(it) }
-        }
-        renderTiles = {
-            tiles.forEach { (tile, isSelected) ->
-                val selected = isSelected(shape)
-                tile.root.isSelected = selected
-                tile.tileShape.color = if (selected) accent else SHAPE_GRAY
-                tile.tileLabel.setTextColor(if (selected) accent else Color.WHITE)
-            }
-        }
-
-        renderSize()
-        renderPreview()
-        renderTiles()
-    }
-
-    // The "More shapes" card: the rest of the shapes, four to a row.
-    private fun showMoreShapes(accent: Int, current: () -> IconShape, onPick: (IconShape) -> Unit) {
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(12), dp(8), dp(12), dp(8))
-        }
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.onboarding_more_shapes)
-            .setView(content)
-            .create()
-        MORE_SHAPES.chunked(SHAPES_PER_ROW).forEach { chunk ->
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_HORIZONTAL
-                weightSum = SHAPES_PER_ROW.toFloat()
-            }
-            chunk.forEach { candidate ->
-                val tile = OnboardingShapeTileBinding.inflate(LayoutInflater.from(this), row, false)
-                val selected = candidate == current()
-                tile.root.isSelected = selected
-                tile.tileShape.apply {
-                    shape = candidate
-                    color = if (selected) accent else SHAPE_GRAY
-                }
-                tile.tileLabel.apply {
-                    setText(EnumLabels.of(candidate))
-                    setTextColor(if (selected) accent else getColor(R.color.textPrimary))
-                    textSize = 15f
-                }
-                tile.root.contentDescription = getString(EnumLabels.of(candidate))
-                tile.root.setOnClickListener {
-                    onPick(candidate)
-                    dialog.dismiss()
-                }
-                row.addView(tile.root)
-            }
-            content.addView(row)
-        }
-        dialog.show()
-    }
-
-    // All done -----------------------------------------------------------
-
-    private fun bindDone(view: View) {
-        OnboardingPageDoneBinding.bind(view).doneGoHome.setOnClickListener {
-            askHomeRoleThen { finishOnboarding() }
-        }
-    }
-
-    // Rows ---------------------------------------------------------------
-
-    // A settings page's row list, titled, with any rows of a previous bind
-    // cleared away.
-    private fun pageRows(view: View, titleRes: Int): LinearLayout {
-        val page = OnboardingPageRowsBinding.bind(view)
-        page.pageTitle.setText(titleRes)
-        val rows = page.pageRows
-        while (rows.childCount > 1) rows.removeViewAt(rows.childCount - 1)
-        return rows
-    }
-
-    private fun addHeader(rows: LinearLayout, titleRes: Int) {
-        val header = LayoutInflater.from(this).inflate(R.layout.onboarding_row_header, rows, false) as TextView
-        header.setText(titleRes)
-        rows.addView(header)
-    }
-
-    private fun addDropdown(
-        rows: LinearLayout,
-        titleRes: Int,
-        labels: List<CharSequence>,
-        selected: Int,
-        onPick: (Int) -> Unit
-    ) {
-        val row = OnboardingRowDropdownBinding.inflate(LayoutInflater.from(this), rows, false)
-        row.rowTitle.setText(titleRes)
-        val value = row.rowValue
-        var current = selected
-        // A screen reader reaches the value on its own, so it carries the
-        // row's title with it.
-        fun show() {
-            value.text = labels[current]
-            value.contentDescription = getString(R.string.onboarding_dropdown_description, getString(titleRes), labels[current])
-        }
-        show()
-        // The menu opens at the finger, as the settings screen's do.
-        var touchX = 0f
-        value.setOnTouchListener { _, event ->
-            if (event.actionMasked == MotionEvent.ACTION_DOWN) touchX = event.rawX
-            false
-        }
-        value.setOnClickListener {
-            ChoiceMenu.show(
-                value,
-                touchX,
-                Styles.resolve(this, viewModel.state.value.prefs).of(SurfaceId.POPUP),
-                labels,
-                current
-            ) { which ->
-                current = which
-                show()
-                onPick(which)
-            }
-        }
-        rows.addView(row.root)
-    }
-
-    private fun addSwitch(
-        rows: LinearLayout,
-        titleRes: Int,
-        summaryRes: Int,
-        checked: Boolean,
-        onChange: (Boolean, MaterialSwitch) -> Unit
-    ) {
-        val row = OnboardingRowSwitchBinding.inflate(LayoutInflater.from(this), rows, false)
-        row.rowTitle.setText(titleRes)
-        row.rowSummary.setText(summaryRes)
-        val switch = row.rowSwitch
-        switch.isChecked = checked
-        row.root.setOnClickListener {
-            switch.isChecked = !switch.isChecked
-            onChange(switch.isChecked, switch)
-        }
-        rows.addView(row.root)
-    }
+    private fun night(): Boolean = ThemeEngine.isNight(this, prefs)
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).roundToInt()
-
-    // One fixed page per step; position doubles as the view type so each
-    // layout inflates once and notifyItemChanged rebinds its values.
-    private inner class PagesAdapter : RecyclerView.Adapter<PagesAdapter.Holder>() {
-
-        inner class Holder(view: View) : RecyclerView.ViewHolder(view)
-
-        override fun getItemCount(): Int = PAGE_COUNT
-
-        override fun getItemViewType(position: Int): Int = position
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
-            val layout = when (viewType) {
-                PAGE_WELCOME -> R.layout.onboarding_page_welcome
-                PAGE_ICONS -> R.layout.onboarding_page_icons
-                PAGE_DONE -> R.layout.onboarding_page_done
-                else -> R.layout.onboarding_page_rows
-            }
-            return Holder(layoutInflater.inflate(layout, parent, false))
-        }
-
-        override fun onBindViewHolder(holder: Holder, position: Int) {
-            when (position) {
-                PAGE_WELCOME -> bindWelcome(holder.itemView)
-                PAGE_SEARCH -> bindSearch(holder.itemView)
-                PAGE_DRAWER -> bindDrawer(holder.itemView)
-                PAGE_ICONS -> bindIcons(holder.itemView)
-                else -> bindDone(holder.itemView)
-            }
-        }
-    }
 
     companion object {
         const val EXTRA_RERUN = "rerun"
 
-        private const val PAGE_WELCOME = 0
-        private const val PAGE_SEARCH = 1
-        private const val PAGE_DRAWER = 2
-        private const val PAGE_ICONS = 3
-        private const val PAGE_DONE = 4
-        private const val PAGE_COUNT = 5
+        private const val KEY_STEP = "step"
+        private const val KEY_SHUFFLED = "shuffled"
 
-        // The Home screen settings' icon size slider.
-        private const val SIZE_MIN = 70
-        private const val SIZE_MAX = 200
-        private const val SIZE_STEP = 5
+        private const val STEP_WELCOME = 0
+        private const val STEP_LOOK = 1
+        private const val STEP_COLOR = 2
+        private const val STEP_SHAPE = 3
+        private const val STEP_FINISH = 4
+        private const val STEP_DENSITY = 5
+        private const val STEP_NAMES = 6
+        private const val STEP_DONE = 7
+        private const val CHOICE_STEPS = 6
 
-        // Sample icons: flat cyan, white, green and magenta, drawn a
-        // little under the real icon size.
-        private val PREVIEW_COLORS = listOf(0xFF00B4D8.toInt(), 0xFFFFFFFF.toInt(), 0xFF00FF00.toInt(), 0xFFFF00FF.toInt())
-        private const val PREVIEW_BASE_DP = 42
-        private const val PREVIEW_GAP_DP = 16
+        // The steps that look closely at the icons in the dock (the names
+        // step needs the page, where the names are).
+        private val CLOSE_STEPS = setOf(STEP_COLOR, STEP_SHAPE, STEP_FINISH)
 
-        private const val SHAPES_PER_ROW = 4
-        private const val SHAPE_GRAY = 0xFF808080.toInt()
-        private val MAIN_SHAPES = listOf(
-            IconShape.SYSTEM to R.string.onboarding_shape_default,
-            IconShape.CIRCLE to R.string.onboarding_shape_round,
-            IconShape.SQUIRCLE to R.string.shape_squircle,
-            IconShape.ROUNDED_SQUARE to R.string.shape_rounded_square
+        private const val CAMERA_MS = 450L
+        private const val PENDING_MS = 2000L
+        private const val FADE_MS = 200L
+        private const val FIT_MARGIN = 0.94f
+
+        private const val PANE_RADIUS_DP = 28
+        private const val FRAME_RADIUS_DP = 40
+        private const val FRAME_STROKE_DP = 3
+        private const val FRAME_COLOR = 0x40FFFFFF
+
+        private const val SEGMENT_DP = 22
+        private const val SEGMENT_HEIGHT_DP = 4
+        private const val SEGMENT_GAP_DP = 4
+
+        private const val SMALL_SP = 12f
+        private const val SMALL_TEXT_SP = 14f
+        private const val NAME_SP = 14f
+
+        private const val LOOK_COLUMNS = 4
+        private const val LOOK_TILE_DP = 112
+        private const val SHUFFLE_TILE_DP = 52
+        private const val SHUFFLE_SP = 15f
+        private const val MINI_DP = 22
+        private const val MINI_GAP_DP = 5
+        private const val MINI_PAD_DP = 8
+        private const val MINI_RADIUS_DP = 12
+        private const val MINI_PLATE = 0x33FFFFFF
+        private val LOOK_COLORS = intArrayOf(
+            0xFF2EAD5B.toInt(), 0xFF2F7DE1.toInt(), 0xFFD98A1F.toInt(), 0xFFD8503F.toInt()
         )
-        // "More shapes", in order.
-        private val MORE_SHAPES = listOf(
-            IconShape.SQUARE, IconShape.TEARDROP, IconShape.PEBBLE, IconShape.VESSEL,
-            IconShape.PENTAGON, IconShape.HEXAGON, IconShape.HEXAGON_ROUNDED, IconShape.HEPTAGON,
-            IconShape.OCTAGON, IconShape.CROP
-        )
+
+        private const val COLOR_COLUMNS = 6
+
+        private const val SHAPE_COLUMNS = 5
+        private const val SHAPE_TILE_DP = 54
+        private const val SHAPE_DP = 30
+        private const val SHAPE_IDLE = 0x9EFFFFFF.toInt()
+        private const val ACCENT_LIFT = 0.25f
+
+        private const val FINISH_COLUMNS = 5
+        private const val FINISH_TILE_DP = 104
+        private const val FINISH_PLATE_DP = 50
+        private const val FINISH_ICON_DP = 36
+
+        private const val DENSITY_TILE_DP = 132
+        private const val GRID_W_DP = 54
+        private const val GRID_H_DP = 66
+        private const val MINI_GRID = 0x99FFFFFF.toInt()
+
+        private const val NAMES_TILE_DP = 104
+        private const val SAMPLE_SP = 28f
+        private const val HIDDEN_ALPHA = 0.45f
+
+        private const val SUMMARY_SEPARATOR = " · "
     }
 }

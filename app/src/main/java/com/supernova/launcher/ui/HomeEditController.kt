@@ -1,6 +1,7 @@
 package com.supernova.launcher.ui
 
 import android.appwidget.AppWidgetProviderInfo
+import android.os.Build
 import android.view.View
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
@@ -10,12 +11,12 @@ import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.supernova.launcher.R
 import com.supernova.launcher.databinding.ActivityLauncherBinding
 import com.supernova.launcher.databinding.ViewEditModeBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import android.os.Build
 
 // Long-press edit mode: the page zooms out under a home-page marker,
 // Wallpapers/Settings float as chips, and an add sheet peeks from the bottom
@@ -99,6 +100,15 @@ class HomeEditController(
             binding.editWidgetRecycler.setPadding(
                 0, 0, 0, (24 * density).toInt() + maxOf(barInsets.bottom, keyboard)
             )
+            // Expanded, the sheet stops under the status bar rather than
+            // running its handle up into it: a sheet ends its parent's height
+            // minus this margin, and opens to its own height.
+            (view.layoutParams as? android.view.ViewGroup.MarginLayoutParams)?.let { params ->
+                if (params.topMargin != barInsets.top) {
+                    params.topMargin = barInsets.top
+                    view.layoutParams = params
+                }
+            }
             overlay?.let(::applyOverlayInsets)
             insets
         }
@@ -155,13 +165,16 @@ class HomeEditController(
             inflated.editHomeMarker.setOnClickListener {
                 // The slot isn't a page to make home.
                 if (host.onAddPage()) return@setOnClickListener
+                if (DesktopLock.refused(activity, viewModel)) return@setOnClickListener
                 host.setDefaultPage(host.currentPage())
+                it.announceForAccessibility(activity.getString(R.string.edit_home_page_set))
                 // Saved in the background, so the stored home page is still
                 // the old one here: the marker lights for the page just set,
                 // where before it stayed dim until a swipe away and back.
                 showMarker(isDefault = true)
             }
             inflated.editRemovePage.setOnClickListener {
+                if (DesktopLock.refused(activity, viewModel)) return@setOnClickListener
                 if (!host.onAddPage() && host.canRemoveCurrentPage()) host.removeCurrentPage()
             }
             inflated.editChipWallpapers.setOnClickListener {
@@ -180,8 +193,14 @@ class HomeEditController(
         // Layout, bottom up: the sheet peeks, the chips sit just above it, and
         // the page shrinks toward the top until its bottom clears the chips.
         val rootHeight = binding.root.height
-        val peek = (rootHeight * PEEK_FRACTION).toInt()
-        behavior.peekHeight = peek
+        // The sheet runs under the navigation bar, so the bar's height is
+        // added: what shows above it is the same on gesture and 3-button nav.
+        // Its top margin (the status bar, see the insets listener) moves the
+        // collapsed sheet down by as much, so that goes back on too.
+        val peek = (rootHeight * PEEK_FRACTION).toInt() + barInsets.bottom
+        val topMargin =
+            (binding.editWidgetSheet.layoutParams as? android.view.ViewGroup.MarginLayoutParams)?.topMargin ?: 0
+        behavior.peekHeight = peek + topMargin
         val chips = ov.editChips
         (chips.layoutParams as FrameLayout.LayoutParams).bottomMargin = peek + activity.dp(12)
         chips.requestLayout()
@@ -307,6 +326,10 @@ class HomeEditController(
         val marker = overlay?.editHomeMarker ?: return
         marker.isActivated = isDefault
         marker.alpha = if (isDefault) 1f else 0.55f
+        // Said as well as shown: dim and lit sound the same to a screen reader.
+        marker.contentDescription = activity.getString(
+            if (isDefault) R.string.edit_home_page else R.string.edit_make_home_page
+        )
     }
 
 

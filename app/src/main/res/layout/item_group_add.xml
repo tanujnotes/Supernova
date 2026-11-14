@@ -10,6 +10,6 @@
     android:gravity="center_vertical"
     android:minHeight="52dp"
     android:paddingStart="72dp"
-    android:paddingEnd="16dp"
+    android:paddingEnd="@dimen/space_md"
     android:textColor="?attr/colorAccentOnRaised"
-    android:textSize="15sp" />
+    android:textSize="@dimen/text_body" />

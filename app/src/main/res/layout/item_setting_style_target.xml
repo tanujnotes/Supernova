@@ -10,8 +10,8 @@
     android:gravity="center_vertical"
     android:minHeight="56dp"
     android:orientation="horizontal"
-    android:paddingHorizontal="16dp"
-    android:paddingVertical="8dp">
+    android:paddingHorizontal="@dimen/space_md"
+    android:paddingVertical="@dimen/space_sm">
 
     <FrameLayout
         android:id="@+id/styleStrip"
@@ -27,30 +27,30 @@
             android:fontFamily="sans-serif-medium"
             android:importantForAccessibility="no"
             android:text="@string/style_strip_sample"
-            android:textSize="14sp" />
+            android:textSize="@dimen/text_secondary" />
 
         <View
             android:id="@+id/styleStripAccent"
             android:layout_width="7dp"
             android:layout_height="7dp"
             android:layout_gravity="bottom|end"
-            android:layout_margin="5dp" />
+            android:layout_margin="@dimen/space_xs" />
     </FrameLayout>
 
     <TextView
         android:id="@+id/settingTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="@dimen/space_md"
         android:layout_weight="1"
         android:fontFamily="sans-serif-medium"
         android:textColor="@color/textPrimary"
-        android:textSize="16sp" />
+        android:textSize="@dimen/text_body" />
 
     <ImageView
         android:layout_width="20dp"
         android:layout_height="20dp"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="@dimen/space_md"
         android:importantForAccessibility="no"
         android:src="@drawable/ic_settings_chevron"
         app:tint="@color/textSecondary" />

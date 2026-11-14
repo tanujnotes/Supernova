@@ -12,7 +12,7 @@
         android:background="@drawable/bg_folder"
         android:elevation="8dp"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:padding="@dimen/space_ms">
 
         <com.supernova.launcher.ui.FolderGridView
             android:id="@+id/folderGrid"
@@ -39,11 +39,11 @@
                 android:inputType="textCapWords"
                 android:maxLength="@integer/label_max_length"
                 android:maxLines="1"
-                android:paddingHorizontal="8dp"
-                android:paddingTop="6dp"
+                android:paddingHorizontal="@dimen/space_sm"
+                android:paddingTop="@dimen/space_sm"
                 android:textColor="@color/textPrimary"
-                android:textColorHint="#80FFFFFF"
-                android:textSize="15sp"
+                android:textColorHint="@color/textSecondary"
+                android:textSize="@dimen/text_body"
                 android:textStyle="bold" />
 
             <!-- The number of apps, when the setting asks for it. -->
@@ -51,10 +51,10 @@
                 android:id="@+id/folderCount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="4dp"
-                android:paddingTop="6dp"
+                android:paddingHorizontal="@dimen/space_xs"
+                android:paddingTop="@dimen/space_sm"
                 android:textColor="@color/textSecondary"
-                android:textSize="13sp"
+                android:textSize="@dimen/text_secondary"
                 android:visibility="gone" />
 
             <!-- A text button the caller asks for (the private space
@@ -63,7 +63,7 @@
             <TextView
                 android:id="@+id/folderAction"
                 style="@style/DrawerPrivateButton"
-                android:paddingTop="6dp"
+                android:paddingTop="@dimen/space_sm"
                 android:visibility="gone" />
 
             <ImageView
@@ -72,7 +72,7 @@
                 android:layout_height="wrap_content"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/folder_menu"
-                android:padding="8dp"
+                android:padding="@dimen/space_sm"
                 android:src="@drawable/ic_more_vert"
                 app:tint="@color/textPrimary"
                 android:visibility="gone" />

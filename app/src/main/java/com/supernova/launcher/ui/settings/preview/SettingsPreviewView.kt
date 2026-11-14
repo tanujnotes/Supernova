@@ -26,6 +26,7 @@ import com.supernova.launcher.ui.SearchBarConfig
 import com.supernova.launcher.ui.SearchBarView
 import com.supernova.launcher.ui.dp
 import com.supernova.launcher.ui.settings.PreviewKind
+import com.supernova.launcher.ui.textSizeOf
 import com.supernova.launcher.ui.theme.StyleConfig
 import com.supernova.launcher.ui.theme.Styles
 import com.supernova.launcher.ui.theme.SurfaceId
@@ -38,6 +39,14 @@ class SettingsPreviewView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : FrameLayout(context, attrs) {
+
+    // One stop for a screen reader: "Preview", not every sample label in
+    // the fake home screen it draws.
+    init {
+        contentDescription = context.getString(com.supernova.launcher.R.string.a11y_preview)
+        isFocusable = true
+        importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+    }
 
     private var kind: PreviewKind? = null
 
@@ -116,6 +125,10 @@ class SettingsPreviewView @JvmOverloads constructor(
             }
             PreviewKind.DOCK -> {
                 com.supernova.launcher.ui.theme.SurfaceShapes.setColor(surfaceBg, withAlpha(styleAlpha ?: prefs.dockBgOpacity))
+                // The radius bar ticks here too.
+                if (prefs.dockBgStyle == DockBgStyle.ROUNDED) {
+                    (surfaceBg as? GradientDrawable)?.cornerRadius = dp(prefs.dockBgRadius).toFloat()
+                }
                 slotViews.forEachIndexed { index, slot ->
                     slot.visibility = if (index < prefs.dockCount) VISIBLE else GONE
                 }
@@ -405,11 +418,13 @@ class SettingsPreviewView @JvmOverloads constructor(
         styleAlpha = StyleConfig.decode(prefs.styleConfig).styleFor(SurfaceId.DOCK).alpha
 
         val strip = newRow()
-        strip.setPadding(dp(10), dp(8), dp(10), dp(8))
+        // The dock's own room above and below the icons when it has a
+        // background (LauncherActivity's DOCK_BG_PADDING_V_DP).
+        val padV = if (prefs.dockBgStyle == DockBgStyle.NONE) dp(DOCK_PAD_V_DP) else dp(DOCK_BG_PAD_V_DP)
+        strip.setPadding(dp(10), padV, dp(10), padV)
         when (prefs.dockBgStyle) {
             DockBgStyle.NONE -> Unit
-            DockBgStyle.PILL -> strip.background = surfaceDrawable(resolved, dp(30).toFloat())
-            DockBgStyle.ROUNDED -> strip.background = surfaceDrawable(resolved, dp(14).toFloat())
+            DockBgStyle.ROUNDED -> strip.background = surfaceDrawable(resolved, dp(prefs.dockBgRadius).toFloat())
             DockBgStyle.SQUARE -> strip.background = surfaceDrawable(resolved, 0f)
         }
         // Every slot the dock can have, Big grid's included; binding shows
@@ -770,7 +785,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         val pill = TextView(context)
         pill.text = context.getString(R.string.search_apps)
         pill.setTextColor((0x99 shl 24) or (resolved.text and 0xFFFFFF))
-        pill.textSize = 13f
+        pill.textSizeOf(R.dimen.text_secondary)
         pill.setPadding(dp(14), dp(7), dp(14), dp(7))
         pill.background = GradientDrawable().apply {
             cornerRadius = dp(18).toFloat()
@@ -901,6 +916,8 @@ class SettingsPreviewView @JvmOverloads constructor(
 
     private companion object {
         // The home bar's height and side inset, with room above and below.
+        const val DOCK_PAD_V_DP = 8
+        const val DOCK_BG_PAD_V_DP = 16
         const val SEARCH_BAR_HEIGHT_DP = 48
         const val SEARCH_BAR_INSET_DP = 16
         const val SEARCH_BAR_PAD_DP = 28

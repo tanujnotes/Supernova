@@ -784,17 +784,15 @@ class FeedController(
 
     // The overflow beside the search pill: Add card, Settings.
     private fun showMenu(anchor: View) {
-        val menu = android.widget.PopupMenu(context, anchor)
-        menu.menu.add(0, 1, 0, R.string.cards_add)
-        menu.menu.add(0, 2, 1, R.string.feed_menu_settings)
-        menu.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                1 -> host.editCard(null)
-                2 -> host.openFeedSettings()
+        ChoiceMenu.showActions(
+            anchor, viewModel.state.value.prefs,
+            listOf(context.getString(R.string.cards_add), context.getString(R.string.feed_menu_settings))
+        ) { which ->
+            when (which) {
+                0 -> host.editCard(null)
+                1 -> host.openFeedSettings()
             }
-            true
         }
-        menu.show()
     }
 
 

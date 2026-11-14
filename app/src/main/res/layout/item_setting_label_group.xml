@@ -16,7 +16,7 @@
         android:minHeight="64dp"
         android:orientation="horizontal"
         android:paddingStart="0dp"
-        android:paddingEnd="4dp">
+        android:paddingEnd="@dimen/space_xs">
 
         <LinearLayout
             android:id="@+id/labelHeader"
@@ -27,9 +27,9 @@
             android:gravity="center_vertical"
             android:minHeight="64dp"
             android:orientation="horizontal"
-            android:paddingVertical="8dp"
-            android:paddingStart="16dp"
-            android:paddingEnd="8dp">
+            android:paddingVertical="@dimen/space_sm"
+            android:paddingStart="@dimen/space_md"
+            android:paddingEnd="@dimen/space_sm">
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -43,24 +43,24 @@
                     android:layout_height="wrap_content"
                     android:fontFamily="sans-serif-medium"
                     android:textColor="@color/textPrimary"
-                    android:textSize="16sp" />
+                    android:textSize="@dimen/text_body" />
 
                 <TextView
                     android:id="@+id/labelSummary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
+                    android:layout_marginTop="@dimen/space_xxs"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:textColor="@color/textSecondary"
-                    android:textSize="13sp" />
+                    android:textSize="@dimen/text_secondary" />
             </LinearLayout>
 
             <ImageView
                 android:id="@+id/labelChevron"
                 android:layout_width="22dp"
                 android:layout_height="22dp"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/space_sm"
                 android:importantForAccessibility="no"
                 android:src="@drawable/ic_chevron_down"
                 app:tint="@color/textSecondary" />
@@ -75,7 +75,7 @@
             android:id="@+id/labelSwitch"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/space_sm"
             android:contentDescription="@string/show_labels"
             android:minWidth="48dp" />
     </LinearLayout>
@@ -86,22 +86,22 @@
         android:layout_height="wrap_content"
         android:background="@color/settingsBand"
         android:orientation="vertical"
-        android:paddingVertical="4dp"
+        android:paddingVertical="@dimen/space_xs"
         android:visibility="gone">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="12dp">
+            android:paddingHorizontal="@dimen/space_sm"
+            android:paddingVertical="@dimen/space_ms">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="8dp">
+                android:paddingHorizontal="@dimen/space_sm">
 
                 <TextView
                     android:layout_width="0dp"
@@ -110,7 +110,7 @@
                     android:fontFamily="sans-serif-medium"
                     android:text="@string/label_card_size"
                     android:textColor="@color/textPrimary"
-                    android:textSize="15sp" />
+                    android:textSize="@dimen/text_body" />
 
                 <TextView
                     android:id="@+id/labelSizeValue"
@@ -118,13 +118,13 @@
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="44dp"
                     android:textColor="@color/textSecondary"
-                    android:textSize="14sp" />
+                    android:textSize="@dimen/text_secondary" />
             </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/space_xs"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -134,7 +134,7 @@
                     android:layout_height="40dp"
                     android:background="@drawable/bg_step_circle"
                     android:contentDescription="@string/stepper_decrease"
-                    android:padding="11dp"
+                    android:padding="@dimen/space_ms"
                     android:scaleType="fitCenter"
                     android:src="@drawable/ic_step_minus" />
 
@@ -144,7 +144,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:contentDescription="@string/label_size"
-                    android:paddingHorizontal="8dp" />
+                    android:paddingHorizontal="@dimen/space_sm" />
 
                 <ImageButton
                     android:id="@+id/labelSizeUp"
@@ -152,7 +152,7 @@
                     android:layout_height="40dp"
                     android:background="@drawable/bg_step_circle"
                     android:contentDescription="@string/stepper_increase"
-                    android:padding="11dp"
+                    android:padding="@dimen/space_ms"
                     android:scaleType="fitCenter"
                     android:src="@drawable/ic_step_plus" />
             </LinearLayout>
@@ -161,7 +161,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/space_md"
             android:background="@color/settingsDivider" />
 
         <LinearLayout
@@ -173,8 +173,8 @@
             android:gravity="center_vertical"
             android:minHeight="52dp"
             android:orientation="horizontal"
-            android:paddingStart="16dp"
-            android:paddingEnd="4dp">
+            android:paddingStart="@dimen/space_md"
+            android:paddingEnd="@dimen/space_xs">
 
             <TextView
                 android:layout_width="0dp"
@@ -183,25 +183,25 @@
                 android:fontFamily="sans-serif-medium"
                 android:text="@string/label_card_font"
                 android:textColor="@color/textPrimary"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_body" />
 
             <TextView
                 android:id="@+id/labelFontValue"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
+                android:layout_marginStart="@dimen/space_md"
                 android:ellipsize="end"
                 android:maxWidth="160dp"
                 android:maxLines="1"
                 android:textColor="@color/textSecondary"
-                android:textSize="14sp" />
+                android:textSize="@dimen/text_secondary" />
 
             <ImageView
                 android:layout_width="48dp"
                 android:layout_height="20dp"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/space_sm"
                 android:importantForAccessibility="no"
-                android:paddingHorizontal="14dp"
+                android:paddingHorizontal="@dimen/space_md"
                 android:src="@drawable/ic_settings_chevron"
                 app:tint="@color/textSecondary" />
         </LinearLayout>
@@ -209,7 +209,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/space_md"
             android:background="@color/settingsDivider" />
 
         <LinearLayout
@@ -220,8 +220,8 @@
             android:gravity="center_vertical"
             android:minHeight="52dp"
             android:orientation="horizontal"
-            android:paddingStart="16dp"
-            android:paddingEnd="4dp">
+            android:paddingStart="@dimen/space_md"
+            android:paddingEnd="@dimen/space_xs">
 
             <TextView
                 android:layout_width="0dp"
@@ -230,13 +230,13 @@
                 android:fontFamily="sans-serif-medium"
                 android:text="@string/label_card_shadow"
                 android:textColor="@color/textPrimary"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_body" />
 
             <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/labelShadowCheck"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:layout_marginStart="16dp"
+                android:layout_marginStart="@dimen/space_md"
                 android:clickable="false"
                 android:focusable="false"
                 android:minWidth="48dp" />
@@ -245,7 +245,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/space_md"
             android:background="@color/settingsDivider" />
 
         <LinearLayout
@@ -256,8 +256,8 @@
             android:gravity="center_vertical"
             android:minHeight="52dp"
             android:orientation="horizontal"
-            android:paddingStart="16dp"
-            android:paddingEnd="4dp">
+            android:paddingStart="@dimen/space_md"
+            android:paddingEnd="@dimen/space_xs">
 
             <TextView
                 android:layout_width="0dp"
@@ -266,13 +266,13 @@
                 android:fontFamily="sans-serif-medium"
                 android:text="@string/label_card_single_line"
                 android:textColor="@color/textPrimary"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_body" />
 
             <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/labelSingleLineCheck"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:layout_marginStart="16dp"
+                android:layout_marginStart="@dimen/space_md"
                 android:clickable="false"
                 android:focusable="false"
                 android:minWidth="48dp" />
