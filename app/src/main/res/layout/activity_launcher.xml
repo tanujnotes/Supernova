@@ -208,6 +208,7 @@
             app:tabIndicatorColor="@color/accent"
             app:tabIndicatorFullWidth="false"
             app:tabIndicatorHeight="3dp"
+            app:tabMinWidth="48dp"
             app:tabMode="scrollable"
             app:tabPaddingEnd="12dp"
             app:tabPaddingStart="12dp"
