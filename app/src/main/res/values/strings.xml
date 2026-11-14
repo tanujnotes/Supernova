@@ -866,6 +866,7 @@
     <string name="undo_remove">Undo bar after removing</string>
     <string name="item_removed">Removed</string>
     <string name="undo">Undo</string>
+    <string name="folder_sorted">Sorted A-Z</string>
     <string name="card_deleted">Card deleted</string>
 
     <!-- Phase 6: popup menu -->

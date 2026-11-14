@@ -3241,7 +3241,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     // An A-Z folder shows its apps sorted whatever their order.
                     if (!viewModel.state.value.prefs.folderSortAz) {
                         menu.addRow(getString(R.string.sort), R.drawable.ic_menu_sort) {
-                            viewModel.sortFolder(item.id)
+                            sortFolderWithUndo(item.id)
                         }
                     }
                     addIconSizeRow(menu, item)
@@ -3463,6 +3463,34 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         })
         undoSnackbar = snackbar
         snackbar.show()
+    }
+
+    // A folder's Sort rewrites its stored order, so the order it had stays an
+    // Undo away (#136). `window` is a view in the window the bar shows in
+    // (null: the activity's); `refresh` is handed the model from before each
+    // change, to redraw an open folder once that change is saved.
+    private fun sortFolderWithUndo(
+        folderId: String,
+        window: View? = null,
+        refresh: ((com.supernova.launcher.data.LauncherModel) -> Unit)? = null
+    ) {
+        val host = window ?: binding.root
+        val members = viewModel.folderMembers(folderId)
+        val manual = members.map { it.id }
+        val model = viewModel.state.value.model
+        viewModel.sortFolder(folderId)
+        refresh?.invoke(model)
+        // Already A-Z: nothing to take back.
+        if (com.supernova.launcher.data.LabelOrder.sorted(members) { it.label }.map { it.id } == manual) return
+        val bar = Snackbar
+            .make(host, R.string.folder_sorted, UNDO_DURATION_MS)
+            .setAction(R.string.undo) {
+                val sorted = viewModel.state.value.model
+                viewModel.reorderFolder(folderId, manual)
+                refresh?.invoke(sorted)
+            }
+        if (host === binding.root && binding.dockBar.isVisible) bar.anchorView = binding.dockBar
+        bar.show()
     }
 
     // Posted: a drag can end inside the pickup of the next one (its settle cut
@@ -3790,9 +3818,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 }
                 if (!viewModel.state.value.prefs.folderSortAz) {
                     menu.addRow(getString(R.string.sort), R.drawable.ic_menu_sort) {
-                        val before = viewModel.state.value.model
-                        viewModel.sortFolder(folder.id)
-                        applied(before)
+                        // The folder's window covers the activity's, so its
+                        // Undo bar shows in the folder's own window.
+                        sortFolderWithUndo(folder.id, popup?.contentView, ::applied)
                     }
                 }
                 drag.activeItemPopup = menu
