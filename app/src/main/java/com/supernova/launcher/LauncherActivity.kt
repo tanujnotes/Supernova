@@ -626,7 +626,11 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // close the drawer. A launcher always consumes back itself.
         onBackPressedDispatcher.addCallback(this) {
             when {
-                // A widget's resize frame first: it sits on the page, under
+                // A long-press menu first: it is not focusable, so back
+                // reaches here, and closing the drawer under it left the
+                // menu floating over the home screen.
+                drag.activeItemPopup?.isShowing == true -> drag.activeItemPopup?.dismiss()
+                // A widget's resize frame next: it sits on the page, under
                 // whatever else is open.
                 widgets.activeResizeFrame != null -> widgets.dismissResizeFrame()
                 ::editMode.isInitialized && editMode.isOpen -> editMode.exit()
@@ -4120,6 +4124,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 showDrawerGroupChecklist(group)
             }
         }
+        // Tracked as the item menus are, so back and home close it.
+        drag.activeItemPopup = menu
         menu.show(anchor)
     }
 
