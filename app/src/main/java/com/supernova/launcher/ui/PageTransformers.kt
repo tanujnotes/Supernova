@@ -5,6 +5,7 @@ import androidx.viewpager2.widget.ViewPager2
 import com.supernova.launcher.data.SettingEnumSerializer
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.roundToInt
 
 @kotlinx.serialization.Serializable(with = ScrollEffect.Names::class)
 enum class ScrollEffect {
@@ -227,21 +228,21 @@ object PageTransformers {
     }
 
     private fun wipe(page: View, position: Float) {
-        if (position < 0f) {
-            // Outgoing stays put at full strength, cut off where the incoming
-            // page's edge - the wipe front - has reached. Home pages are
-            // see-through, so covering it isn't enough: unclipped, both
-            // pages' icons overlapped until it vanished at the end.
-            page.translationX = -position * page.width
-            page.translationZ = 0f
-            page.alpha = 1f
-            val visible = ((1f + position) * page.width).toInt().coerceAtLeast(0)
-            page.clipBounds = android.graphics.Rect(0, 0, visible, page.height)
+        // Both pages hold still and the edge a plain slide would put between
+        // them sweeps across: each shows only its own side of it. Left to
+        // slide, the right-hand page pushed in over the old one going
+        // forward, and pushed the old one away going back (#162). Home pages
+        // are see-through, so each must be cut, not merely covered.
+        page.translationX = -position * page.width
+        page.translationZ = 0f
+        page.alpha = 1f
+        // Both sides round the same edge, so no seam or overlap between them.
+        val edge = ((if (position < 0f) 1f + position else position) * page.width)
+            .roundToInt().coerceIn(0, page.width)
+        page.clipBounds = if (position < 0f) {
+            android.graphics.Rect(0, 0, edge, page.height)
         } else {
-            page.translationX = 0f
-            page.translationZ = 1f
-            page.alpha = 1f
-            page.clipBounds = null
+            android.graphics.Rect(edge, 0, page.width, page.height)
         }
     }
 
