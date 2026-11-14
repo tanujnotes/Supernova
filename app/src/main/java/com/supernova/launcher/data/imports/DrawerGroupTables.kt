@@ -8,13 +8,14 @@ internal object DrawerGroupTables {
 
     val TABLES = GroupsAndApps.TABLES + DrawerFolders.TABLES + Categories.TABLES
 
-    fun read(contents: BackupContents): List<ForeignGroup> {
+    // Null where the backup holds none of these tables.
+    fun read(contents: BackupContents): List<ForeignGroup>? {
         val tables = contents.tables
         return when {
             GroupsAndApps.TABLES.all { it in tables } -> GroupsAndApps.read(tables)
             DrawerFolders.TABLES.all { it in tables } -> DrawerFolders.read(tables)
             Categories.TABLES.all { it in tables } -> Categories.read(tables)
-            else -> emptyList()
+            else -> null
         }
     }
 
@@ -28,7 +29,8 @@ internal object DrawerGroupTables {
 
 // Groups that are each a tab or a drawer folder, and a row per app a group
 // holds. A tab can hold a drawer folder: its row names the folder by id in
-// place of an activity.
+// place of an activity. A group switched off keeps its row, flagged, and
+// shows nowhere.
 private object GroupsAndApps {
     const val GROUPS = "drawer_groups"
     const val MEMBERS = "appgroups"
@@ -37,10 +39,11 @@ private object GroupsAndApps {
     private const val TAB = "TAB_APP_GROUP"
     private const val FOLDER = "FOLDER_APP_GROUP"
     private const val HELD_FOLDER = "FOLDER:"
+    private const val SWITCHED_OFF = 128L
 
     fun read(tables: Map<String, List<Row>>): List<ForeignGroup> {
         val members = tables[MEMBERS].orEmpty().groupBy { it.long("groupId") }
-        return tables[GROUPS].orEmpty().mapNotNull { row ->
+        return tables[GROUPS].orEmpty().filterNot(::switchedOff).mapNotNull { row ->
             val id = row.long("_id")
             val type = row.text("groupType")
             if (id == null || (type != TAB && type != FOLDER)) return@mapNotNull null
@@ -58,6 +61,8 @@ private object GroupsAndApps {
             )
         }
     }
+
+    private fun switchedOff(row: Row): Boolean = ((row.long("flags") ?: 0L) and SWITCHED_OFF) != 0L
 
     private fun isFolder(key: String): Boolean = heldFolder(key) != null
 

@@ -11,11 +11,15 @@ import com.supernova.launcher.data.TabFolders
 internal object DrawerGroupConverter {
 
     // The stored groups with the backup's in place: one of the same name is
-    // replaced, every other stays.
+    // replaced, and the smart folders go, which would sort the backup's apps
+    // a second time; every other stays.
     fun merged(groups: List<ForeignGroup>, stored: Set<String>, phone: LayoutConverter.Phone): Set<String> {
         val made = convert(groups, phone)
         val names = made.map { it.name }.toSet()
-        return stored.filterNot { DrawerGroup.decode(it)?.name in names }.toSet() + made.map { it.encode() }
+        val kept = stored.filterNot { encoded ->
+            DrawerGroup.decode(encoded)?.let { it.smart || it.name in names } == true
+        }
+        return kept.toSet() + made.map { it.encode() }
     }
 
     fun convert(groups: List<ForeignGroup>, phone: LayoutConverter.Phone): List<DrawerGroup> {
