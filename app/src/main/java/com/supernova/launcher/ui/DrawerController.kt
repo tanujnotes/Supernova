@@ -3,10 +3,12 @@ package com.supernova.launcher.ui
 import android.content.Context
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.os.SystemClock
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.LinearLayout
@@ -125,6 +127,12 @@ class DrawerController(
     // Set when a drag took the keyboard away; the sheet settling back open
     // (rather than dismissing) puts it back.
     private var imeSuspended = false
+    // A keyboard request still waiting on the field (see showKeyboard): the
+    // tries left before it gives up, and until when (uptime ms) a window
+    // that had no focus yet may still pick it up when focus arrives.
+    private var keyboardTriesLeft = 0
+    private var keyboardFocusDeadline = 0L
+    private val keyboardRetry = Runnable { tryShowKeyboard() }
     private var transition = DrawerTransition.SLIDE_UP
     // Where the open choreography last drew everything (0 = closed, 1 =
     // open); the pull, the slides and the sheet's own drag all feed it. See
@@ -526,6 +534,23 @@ class DrawerController(
         binding.drawerSearch.setOnClickListener {
             if (searchGlobalOnTap) onGlobalSearch()
         }
+        // A keyboard asked for while the window had no focus (#165) goes up
+        // once focus arrives. Kept on the tree only while the field is in a
+        // window, like every tree listener here.
+        val focusWatch = ViewTreeObserver.OnWindowFocusChangeListener { hasFocus ->
+            if (hasFocus && keyboardFocusDeadline > 0L) {
+                val inTime = SystemClock.uptimeMillis() <= keyboardFocusDeadline
+                keyboardFocusDeadline = 0L
+                if (inTime) {
+                    keyboardTriesLeft = KEYBOARD_TRIES
+                    binding.drawerSearch.post(keyboardRetry)
+                }
+            }
+        }
+        binding.drawerSearch.watchTreeWhileInWindow(
+            add = { addOnWindowFocusChangeListener(focusWatch) },
+            remove = { removeOnWindowFocusChangeListener(focusWatch) },
+        )
         behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 if (suppressExpandCallback && newState == BottomSheetBehavior.STATE_EXPANDED) {
@@ -698,9 +723,7 @@ class DrawerController(
         val wanted = prefs.drawerAutoKeyboard || forSearch
         if (searchFieldVisible && !searchGlobalOnTap && wanted && !isLandscape()) {
             binding.drawerSearch.requestFocus()
-            // Post: the IME request needs the sheet's window focus to have
-            // settled after the expand.
-            binding.drawerSearch.post { showKeyboard() }
+            showKeyboard()
         }
     }
 
@@ -1100,16 +1123,47 @@ class DrawerController(
         if (!wasOpen) parkSheet()
     }
 
+    // The request is not made once and trusted. The keyboard only listens for
+    // the field once the window has focus and the field's input connection
+    // has started, and both land a moment after the focus is asked for; how
+    // long a moment is the phone's business. One post was enough on the
+    // test phones, while on others the request went in too early, was
+    // dropped, and the drawer opened focused with no keyboard until a tap on
+    // the field (#165). So it waits for window focus if there is none, and
+    // retries a few frames apart until the field is the one being served.
     private fun showKeyboard() {
         if (!searchFieldVisible || searchGlobalOnTap) return
         if (!binding.drawerSearch.hasFocus()) binding.drawerSearch.requestFocus()
+        cancelKeyboardRequest()
+        keyboardTriesLeft = KEYBOARD_TRIES
+        binding.drawerSearch.post(keyboardRetry)
+    }
+
+    private fun tryShowKeyboard() {
+        val field = binding.drawerSearch
+        // The drawer closed, or a drag or tap took the focus, meanwhile.
+        if (!isVisible || !field.hasFocus() || keyboardTriesLeft <= 0) return
+        val imm = field.context.getSystemService(InputMethodManager::class.java)
+        if (!field.hasWindowFocus() || imm == null) {
+            keyboardFocusDeadline = SystemClock.uptimeMillis() + KEYBOARD_FOCUS_WAIT_MS
+            return
+        }
+        keyboardTriesLeft--
+        val lastTry = keyboardTriesLeft == 0
         // An explicit request (flags 0), as a tap on the field makes. The
         // implicit kind is one a keyboard may turn down - the platform's do
         // whenever the phone reports a hardware keyboard of any sort - and
         // then the drawer opened focused with no keyboard, a second tap on
-        // the field away from typing (#87).
-        binding.root.context.getSystemService(InputMethodManager::class.java)
-            ?.showSoftInput(binding.drawerSearch, 0)
+        // the field away from typing (#87). The last try asks whatever
+        // isActive says, in case a phone never reports the field as served.
+        val shown = (imm.isActive(field) || lastTry) && imm.showSoftInput(field, 0)
+        if (!shown && !lastTry) field.postDelayed(keyboardRetry, KEYBOARD_RETRY_MS)
+    }
+
+    private fun cancelKeyboardRequest() {
+        keyboardTriesLeft = 0
+        keyboardFocusDeadline = 0L
+        binding.drawerSearch.removeCallbacks(keyboardRetry)
     }
 
     // Takes the keyboard down from outside - the item menu opens over it
@@ -1119,6 +1173,7 @@ class DrawerController(
     }
 
     private fun hideKeyboard() {
+        cancelKeyboardRequest()
         binding.drawerSearch.clearFocus()
         binding.root.context.getSystemService(InputMethodManager::class.java)
             ?.hideSoftInputFromWindow(binding.drawerSearch.windowToken, 0)
@@ -2107,6 +2162,11 @@ class DrawerController(
     private val context: Context get() = binding.root.context
 
     private companion object {
+        // showKeyboard's retries: up to ten, 50ms apart (half a second in
+        // all), and how long it waits for a window without focus to get it.
+        const val KEYBOARD_TRIES = 10
+        const val KEYBOARD_RETRY_MS = 50L
+        const val KEYBOARD_FOCUS_WAIT_MS = 1500L
         // Launcher3's MAX_TRACK_ALPHA.
         const val FAST_SCROLL_TRACK_ALPHA = 30
         // Narrowest a drawer cell is allowed to get when the column count is
