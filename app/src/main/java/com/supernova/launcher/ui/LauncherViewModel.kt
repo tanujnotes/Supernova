@@ -433,7 +433,7 @@ class LauncherViewModel(
     }
 
     // Auto-add: a newly installed primary-profile app lands on the first page
-    // with a free cell when the pref is on.
+    // with a free cell, or a new last page, when the pref is on.
     private fun maybeAutoAddToHome(packageName: String, userSerial: Long) {
         if (userSerial != 0L) return
         viewModelScope.launch(Dispatchers.Default) {

@@ -126,29 +126,7 @@ class LauncherRepository(private val context: Context) {
     // checked and placed under the lock: every open screen's view model
     // hears the same install, and only the first to get here adds it.
     suspend fun autoAddApp(app: LaunchableApp, cols: Int, rows: Int) {
-        mutateFitted(cols, rows) { current ->
-            val placed = current.items.any {
-                it.itemType == ItemType.APP && it.packageName == app.packageName && it.userSerial == app.userSerial
-            }
-            if (placed) return@mutateFitted current
-            for (page in 0 until current.pageCount) {
-                val cell = WorkspaceGeometry.findFreeCell(current, page, 1, 1, cols, rows) ?: continue
-                val item = LauncherItem(
-                    id = id(),
-                    itemType = ItemType.APP,
-                    container = ContainerType.WORKSPACE,
-                    page = page,
-                    cellX = cell.first,
-                    cellY = cell.second,
-                    label = app.label,
-                    packageName = app.packageName,
-                    className = app.className,
-                    userSerial = app.userSerial
-                )
-                return@mutateFitted current.copy(items = current.items + item)
-            }
-            current
-        }
+        mutateFitted(cols, rows) { current -> AutoAdd.place(current, app, id(), cols, rows) }
     }
 
     suspend fun addShortcutToWorkspace(
