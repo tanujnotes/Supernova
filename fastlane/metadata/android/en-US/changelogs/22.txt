@@ -1,0 +1,10 @@
+Edit icons with a live preview, a simpler feed, and large 2x2 icons.
+
+- Edit sheet: live icon preview, shape and style in place
+- Feed: simpler cards, an Add sheet, widgets that fill the page
+- Large icon: home icons and folders can take 2x2 cells
+- Move a home folder to the drawer as a folder or a tab
+- Themed icons made for apps that have none
+- Old-style icons stay whole in your icon shape
+- Widget picker: apps first, previews to scale
+- Fixed a drawer crash with empty tabs
