@@ -1872,8 +1872,6 @@ class DrawerController(
             prefs.drawerStyle != DrawerStyle.PAGED_GRID &&
             binding.drawerWorkPaused.visibility != View.VISIBLE
         binding.drawerFastScroller.visibility = if (show) View.VISIBLE else View.GONE
-        // Its track stands in for the list's own scrollbar.
-        binding.drawerRecycler.isVerticalScrollBarEnabled = !show
         if (show) binding.drawerFastScroller.updateThumb()
     }
 
