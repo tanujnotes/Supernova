@@ -2,6 +2,11 @@ package com.supernova.launcher.ui
 
 import android.appwidget.AppWidgetProviderInfo
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
+import android.view.Gravity
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.graphics.ColorUtils
 import android.util.LruCache
 import android.view.LayoutInflater
 import android.view.View
@@ -84,6 +89,43 @@ class WidgetPickerAdapter(
         notifyDataSetChanged()
     }
 
+    // An expanded app reads as one card: the header takes the top corners,
+    // the group's last row the bottom ones, and the rows between are square
+    // and butt together with no gap.
+    private fun shapeAsCard(view: View, position: Int) {
+        val isHeader = flat[position] is WidgetPickerEntry.Header
+        val next = flat.getOrNull(position + 1)
+        val closesGroup = next == null || next is WidgetPickerEntry.Header
+        val res = view.resources
+        val radius = res.getDimension(R.dimen.picker_card_radius)
+        val top = if (isHeader) radius else 0f
+        val bottom = if (closesGroup) radius else 0f
+        val background = AppCompatResources.getDrawable(view.context, R.drawable.bg_picker_card)
+            ?.mutate() as? GradientDrawable
+        background?.cornerRadii = floatArrayOf(top, top, top, top, bottom, bottom, bottom, bottom)
+        // An open app's title gets a faint rule under it, inset from the
+        // card's sides, between it and the previews.
+        view.background = if (isHeader && !closesGroup && background != null) {
+            val ink = view.context.getColor(R.color.textPrimary)
+            val rule = ColorUtils.setAlphaComponent(ink, DIVIDER_ALPHA).toDrawable()
+            LayerDrawable(arrayOf(background, rule)).apply {
+                val inset = res.getDimensionPixelSize(R.dimen.space_md)
+                setLayerGravity(1, Gravity.BOTTOM or Gravity.FILL_HORIZONTAL)
+                setLayerHeight(1, res.getDimensionPixelSize(R.dimen.divider_thin).coerceAtLeast(1))
+                setLayerInsetLeft(1, inset)
+                setLayerInsetRight(1, inset)
+            }
+        } else {
+            background
+        }
+        val gap = res.getDimensionPixelSize(R.dimen.space_xs)
+        (view.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
+            lp.topMargin = if (isHeader) gap else 0
+            lp.bottomMargin = if (closesGroup) gap else 0
+            view.layoutParams = lp
+        }
+    }
+
     private fun toggle(key: String) {
         if (key in expanded) expanded.remove(key) else expanded.add(key)
         rebuild()
@@ -115,6 +157,7 @@ class WidgetPickerAdapter(
             is WidgetPickerEntry.Shortcut -> (holder as ShortcutViewHolder).bind(entry)
             is WidgetPickerEntry.Widget -> Unit
         }
+        shapeAsCard(holder.itemView, position)
     }
 
     inner class HeaderViewHolder(private val binding: ItemWidgetPickerHeaderBinding) :
@@ -142,14 +185,19 @@ class WidgetPickerAdapter(
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(entry: WidgetPickerEntry.WidgetRow) {
-            bindCell(binding.cellA, binding.previewA, binding.labelA, binding.spanA, binding.providerA, entry.first)
+            bindCell(binding.cellA, binding.previewA, binding.labelA, binding.spanA, entry.first)
             val second = entry.second
             if (second == null) {
                 binding.cellB.visibility = View.INVISIBLE
+                // A recycled row may still hold another widget's picture,
+                // which would keep the empty cell tall and push the lone
+                // preview down (the row lines its cells up at the bottom).
+                binding.previewB.tag = null
+                binding.previewB.setImageDrawable(null)
                 binding.cellB.setOnClickListener(null)
             } else {
                 binding.cellB.visibility = View.VISIBLE
-                bindCell(binding.cellB, binding.previewB, binding.labelB, binding.spanB, binding.providerB, second)
+                bindCell(binding.cellB, binding.previewB, binding.labelB, binding.spanB, second)
             }
         }
 
@@ -158,13 +206,11 @@ class WidgetPickerAdapter(
             preview: ImageView,
             label: TextView,
             span: TextView,
-            provider: TextView,
             widget: WidgetPickerEntry.Widget
         ) {
             val context = cell.context
             label.text = widget.label
             span.text = context.getString(R.string.widget_span, widget.spanX, widget.spanY)
-            provider.text = widget.appLabel
 
             // A preview is boxed by its widget's span and only ever shrunk
             // into that box, so it keeps the size it will take on the grid
@@ -201,7 +247,7 @@ class WidgetPickerAdapter(
                                 ?: runCatching {
                                     appContext.packageManager.getApplicationIcon(widget.info.provider.packageName)
                                 }.getOrNull()
-                                ?: appContext.getDrawable(R.drawable.ic_widget)
+                                ?: AppCompatResources.getDrawable(appContext, R.drawable.ic_widget)
                             )?.let { icon ->
                             val size = appContext.resources.getDimensionPixelSize(R.dimen.widget_preview_icon)
                             runCatching {
@@ -245,6 +291,9 @@ class WidgetPickerAdapter(
         private const val TYPE_HEADER = 0
         private const val TYPE_WIDGET_ROW = 1
         private const val TYPE_SHORTCUT = 2
+
+        // About 12% of the text colour: visible on both sheet themes, faint.
+        private const val DIVIDER_ALPHA = 31
 
         // One background thread for every picker's previews, in the order
         // the cells asked for them.
