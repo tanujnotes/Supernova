@@ -12,12 +12,14 @@ import android.view.ViewOutlineProvider
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.view.isNotEmpty
 import androidx.recyclerview.widget.RecyclerView
 import com.supernova.launcher.R
 import com.supernova.launcher.databinding.ItemFeedAddBinding
 import com.supernova.launcher.databinding.ItemFeedCalendarBinding
 import com.supernova.launcher.databinding.ItemFeedContactsBinding
 import com.supernova.launcher.databinding.ItemFeedCustomBinding
+import com.supernova.launcher.databinding.ItemFeedEmptyBinding
 import com.supernova.launcher.databinding.ItemFeedMediaBinding
 import com.supernova.launcher.feed.CalendarCardSource
 import com.supernova.launcher.feed.ContactsCardSource
@@ -41,17 +43,27 @@ class FeedAdapter(
         val onGrantContacts: () -> Unit,
         val onOpenEvent: (Long) -> Unit,
         val onOpenContact: (ContactsCardSource.Starred, View) -> Unit,
-        val onAddCard: () -> Unit
+        // The footer's Add card (the add sheet) and Feed settings; the empty
+        // page's two kinds of card, and a ready-made card turned on by its
+        // order key.
+        val onAddCard: () -> Unit,
+        val onFeedSettings: () -> Unit,
+        val onAddWidget: () -> Unit,
+        val onAddShortcuts: () -> Unit,
+        val onShowBuiltIn: (String) -> Unit
     )
 
-    // key and group place a card in the user's order (FeedOrder); the Add
-    // card button has neither and never moves.
+    // key and group place a card in the user's order (FeedOrder); the
+    // footer and the empty page have neither and never move.
     sealed class Row(val key: String?, val group: FeedOrder.Group?) {
         class Media(val state: MediaCardSource.MediaState) : Row(FeedOrder.MEDIA, FeedOrder.Group.REST)
         class CalendarRow(val state: CalendarCardSource.CalendarState) : Row(FeedOrder.CALENDAR, FeedOrder.Group.REST)
         class Contacts(val state: ContactsCardSource.ContactsState) : Row(FeedOrder.CONTACTS, FeedOrder.Group.REST)
         class Custom(val card: FeedCard, cardGroup: FeedOrder.Group) : Row(card.id, cardGroup)
-        object AddCard : Row(null, null)
+        object Footer : Row(null, null)
+        // No card at all: the page explains itself. readyMade holds the
+        // order keys of the built-in cards that are turned off.
+        class Empty(val readyMade: List<String>) : Row(null, null)
     }
 
     private val rows = ArrayList<Row>()
@@ -103,7 +115,8 @@ class FeedAdapter(
         is Row.CalendarRow -> TYPE_CALENDAR
         is Row.Contacts -> TYPE_CONTACTS
         is Row.Custom -> TYPE_CUSTOM
-        Row.AddCard -> TYPE_ADD
+        Row.Footer -> TYPE_ADD
+        is Row.Empty -> TYPE_EMPTY
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -114,6 +127,7 @@ class FeedAdapter(
             TYPE_CALENDAR -> CalendarHolder(ItemFeedCalendarBinding.inflate(inflater, parent, false))
             TYPE_CONTACTS -> ContactsHolder(ItemFeedContactsBinding.inflate(inflater, parent, false))
             TYPE_CUSTOM -> CustomHolder(ItemFeedCustomBinding.inflate(inflater, parent, false))
+            TYPE_EMPTY -> EmptyHolder(ItemFeedEmptyBinding.inflate(inflater, parent, false))
             else -> AddHolder(ItemFeedAddBinding.inflate(inflater, parent, false))
         }
     }
@@ -124,7 +138,8 @@ class FeedAdapter(
             is Row.CalendarRow -> (holder as CalendarHolder).bind(row.state)
             is Row.Contacts -> (holder as ContactsHolder).bind(row.state)
             is Row.Custom -> (holder as CustomHolder).bind(row.card)
-            Row.AddCard -> (holder as AddHolder).bind()
+            Row.Footer -> (holder as AddHolder).bind()
+            is Row.Empty -> (holder as EmptyHolder).bind(row.readyMade)
         }
     }
 
@@ -297,9 +312,47 @@ class FeedAdapter(
         fun bind() {
             // Same fill as the action pills, so the button reads as one of them.
             (binding.feedAddCard.background?.mutate() as? GradientDrawable)
-                ?.setColor((0x26 shl 24) or (paneTextColor and 0xFFFFFF))
+                ?.setColor((0x29 shl 24) or (paneTextColor and 0xFFFFFF))
             binding.feedAddCard.setTextColor(paneTextColor)
             binding.feedAddCard.setOnClickListener { callbacks.onAddCard() }
+            binding.feedSettings.setTextColor(paneTextColor)
+            binding.feedSettings.setOnClickListener { callbacks.onFeedSettings() }
+        }
+    }
+
+    private inner class EmptyHolder(private val binding: ItemFeedEmptyBinding) :
+        RecyclerView.ViewHolder(binding.root) {
+
+        fun bind(readyMade: List<String>) {
+            val muted = (0xD9 shl 24) or (paneTextColor and 0xFFFFFF)
+            binding.feedEmptyTitle.setTextColor(paneTextColor)
+            binding.feedEmptyText.setTextColor(muted)
+            binding.feedEmptyReadyLabel.setTextColor(muted)
+            binding.feedEmptySettings.setTextColor(paneTextColor)
+            binding.feedEmptySettings.setOnClickListener { callbacks.onFeedSettings() }
+            // The two choices sit on card plates, in the cards' colours.
+            for (choice in listOf(binding.feedEmptyWidget, binding.feedEmptyShortcuts)) tintCard(choice)
+            binding.feedEmptyWidgetTitle.setTextColor(textColor)
+            binding.feedEmptyShortcutsTitle.setTextColor(textColor)
+            val cardMuted = (0xB3 shl 24) or (textColor and 0xFFFFFF)
+            binding.feedEmptyWidgetText.setTextColor(cardMuted)
+            binding.feedEmptyShortcutsText.setTextColor(cardMuted)
+            binding.feedEmptyWidget.setOnClickListener { callbacks.onAddWidget() }
+            binding.feedEmptyShortcuts.setOnClickListener { callbacks.onAddShortcuts() }
+            val flow = binding.feedEmptyReady
+            val context = binding.root.context
+            flow.removeAllViews()
+            readyMade.forEach { key ->
+                val label = BUILT_IN_LABELS[key] ?: return@forEach
+                flow.addView(
+                    CardViewBinder.pill(context, null, context.getString(label), paneTextColor) {
+                        callbacks.onShowBuiltIn(key)
+                    }
+                )
+            }
+            val any = flow.isNotEmpty()
+            binding.feedEmptyReadyLabel.visibility = if (any) View.VISIBLE else View.GONE
+            flow.visibility = if (any) View.VISIBLE else View.GONE
         }
     }
 
@@ -319,5 +372,13 @@ class FeedAdapter(
         private const val TYPE_CONTACTS = 2
         private const val TYPE_CUSTOM = 3
         private const val TYPE_ADD = 4
+        private const val TYPE_EMPTY = 5
+
+        // The ready-made cards as the empty page names them.
+        val BUILT_IN_LABELS = mapOf(
+            FeedOrder.MEDIA to R.string.cards_media_title,
+            FeedOrder.CALENDAR to R.string.feed_calendar_title,
+            FeedOrder.CONTACTS to R.string.feed_contacts_title
+        )
     }
 }

@@ -60,7 +60,13 @@ sealed class SettingItem {
         val set: (Boolean) -> Unit,
         override val visibleIf: (LauncherPrefs) -> Boolean = { true },
         // Most toggles carry an explanation under the title; 0 = none.
-        @StringRes val subtitle: Int = 0
+        @StringRes val subtitle: Int = 0,
+        // A row that names something of the user's (a feed card): its own
+        // title and subtitle text (title 0 keeps it out of search), and a
+        // tap on the row that opens it while the switch alone toggles.
+        val titleText: CharSequence? = null,
+        val subtitleText: ((LauncherPrefs) -> CharSequence?)? = null,
+        val onOpen: (() -> Unit)? = null
     ) : SettingItem()
 
     class Slider(
@@ -170,18 +176,6 @@ sealed class SettingItem {
         val onClick: () -> Unit,
         override val visibleIf: (LauncherPrefs) -> Boolean = { true }
     ) : SettingItem()
-
-    // A Cards page entry: the card's name with a gear over a live
-    // rendering of the card, which build inflates into the row. A null gear
-    // is the rendering alone (the card's own settings page).
-    class Card(
-        val titleText: CharSequence,
-        val build: (android.view.ViewGroup) -> android.view.View,
-        val onGear: (() -> Unit)?,
-        override val visibleIf: (LauncherPrefs) -> Boolean = { true }
-    ) : SettingItem() {
-        override val title: Int = 0
-    }
 
     // A live preview header; has no title of its own.
     class Preview(

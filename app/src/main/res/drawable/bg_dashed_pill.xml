@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The card editor's Add chip: an outline, dashed, where the next item
+     goes. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="22dp" />
+    <stroke
+        android:width="1dp"
+        android:color="@color/textSecondary"
+        android:dashWidth="5dp"
+        android:dashGap="4dp" />
+</shape>

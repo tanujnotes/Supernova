@@ -1,98 +1,103 @@
 package com.supernova.launcher.ui
 
-import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
-import android.os.Build
+import android.view.Gravity
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
-import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.SeekBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.widget.doAfterTextChanged
-import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.supernova.launcher.R
-import com.supernova.launcher.databinding.ItemCardActionBinding
-import com.supernova.launcher.databinding.RowCardConditionBinding
 import com.supernova.launcher.databinding.SheetCardEditorBinding
 import com.supernova.launcher.feed.CardAction
-import com.supernova.launcher.feed.CardCondition
-import com.supernova.launcher.feed.ConditionKind
+import com.supernova.launcher.feed.CardItems
 import com.supernova.launcher.feed.FeaturedType
 import com.supernova.launcher.feed.FeedCard
 import com.supernova.launcher.feed.FeedCard.Companion.WIDGET_HEIGHT_MAX_DP
 import com.supernova.launcher.feed.FeedCard.Companion.WIDGET_HEIGHT_MIN_DP
 import com.supernova.launcher.feed.FeedCard.Companion.WIDGET_HEIGHT_STEP_DP
-import java.util.Collections
 import java.util.UUID
 
-// The "Card details" page as a sheet: toolbar (back, Save, overflow with
-// Pin / Enable / Delete), the live card, its name, then Featured content
-// (with the widget height stepper), reorderable Actions, and the Activate
-// section with one row per condition. Pickers reuse the settings-activity
-// conventions: plain AlertDialog app lists (the gesture LAUNCH_APP pattern)
-// and the two-step app -> shortcut list (the gesture LAUNCH_SHORTCUT
-// pattern). Only Save commits; back/dismiss changes nothing.
-//
-// The Widget choice opens the host's widget picker over the editor; only a
-// pick saves the draft and hands it to the bind/configure flow (the
-// launcher's), which closes the editor; a dismissed picker leaves the editor
-// as it was. Delete offers Undo.
+// The card editor, one sheet for both kinds of card:
+// - apps and shortcuts: a live preview, the list (up to six, the first
+//   optionally a large tile), Pin to top;
+// - a widget: the widget with Change, its height (Fill the page or a set
+//   height), Card background, Pin to top, and shortcuts under it.
+// Only Save commits; Cancel and Back leave the card as it was. Remove offers
+// Undo.
 object CustomCardEditorSheet {
 
-    // The host's widget flow for a Widget-featured card: the picker, then
-    // the bind into a card id already saved.
+    // The host's widget flow for a widget card: the picker, then the bind
+    // into a card id already saved. Null where no widget can be bound
+    // (Settings): Change then hides.
     class WidgetFlow(
         val pick: (onPicked: (android.appwidget.AppWidgetProviderInfo) -> Unit) -> Unit,
         val bind: (info: android.appwidget.AppWidgetProviderInfo, cardId: String) -> Unit
     )
+
+    // The editor's working copy, committed only on Save.
+    private class Draft(base: FeedCard) {
+        val items = CardItems.of(base).toMutableList()
+        var widgetHeightDp = base.widgetHeight
+        var fillPage = base.fillPage
+    }
 
     fun show(
         activity: AppCompatActivity,
         viewModel: LauncherViewModel,
         existing: FeedCard?,
         widgetFlow: WidgetFlow? = null,
-        // What the Undo bar after Delete sits above (Settings' tab bar);
+        // What the Undo bar after Remove sits above (Settings' tab bar);
         // null puts it at the screen's bottom.
         undoAnchor: View? = null
     ) {
         val binding = SheetCardEditorBinding.inflate(LayoutInflater.from(activity))
-        val dialog = com.supernova.launcher.ui.Sheets.open(activity)
+        val dialog = Sheets.open(activity)
         dialog.setContentView(binding.root)
-        // Every way out goes through the back button (system or toolbar), so
-        // unsaved changes can be caught there: no tap-outside or swipe-away.
+        // A stray drag or tap outside never throws the edits away; Back and
+        // Cancel do, on purpose.
         dialog.setCancelable(false)
         dialog.setCanceledOnTouchOutside(false)
+        dialog.onBackPressedDispatcher.addCallback(dialog) { dialog.dismiss() }
 
-        // Working state, committed only on Save.
-        var featuredType: String? = existing?.featuredType
-        var featuredTarget: String? = existing?.featuredTarget
-        var widgetHeightDp = existing?.widgetHeight ?: FeedCard.DEFAULT_WIDGET_HEIGHT_DP
-        val actions = existing?.actions.orEmpty().take(FeedCard.MAX_ACTIONS).toMutableList()
-        var dayTime: CardCondition? = existing?.conditions?.firstOrNull {
-            ConditionKind.fromName(it.kind) == ConditionKind.DAY_TIME
-        }
-        var bluetooth: CardCondition? = existing?.conditions?.firstOrNull {
-            ConditionKind.fromName(it.kind) == ConditionKind.BLUETOOTH
-        }
-        var pinned = existing?.pinned ?: false
-        var enabled = existing?.enabled ?: true
-        binding.cardActivate.isChecked = existing?.activationEnabled ?: true
-        binding.cardFrame.isChecked = existing?.showFrame ?: true
-        binding.cardWidgetFill.isChecked = existing?.fillPage ?: false
-        binding.cardName.setText(existing?.name.orEmpty())
+        val base = existing ?: FeedCard(id = UUID.randomUUID().toString())
+        val widget = CardItems.isWidget(base)
+        val draft = Draft(base)
+        binding.cardName.setText(base.name)
+        binding.cardPin.isChecked = base.pinned
+        binding.cardFrame.isChecked = base.showFrame
+        binding.cardLargeTile.isChecked = CardItems.largeTile(base)
 
-        // Live preview: the draft rendered by the feed's own binder. Launch
-        // and menu are inert here; icons and labels come from the catalog. A
-        // widget shows as "not available".
+        fun buildCard(): FeedCard = CardItems.apply(
+            base.copy(
+                name = binding.cardName.text?.toString()?.trim().orEmpty(),
+                pinned = binding.cardPin.isChecked,
+                showFrame = if (widget) binding.cardFrame.isChecked else base.showFrame,
+                widgetHeightDp = draft.widgetHeightDp,
+                fillPage = widget && draft.fillPage
+            ),
+            draft.items,
+            binding.cardLargeTile.isChecked
+        )
+
+        // ---- Which rows this kind of card has ----
+        val shortcutsOnly = if (widget) View.GONE else View.VISIBLE
+        val widgetOnly = if (widget) View.VISIBLE else View.GONE
+        binding.cardPreviewWell.visibility = shortcutsOnly
+        binding.cardLargeTileRow.visibility = shortcutsOnly
+        binding.cardWidgetRow.visibility = widgetOnly
+        binding.cardHeightSection.visibility = widgetOnly
+        binding.cardFrameRow.visibility = widgetOnly
+        binding.cardItemsLabel.setText(if (widget) R.string.card_widget_items else R.string.card_items_label)
+
+        // ---- Preview (apps and shortcuts) ----
         val previewBinder = CardViewBinder(
             CardViewBinder.Callbacks(
                 onLaunchTarget = { _, _, _ -> },
@@ -107,182 +112,88 @@ object CustomCardEditorSheet {
             .of(com.supernova.launcher.ui.theme.SurfaceId.CARDS)
         previewBinder.setAppearance(look.surface, look.text, look.accent)
         val previewBinding = previewBinder.inflate(binding.cardPreview)
+        // The well gives the preview its own margin.
+        (previewBinding.root.layoutParams as? android.view.ViewGroup.MarginLayoutParams)?.setMargins(0, 0, 0, 0)
         binding.cardPreview.addView(previewBinding.root)
-
-        // Stable across Save and the Widget-pick path so both target one card.
-        val cardId = existing?.id ?: UUID.randomUUID().toString()
-
-        fun buildCard(): FeedCard {
-            val widget = FeaturedType.fromName(featuredType) == FeaturedType.WIDGET
-            return FeedCard(
-                id = cardId,
-                name = binding.cardName.text?.toString()?.trim().orEmpty(),
-                featuredType = featuredType,
-                featuredTarget = featuredTarget,
-                appWidgetId = existing?.appWidgetId?.takeIf { widget },
-                widgetProvider = existing?.widgetProvider?.takeIf { widget },
-                actions = actions.take(FeedCard.MAX_ACTIONS),
-                conditions = listOfNotNull(dayTime, bluetooth),
-                enabled = enabled,
-                pinned = pinned,
-                widgetHeightDp = widgetHeightDp,
-                activationEnabled = binding.cardActivate.isChecked,
-                showFrame = binding.cardFrame.isChecked,
-                fillPage = widget && binding.cardWidgetFill.isChecked
-            )
-        }
-        val refreshPreview = { previewBinder.bind(previewBinding, buildCard()) }
+        val refreshPreview = { if (!widget) previewBinder.bind(previewBinding, buildCard()) }
         binding.cardName.doAfterTextChanged { refreshPreview() }
-        binding.cardFrame.setOnCheckedChangeListener { _, _ -> refreshPreview() }
-        // What the sheet opened with, normalised the same way; a draft that
-        // still equals it can close without asking.
-        val initial = buildCard()
+        binding.cardLargeTile.setOnCheckedChangeListener { _, _ -> refreshPreview() }
+        binding.cardLargeTileRow.setOnClickListener { binding.cardLargeTile.toggle() }
+        binding.cardPinRow.setOnClickListener { binding.cardPin.toggle() }
+        binding.cardFrameRow.setOnClickListener { binding.cardFrame.toggle() }
 
-        fun save() {
-            val card = buildCard()
-            // Contextual runtime requests for the condition signals the card
-            // just asked for; results are read on the next feed-show, so no
-            // callback plumbing is needed here.
-            requestConditionPermissions(activity, card.conditions)
-            viewModel.upsertFeedCard(card)
+        // ---- The widget, and Change ----
+        if (widget) {
+            val info = base.appWidgetId?.let {
+                android.appwidget.AppWidgetManager.getInstance(activity).getAppWidgetInfo(it)
+            }
+            binding.cardWidgetLabel.text = info?.loadLabel(activity.packageManager)
+                ?: activity.getString(R.string.card_widget_unavailable)
+            binding.cardWidgetIcon.setImageDrawable(info?.loadIcon(activity, 0))
+            binding.cardWidgetChange.visibility = if (widgetFlow == null) View.GONE else View.VISIBLE
+            binding.cardWidgetChange.setOnClickListener {
+                widgetFlow?.pick { picked ->
+                    // Saved first, so the new widget binds to the card as
+                    // edited; the editor closes and the feed shows it.
+                    viewModel.upsertFeedCard(buildCard())
+                    widgetFlow.bind(picked, base.id)
+                    dialog.dismiss()
+                }
+            }
+        }
+
+        bindHeight(activity, binding, draft)
+        bindItems(activity, viewModel, binding, draft, refreshPreview)
+
+        // ---- Buttons ----
+        binding.cardRemove.visibility = if (existing == null) View.GONE else View.VISIBLE
+        binding.cardRemove.setOnClickListener {
+            val removed = existing ?: return@setOnClickListener
+            val index = viewModel.feedCards().indexOfFirst { it.id == removed.id }
+            viewModel.removeFeedCard(removed.id)
+            dialog.dismiss()
+            com.google.android.material.snackbar.Snackbar
+                .make(
+                    activity.findViewById(android.R.id.content),
+                    R.string.card_removed,
+                    com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+                )
+                .setAction(R.string.undo) { viewModel.restoreFeedCard(removed, index.coerceAtLeast(0)) }
+                .apply { if (undoAnchor != null) anchorView = undoAnchor }
+                .show()
+        }
+        binding.cardCancel.setOnClickListener { dialog.dismiss() }
+        binding.cardSave.setOnClickListener {
+            viewModel.upsertFeedCard(buildCard())
             dialog.dismiss()
         }
 
-        // Back with unsaved changes asks: save them, or discard them. A tap
-        // outside the question (or back again) keeps editing.
-        fun attemptClose() {
-            if (buildCard() == initial) {
-                dialog.dismiss()
-                return
-            }
-            MaterialAlertDialogBuilder(activity)
-                .setTitle(R.string.card_unsaved_title)
-                .setMessage(R.string.card_unsaved_message)
-                .setPositiveButton(R.string.save) { _, _ -> save() }
-                .setNegativeButton(R.string.card_discard) { _, _ -> dialog.dismiss() }
-                .showTracked()
-        }
-        dialog.onBackPressedDispatcher.addCallback(dialog) { attemptClose() }
+        refreshPreview()
+        dialog.show()
+    }
 
-        // ---- Toolbar: back, Save, overflow (Pin, Enable, Delete) ----
-        binding.cardBack.setOnClickListener { attemptClose() }
-        binding.cardEditorMenu.setOnClickListener { anchor ->
-            val labels = listOfNotNull(
-                activity.getString(if (pinned) R.string.card_menu_unpin else R.string.card_menu_pin),
-                activity.getString(if (enabled) R.string.card_menu_disable else R.string.card_menu_enable),
-                existing?.let { activity.getString(R.string.card_delete) }
-            )
-            ChoiceMenu.showActions(anchor, viewModel.state.value.prefs, labels) { which ->
-                when (which) {
-                    0 -> pinned = !pinned
-                    1 -> enabled = !enabled
-                    2 -> {
-                        val removed = existing!!
-                        viewModel.removeFeedCard(removed.id)
-                        dialog.dismiss()
-                        com.google.android.material.snackbar.Snackbar
-                            .make(
-                                activity.findViewById(android.R.id.content),
-                                R.string.card_deleted,
-                                com.google.android.material.snackbar.Snackbar.LENGTH_LONG
-                            )
-                            .setAction(R.string.undo) { viewModel.upsertFeedCard(removed) }
-                            .apply { if (undoAnchor != null) anchorView = undoAnchor }
-                            .show()
-                    }
-                }
-            }
-        }
-        binding.cardSave.setOnClickListener { save() }
-
-        // ---- Featured content ----
-        fun refreshFeatured() {
-            refreshPreview()
-            val type = FeaturedType.fromName(featuredType)
-            val set = type == FeaturedType.WIDGET || (type != null && featuredTarget != null)
-            binding.cardFeaturedAdd.visibility = if (set) View.GONE else View.VISIBLE
-            binding.cardFeaturedRow.visibility = if (set) View.VISIBLE else View.GONE
-            binding.cardWidgetHeightRow.visibility = if (type == FeaturedType.WIDGET) View.VISIBLE else View.GONE
-            if (!set) return
-            if (type == FeaturedType.WIDGET) {
-                val info = existing?.appWidgetId?.let {
-                    android.appwidget.AppWidgetManager.getInstance(activity).getAppWidgetInfo(it)
-                }
-                binding.cardFeaturedLabel.text = info?.loadLabel(activity.packageManager)
-                    ?: activity.getString(R.string.card_widget_unavailable)
-                binding.cardFeaturedIcon.setImageDrawable(info?.loadIcon(activity, 0))
-            } else {
-                val target = featuredTarget.orEmpty()
-                binding.cardFeaturedLabel.text = labelForTarget(viewModel, target)
-                    ?: com.supernova.launcher.data.LaunchTarget.split(target).first
-                binding.cardFeaturedIcon.setImageDrawable(
-                    iconForTarget(viewModel, target)?.constantState?.newDrawable()?.mutate()
-                )
-            }
-        }
-
-        fun pickFeatured() {
-            val options = buildList {
-                add(activity.getString(R.string.card_featured_app))
-                add(activity.getString(R.string.card_featured_shortcut))
-                if (widgetFlow != null) add(activity.getString(R.string.widget))
-            }.toTypedArray()
-            MaterialAlertDialogBuilder(activity)
-                .setTitle(R.string.card_featured)
-                .setItems(options) { _, which ->
-                    when (which) {
-                        0 -> pickApp(activity, viewModel) { target, _ ->
-                            featuredType = FeaturedType.APP.name
-                            featuredTarget = target
-                            refreshFeatured()
-                        }
-                        1 -> pickShortcut(activity, viewModel) { target, _ ->
-                            featuredType = FeaturedType.SHORTCUT.name
-                            featuredTarget = target
-                            refreshFeatured()
-                        }
-                        2 -> widgetFlow?.pick { info ->
-                            // Saved only once a widget is picked, so the bound
-                            // widget attaches to a persisted id; the editor
-                            // closes and the feed shows the result.
-                            viewModel.upsertFeedCard(buildCard())
-                            widgetFlow.bind(info, cardId)
-                            dialog.dismiss()
-                        }
-                    }
-                }
-                .setNegativeButton(R.string.cancel, null)
-                .showTracked()
-        }
-        binding.cardFeaturedAdd.setOnClickListener { pickFeatured() }
-        binding.cardFeaturedRow.setOnClickListener { pickFeatured() }
-        binding.cardFeaturedClear.setOnClickListener {
-            featuredType = null
-            featuredTarget = null
-            refreshFeatured()
-        }
-
-        // Widget height: a stepper slider, hidden while the widget fills
-        // the page (the feed then sizes it; elsewhere it keeps this height).
-        fun refreshFill() {
-            val stepper = if (binding.cardWidgetFill.isChecked) View.GONE else View.VISIBLE
-            binding.cardWidgetHeightLabel.visibility = stepper
-            binding.cardWidgetHeightStepper.visibility = stepper
-        }
-        refreshFill()
-        binding.cardWidgetFill.setOnCheckedChangeListener { _, _ -> refreshFill() }
-        fun refreshHeight() {
+    // A widget card's height: Fill the page, or a set height on the stepper.
+    private fun bindHeight(activity: AppCompatActivity, binding: SheetCardEditorBinding, draft: Draft) {
+        fun refresh() {
+            binding.cardHeightHint.visibility = if (draft.fillPage) View.VISIBLE else View.GONE
+            binding.cardWidgetHeightStepper.visibility = if (draft.fillPage) View.GONE else View.VISIBLE
             binding.cardWidgetHeightValue.text =
-                activity.getString(R.string.card_widget_height_value, widgetHeightDp)
-            binding.cardWidgetHeightSeek.progress = (widgetHeightDp - WIDGET_HEIGHT_MIN_DP) / WIDGET_HEIGHT_STEP_DP
-            refreshPreview()
+                activity.getString(R.string.card_widget_height_value, draft.widgetHeightDp)
+            binding.cardWidgetHeightSeek.progress =
+                (draft.widgetHeightDp - WIDGET_HEIGHT_MIN_DP) / WIDGET_HEIGHT_STEP_DP
+        }
+        binding.cardHeightGroup.check(if (draft.fillPage) R.id.cardHeightFill else R.id.cardHeightSet)
+        binding.cardHeightGroup.addOnButtonCheckedListener { _, id, checked ->
+            if (!checked) return@addOnButtonCheckedListener
+            draft.fillPage = id == R.id.cardHeightFill
+            refresh()
         }
         binding.cardWidgetHeightSeek.max = (WIDGET_HEIGHT_MAX_DP - WIDGET_HEIGHT_MIN_DP) / WIDGET_HEIGHT_STEP_DP
         binding.cardWidgetHeightSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                 if (!fromUser) return
-                widgetHeightDp = WIDGET_HEIGHT_MIN_DP + progress * WIDGET_HEIGHT_STEP_DP
-                refreshHeight()
+                draft.widgetHeightDp = WIDGET_HEIGHT_MIN_DP + progress * WIDGET_HEIGHT_STEP_DP
+                refresh()
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
@@ -290,56 +201,28 @@ object CustomCardEditorSheet {
             override fun onStopTrackingTouch(seekBar: SeekBar) = Unit
         })
         binding.cardWidgetHeightMinus.setOnClickListener {
-            widgetHeightDp = (widgetHeightDp - WIDGET_HEIGHT_STEP_DP).coerceAtLeast(WIDGET_HEIGHT_MIN_DP)
-            refreshHeight()
+            draft.widgetHeightDp = (draft.widgetHeightDp - WIDGET_HEIGHT_STEP_DP).coerceAtLeast(WIDGET_HEIGHT_MIN_DP)
+            refresh()
         }
         binding.cardWidgetHeightPlus.setOnClickListener {
-            widgetHeightDp = (widgetHeightDp + WIDGET_HEIGHT_STEP_DP).coerceAtMost(WIDGET_HEIGHT_MAX_DP)
-            refreshHeight()
+            draft.widgetHeightDp = (draft.widgetHeightDp + WIDGET_HEIGHT_STEP_DP).coerceAtMost(WIDGET_HEIGHT_MAX_DP)
+            refresh()
         }
+        refresh()
+    }
 
-        // ---- Actions: reorderable rows ----
-        val actionsAdapter = ActionsAdapter(actions, { target -> iconForTarget(viewModel, target) }) {
-            binding.cardAddAction.visibility =
-                if (actions.size >= FeedCard.MAX_ACTIONS) View.GONE else View.VISIBLE
-            refreshPreview()
-        }
-        binding.cardActionsList.layoutManager = LinearLayoutManager(activity)
-        binding.cardActionsList.adapter = actionsAdapter
-        val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
-            ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
-        ) {
-            override fun onMove(
-                recyclerView: RecyclerView,
-                viewHolder: RecyclerView.ViewHolder,
-                target: RecyclerView.ViewHolder
-            ): Boolean {
-                val from = viewHolder.bindingAdapterPosition
-                val to = target.bindingAdapterPosition
-                if (from < 0 || to < 0) return false
-                Collections.swap(actions, from, to)
-                actionsAdapter.notifyItemMoved(from, to)
-                refreshPreview()
-                return true
-            }
-
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) = Unit
-
-            override fun isLongPressDragEnabled(): Boolean = false
-        })
-        touchHelper.attachToRecyclerView(binding.cardActionsList)
-        actionsAdapter.onDragHandle = { holder -> touchHelper.startDrag(holder) }
-        fun refreshActions() {
-            actionsAdapter.notifyDataSetChanged()
-            binding.cardAddAction.visibility =
-                if (actions.size >= FeedCard.MAX_ACTIONS) View.GONE else View.VISIBLE
-            refreshPreview()
-        }
-        binding.cardAddAction.setOnClickListener {
-            if (actions.size >= FeedCard.MAX_ACTIONS) {
-                Toast.makeText(activity, R.string.card_actions_full, Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
+    // The list as chips: a tap moves one earlier or later (the first can be
+    // the large tile), its × takes it out, and Add picks an app or shortcut.
+    private fun bindItems(
+        activity: AppCompatActivity,
+        viewModel: LauncherViewModel,
+        binding: SheetCardEditorBinding,
+        draft: Draft,
+        onChanged: () -> Unit
+    ) {
+        val items = draft.items
+        lateinit var refresh: () -> Unit
+        fun add() {
             val options = arrayOf(
                 activity.getString(R.string.card_featured_app),
                 activity.getString(R.string.card_featured_shortcut)
@@ -347,265 +230,112 @@ object CustomCardEditorSheet {
             MaterialAlertDialogBuilder(activity)
                 .setTitle(R.string.card_add_action)
                 .setItems(options) { _, which ->
+                    val onPicked = { type: FeaturedType ->
+                        { target: String, label: String ->
+                            items.add(CardAction(type.name, target, label))
+                            refresh()
+                        }
+                    }
                     when (which) {
-                        0 -> pickApp(activity, viewModel) { target, label ->
-                            actions.add(CardAction(FeaturedType.APP.name, target, label))
-                            refreshActions()
-                        }
-                        1 -> pickShortcut(activity, viewModel) { target, label ->
-                            actions.add(CardAction(FeaturedType.SHORTCUT.name, target, label))
-                            refreshActions()
-                        }
+                        0 -> pickApp(activity, viewModel, onPicked(FeaturedType.APP))
+                        1 -> pickShortcut(activity, viewModel, onPicked(FeaturedType.SHORTCUT))
                     }
                 }
                 .setNegativeButton(R.string.cancel, null)
                 .showTracked()
         }
-
-        // ---- Activation conditions: a row each, "+" to add, "x" to drop ----
-        // Material's picker rather than the platform dialog, so the time
-        // picker wears the same plate as every other dialog in the app.
-        fun pickTime(initialMinute: Int?, onPicked: (Int) -> Unit) {
-            val initial = initialMinute ?: (9 * 60)
-            val picker = com.google.android.material.timepicker.MaterialTimePicker.Builder()
-                .setTimeFormat(
-                    if (android.text.format.DateFormat.is24HourFormat(activity)) {
-                        com.google.android.material.timepicker.TimeFormat.CLOCK_24H
-                    } else {
-                        com.google.android.material.timepicker.TimeFormat.CLOCK_12H
+        fun move(at: Int, anchor: View) {
+            val entries = buildList<Pair<Int, () -> Unit>> {
+                if (at > 0) add(R.string.card_item_earlier to { items.add(at - 1, items.removeAt(at)) })
+                if (at < items.lastIndex) add(R.string.card_item_later to { items.add(at + 1, items.removeAt(at)) })
+            }
+            if (entries.isEmpty()) return
+            ChoiceMenu.showActions(anchor, viewModel.state.value.prefs, entries.map { activity.getString(it.first) }) {
+                entries[it].second()
+                refresh()
+            }
+        }
+        refresh = {
+            val flow = binding.cardItems
+            flow.removeAllViews()
+            items.forEachIndexed { index, item ->
+                val label = item.label.ifBlank {
+                    labelForTarget(viewModel, item.target)
+                        ?: com.supernova.launcher.data.LaunchTarget.split(item.target).first
+                }
+                flow.addView(itemChip(activity, iconForTarget(viewModel, item.target), label,
+                    onTap = { anchor -> move(index, anchor) },
+                    onRemove = {
+                        items.removeAt(index)
+                        refresh()
                     }
-                )
-                .setHour(initial / 60)
-                .setMinute(initial % 60)
-                .build()
-            picker.addOnPositiveButtonClickListener { onPicked(picker.hour * 60 + picker.minute) }
-            picker.show(activity.supportFragmentManager, "card_time")
+                ))
+            }
+            if (items.size < CardItems.MAX) {
+                flow.addView(addChip(activity) { add() })
+            }
+            binding.cardItemsCount.text = activity.getString(R.string.card_items_count, items.size, CardItems.MAX)
+            onChanged()
         }
-
-        lateinit var refreshConditions: () -> Unit
-
-        fun editDayTime() {
-            val days = dayTime?.days.orEmpty().toMutableSet()
-            var start = dayTime?.startMinute
-            var end = dayTime?.endMinute
-            val content = LinearLayout(activity).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(activity.dp(20), activity.dp(8), activity.dp(20), 0)
-            }
-            // Seven letter chips, the day picker.
-            val daysRow = com.google.android.material.chip.ChipGroup(activity).apply {
-                isSingleLine = true
-                chipSpacingHorizontal = activity.dp(4)
-            }
-            DAY_LABELS.forEachIndexed { index, labelRes ->
-                val day = index + 1
-                daysRow.addView(
-                    com.google.android.material.chip.Chip(
-                        activity, null, com.google.android.material.R.attr.chipStyle
-                    ).apply {
-                        text = activity.getString(labelRes)
-                        isCheckable = true
-                        isCheckedIconVisible = false
-                        // Seven across a dialog: trim to a letter's width (the
-                        // default 48dp touch target alone would overflow).
-                        setEnsureMinTouchTargetSize(false)
-                        chipStartPadding = 0f
-                        chipEndPadding = 0f
-                        textStartPadding = activity.dp(9).toFloat()
-                        textEndPadding = activity.dp(9).toFloat()
-                        chipMinHeight = activity.dp(34).toFloat()
-                        isChecked = day in days
-                        setOnCheckedChangeListener { _, checked ->
-                            if (checked) days.add(day) else days.remove(day)
-                        }
-                    }
-                )
-            }
-            content.addView(daysRow)
-            val times = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
-            val startButton = com.google.android.material.button.MaterialButton(
-                activity, null, androidx.appcompat.R.attr.borderlessButtonStyle
-            )
-            val endButton = com.google.android.material.button.MaterialButton(
-                activity, null, androidx.appcompat.R.attr.borderlessButtonStyle
-            )
-            fun refreshTimes() {
-                startButton.text = start?.let(::formatMinute) ?: activity.getString(R.string.card_time_start)
-                endButton.text = end?.let(::formatMinute) ?: activity.getString(R.string.card_time_end)
-            }
-            startButton.setOnClickListener {
-                pickTime(start) {
-                    start = it
-                    if (end == null) end = it
-                    refreshTimes()
-                }
-            }
-            endButton.setOnClickListener {
-                pickTime(end) {
-                    end = it
-                    if (start == null) start = it
-                    refreshTimes()
-                }
-            }
-            refreshTimes()
-            times.addView(startButton)
-            times.addView(endButton)
-            content.addView(times)
-            MaterialAlertDialogBuilder(activity)
-                .setTitle(R.string.card_cond_daytime)
-                .setView(content)
-                .setPositiveButton(android.R.string.ok) { _, _ ->
-                    val timed = start != null && end != null
-                    dayTime = if (days.isEmpty() && !timed) {
-                        null
-                    } else {
-                        CardCondition(
-                            kind = ConditionKind.DAY_TIME.name,
-                            days = days.sorted().takeIf { it.isNotEmpty() },
-                            startMinute = start.takeIf { timed },
-                            endMinute = end.takeIf { timed }
-                        )
-                    }
-                    refreshConditions()
-                }
-                .setNegativeButton(R.string.cancel, null)
-                .showTracked()
-        }
-
-        fun editText(
-            titleRes: Int,
-            hintRes: Int,
-            current: String?,
-            message: CharSequence?,
-            onDone: (String) -> Unit
-        ) {
-            val input = EditText(activity).apply {
-                setHint(hintRes)
-                setText(current.orEmpty())
-                maxLines = 1
-                setSelection(text.length)
-            }
-            MaterialAlertDialogBuilder(activity)
-                .setTitle(titleRes)
-                .apply { if (message != null) setMessage(message) }
-                .setView(com.supernova.launcher.ui.DialogField.wrap(input))
-                .setPositiveButton(android.R.string.ok) { _, _ ->
-                    onDone(input.text?.toString()?.trim().orEmpty())
-                }
-                .setNegativeButton(R.string.cancel, null)
-                .showTracked()
-        }
-
-        fun editBluetooth() = editText(
-            R.string.card_cond_bt, R.string.card_cond_bt_field, bluetooth?.btName, null
-        ) { name ->
-            bluetooth = name.takeIf { it.isNotEmpty() }
-                ?.let { CardCondition(kind = ConditionKind.BLUETOOTH.name, btName = it) }
-            refreshConditions()
-        }
-
-        fun bindCondition(
-            row: RowCardConditionBinding,
-            titleRes: Int,
-            subtitle: CharSequence?,
-            set: Boolean,
-            onEdit: () -> Unit,
-            onClear: () -> Unit
-        ) {
-            row.conditionTitle.setText(titleRes)
-            row.conditionSubtitle.text = subtitle
-            row.conditionSubtitle.visibility = if (subtitle.isNullOrEmpty()) View.GONE else View.VISIBLE
-            row.conditionButton.setImageResource(if (set) R.drawable.ic_menu_remove else R.drawable.ic_menu_add)
-            row.conditionButton.contentDescription =
-                activity.getString(if (set) R.string.card_cond_remove else R.string.card_cond_add)
-            row.conditionButton.setOnClickListener { if (set) onClear() else onEdit() }
-            row.root.setOnClickListener { onEdit() }
-        }
-
-        refreshConditions = {
-            bindCondition(
-                binding.cardCondDay, R.string.card_cond_daytime,
-                dayTime?.let { dayTimeSummary(activity, it) },
-                dayTime != null, ::editDayTime
-            ) {
-                dayTime = null
-                refreshConditions()
-            }
-            bindCondition(
-                binding.cardCondBt, R.string.card_cond_bt,
-                bluetooth?.btName ?: activity.getString(R.string.card_cond_bt_hint),
-                bluetooth != null, ::editBluetooth
-            ) {
-                bluetooth = null
-                refreshConditions()
-            }
-        }
-
-        refreshFeatured()
-        refreshHeight()
-        refreshActions()
-        refreshConditions()
-        dialog.show()
+        refresh()
     }
 
-    // An action row: icon, label, remove, and a handle that starts a
-    // drag through the sheet's ItemTouchHelper.
-    private class ActionsAdapter(
-        private val actions: MutableList<CardAction>,
-        private val iconFor: (String) -> android.graphics.drawable.Drawable?,
-        private val onRemoved: () -> Unit
-    ) : RecyclerView.Adapter<ActionsAdapter.Holder>() {
-
-        var onDragHandle: ((RecyclerView.ViewHolder) -> Unit)? = null
-
-        class Holder(val binding: ItemCardActionBinding) : RecyclerView.ViewHolder(binding.root)
-
-        override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): Holder =
-            Holder(ItemCardActionBinding.inflate(LayoutInflater.from(parent.context), parent, false))
-
-        override fun getItemCount(): Int = actions.size
-
-        @android.annotation.SuppressLint("ClickableViewAccessibility")
-        override fun onBindViewHolder(holder: Holder, position: Int) {
-            val action = actions[position]
-            holder.binding.actionLabel.text = action.label.ifBlank {
-                com.supernova.launcher.data.LaunchTarget.split(action.target).first
-            }
-            holder.binding.actionIcon.setImageDrawable(
-                iconFor(action.target)?.constantState?.newDrawable()?.mutate()
+    private fun itemChip(
+        context: Context,
+        icon: android.graphics.drawable.Drawable?,
+        label: String,
+        onTap: (View) -> Unit,
+        onRemove: () -> Unit
+    ): View = LinearLayout(context).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        background = AppCompatResources.getDrawable(context, R.drawable.bg_item_chip)
+        foreground = AppCompatResources.getDrawable(context, R.drawable.ripple_icon)
+        minimumHeight = context.dp(44)
+        setPaddingRelative(context.dp(if (icon != null) 8 else 14), 0, 0, 0)
+        contentDescription = label
+        setOnClickListener(onTap)
+        if (icon != null) {
+            val size = context.dp(24)
+            addView(
+                ImageView(context).apply { setImageDrawable(icon.constantState?.newDrawable()?.mutate() ?: icon) },
+                LinearLayout.LayoutParams(size, size).apply { marginEnd = context.dp(8) }
             )
-            holder.binding.actionRemove.setOnClickListener {
-                val at = holder.bindingAdapterPosition
-                if (at < 0) return@setOnClickListener
-                actions.removeAt(at)
-                notifyItemRemoved(at)
-                onRemoved()
-            }
-            holder.binding.actionHandle.setOnTouchListener { _, event ->
-                if (event.actionMasked == MotionEvent.ACTION_DOWN) onDragHandle?.invoke(holder)
-                false
-            }
         }
+        addView(TextView(context).apply {
+            text = label
+            maxLines = 1
+            maxWidth = context.dp(180)
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            setTextColor(context.getColor(R.color.textPrimary))
+            textSize = 14f
+        })
+        // A text ×, not a drawable: the remove button.
+        addView(
+            TextView(context).apply {
+                text = "×"
+                gravity = Gravity.CENTER
+                textSize = 18f
+                setTextColor(context.getColor(R.color.textSecondary))
+                background = AppCompatResources.getDrawable(context, R.drawable.ripple_icon)
+                contentDescription = context.getString(R.string.card_item_remove, label)
+                setOnClickListener { onRemove() }
+            },
+            LinearLayout.LayoutParams(context.dp(40), context.dp(44))
+        )
     }
 
-    // "09:00 – 17:00 on Mon, Tue" / "Every day" / "Sat, Sun".
-    private fun dayTimeSummary(context: Context, condition: CardCondition): String {
-        val names = java.text.DateFormatSymbols.getInstance().shortWeekdays
-        val days = condition.days?.takeIf { it.isNotEmpty() }
-            ?.joinToString(", ") { iso -> names[(iso % 7) + 1] }
-            ?: context.getString(R.string.card_day_every)
-        val start = condition.startMinute
-        val end = condition.endMinute
-        if (start == null || end == null) return days
-        val times = context.getString(R.string.card_daytime_times, formatMinute(start), formatMinute(end))
-        return context.getString(R.string.card_daytime_on, times, days)
+    private fun addChip(context: Context, onTap: () -> Unit): View = TextView(context).apply {
+        text = context.getString(R.string.card_items_add)
+        gravity = Gravity.CENTER
+        minHeight = context.dp(44)
+        setPadding(context.dp(16), 0, context.dp(16), 0)
+        background = AppCompatResources.getDrawable(context, R.drawable.bg_dashed_pill)
+        foreground = AppCompatResources.getDrawable(context, R.drawable.ripple_icon)
+        setTextColor(context.getColor(R.color.textPrimary))
+        textSize = 14f
+        setOnClickListener { onTap() }
     }
-
-    private val DAY_LABELS = listOf(
-        R.string.card_day_mon, R.string.card_day_tue, R.string.card_day_wed,
-        R.string.card_day_thu, R.string.card_day_fri, R.string.card_day_sat,
-        R.string.card_day_sun
-    )
 
     // Preview-side target resolution, mirroring LauncherActivity's routes
     // without needing the activity.
@@ -698,27 +428,4 @@ object CustomCardEditorSheet {
             .setNegativeButton(R.string.cancel, null)
             .showTracked()
     }
-
-    private fun requestConditionPermissions(
-        activity: AppCompatActivity,
-        conditions: List<CardCondition>
-    ) {
-        val wanted = mutableListOf<String>()
-        val hasBt = conditions.any { ConditionKind.fromName(it.kind) == ConditionKind.BLUETOOTH }
-        if (hasBt && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            !granted(activity, Manifest.permission.BLUETOOTH_CONNECT)
-        ) {
-            wanted.add(Manifest.permission.BLUETOOTH_CONNECT)
-        }
-        if (wanted.isNotEmpty()) {
-            ActivityCompat.requestPermissions(activity, wanted.toTypedArray(), 0)
-        }
-    }
-
-    private fun granted(context: Context, permission: String): Boolean =
-        context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
-
-    private fun formatMinute(minute: Int): String =
-        String.format(java.util.Locale.getDefault(), "%02d:%02d", minute / 60, minute % 60)
-
 }

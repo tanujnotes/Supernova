@@ -6,7 +6,7 @@
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="@dimen/space_md"
     android:layout_marginVertical="@dimen/space_sm"
-    android:background="@drawable/bg_feed_card"
+    android:background="@drawable/bg_search_top_hit"
     android:orientation="vertical"
     android:paddingHorizontal="@dimen/space_md"
     android:paddingTop="@dimen/space_ms"

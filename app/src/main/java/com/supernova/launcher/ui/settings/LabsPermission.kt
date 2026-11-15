@@ -23,10 +23,6 @@ enum class LabsPermission(
 ) {
     CONTACTS(R.string.permission_contacts, R.string.permission_contacts_use, arrayOf(Manifest.permission.READ_CONTACTS)),
     CALENDAR(R.string.permission_calendar, R.string.permission_calendar_use, arrayOf(Manifest.permission.READ_CALENDAR)),
-    NEARBY_DEVICES(
-        R.string.permission_nearby, R.string.permission_nearby_use,
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) arrayOf(Manifest.permission.BLUETOOTH_CONNECT) else emptyArray()
-    ),
     NOTIFICATIONS(R.string.permission_notifications, R.string.permission_notifications_use),
     // Posting one is a permission only from Android 13.
     POST_NOTIFICATIONS(
@@ -40,9 +36,9 @@ enum class LabsPermission(
     ACCESSIBILITY(R.string.permission_accessibility, R.string.permission_accessibility_use),
     DEVICE_ADMIN(R.string.permission_device_admin, R.string.permission_device_admin_use);
 
-    // Nearby devices is a permission only from Android 12, and posting
-    // notifications only from 13; before those, nothing is asked for.
-    val applies: Boolean get() = (this != NEARBY_DEVICES && this != POST_NOTIFICATIONS) || runtime.isNotEmpty()
+    // Posting notifications is a permission only from Android 13; before
+    // that, nothing is asked for.
+    val applies: Boolean get() = this != POST_NOTIFICATIONS || runtime.isNotEmpty()
 
     fun granted(context: Context): Boolean = when (this) {
         NOTIFICATIONS -> SupernovaNotificationListener.isEnabled(context)

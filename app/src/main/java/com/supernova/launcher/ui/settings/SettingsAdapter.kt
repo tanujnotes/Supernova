@@ -13,7 +13,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.supernova.launcher.R
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.databinding.ItemSettingAccordionBinding
-import com.supernova.launcher.databinding.ItemSettingCardBinding
 import com.supernova.launcher.databinding.ItemSettingGroupLabelBinding
 import com.supernova.launcher.databinding.ItemSettingGroupRowBinding
 import com.supernova.launcher.databinding.ItemSettingLabelGroupBinding
@@ -78,9 +77,6 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
 
     fun isLabel(position: Int): Boolean = position in visible.indices && visible[position] is SettingItem.Header
 
-    // A card a Cards page entry stands in, apart from its neighbours.
-    fun isEntryCard(position: Int): Boolean = position in visible.indices && visible[position] is SettingItem.Card
-
     fun startsCard(position: Int): Boolean =
         isGroupCard(position) && (!isGroupCard(position - 1) || breaksBefore(position))
 
@@ -88,7 +84,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
         isGroupCard(position) && (!isGroupCard(position + 1) || breaksBefore(position + 1))
 
     private fun breaksBefore(position: Int): Boolean =
-        visible[position] is SettingItem.Accordion || isEntryCard(position) || isEntryCard(position - 1)
+        visible[position] is SettingItem.Accordion
 
     private val openHere: MutableSet<Int>
         get() = expandedAccordions.getOrPut(page) { mutableSetOf() }
@@ -195,7 +191,6 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
         is SettingItem.Header -> TYPE_HEADER
         is SettingItem.Accordion -> TYPE_ACCORDION
         is SettingItem.StyleTarget -> TYPE_STYLE_TARGET
-        is SettingItem.Card -> TYPE_CARD
         is SettingItem.LabelGroup -> TYPE_LABEL_GROUP
     }
 
@@ -210,7 +205,6 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             TYPE_STYLE_TARGET -> StyleTargetHolder(
                 ItemSettingStyleTargetBinding.inflate(inflater, parent, false)
             ) { onRowTapped?.invoke(it) }
-            TYPE_CARD -> CardHolder(ItemSettingCardBinding.inflate(inflater, parent, false))
             TYPE_LABEL_GROUP -> LabelGroupHolder(
                 ItemSettingLabelGroupBinding.inflate(inflater, parent, false), previews, ::toggleAccordion
             ) { onRowTapped?.invoke(it) }
@@ -234,7 +228,6 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             is SettingItem.Accordion ->
                 (holder as AccordionHolder).bind(item, item.title in openHere)
             is SettingItem.StyleTarget -> (holder as StyleTargetHolder).bind(item, prefs)
-            is SettingItem.Card -> (holder as CardHolder).bind(item)
             is SettingItem.LabelGroup ->
                 (holder as LabelGroupHolder).bind(item, prefs, item.title in openHere)
         }
@@ -303,21 +296,28 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
                 ((if (tiled) GROUP_TEXT_START_DP else GROUP_SIDE_DP) * density).toInt(), binding.root.paddingTop,
                 binding.root.paddingEnd, binding.root.paddingBottom
             )
-            binding.settingTitle.setText(item.title)
+            val titleText = item.titleText
+            if (titleText != null) binding.settingTitle.text = titleText else binding.settingTitle.setText(item.title)
             val blocked = item.blockedBy(prefs)
             val subtitle = blocked ?: item.subtitle
-            if (subtitle != 0) {
-                binding.settingSubtitle.setText(subtitle)
-                binding.settingSubtitle.visibility = View.VISIBLE
-            } else {
-                binding.settingSubtitle.visibility = View.GONE
+            val subtitleText = item.subtitleText?.invoke(prefs)
+            when {
+                subtitle != 0 -> binding.settingSubtitle.setText(subtitle)
+                subtitleText != null -> binding.settingSubtitle.text = subtitleText
             }
+            binding.settingSubtitle.visibility = if (subtitle != 0 || subtitleText != null) View.VISIBLE else View.GONE
             // Detach the listener before syncing state so rebinding never
             // reports a phantom user toggle.
             binding.settingSwitch.setOnCheckedChangeListener(null)
             binding.settingSwitch.isChecked = item.get(prefs)
             binding.settingSwitch.setOnCheckedChangeListener { _, checked -> item.set(checked) }
-            binding.root.setOnClickListener { binding.settingSwitch.toggle() }
+            val open = item.onOpen
+            binding.root.setOnClickListener { if (open != null) open() else binding.settingSwitch.toggle() }
+            // A row that opens something leaves the switch its own taps; on
+            // the rest the whole row is the switch. Set both ways: rows are
+            // reused.
+            binding.settingSwitch.isClickable = open != null
+            binding.settingSwitch.isFocusable = open != null
             // Greyed: the title and switch fade, the reason stays readable.
             val alpha = if (blocked != null) BLOCKED_ALPHA else 1f
             binding.settingTitle.alpha = alpha
@@ -545,19 +545,6 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
         }
     }
 
-    private class CardHolder(private val binding: ItemSettingCardBinding) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(item: SettingItem.Card) {
-            binding.cardTitle.text = item.titleText
-            val gear = item.onGear
-            binding.cardGear.visibility = if (gear == null) View.GONE else View.VISIBLE
-            binding.cardGear.setOnClickListener { gear?.invoke() }
-            // Rebuilt per bind: binds are rare (a card edit, a style change)
-            // and the rendering is the card's own view tree.
-            binding.cardPreviewContainer.removeAllViews()
-            binding.cardPreviewContainer.addView(item.build(binding.cardPreviewContainer))
-        }
-    }
-
     private class LabelGroupHolder(
         private val binding: ItemSettingLabelGroupBinding,
         private val previews: PreviewController,
@@ -670,7 +657,6 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
         const val TYPE_HEADER = 4
         const val TYPE_ACCORDION = 5
         const val TYPE_STYLE_TARGET = 6
-        const val TYPE_CARD = 7
         const val TYPE_SECTION = 8
         const val TYPE_LABEL_GROUP = 9
 

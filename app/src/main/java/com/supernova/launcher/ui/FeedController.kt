@@ -9,19 +9,13 @@ import android.view.animation.DecelerateInterpolator
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnLayout
-import com.supernova.launcher.R
-import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.databinding.ActivityLauncherBinding
 import com.supernova.launcher.databinding.ViewFeedPaneBinding
 import com.supernova.launcher.feed.CalendarCardSource
-import com.supernova.launcher.feed.CardActivation
 import com.supernova.launcher.feed.ContactsCardSource
-import com.supernova.launcher.feed.FeaturedType
-import com.supernova.launcher.feed.FeedCard
 import com.supernova.launcher.feed.FeedOrder
 import com.supernova.launcher.feed.MediaCardSource
-import com.supernova.launcher.search.AppSearchProvider
 import com.supernova.launcher.ui.theme.Styles
 import com.supernova.launcher.ui.theme.SurfaceId
 import kotlinx.coroutines.CoroutineScope
@@ -41,10 +35,9 @@ import kotlin.math.min
 // and the pager's left overscroll. Card sources are strictly dormant while
 // the pane is hidden.
 //
-// Cards: every enabled card is in the feed, pinned ones first, then the
-// activated ones (all conditions met), then the rest with the built-in
-// cards among them, each group in the user's order (FeedOrder). The shared
-// CardActivation evaluates conditions and is held only while shown.
+// Cards: every enabled card is in the feed, pinned ones first, then the rest
+// with the built-in cards among them, each group in the user's order
+// (FeedOrder).
 //
 // A long-press picks a card up and a drag moves it within its group; let go
 // where it was, it opens the card's menu instead (FeedCardDrag).
@@ -52,7 +45,6 @@ class FeedController(
     private val binding: ActivityLauncherBinding,
     private val viewModel: LauncherViewModel,
     private val scope: CoroutineScope,
-    private val activation: CardActivation,
     private val cardBinder: CardViewBinder,
     private val host: Host,
     // Whether a swipe that started at (x, y) on the workspace may pull the
@@ -66,14 +58,8 @@ class FeedController(
     interface Host {
         fun onOpenSearch()
 
-        // The overflow's Settings entry: the Feed page section; a built-in
-        // card's menu opens that card's own page.
-        fun openFeedSettings(@androidx.annotation.StringRes section: Int = R.string.settings_section_feed)
-
-        fun launchApp(anchor: View?, app: LaunchableApp)
-
-        // type APP/SHORTCUT; target uses the gesture payload encodings.
-        fun launchTarget(type: FeaturedType, target: String, anchor: View?)
+        // The footer's Feed settings: the Feed page section.
+        fun openFeedSettings()
 
         fun requestCalendarPermission()
 
@@ -83,8 +69,13 @@ class FeedController(
 
         fun openContact(contact: ContactsCardSource.Starred, anchor: View)
 
-        // null = create a new card.
-        fun editCard(card: FeedCard?)
+        // Add card: the add sheet (a widget, apps and shortcuts, the
+        // ready-made cards). The empty page goes straight to either kind.
+        fun addCard()
+
+        fun addWidgetCard()
+
+        fun addShortcutsCard()
     }
 
     enum class TouchResult { PASS, TAKE_OVER, CONSUMED }
@@ -103,7 +94,11 @@ class FeedController(
             onGrantContacts = { host.requestContactsPermission() },
             onOpenEvent = { id -> host.openCalendarEvent(id) },
             onOpenContact = { contact, view -> host.openContact(contact, view) },
-            onAddCard = { host.editCard(null) }
+            onAddCard = { host.addCard() },
+            onFeedSettings = { host.openFeedSettings() },
+            onAddWidget = { host.addWidgetCard() },
+            onAddShortcuts = { host.addShortcutsCard() },
+            onShowBuiltIn = { key -> showBuiltIn(key) }
         ),
         cardBinder
     )
@@ -113,16 +108,7 @@ class FeedController(
     private val mediaSource = MediaCardSource(context.applicationContext)
     private val calendarSource = CalendarCardSource(context.applicationContext, scope)
     private val contactsSource = ContactsCardSource(context.applicationContext, scope)
-    // Wi-Fi / Bluetooth signal changes while shown re-sort the cards.
-    private val activationListener: () -> Unit = { if (shown) rebuild() }
-
     private var collectJob: Job? = null
-    private val boundaryRunnable = Runnable {
-        if (shown) {
-            rebuild()
-            scheduleBoundary()
-        }
-    }
 
     // Swipe state. The drag path mutates translationX only - no allocations
     // per frame (the VelocityTracker is obtained once per gesture). Three
@@ -484,8 +470,6 @@ class FeedController(
         mediaSource.onShown()
         calendarSource.onShown()
         contactsSource.onShown()
-        activation.acquire(this)
-        activation.addListener(activationListener)
         collectJob = scope.launch {
             launch {
                 combine(
@@ -494,24 +478,13 @@ class FeedController(
             }
             launch {
                 // Card edits made while the pane is open (editor sheet on top),
-                // and moves. The first emission is the cards acquire just
-                // armed for.
+                // and moves. The first emission is where they stood as it
+                // opened, which the rebuild below shows.
                 viewModel.state.map { it.model.feedCards to it.model.feedOrder }
-                    .distinctUntilChanged().drop(1).collect {
-                    activation.refresh()
-                    rebuild()
-                    scheduleBoundary()
-                }
-            }
-            launch {
-                // A launch from the pane leaves it open behind the app: its
-                // frequent apps and suggested shortcuts catch up. The first
-                // value is where they stood as it opened.
-                viewModel.launchGeneration.drop(1).collect { configureHeader() }
+                    .distinctUntilChanged().drop(1).collect { rebuild() }
             }
         }
         rebuild()
-        scheduleBoundary()
     }
 
     // The activity is being destroyed with the pane open: let go of every
@@ -526,9 +499,6 @@ class FeedController(
         mediaSource.onHidden()
         calendarSource.onHidden()
         contactsSource.onHidden()
-        activation.removeListener(activationListener)
-        activation.release(this)
-        ui?.root?.removeCallbacks(boundaryRunnable)
     }
 
     // In-card permission grants land while the pane is open; re-pull both
@@ -542,16 +512,6 @@ class FeedController(
         if (!shown) return
         calendarSource.refresh()
         contactsSource.refresh()
-    }
-
-    // DAY_TIME conditions re-evaluate exactly at the next start/end boundary
-    // while shown; nothing is scheduled while hidden.
-    private fun scheduleBoundary() {
-        val pane = ui?.root ?: return
-        pane.removeCallbacks(boundaryRunnable)
-        if (!shown) return
-        val minutes = activation.minutesToNextBoundary() ?: return
-        pane.postDelayed(boundaryRunnable, minutes * 60_000L)
     }
 
     private fun rebuild() {
@@ -589,22 +549,44 @@ class FeedController(
             }
         }
         val rows = ArrayList<FeedAdapter.Row>()
-        activation.feedLayout(viewModel.feedOrder(), builtIns.keys).forEach { entry ->
+        FeedOrder.layout(viewModel.feedOrder(), viewModel.feedCards(), builtIns.keys).forEach { entry ->
             val card = entry.card
             rows.add(if (card != null) FeedAdapter.Row.Custom(card, entry.group) else builtIns.getValue(entry.key))
         }
-        rows.add(FeedAdapter.Row.AddCard)
+        // Nothing to show: the page says what it is for, with the
+        // ready-made cards that are off. Otherwise Add card and Feed
+        // settings close the list.
+        rows.add(if (rows.isEmpty()) FeedAdapter.Row.Empty(readyMadeOff(prefs)) else FeedAdapter.Row.Footer)
         adapter.submit(rows)
+    }
+
+    private fun readyMadeOff(prefs: LauncherPrefs): List<String> = listOfNotNull(
+        FeedOrder.MEDIA.takeUnless { prefs.feedShowMedia },
+        FeedOrder.CALENDAR.takeUnless { prefs.feedShowCalendar },
+        FeedOrder.CONTACTS.takeUnless { prefs.feedShowContacts }
+    )
+
+    // A ready-made card turned on from the empty page; calendar and contacts
+    // ask for their access as they would from settings.
+    private fun showBuiltIn(key: String) {
+        when (key) {
+            FeedOrder.MEDIA -> viewModel.set(com.supernova.launcher.data.Pref.feedShowMedia, true)
+            FeedOrder.CALENDAR -> {
+                viewModel.set(com.supernova.launcher.data.Pref.feedShowCalendar, true)
+                host.requestCalendarPermission()
+            }
+            FeedOrder.CONTACTS -> {
+                viewModel.set(com.supernova.launcher.data.Pref.feedShowContacts, true)
+                host.requestContactsPermission()
+            }
+        }
     }
 
     private var rebuildPending = false
 
-    // Moving cards: the drag, and Move up / Move down from a card's menu.
-    private val cardOrder = FeedCardOrder(adapter, viewModel) { section -> host.openFeedSettings(section) }
+    // Moving cards: a long-press picks one up and a drag moves it.
+    private val cardOrder = FeedCardOrder(adapter, viewModel)
     private val cardDrag = FeedCardDrag(adapter, viewModel, cardOrder) { if (rebuildPending) rebuild() }
-
-    // For the feed's card menus (FeedCardRoutes).
-    val cardMoves: FeedCardRoutes.Moves get() = cardOrder
 
     // ---- Chrome ----------------------------------------------------------
 
@@ -639,7 +621,6 @@ class FeedController(
             androidx.recyclerview.widget.LinearLayoutManager(context)
         cardDrag.attach(pane.feedRecycler)
         pane.feedSearchBar.onTap = { host.onOpenSearch() }
-        pane.feedMenu.setOnClickListener { anchor -> showMenu(anchor) }
 
         // Park closed and keep parked across relayouts (rotation, inset
         // changes) - but never fight an active drag or the open state.
@@ -666,9 +647,8 @@ class FeedController(
             return
         }
         applyStyle()
-        val header = listOf(prefs.feedShowSearch, prefs.feedShowFrequent, prefs.feedShowShortcuts, prefs.feedShortcutRows)
-        if (header != appliedHeader) {
-            appliedHeader = header
+        if (prefs.feedShowSearch != appliedHeader) {
+            appliedHeader = prefs.feedShowSearch
             configureHeader()
         }
         val rows = listOf(prefs.feedShowMedia, prefs.feedShowCalendar, prefs.feedShowContacts)
@@ -678,7 +658,7 @@ class FeedController(
         }
     }
 
-    private var appliedHeader: List<Any>? = null
+    private var appliedHeader: Boolean? = null
     private var appliedRows: List<Any>? = null
 
     private fun applyStyle() {
@@ -698,12 +678,6 @@ class FeedController(
         // styled), keeping every color user-styleable through the pickers.
         val paneText = paneTextColor(prefs)
         pane.root.setBackgroundColor(FEED_DIM)
-        // Inside the bar the menu wears the bar's text colour, like its
-        // buttons; beside a hidden bar, the pane's.
-        pane.feedMenu.imageTintList = android.content.res.ColorStateList.valueOf(
-            if (pane.feedSearchBar.trailing === pane.feedMenu) resolved.of(SurfaceId.SEARCH_BAR).text else paneText
-        )
-        pane.feedNoFrequent.setTextColor((0xB3 shl 24) or (paneText and 0xFFFFFF))
         val cards = resolved.of(SurfaceId.CARDS)
         adapter.setAppearance(cards.surface, cards.text, cards.accent, paneText)
         // The feed bar borrows the desktop bar's styling (radius, wireframe,
@@ -714,8 +688,8 @@ class FeedController(
         )
     }
 
-    // Text drawn straight on the pane (menu, frequent labels, shortcut pills,
-    // Add card) sits on FEED_DIM, which is always dark: a light drawer theme's
+    // Text drawn straight on the pane (the footer, the empty page) sits on
+    // FEED_DIM, which is always dark: a light drawer theme's
     // dark text vanished there, so a dark drawer text falls back to white.
     private fun paneTextColor(prefs: LauncherPrefs): Int {
         val text = Styles.resolve(context, prefs).of(SurfaceId.DRAWER).text
@@ -729,122 +703,15 @@ class FeedController(
         if (shown) applyStyle()
     }
 
+    // The header is the search pill alone; with it off there is none.
     private fun configureHeader() {
         val pane = ui ?: return
-        val prefs = viewModel.state.value.prefs
-        pane.feedSearchBar.visibility = if (prefs.feedShowSearch) View.VISIBLE else View.GONE
-        // The overflow sits inside the bar, at its right end; with the bar
-        // off it stays on its own in the header row, the menu's only door.
-        val menuInBar = prefs.feedShowSearch
-        if (menuInBar != (pane.feedSearchBar.trailing === pane.feedMenu)) {
-            val density = context.resources.displayMetrics.density
-            if (menuInBar) {
-                pane.feedSearchBar.trailing = pane.feedMenu
-            } else {
-                pane.feedSearchBar.trailing = null
-                // On its own it centres its 24dp icon, as its layout had it.
-                val pad = ((MENU_DP - MENU_ICON_DP) / 2 * density).toInt()
-                pane.feedMenu.setPadding(pad, pad, pad, pad)
-                val size = (MENU_DP * density).toInt()
-                pane.feedHeaderRow.addView(pane.feedMenu, android.widget.LinearLayout.LayoutParams(size, size))
-            }
-            // The bar runs to the same edge margin as its start; the lone
-            // menu keeps the narrower one its touch padding needs.
-            (pane.feedHeaderRow.layoutParams as? android.view.ViewGroup.MarginLayoutParams)?.let {
-                it.marginEnd = ((if (menuInBar) BAR_END_DP else MENU_END_DP) * density).toInt()
-                pane.feedHeaderRow.layoutParams = it
-            }
-            // The menu's tint depends on where it sits.
-            appliedStyle = null
-            applyStyle()
-        }
-        if (prefs.feedShowFrequent) {
-            val counts = viewModel.launchCounts()
-            val frequent = viewModel.visibleApps()
-                .filter { (counts[AppSearchProvider.countKey(it)] ?: 0) > 0 }
-                .sortedByDescending { counts[AppSearchProvider.countKey(it)] ?: 0 }
-                .take(4)
-            if (frequent.isEmpty()) {
-                // A placeholder keeps the row's place.
-                pane.feedFrequentRow.visibility = View.GONE
-                pane.feedNoFrequent.visibility = View.VISIBLE
-            } else {
-                pane.feedNoFrequent.visibility = View.GONE
-                pane.feedFrequentRow.visibility = View.VISIBLE
-                val catalog = viewModel.appCatalog()
-                val paused = viewModel.state.value.pausedWorkProfiles
-                val textColor = paneTextColor(prefs)
-                pane.feedFrequentRow.bindLabeled(
-                    frequent.map { app ->
-                        val icon = PausedIcon.of(catalog.iconFor(app), app.userSerial in paused)
-                        FrequentAppsRowView.Entry(app.label, icon) { view ->
-                            host.launchApp(view, app)
-                        }
-                    },
-                    textColor
-                )
-            }
-        } else {
-            pane.feedFrequentRow.visibility = View.GONE
-            pane.feedNoFrequent.visibility = View.GONE
-        }
-        configureShortcutsRow(pane, prefs)
+        pane.feedHeaderRow.visibility = if (viewModel.state.value.prefs.feedShowSearch) View.VISIBLE else View.GONE
     }
-
-    // Suggested shortcuts (D7): icon+label pills for the first
-    // shortcuts of the most-launched apps, wrapping into exactly the number
-    // of rows the pref asks for (the FlowLayout hides whatever overflows).
-    private fun configureShortcutsRow(
-        pane: com.supernova.launcher.databinding.ViewFeedPaneBinding,
-        prefs: com.supernova.launcher.data.LauncherPrefs
-    ) {
-        val flow = pane.feedShortcutsFlow
-        flow.removeAllViews()
-        if (!prefs.feedShowShortcuts) {
-            flow.visibility = View.GONE
-            return
-        }
-        val pills = SuggestedShortcuts.pills(viewModel, MAX_SUGGESTED_SHORTCUTS)
-        if (pills.isEmpty()) {
-            flow.visibility = View.GONE
-            return
-        }
-        val textColor = paneTextColor(prefs)
-        flow.maxLines = prefs.feedShortcutRows.coerceIn(1, 3)
-        pills.forEach { pill ->
-            flow.addView(
-                CardViewBinder.pill(context, pill.icon, pill.label, textColor) { view ->
-                    host.launchTarget(FeaturedType.SHORTCUT, pill.target, view)
-                }
-            )
-        }
-        flow.visibility = View.VISIBLE
-    }
-
-    // The overflow beside the search pill: Add card, Settings.
-    private fun showMenu(anchor: View) {
-        ChoiceMenu.showActions(
-            anchor, viewModel.state.value.prefs,
-            listOf(context.getString(R.string.cards_add), context.getString(R.string.feed_menu_settings))
-        ) { which ->
-            when (which) {
-                0 -> host.editCard(null)
-                1 -> host.openFeedSettings()
-            }
-        }
-    }
-
 
     private companion object {
-        // The overflow menu's size, and the header row's end margin with the
-        // menu inside the bar or on its own.
-        const val MENU_DP = 44
-        const val MENU_ICON_DP = 24
-        const val BAR_END_DP = 16
-        const val MENU_END_DP = 8
         // Horizontal must beat vertical by this much before a drag is ours.
         const val DIRECTION_BIAS = 2f
-        const val MAX_SUGGESTED_SHORTCUTS = 12
         const val EDGE_GUTTER_DP = 24
         const val OPEN_MS = 220L
         const val CLOSE_MS = 180L

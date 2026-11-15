@@ -451,23 +451,31 @@
         <item name="android:textSize">@dimen/text_secondary</item>
     </style>
 
-    <!-- Card editor sections: an accent group label over a muted blurb. -->
-    <style name="CardEditorHeader">
-        <item name="android:layout_width">match_parent</item>
+    <!-- A two-line sheet row's lines, and a sheet's small section label. -->
+    <style name="SheetRowText">
+        <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:paddingTop">22dp</item>
-        <item name="android:paddingBottom">@dimen/space_xs</item>
-        <item name="android:textColor">@color/accent</item>
-        <item name="android:textSize">@dimen/text_secondary</item>
-        <item name="android:textStyle">bold</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:orientation">vertical</item>
     </style>
 
-    <style name="CardEditorDescription">
+    <style name="SheetRowSubtitle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:paddingBottom">@dimen/space_sm</item>
+        <item name="android:layout_marginTop">2dp</item>
         <item name="android:textColor">@color/textSecondary</item>
         <item name="android:textSize">@dimen/text_secondary</item>
+    </style>
+
+    <style name="SheetSectionLabel">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingHorizontal">@dimen/space_ml</item>
+        <item name="android:paddingTop">@dimen/space_md</item>
+        <item name="android:paddingBottom">@dimen/space_xs</item>
+        <item name="android:textColor">?attr/colorAccentOnRaised</item>
+        <item name="android:textSize">@dimen/text_secondary</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
     <style name="SheetTitle">

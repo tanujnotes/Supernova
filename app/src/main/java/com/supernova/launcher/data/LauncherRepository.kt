@@ -850,9 +850,16 @@ class LauncherRepository(private val context: Context) {
         }
     }
 
+    // A widget bound to a card. Add card's Widget saves nothing until the
+    // widget is bound, so a card that doesn't exist yet is made here, at the
+    // end of the feed (a cancelled pick leaves no empty card behind), and
+    // made as a new widget card is: without its background.
     suspend fun setCardWidget(cardId: String, appWidgetId: Int, provider: String) {
         mutate { current ->
-            current.copy(feedCards = current.feedCards.map { card ->
+            val known = current.feedCards.any { it.id == cardId }
+            val cards = current.feedCards.takeIf { known }
+                ?: (current.feedCards + com.supernova.launcher.feed.FeedCard.newWidgetCard(cardId))
+            current.copy(feedCards = cards.map { card ->
                 if (card.id == cardId) {
                     card.copy(
                         featuredType = com.supernova.launcher.feed.FeaturedType.WIDGET.name,

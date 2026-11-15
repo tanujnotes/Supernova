@@ -161,13 +161,14 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     private var drawerKeptBehindLaunch = false
     // Circle's and Adaptive icon's launcher-side part (launchWithAnimation).
     private val launchPrelude by lazy { com.supernova.launcher.ui.LaunchPrelude(binding.root) }
-    // Shared by the feed and the drawer: one condition monitor, one answer to
-    // "which cards are activated right now".
-    private lateinit var cardActivation: com.supernova.launcher.feed.CardActivation
     // Custom cards on every surface that shows them: one look, one way to
     // launch, edit and pin.
     private val cards by lazy {
-        com.supernova.launcher.ui.FeedCardRoutes(this, viewModel, { actions }, { cardActivation }, { widgets })
+        com.supernova.launcher.ui.FeedCardRoutes(
+            this, viewModel, { actions }, { widgets },
+            requestCalendar = { requestFeedCalendarPermission.launch(android.Manifest.permission.READ_CALENDAR) },
+            requestContacts = { requestFeedContactsPermission.launch(android.Manifest.permission.READ_CONTACTS) }
+        )
     }
     // A home swipe turns the page or swipes up or down, never both (#82).
     private val pageSwipeGuard by lazy { com.supernova.launcher.ui.PageSwipeGuard(binding.workspacePager) }
@@ -879,12 +880,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
     override fun onDestroy() {
         // A recreate (a theme flip, an accent change) can come with the feed
-        // or the drawer's cards showing; their media, calendar and condition
-        // listeners are registered with the system and would keep this
-        // activity alive for good.
+        // showing; its media and calendar listeners are registered with the
+        // system and would keep this activity alive for good.
         if (::feed.isInitialized) feed.release()
-        if (::drawer.isInitialized) drawer.releaseCards()
-        if (::cardActivation.isInitialized) cardActivation.dispose()
         WallpaperManager.getInstance(this).removeOnColorsChangedListener(wallpaperColorsListener)
         runCatching { unregisterReceiver(screenOffReceiver) }
         // It takes itself off once the dock has settled; a destroy can come
@@ -1333,7 +1331,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     }
 
     private fun setupDrawer() {
-        cardActivation = com.supernova.launcher.feed.CardActivation(this) { viewModel.feedCards() }
         drawer = DrawerController(
             binding = binding,
             viewModel = viewModel,
@@ -1360,32 +1357,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             onSelectTabApps = ::showDrawerGroupChecklist,
             customTabIcon = { group ->
                 itemIcons.customFolderIcon(group.iconBase64, group.iconPack, group.iconName, group.iconRaw)
-            },
-            cards = object : DrawerController.CardHost {
-                // Launches from a drawer card close the drawer like an app tap.
-                private val binder = cards.binder(afterLaunch = { hideDrawer() })
-
-                override fun onShown() = cardActivation.acquire(this)
-
-                override fun onHidden() = cardActivation.release(this)
-
-                override fun activatedCards() = cardActivation.activated()
-
-                override fun cardView(
-                    parent: android.view.ViewGroup,
-                    card: com.supernova.launcher.feed.FeedCard
-                ): View {
-                    val look = com.supernova.launcher.ui.theme.Styles
-                        .resolve(this@LauncherActivity, viewModel.state.value.prefs)
-                        .of(com.supernova.launcher.ui.theme.SurfaceId.CARDS)
-                    binder.setAppearance(look.surface, look.text, look.accent)
-                    val binding = binder.inflate(parent)
-                    binder.bind(binding, card)
-                    return binding.root
-                }
             }
         )
-        cardActivation.addListener { if (drawer.isVisible) drawer.refreshCards() }
         // Covers every close path (back, close button, drag-dismiss); opening
         // is also triggered directly from openDrawer for immediacy.
         drawer.onOpenStateChanged = { open ->
@@ -1506,17 +1479,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             binding = binding,
             viewModel = viewModel,
             scope = lifecycleScope,
-            activation = cardActivation,
-            // Deferred: `feed` is assigned by this very call, and a move
-            // only comes from a card menu once the pane is up.
-            cardBinder = cards.binder(
-                afterLaunch = null,
-                moves = object : com.supernova.launcher.ui.FeedCardRoutes.Moves {
-                    override fun canMove(key: String, up: Boolean) = feed.cardMoves.canMove(key, up)
-
-                    override fun move(key: String, up: Boolean) = feed.cardMoves.move(key, up)
-                }
-            ),
+            // In the feed a long-press picks a card up; its menu opens when
+            // it is let go unmoved.
+            cardBinder = cards.binder(afterLaunch = null, inFeed = true),
             canPullFromWorkspace = ::feedPullAllowed,
             itemDragArmed = { drag.isArmed || drag.isActive },
             host = object : FeedController.Host {
@@ -1524,16 +1489,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     feed.setBehindSearch(true)
                     search.open()
                 }
-
-                override fun launchApp(anchor: View?, app: LaunchableApp) {
-                    this@LauncherActivity.launchApp(app, anchor)
-                }
-
-                override fun launchTarget(
-                    type: com.supernova.launcher.feed.FeaturedType,
-                    target: String,
-                    anchor: View?
-                ) = cards.launchTarget(type, target)
 
                 override fun requestCalendarPermission() {
                     requestFeedCalendarPermission.launch(android.Manifest.permission.READ_CALENDAR)
@@ -1573,12 +1528,16 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     }
                 }
 
-                override fun editCard(card: com.supernova.launcher.feed.FeedCard?) = cards.edit(card)
+                override fun addCard() = cards.add()
 
-                override fun openFeedSettings(section: Int) {
+                override fun addWidgetCard() = cards.addWidget()
+
+                override fun addShortcutsCard() = cards.edit(null)
+
+                override fun openFeedSettings() {
                     startActivity(
                         Intent(this@LauncherActivity, SettingsActivity::class.java)
-                            .putExtra(SettingsActivity.EXTRA_SECTION_TITLE_RES, section)
+                            .putExtra(SettingsActivity.EXTRA_SECTION_TITLE_RES, R.string.settings_section_feed)
                     )
                 }
             }
@@ -1595,17 +1554,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             },
             leftEdgeTaken = { viewModel.state.value.prefs.let { it.feedEnabled && it.feedEdgeSwipe } }
         )
-        // Card edits re-arm the shared monitor (new Wi-Fi/Bluetooth needs)
-        // and refresh whichever surface is showing cards. The feed collects
-        // the same emission itself.
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.state.map { it.model.feedCards }.distinctUntilChanged().collect {
-                    cardActivation.refresh()
-                    if (drawer.isVisible) drawer.refreshCards()
-                }
-            }
-        }
         // A launch from the drawer leaves it open behind the app (unless Close
         // drawer after launching is on), so its frequent row catches up here
         // rather than on the next open. The feed pane watches for itself.
@@ -2623,6 +2571,15 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        // Settings' Add card chose a widget: the feed opens and the picker
+        // comes up over it (only the launcher can bind one).
+        if (intent.getBooleanExtra(EXTRA_ADD_FEED_WIDGET, false)) {
+            intent.removeExtra(EXTRA_ADD_FEED_WIDGET)
+            com.supernova.launcher.ui.OpenDialogs.dismissAll(this)
+            if (viewModel.state.value.prefs.feedEnabled) feed.open()
+            cards.addWidget()
+            return
+        }
         // Home press re-delivers MAIN/HOME to the singleTask instance: reset to
         // the default page with drawer and menus closed, like every launcher does.
         // cameFromBackground separates the two presses that land here: one made
@@ -4881,6 +4838,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     }
 
     companion object {
+        // Settings' Add card → Widget: pick and bind one onto a new feed card.
+        const val EXTRA_ADD_FEED_WIDGET = "extra_add_feed_widget"
+
         // Same vertical bias the gesture detector uses for swipe-up/down.
         private const val DRAWER_PULL_BIAS = 1.2f
         // How long the Circle takes to fill the screen before the app opens.

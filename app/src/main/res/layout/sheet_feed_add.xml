@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Add to feed: the two kinds of card, then the ready-made cards as
+     switches (on is in the feed). A widget goes straight to the picker;
+     apps and shortcuts open the card editor. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="@dimen/space_md">
+
+    <include layout="@layout/sheet_handle" />
+
+    <TextView
+        style="@style/SheetTitle"
+        android:paddingBottom="@dimen/space_sm"
+        android:text="@string/feed_add_title" />
+
+    <LinearLayout
+        android:id="@+id/addWidget"
+        style="@style/SheetRow"
+        android:minHeight="72dp">
+
+        <LinearLayout style="@style/SheetRowText">
+
+            <TextView
+                style="@style/SheetRowTitle"
+                android:layout_width="match_parent"
+                android:fontFamily="sans-serif-medium"
+                android:text="@string/feed_add_widget_short" />
+
+            <TextView
+                style="@style/SheetRowSubtitle"
+                android:text="@string/feed_add_widget_desc" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/addShortcuts"
+        style="@style/SheetRow"
+        android:minHeight="72dp">
+
+        <LinearLayout style="@style/SheetRowText">
+
+            <TextView
+                style="@style/SheetRowTitle"
+                android:layout_width="match_parent"
+                android:fontFamily="sans-serif-medium"
+                android:text="@string/feed_add_shortcuts" />
+
+            <TextView
+                style="@style/SheetRowSubtitle"
+                android:text="@string/feed_add_shortcuts_desc" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginHorizontal="@dimen/space_ml"
+        android:layout_marginTop="@dimen/space_sm"
+        android:background="@color/settingsDivider" />
+
+    <TextView
+        style="@style/SheetSectionLabel"
+        android:text="@string/feed_ready_made" />
+
+    <LinearLayout
+        android:id="@+id/readyMedia"
+        style="@style/SheetRow">
+
+        <LinearLayout style="@style/SheetRowText">
+
+            <TextView
+                style="@style/SheetRowTitle"
+                android:layout_width="match_parent"
+                android:text="@string/cards_media_title" />
+
+            <TextView
+                style="@style/SheetRowSubtitle"
+                android:text="@string/feed_show_media" />
+        </LinearLayout>
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/readyMediaSwitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/cards_media_title" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/readyCalendar"
+        style="@style/SheetRow">
+
+        <LinearLayout style="@style/SheetRowText">
+
+            <TextView
+                style="@style/SheetRowTitle"
+                android:layout_width="match_parent"
+                android:text="@string/feed_calendar_title" />
+
+            <TextView
+                style="@style/SheetRowSubtitle"
+                android:text="@string/feed_show_calendar" />
+        </LinearLayout>
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/readyCalendarSwitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/feed_calendar_title" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/readyContacts"
+        style="@style/SheetRow">
+
+        <LinearLayout style="@style/SheetRowText">
+
+            <TextView
+                style="@style/SheetRowTitle"
+                android:layout_width="match_parent"
+                android:text="@string/feed_contacts_title" />
+
+            <TextView
+                style="@style/SheetRowSubtitle"
+                android:text="@string/feed_show_contacts" />
+        </LinearLayout>
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/readyContactsSwitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/feed_contacts_title" />
+    </LinearLayout>
+</LinearLayout>

@@ -109,7 +109,7 @@ object ThemeEngine {
     private fun darkWithin(startMinute: Int, endMinute: Int, recheckIn: ((Long) -> Unit)?): Int {
         val now = java.util.Calendar.getInstance()
         val minute = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE)
-        val dark = com.supernova.launcher.feed.CardVisibility.minuteInRange(minute, startMinute, endMinute)
+        val dark = DayWindow.contains(minute, startMinute, endMinute)
         recheckIn?.invoke(nextBoundaryDelayMs(minute, startMinute, endMinute, now.get(java.util.Calendar.SECOND)))
         return if (dark) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
     }

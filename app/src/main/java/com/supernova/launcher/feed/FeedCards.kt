@@ -4,7 +4,9 @@ import kotlinx.serialization.Serializable
 
 // Model-v5 custom feed cards. Every field is default-supplied or nullable so
 // v4 documents (no feedCards at all) and hand-rolled/junk JSON decode without
-// migration work, matching the LauncherItem discipline.
+// migration work, matching the LauncherItem discipline. Keys a card no
+// longer has (the retired drawer conditions: conditions, activationEnabled)
+// are ignored on decode.
 //
 // featuredType is one of the FeaturedType names; featuredTarget encodes the
 // launch target with the same conventions the gesture payloads use:
@@ -23,17 +25,12 @@ data class FeedCard(
     val appWidgetId: Int? = null,
     val widgetProvider: String? = null,
     val actions: List<CardAction> = emptyList(),
-    val conditions: List<CardCondition> = emptyList(),
     val enabled: Boolean = true,
-    // "Pin": the card stays at the top of the feed, ahead of the
-    // activated ones.
+    // "Pin to top": the card stays at the top of the feed.
     val pinned: Boolean = false,
     // Height of a featured widget's tile ("Widget height"). Read through
     // widgetHeight, which keeps an old or hand-edited value in range.
     val widgetHeightDp: Int = DEFAULT_WIDGET_HEIGHT_DP,
-    // The "Activate" switch: off keeps the conditions but stops them
-    // activating the card (it then lives in the feed and search only).
-    val activationEnabled: Boolean = true,
     // "Card background": off draws the card bare, with no plate and no
     // header row, so a featured widget sits on the page as on the home
     // screen. Its menu is then a long-press away.
@@ -43,13 +40,6 @@ data class FeedCard(
     // it keeps widgetHeight. Absent in older stores, so off.
     val fillPage: Boolean = false
 ) {
-    // Activation: a card with conditions is "activated" while they all
-    // hold; that is what promotes it into the app drawer. A card without
-    // conditions is never activated - it lives in the feed and in search.
-    // Only known kinds count, so a card left with just an unknown one (the
-    // retired WIFI kind) isn't activated all the time.
-    val hasConditions: Boolean get() = conditions.any { ConditionKind.fromName(it.kind) != null }
-
     // The stored widget height, kept to the stepper's range: a backup or an
     // old store may hold anything.
     val widgetHeight: Int get() = widgetHeightDp.coerceIn(WIDGET_HEIGHT_MIN_DP, WIDGET_HEIGHT_MAX_DP)
@@ -63,6 +53,11 @@ data class FeedCard(
         const val WIDGET_HEIGHT_MIN_DP = 60
         const val WIDGET_HEIGHT_MAX_DP = 800
         const val WIDGET_HEIGHT_STEP_DP = 10
+
+        // A card made for a widget just picked: the widget on its own, with
+        // no plate or title, the way it sits on the home screen. Card
+        // background turns it back on.
+        fun newWidgetCard(id: String): FeedCard = FeedCard(id = id, showFrame = false)
     }
 }
 
@@ -85,29 +80,3 @@ data class CardAction(
     val target: String = "",
     val label: String = ""
 )
-
-// An activation condition; all of a card's conditions must hold for it to
-// activate (evaluated in feed/CardVisibility while the feed or drawer is
-// shown, never while both are hidden).
-//   DAY_TIME  -> days (1 = Monday .. 7 = Sunday, null/empty = every day) plus
-//                an optional startMinute/endMinute minute-of-day range that
-//                may wrap past midnight (e.g. 1320..360 = 22:00-06:00).
-//   BLUETOOTH -> btName matches a connected headset/A2DP device name.
-@Serializable
-data class CardCondition(
-    val kind: String = "",
-    val days: List<Int>? = null,
-    val startMinute: Int? = null,
-    val endMinute: Int? = null,
-    val btName: String? = null
-)
-
-enum class ConditionKind {
-    DAY_TIME,
-    BLUETOOTH;
-
-    companion object {
-        fun fromName(name: String?): ConditionKind? =
-            entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
-    }
-}

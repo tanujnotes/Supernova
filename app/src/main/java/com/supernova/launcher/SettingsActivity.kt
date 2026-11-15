@@ -498,50 +498,32 @@ class SettingsActivity : AppCompatActivity() {
                 }
             },
             editPopupRows = ::showPopupRowsDialog,
-            onFeedCalendarEnabled = {
-                if (checkSelfPermission(android.Manifest.permission.READ_CALENDAR) !=
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
-                ) {
-                    requestFeedCalendarPermission.launch(android.Manifest.permission.READ_CALENDAR)
-                }
-            },
-            onFeedContactsEnabled = {
-                if (checkSelfPermission(android.Manifest.permission.READ_CONTACTS) !=
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
-                ) {
-                    requestFeedContactsPermission.launch(android.Manifest.permission.READ_CONTACTS)
-                }
-            },
+            onFeedCalendarEnabled = ::requestFeedCalendarIfNeeded,
+            onFeedContactsEnabled = ::requestFeedContactsIfNeeded,
             editCard = { card ->
                 com.supernova.launcher.ui.CustomCardEditorSheet
                     .show(this, viewModel, card, undoAnchor = binding.settingsTabs)
             },
-            openCards = { navigateTo(R.string.settings_section_cards, 0) },
             openNotificationAccess = { com.supernova.launcher.ui.PermissionPrompts.openNotificationAccess(this) },
-            cardPreview = { card, parent ->
-                // The feed's own binder, inert: no launches, no menu, and a
-                // widget-featured card shows without its widget.
-                val binder = com.supernova.launcher.ui.CardViewBinder(
-                    com.supernova.launcher.ui.CardViewBinder.Callbacks(
-                        onLaunchTarget = { _, _, _ -> },
-                        widgetView = { null },
-                        iconForTarget = { target ->
-                            com.supernova.launcher.ui.CustomCardEditorSheet.iconForTarget(viewModel, target)
-                        },
-                        labelForTarget = { target ->
-                            com.supernova.launcher.ui.CustomCardEditorSheet.labelForTarget(viewModel, target)
-                        },
-                        onMenu = null
-                    )
+            // Add card: the add sheet. A widget is bound by the launcher, so
+            // that choice goes back to the feed and picks one there.
+            addCard = {
+                com.supernova.launcher.ui.FeedAddSheet.show(
+                    this, viewModel,
+                    onWidget = {
+                        startActivity(
+                            Intent(this, LauncherActivity::class.java)
+                                .putExtra(LauncherActivity.EXTRA_ADD_FEED_WIDGET, true)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    },
+                    onShortcuts = {
+                        com.supernova.launcher.ui.CustomCardEditorSheet
+                            .show(this, viewModel, null, undoAnchor = binding.settingsTabs)
+                    },
+                    requestCalendar = ::requestFeedCalendarIfNeeded,
+                    requestContacts = ::requestFeedContactsIfNeeded
                 )
-                val look = com.supernova.launcher.ui.theme.Styles
-                    .resolve(this, viewModel.state.value.prefs)
-                    .of(com.supernova.launcher.ui.theme.SurfaceId.CARDS)
-                binder.setAppearance(look.surface, look.text, look.accent)
-                binder.inflate(parent).also { binder.bind(it, card) }.root
-            },
-            builtInPreview = { kind, parent ->
-                com.supernova.launcher.ui.settings.CardPreviews.builtIn(kind, parent, viewModel.state.value.prefs)
             },
             openSection = { title -> navigateTo(title, 0) }
         )
@@ -568,9 +550,6 @@ class SettingsActivity : AppCompatActivity() {
         binding.settingsRecycler.adapter = adapter
         groupCards = com.supernova.launcher.ui.settings.SettingsGroupDecoration(this, adapter)
         binding.settingsRecycler.addItemDecoration(groupCards)
-        binding.cardsFab.setOnClickListener {
-            com.supernova.launcher.ui.CustomCardEditorSheet.show(this, viewModel, null)
-        }
         // Watched rather than consumed: the row's own click listener still
         // runs, this only remembers where the press landed so the menu it
         // opens can appear there.
@@ -703,10 +682,21 @@ class SettingsActivity : AppCompatActivity() {
         outState.putIntArray(STATE_OPEN_ACCORDIONS, adapter.openAccordions)
     }
 
-    // Sections reached only from a built-in card's gear on the Cards page.
-    private val cardSections = setOf(
-        R.string.cards_media_title, R.string.feed_calendar_title, R.string.feed_contacts_title
-    )
+    private fun requestFeedCalendarIfNeeded() {
+        if (checkSelfPermission(android.Manifest.permission.READ_CALENDAR) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            requestFeedCalendarPermission.launch(android.Manifest.permission.READ_CALENDAR)
+        }
+    }
+
+    private fun requestFeedContactsIfNeeded() {
+        if (checkSelfPermission(android.Manifest.permission.READ_CONTACTS) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            requestFeedContactsPermission.launch(android.Manifest.permission.READ_CONTACTS)
+        }
+    }
 
     // Pages opened from a row on another page rather than from the root,
     // and the page that row is on: back returns there.
@@ -714,7 +704,7 @@ class SettingsActivity : AppCompatActivity() {
         R.string.desktop_search_bar to R.string.settings_section_search,
         R.string.drawer_search_bar to R.string.settings_section_search,
         R.string.drawer_groups to R.string.settings_section_drawer
-    ) + cardSections.associateWith { R.string.settings_section_cards }
+    )
 
     // The Drawer groups page is the pane's, not the list's. A search from
     // its toolbar shows results in the list, and Back returns to the pane.
@@ -767,13 +757,6 @@ class SettingsActivity : AppCompatActivity() {
         binding.tabStyle.isSelected = currentTab == Tab.STYLE
         val section = currentSection
         backCallback.isEnabled = section != null || searchActive || (styleFromList && currentTab == Tab.STYLE)
-        // The Cards page adds from a FAB.
-        binding.cardsFab.visibility =
-            if (section?.title == R.string.settings_section_cards && !searchActive && currentTab == Tab.SETTINGS) {
-                View.VISIBLE
-            } else {
-                View.GONE
-            }
 
         applyHeader(section)
         showGroupsPane(onGroupsPage())
@@ -818,7 +801,7 @@ class SettingsActivity : AppCompatActivity() {
     // (a new one) joins the last card, so it is never lost from the list.
     private fun rootItems(): List<SettingItem> {
         val shown = sections.filter {
-            it.items.isNotEmpty() && it.title !in cardSections && it.title !in subPageParents
+            it.items.isNotEmpty() && it.title !in subPageParents
         }
         val groups = listOf(
             R.string.settings_group_screens to listOf(
@@ -826,8 +809,7 @@ class SettingsActivity : AppCompatActivity() {
                 R.string.settings_section_folders, R.string.settings_section_feed
             ),
             R.string.settings_group_customize to listOf(
-                R.string.settings_section_icons, R.string.gestures, R.string.settings_section_search,
-                R.string.settings_section_cards
+                R.string.settings_section_icons, R.string.gestures, R.string.settings_section_search
             ),
             R.string.settings_group_app to listOf(
                 R.string.settings_section_backup, R.string.permissions, R.string.about, R.string.labs
@@ -2145,7 +2127,6 @@ class SettingsActivity : AppCompatActivity() {
             R.string.settings_section_drawer to (R.drawable.ic_settings_drawer to R.string.section_drawer_subtitle),
             R.string.settings_section_search to (R.drawable.ic_settings_search to R.string.section_search_subtitle),
             R.string.settings_section_feed to (R.drawable.ic_settings_feed to R.string.section_feed_subtitle),
-            R.string.settings_section_cards to (R.drawable.ic_settings_cards to R.string.section_cards_subtitle),
             R.string.settings_section_folders to (R.drawable.ic_settings_folders to R.string.section_folders_subtitle),
             R.string.settings_section_icons to (R.drawable.ic_settings_icons to R.string.section_icons_subtitle),
             R.string.gestures to (R.drawable.ic_settings_gestures to R.string.section_gestures_subtitle),

@@ -58,24 +58,8 @@ class DrawerController(
     // An empty group tab's "Select apps": the picker for that group.
     private val onSelectTabApps: (DrawerGroup) -> Unit = {},
     // A group tab's picked icon (pack, app icon or photo), null for none.
-    private val customTabIcon: (DrawerGroup) -> Drawable? = { null },
-    // Activated custom cards above the list (the drawer cards); null
-    // leaves the slot empty.
-    private val cards: CardHost? = null
+    private val customTabIcon: (DrawerGroup) -> Drawable? = { null }
 ) {
-
-    // The activity owns activation and the card renderer; the drawer only
-    // asks which cards are activated and for a view per card, and reports
-    // shown/hidden so the condition monitor runs no longer than needed.
-    interface CardHost {
-        fun onShown()
-
-        fun onHidden()
-
-        fun activatedCards(): List<com.supernova.launcher.feed.FeedCard>
-
-        fun cardView(parent: ViewGroup, card: com.supernova.launcher.feed.FeedCard): View
-    }
 
     // Tab identity: null = All (or Personal when the work tab is on).
     private object WorkTab
@@ -675,15 +659,9 @@ class DrawerController(
         }
     }
 
-    // Everything an open needs ready before the sheet shows: cards armed,
-    // list current, scroll parked. Shared by open() and the finger pull.
+    // Everything an open needs ready before the sheet shows: list current,
+    // scroll parked. Shared by open() and the finger pull.
     private fun prepareContent(prefs: LauncherPrefs) {
-        // Cards first: the host arms its condition monitor, so the activated
-        // set computed by the refresh below is as fresh as it can be.
-        if (!cardsShown) {
-            cardsShown = true
-            cards?.onShown()
-        }
         dateButton?.text = SearchBarButtons.dateText(context)
         // Usage orders shift with every launch; those changes no longer
         // re-emit state, so refresh the ordering as the drawer opens.
@@ -998,23 +976,11 @@ class DrawerController(
         }
     }
 
-    // The activity is being destroyed with the drawer showing its cards.
-    fun releaseCards() {
-        if (cardsShown) {
-            cardsShown = false
-            cards?.onHidden()
-        }
-    }
-
     // Clears the query once the sheet is off screen, so the next open starts
     // on the full list.
     private fun resetSearch() {
         // The All tab's hidden-apps peek ends with the drawer, as a query does.
         showHiddenApps(false)
-        if (cardsShown) {
-            cardsShown = false
-            cards?.onHidden()
-        }
         // Only the drawer's own keyboard. The window has one IME, and when
         // the drawer closed for global search (its Search button, pull to
         // search) the overlay's field has taken it by now; hiding it for the
@@ -1390,7 +1356,6 @@ class DrawerController(
     private var lastPaused: Set<Long> = emptySet()
 
     private fun updateFrequentRow() {
-        updateCards()
         val prefs = viewModel.state.value.prefs
         val searching = !binding.drawerSearch.text.isNullOrBlank()
         if (!prefs.drawerFrequentRow || selectedTab != null || searching) {
@@ -1445,45 +1410,6 @@ class DrawerController(
             prefs.badgeColor, prefs.badgePosition, prefs.badgeScale, prefs.badgeTextColor,
             prefs.badgeCornerRadius, prefs.badgeOutline
         ).joinToString("/")
-
-    // Whether the host has been told the drawer is showing cards.
-    private var cardsShown = false
-    private var cardsKey: List<String>? = null
-
-    // Activated cards above the list: All tab only, hidden while a query
-    // filters, rebuilt only when the activated set changes. The sheet's
-    // scroll container is the list itself, so a long card stack is capped by
-    // the frequent-row rule rather than by height.
-    private fun updateCards() {
-        val host = cards
-        val container = binding.drawerCards
-        val activated = if (host == null || !cardsShown || selectedTab != null ||
-            !binding.drawerSearch.text.isNullOrBlank()
-        ) {
-            emptyList()
-        } else {
-            host.activatedCards()
-        }
-        if (activated.isEmpty()) {
-            if (container.childCount > 0) container.removeAllViews()
-            cardsKey = null
-            container.visibility = View.GONE
-            return
-        }
-        val key = activated.map { it.id + ":" + it.hashCode() }
-        if (key != cardsKey || container.childCount == 0) {
-            cardsKey = key
-            container.removeAllViews()
-            activated.forEach { card -> container.addView(host!!.cardView(container, card)) }
-        }
-        container.visibility = View.VISIBLE
-    }
-
-    // Condition signals or card edits changed while open.
-    fun refreshCards() {
-        cardsKey = null
-        updateCards()
-    }
 
     // A launch was recorded while open - most often from the drawer itself,
     // kept open behind the app. The row's key skips a rebind if its apps

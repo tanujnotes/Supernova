@@ -7,7 +7,6 @@
     <ID>ComplexCondition:AppMatcher.kt$AppMatcher$q[i] == l[s + i + 1] &amp;&amp; q[i + 1] == l[s + i] &amp;&amp; l.regionMatches(s, q, 0, i) &amp;&amp; l.regionMatches(s + i + 2, q, i + 2, n - i - 2)</ID>
     <ID>ComplexCondition:AppMatcher.kt$AppMatcher$s + max &lt; l.length &amp;&amp; qi + max &lt; q.length &amp;&amp; l[s + max] == q[qi + max] &amp;&amp; (max == 0 || !isSeparator(l[s + max]))</ID>
     <ID>ComplexCondition:DragGridView.kt$DragGridView$slideTo.left != left || slideTo.top != top || slideTo.right != right || slideTo.bottom != bottom</ID>
-    <ID>ComplexCondition:DrawerController.kt$DrawerController$host == null || !cardsShown || selectedTab != null || !binding.drawerSearch.text.isNullOrBlank()</ID>
     <ID>ComplexCondition:DrawerController.kt$DrawerController$pagerAdapter.infinite &amp;&amp; pages.size &gt; 1 &amp;&amp; (wasEmpty || pager.currentItem == 0)</ID>
     <ID>ComplexCondition:DrawerController.kt$DrawerController$searchFieldVisible &amp;&amp; !searchGlobalOnTap &amp;&amp; wanted &amp;&amp; !isLandscape()</ID>
     <ID>ComplexCondition:HomeGestureDetector.kt$HomeGestureDetector$twoFingerTracking &amp;&amp; event.pointerCount == 2 &amp;&amp; !rotateHandled &amp;&amp; !pinchHandled</ID>
@@ -35,7 +34,7 @@
     <ID>CyclomaticComplexMethod:BottomChrome.kt$BottomChrome$fun layout(s: Spec): Result</ID>
     <ID>CyclomaticComplexMethod:Calculator.kt$Calculator$private fun toRpn(tokens: List&lt;Token&gt;): List&lt;Token&gt;?</ID>
     <ID>CyclomaticComplexMethod:Calculator.kt$Calculator$private fun tokenize(text: String): List&lt;Token&gt;?</ID>
-    <ID>CyclomaticComplexMethod:CustomCardEditorSheet.kt$CustomCardEditorSheet$fun show( activity: AppCompatActivity, viewModel: LauncherViewModel, existing: FeedCard?, widgetFlow: WidgetFlow? = null, // What the Undo bar after Delete sits above (Settings' tab bar); // null puts it at the screen's bottom. undoAnchor: View? = null )</ID>
+    <ID>CyclomaticComplexMethod:CustomCardEditorSheet.kt$CustomCardEditorSheet$fun show( activity: AppCompatActivity, viewModel: LauncherViewModel, existing: FeedCard?, widgetFlow: WidgetFlow? = null, // What the Undo bar after Remove sits above (Settings' tab bar); // null puts it at the screen's bottom. undoAnchor: View? = null )</ID>
     <ID>CyclomaticComplexMethod:DesktopPreviewsOverlay.kt$DesktopPreviewsOverlay$private fun buildThumbColumn( page: Int, pages: Int, current: Int, default: Int, accent: Int ): View</ID>
     <ID>CyclomaticComplexMethod:DrawerController.kt$DrawerController$private fun applyStyle(prefs: LauncherPrefs)</ID>
     <ID>CyclomaticComplexMethod:DrawerController.kt$DrawerController$private fun rebuildTabs(prefs: LauncherPrefs)</ID>
@@ -96,11 +95,9 @@
     <ID>LongMethod:ActionRunner.kt$ActionRunner$fun run(bound: GestureBinding, anchor: View? = null): Boolean</ID>
     <ID>LongMethod:BackupRoundTripTest.kt$BackupRoundTripTest$private fun nonDefaultPrefs()</ID>
     <ID>LongMethod:BottomChrome.kt$BottomChrome$fun layout(s: Spec): Result</ID>
-    <ID>LongMethod:CardPreviews.kt$CardPreviews$fun builtIn(kind: BuiltInCard, parent: ViewGroup, prefs: LauncherPrefs): View</ID>
     <ID>LongMethod:CardViewBinder.kt$CardViewBinder$private fun bindFeatured( binding: ItemFeedCustomBinding, card: FeedCard, featuredLabel: String? ): Boolean</ID>
     <ID>LongMethod:ChoiceMenu.kt$ChoiceMenu$fun show( anchor: View, // Where the finger went down, in window coordinates. A settings row // spans the screen and its value sits at the far end of it, so a menu // pinned to the row's leading edge opens nowhere near the thing that // was pressed. The menu follows the touch instead, and is pushed back // inside the window when the touch is close to an edge. touchX: Float, surface: ResolvedSurface, labels: List&lt;CharSequence&gt;, // Index of the option currently in force, or -1 when the menu is a // plain list of things to do rather than a choice with a value. selected: Int, animate: Boolean = true, // A settings row opens its menu against its card's end instead of at // the touch, so the tick lands in the column of the chevron that // opened it: the row spans its card, so its end is the card's. alignToAnchorEnd: Boolean = false, // A colour per option, drawn as a dot before its label; null for none. swatches: List&lt;Int?&gt;? = null, onPick: (Int) -&gt; Unit )</ID>
-    <ID>LongMethod:CustomCardEditorSheet.kt$CustomCardEditorSheet$fun editDayTime()</ID>
-    <ID>LongMethod:CustomCardEditorSheet.kt$CustomCardEditorSheet$fun show( activity: AppCompatActivity, viewModel: LauncherViewModel, existing: FeedCard?, widgetFlow: WidgetFlow? = null, // What the Undo bar after Delete sits above (Settings' tab bar); // null puts it at the screen's bottom. undoAnchor: View? = null )</ID>
+    <ID>LongMethod:CustomCardEditorSheet.kt$CustomCardEditorSheet$fun show( activity: AppCompatActivity, viewModel: LauncherViewModel, existing: FeedCard?, widgetFlow: WidgetFlow? = null, // What the Undo bar after Remove sits above (Settings' tab bar); // null puts it at the screen's bottom. undoAnchor: View? = null )</ID>
     <ID>LongMethod:DesktopPreviewsOverlay.kt$DesktopPreviewsOverlay$private fun buildThumbColumn( page: Int, pages: Int, current: Int, default: Int, accent: Int ): View</ID>
     <ID>LongMethod:DrawerController.kt$DrawerController$private fun applyStyle(prefs: LauncherPrefs)</ID>
     <ID>LongMethod:FeedController.kt$FeedController$fun onTouch(ev: MotionEvent): TouchResult</ID>
@@ -128,14 +125,16 @@
     <ID>LongParameterList:AppEditSheet.kt$IconPickerSheet$( context: Context, scope: CoroutineScope, viewModel: LauncherViewModel, allowDefault: Boolean = false, // When set, photo entries (gallery, files) hand the source back. onPickPhoto: ((fromFiles: Boolean) -&gt; Unit)? = null, onPick: (pack: String?, name: String?) -&gt; Unit )</ID>
     <ID>LongParameterList:BottomChrome.kt$BottomChrome.Spec$( val density: Float, val landscape: Boolean, // The navigation bar's height: the chrome sits above it while the // wallpaper keeps running underneath. val navInset: Int, val dockEnabled: Boolean, // An overlay dock draws over the workspace and reserves nothing. val dockOverlay: Boolean, // The dock's background runs to the window's bottom edge, the // navigation bar folded into its own padding. val dockBehindNav: Boolean, // The dock's background rests on the navigation bar. val dockFullBleed: Boolean, // As laid out, padding included. val dockHeight: Int, // From the dock's top edge down to its icons' top. val dockIconInset: Int, // No background: the dock's padding is empty space. val dockBare: Boolean, val slot: BarSlot?, val arrowWanted: Boolean, val arrowHeight: Int, val indicatorOn: Boolean, // The page padding under the grid's bottom row. val pagePadding: Int, // A phone in landscape: the bar and the dock share one row, side by // side, so the grid loses one row's height to them instead of two. val sideBySide: Boolean = false )</ID>
     <ID>LongParameterList:BottomChromeTest.kt$BottomChromeTest$( landscape: Boolean = false, dockEnabled: Boolean = true, dockOverlay: Boolean = false, dockBehindNav: Boolean = false, dockHeight: Int = 80, dockIconInset: Int = 6, dockBare: Boolean = true, slot: BarSlot? = BarSlot.BELOW_DOCK, arrowWanted: Boolean = false, indicatorOn: Boolean = false, pagePadding: Int = 12, sideBySide: Boolean = false )</ID>
-    <ID>LongParameterList:CardViewBinder.kt$CardViewBinder.Companion$( context: Context, icon: Drawable?, label: CharSequence, textColor: Int, // Search's shortcut pills: menu and drag. Cards leave it off. onLongPress: ((View) -&gt; Unit)? = null, onTap: (View) -&gt; Unit )</ID>
+    <ID>LongParameterList:CardViewBinder.kt$CardViewBinder.Companion$( context: Context, icon: Drawable?, label: CharSequence, textColor: Int, // Search's shortcut pills: menu and drag. Cards leave it off. onLongPress: ((View) -&gt; Unit)? = null, // A card's actions: a full 44dp touch target, the icon larger. tall: Boolean = false, onTap: (View) -&gt; Unit )</ID>
     <ID>LongParameterList:ChoiceMenu.kt$ChoiceMenu$( anchor: View, // Where the finger went down, in window coordinates. A settings row // spans the screen and its value sits at the far end of it, so a menu // pinned to the row's leading edge opens nowhere near the thing that // was pressed. The menu follows the touch instead, and is pushed back // inside the window when the touch is close to an edge. touchX: Float, surface: ResolvedSurface, labels: List&lt;CharSequence&gt;, // Index of the option currently in force, or -1 when the menu is a // plain list of things to do rather than a choice with a value. selected: Int, animate: Boolean = true, // A settings row opens its menu against its card's end instead of at // the touch, so the tick lands in the column of the chevron that // opened it: the row spans its card, so its end is the card's. alignToAnchorEnd: Boolean = false, // A colour per option, drawn as a dot before its label; null for none. swatches: List&lt;Int?&gt;? = null, onPick: (Int) -&gt; Unit )</ID>
     <ID>LongParameterList:DockSwapTest.kt$DockSwapTest$(id: String, container: ContainerType, page: Int = 0, x: Int = 0, y: Int = 0, rank: Int = 0, folder: String? = null)</ID>
     <ID>LongParameterList:DragGridView.kt$DragGridView$( cols: Int, rows: Int, gridRect: RectF, fingerX: Float, fingerY: Float, target: WorkspaceGeometry.CellRect?, slideMs: Long, fadeMs: Long )</ID>
     <ID>LongParameterList:DragLayer.kt$DragLayer$(bitmap: Bitmap, fingerRawX: Float, fingerRawY: Float, source: Rect?, scale: Float, durationMs: Long)</ID>
-    <ID>LongParameterList:DrawerController.kt$DrawerController$( private val binding: ActivityLauncherBinding, private val viewModel: LauncherViewModel, private val decorateIcon: (Drawable?, LaunchableApp) -&gt; Drawable?, private val onAppClick: (View?, LaunchableApp) -&gt; Unit, private val onAppLongPress: (View, LaunchableApp) -&gt; Unit, private val onWebSearch: (String) -&gt; Unit, // Empty-state "Search with" marks hand off to the same opener the overlay // uses, so a drawer search and a global one end up in the same place. private val onChipSearch: (com.supernova.launcher.search.SearchChip, String) -&gt; Unit, private val onGlobalSearch: () -&gt; Unit, // FOLDER-type groups: icon composition and tap handling live in the // activity, which owns FolderPopup and the icon pipeline. private val buildFolderIcon: (DrawerGroup, List&lt;LaunchableApp&gt;) -&gt; Drawable, // A drawer folder's badge (its members' summed count), applied at bind // so a count moving needs no new composition. private val decorateFolderIcon: (Drawable, List&lt;LaunchableApp&gt;) -&gt; Drawable = { icon, _ -&gt; icon }, private val onFolderClick: (View, DrawerGroup, List&lt;LaunchableApp&gt;) -&gt; Unit, // A folder long-pressed: its menu, and a drag to the home screen. private val onFolderLongPress: (View, DrawerGroup, List&lt;LaunchableApp&gt;) -&gt; Unit, // A tab's menu, anchored to the tab: a group tab's (its group as // stored), or the All tab's (null). private val onTabMenu: (View, DrawerGroup?) -&gt; Unit = { _, _ -&gt; }, // An empty group tab's "Select apps": the picker for that group. private val onSelectTabApps: (DrawerGroup) -&gt; Unit = {}, // A group tab's picked icon (pack, app icon or photo), null for none. private val customTabIcon: (DrawerGroup) -&gt; Drawable? = { null }, // Activated custom cards above the list (the drawer cards); null // leaves the slot empty. private val cards: CardHost? = null )</ID>
+    <ID>LongParameterList:DrawerController.kt$DrawerController$( private val binding: ActivityLauncherBinding, private val viewModel: LauncherViewModel, private val decorateIcon: (Drawable?, LaunchableApp) -&gt; Drawable?, private val onAppClick: (View?, LaunchableApp) -&gt; Unit, private val onAppLongPress: (View, LaunchableApp) -&gt; Unit, private val onWebSearch: (String) -&gt; Unit, // Empty-state "Search with" marks hand off to the same opener the overlay // uses, so a drawer search and a global one end up in the same place. private val onChipSearch: (com.supernova.launcher.search.SearchChip, String) -&gt; Unit, private val onGlobalSearch: () -&gt; Unit, // FOLDER-type groups: icon composition and tap handling live in the // activity, which owns FolderPopup and the icon pipeline. private val buildFolderIcon: (DrawerGroup, List&lt;LaunchableApp&gt;) -&gt; Drawable, // A drawer folder's badge (its members' summed count), applied at bind // so a count moving needs no new composition. private val decorateFolderIcon: (Drawable, List&lt;LaunchableApp&gt;) -&gt; Drawable = { icon, _ -&gt; icon }, private val onFolderClick: (View, DrawerGroup, List&lt;LaunchableApp&gt;) -&gt; Unit, // A folder long-pressed: its menu, and a drag to the home screen. private val onFolderLongPress: (View, DrawerGroup, List&lt;LaunchableApp&gt;) -&gt; Unit, // A tab's menu, anchored to the tab: a group tab's (its group as // stored), or the All tab's (null). private val onTabMenu: (View, DrawerGroup?) -&gt; Unit = { _, _ -&gt; }, // An empty group tab's "Select apps": the picker for that group. private val onSelectTabApps: (DrawerGroup) -&gt; Unit = {}, // A group tab's picked icon (pack, app icon or photo), null for none. private val customTabIcon: (DrawerGroup) -&gt; Drawable? = { null } )</ID>
     <ID>LongParameterList:DrawerController.kt$DrawerController$( to: Float, duration: Long, interpolator: android.view.animation.Interpolator, translate: Boolean = true, content: Boolean = true, end: (() -&gt; Unit)? = null )</ID>
-    <ID>LongParameterList:FeedController.kt$FeedController$( private val binding: ActivityLauncherBinding, private val viewModel: LauncherViewModel, private val scope: CoroutineScope, private val activation: CardActivation, private val cardBinder: CardViewBinder, private val host: Host, // Whether a swipe that started at (x, y) on the workspace may pull the // feed in like a pager page (first page, no wrap-around, nothing armed). private val canPullFromWorkspace: (x: Float, y: Float) -&gt; Boolean = { _, _ -&gt; false }, // A long-press has armed an item drag (its menu is up): the gesture is // that drag's, wherever it started. private val itemDragArmed: () -&gt; Boolean = { false } )</ID>
+    <ID>LongParameterList:FeedAdapter.kt$FeedAdapter.Callbacks$( val onGrantCalendar: () -&gt; Unit, val onGrantContacts: () -&gt; Unit, val onOpenEvent: (Long) -&gt; Unit, val onOpenContact: (ContactsCardSource.Starred, View) -&gt; Unit, // The footer's Add card (the add sheet) and Feed settings; the empty // page's two kinds of card, and a ready-made card turned on by its // order key. val onAddCard: () -&gt; Unit, val onFeedSettings: () -&gt; Unit, val onAddWidget: () -&gt; Unit, val onAddShortcuts: () -&gt; Unit, val onShowBuiltIn: (String) -&gt; Unit )</ID>
+    <ID>LongParameterList:FeedAddSheet.kt$FeedAddSheet$( activity: AppCompatActivity, viewModel: LauncherViewModel, // Null where no widget can be bound from here: the row hides. onWidget: (() -&gt; Unit)?, onShortcuts: () -&gt; Unit, requestCalendar: () -&gt; Unit, requestContacts: () -&gt; Unit )</ID>
+    <ID>LongParameterList:FeedController.kt$FeedController$( private val binding: ActivityLauncherBinding, private val viewModel: LauncherViewModel, private val scope: CoroutineScope, private val cardBinder: CardViewBinder, private val host: Host, // Whether a swipe that started at (x, y) on the workspace may pull the // feed in like a pager page (first page, no wrap-around, nothing armed). private val canPullFromWorkspace: (x: Float, y: Float) -&gt; Boolean = { _, _ -&gt; false }, // A long-press has armed an item drag (its menu is up): the gesture is // that drag's, wherever it started. private val itemDragArmed: () -&gt; Boolean = { false } )</ID>
     <ID>LongParameterList:FolderDissolveTest.kt$FolderDissolveTest$(id: String, container: ContainerType, page: Int = 0, x: Int = 0, y: Int = 0, rank: Int = 0, folder: String? = null)</ID>
     <ID>LongParameterList:FolderEditSheet.kt$FolderEditSheet$( context: Context, scope: CoroutineScope, viewModel: LauncherViewModel, folder: LauncherItem, // Host-provided photo picker (the ActivityResult launcher is // registered on the activity). pickPhoto: PhotoPicker, // Opens the host's swipe action picker, calling back with the chosen // label (null = cleared) so the row can refresh without racing the // async model write. onEditSwipe: (down: Boolean, onPicked: (String?) -&gt; Unit) -&gt; Unit )</ID>
     <ID>LongParameterList:FolderIconDrawable.kt$FolderIconDrawable$( private val members: List&lt;Drawable&gt;, private val sizePx: Int, private val style: FolderPreviewStyle = FolderPreviewStyle.GRID, plateColor: Int = DEFAULT_PLATE_COLOR, private val shape: IconShape? = null, private val customSpec: CustomShapeSpec? = null, outlineColor: Int = 0, private val outlineWidthPx: Float = 0f, // First member drawn large and centred, the next three small along the // bottom; overrides the arrangement of every style. private val prioritizeFirst: Boolean = false, // The plate as glass, the pane an icon with this colour's background // gets; OFF fills it with plateColor. private val glass: IconGlass = IconGlass.OFF, // The icons' drop shadow, cast by the plate's outline. private val shadow: Boolean = false )</ID>
@@ -171,7 +170,8 @@
     <ID>LongParameterList:SearchResultsAdapter.kt$SearchResultsAdapter.Callbacks$( val onApp: (View, LaunchableApp) -&gt; Unit, val onShortcut: (View, SearchResult.Shortcut) -&gt; Unit, val onContact: (SearchResult.Contact) -&gt; Unit, val onContactCall: (String) -&gt; Unit, val onContactMessage: (String) -&gt; Unit, val onChip: (SearchChip, String) -&gt; Unit, val onWeb: (SearchResult.Web) -&gt; Unit, val onCopyCalculation: (String) -&gt; Unit, val onFrequentApp: (View, LaunchableApp) -&gt; Unit, val onFolder: (SearchResult.Folder) -&gt; Unit, // The top hit's gear. val onAppInfo: (LaunchableApp) -&gt; Unit, // Long-presses on an app, an app shortcut, or a drawer folder: the // item's menu, and a drag to the home screen. The view is the one to // lift the picture from and to anchor the menu on. val onAppLongPress: (View, LaunchableApp) -&gt; Unit = { _, _ -&gt; }, val onShortcutLongPress: (View, SearchResult.Shortcut) -&gt; Unit = { _, _ -&gt; }, val onFolderLongPress: (View, SearchResult.Folder) -&gt; Unit = { _, _ -&gt; }, // The empty window's Recent searches: a tap runs one again, a // long-press forgets it, the header's Clear forgets them all. val onRecent: (String) -&gt; Unit = {}, val onRemoveRecent: (String) -&gt; Unit = {}, val onClearRecents: () -&gt; Unit = {} )</ID>
     <ID>LongParameterList:SettingItem.kt$SettingItem.LabelGroup$( @StringRes override val title: Int, val shown: (LauncherPrefs) -&gt; Boolean, val setShown: (Boolean) -&gt; Unit, val sizeMin: Int, val sizeMax: Int, val size: (LauncherPrefs) -&gt; Int, val setSize: (Int) -&gt; Unit, val sizeDisplay: (Int) -&gt; String, val font: (LauncherPrefs) -&gt; CharSequence, val pickFont: () -&gt; Unit, val shadow: (LauncherPrefs) -&gt; Boolean, val setShadow: (Boolean) -&gt; Unit, val singleLine: (LauncherPrefs) -&gt; Boolean, val setSingleLine: (Boolean) -&gt; Unit, // As Slider.preview, for the size bar. val previewSize: ((LauncherPrefs, Int) -&gt; LauncherPrefs)? = null, override val searchTitles: List&lt;Int&gt; = emptyList(), override val visibleIf: (LauncherPrefs) -&gt; Boolean = { true } )</ID>
     <ID>LongParameterList:SettingItem.kt$SettingItem.Slider$( @StringRes override val title: Int, val min: Int, val max: Int, val step: Int = 1, val get: (LauncherPrefs) -&gt; Int, val set: (Int) -&gt; Unit, val display: (Int) -&gt; String, // Maps an uncommitted drag value onto a prefs snapshot so the section's // Preview row can render it without a DataStore round-trip. val preview: ((LauncherPrefs, Int) -&gt; LauncherPrefs)? = null, override val visibleIf: (LauncherPrefs) -&gt; Boolean = { true }, // The max while Labs' Big grid size options is on; null = max. val bigGridMax: Int? = null )</ID>
-    <ID>LongParameterList:SettingsCatalogue.kt$SettingsCatalogue.Actions$( // Every plain single-choice setting: the catalogue builds the Choice // (its values, labels and setter) and the activity only shows it. val pickChoice: (Choice) -&gt; Unit = {}, val pickIconPack: () -&gt; Unit = {}, val pickIconShape: () -&gt; Unit = {}, val resetCustomIcons: () -&gt; Unit = {}, val resetHiddenLabels: () -&gt; Unit = {}, val clearIconCache: () -&gt; Unit = {}, val exportIcons: () -&gt; Unit = {}, val managePermission: (LabsPermission) -&gt; Unit = {}, val pickDesktopGrid: () -&gt; Unit = {}, val editThemeSchedule: () -&gt; Unit = {}, val showLicense: () -&gt; Unit = {}, val showWhatsNew: () -&gt; Unit = {}, val editGesture: (Gesture) -&gt; Unit = {}, val pickLockMethod: () -&gt; Unit = {}, val editHiddenApps: () -&gt; Unit = {}, val editSearchChips: () -&gt; Unit = {}, val pickDrawerGrid: () -&gt; Unit = {}, val editFolderIcon: () -&gt; Unit = {}, val editBadgedApps: () -&gt; Unit = {}, val postTestBadge: () -&gt; Unit = {}, val openPaletteDialog: () -&gt; Unit = {}, val openStylePicker: (SurfaceId) -&gt; Unit = {}, val showAutoBackups: () -&gt; Unit = {}, val exportBackup: () -&gt; Unit = {}, val importBackup: () -&gt; Unit = {}, // Phase 8 backup extras: ACTION_SEND a fresh export, factory-reset // the layout and prefs, re-run the onboarding wizard, and the // exit-and-relaunch process restart. val shareBackup: () -&gt; Unit = {}, val resetToDefaults: () -&gt; Unit = {}, val quickStart: () -&gt; Unit = {}, val restartLauncher: () -&gt; Unit = {}, // About &gt; Crash log: share the crash handler's log, or clear it. val showCrashLog: () -&gt; Unit = {}, // Fired only on a genuine user enable, so the activity can route to // the notification-access screen when permission is missing. val onBadgesEnabled: () -&gt; Unit = {}, val onPopupNotificationsEnabled: () -&gt; Unit = {}, // Gestures that need the accessibility service, and the device-admin // lock method: why, then the system screen. val explainAccessibility: () -&gt; Unit = {}, val requestDeviceAdmin: () -&gt; Unit = {}, // Fired on a genuine user enable, so the activity can run the // READ_CONTACTS runtime request when it isn't granted yet. val onSearchContactsEnabled: () -&gt; Unit = {}, val editPopupRows: () -&gt; Unit = {}, // Feed page: contextual permission requests on genuine enables (the // contacts-search pattern), the custom-cards manager, and the // notification-access deep link for the media card note row. val onFeedCalendarEnabled: () -&gt; Unit = {}, val onFeedContactsEnabled: () -&gt; Unit = {}, // null = create a new card. val editCard: (com.supernova.launcher.feed.FeedCard?) -&gt; Unit = {}, val openCards: () -&gt; Unit = {}, val openNotificationAccess: () -&gt; Unit = {}, // Cards page renderings: a custom card through the feed's own binder, // a built-in card with placeholder content. val cardPreview: (com.supernova.launcher.feed.FeedCard, android.view.ViewGroup) -&gt; android.view.View = { _, parent -&gt; android.view.View(parent.context) }, val builtInPreview: (BuiltInCard, android.view.ViewGroup) -&gt; android.view.View = { _, parent -&gt; android.view.View(parent.context) }, // Opens a section by title (a built-in card's own settings page, // the Desktop search bar page). val openSection: (Int) -&gt; Unit = {} )</ID>
+    <ID>LongParameterList:SettingItem.kt$SettingItem.Toggle$( @StringRes override val title: Int, val get: (LauncherPrefs) -&gt; Boolean, val set: (Boolean) -&gt; Unit, override val visibleIf: (LauncherPrefs) -&gt; Boolean = { true }, // Most toggles carry an explanation under the title; 0 = none. @StringRes val subtitle: Int = 0, // A row that names something of the user's (a feed card): its own // title and subtitle text (title 0 keeps it out of search), and a // tap on the row that opens it while the switch alone toggles. val titleText: CharSequence? = null, val subtitleText: ((LauncherPrefs) -&gt; CharSequence?)? = null, val onOpen: (() -&gt; Unit)? = null )</ID>
+    <ID>LongParameterList:SettingsCatalogue.kt$SettingsCatalogue.Actions$( // Every plain single-choice setting: the catalogue builds the Choice // (its values, labels and setter) and the activity only shows it. val pickChoice: (Choice) -&gt; Unit = {}, val pickIconPack: () -&gt; Unit = {}, val pickIconShape: () -&gt; Unit = {}, val resetCustomIcons: () -&gt; Unit = {}, val resetHiddenLabels: () -&gt; Unit = {}, val clearIconCache: () -&gt; Unit = {}, val exportIcons: () -&gt; Unit = {}, val managePermission: (LabsPermission) -&gt; Unit = {}, val pickDesktopGrid: () -&gt; Unit = {}, val editThemeSchedule: () -&gt; Unit = {}, val showLicense: () -&gt; Unit = {}, val showWhatsNew: () -&gt; Unit = {}, val editGesture: (Gesture) -&gt; Unit = {}, val pickLockMethod: () -&gt; Unit = {}, val editHiddenApps: () -&gt; Unit = {}, val editSearchChips: () -&gt; Unit = {}, val pickDrawerGrid: () -&gt; Unit = {}, val editFolderIcon: () -&gt; Unit = {}, val editBadgedApps: () -&gt; Unit = {}, val postTestBadge: () -&gt; Unit = {}, val openPaletteDialog: () -&gt; Unit = {}, val openStylePicker: (SurfaceId) -&gt; Unit = {}, val showAutoBackups: () -&gt; Unit = {}, val exportBackup: () -&gt; Unit = {}, val importBackup: () -&gt; Unit = {}, // Phase 8 backup extras: ACTION_SEND a fresh export, factory-reset // the layout and prefs, re-run the onboarding wizard, and the // exit-and-relaunch process restart. val shareBackup: () -&gt; Unit = {}, val resetToDefaults: () -&gt; Unit = {}, val quickStart: () -&gt; Unit = {}, val restartLauncher: () -&gt; Unit = {}, // About &gt; Crash log: share the crash handler's log, or clear it. val showCrashLog: () -&gt; Unit = {}, // Fired only on a genuine user enable, so the activity can route to // the notification-access screen when permission is missing. val onBadgesEnabled: () -&gt; Unit = {}, val onPopupNotificationsEnabled: () -&gt; Unit = {}, // Gestures that need the accessibility service, and the device-admin // lock method: why, then the system screen. val explainAccessibility: () -&gt; Unit = {}, val requestDeviceAdmin: () -&gt; Unit = {}, // Fired on a genuine user enable, so the activity can run the // READ_CONTACTS runtime request when it isn't granted yet. val onSearchContactsEnabled: () -&gt; Unit = {}, val editPopupRows: () -&gt; Unit = {}, // Feed page: contextual permission requests on genuine enables (the // contacts-search pattern), the custom-cards manager, and the // notification-access deep link for the media card note row. val onFeedCalendarEnabled: () -&gt; Unit = {}, val onFeedContactsEnabled: () -&gt; Unit = {}, val editCard: (com.supernova.launcher.feed.FeedCard) -&gt; Unit = {}, // Add card: the add sheet. val addCard: () -&gt; Unit = {}, val openNotificationAccess: () -&gt; Unit = {}, // Opens a section by title (a built-in card's own settings page, // the Desktop search bar page). val openSection: (Int) -&gt; Unit = {} )</ID>
     <ID>LongParameterList:SettingsCatalogue.kt$SettingsCatalogue.Rows$( @StringRes title: Int, values: List&lt;T&gt;, current: (LauncherPrefs) -&gt; T, label: (T) -&gt; CharSequence, subtitle: (LauncherPrefs) -&gt; CharSequence? = { label(current(it)) }, visibleIf: (LauncherPrefs) -&gt; Boolean = { true }, onPick: (T) -&gt; Unit )</ID>
     <ID>LongParameterList:SettingsCatalogue.kt$SettingsCatalogue.Rows$( @StringRes title: Int, values: List&lt;T&gt;, current: (LauncherPrefs) -&gt; T, label: (T) -&gt; Int, subtitle: (LauncherPrefs) -&gt; CharSequence? = { context.getString(label(current(it))) }, visibleIf: (LauncherPrefs) -&gt; Boolean = { true }, onPick: (T) -&gt; Unit )</ID>
     <ID>LongParameterList:WidgetPickerAdapter.kt$WidgetPickerAdapter.RowViewHolder$( cell: View, preview: ImageView, label: TextView, span: TextView, provider: TextView, widget: WidgetPickerEntry.Widget )</ID>
@@ -244,33 +244,20 @@
     <ID>MagicNumber:Calculator.kt$Calculator$9</ID>
     <ID>MagicNumber:CalendarCardSource.kt$CalendarCardSource$3</ID>
     <ID>MagicNumber:CalendarCardSource.kt$CalendarCardSource$4</ID>
-    <ID>MagicNumber:CardActivation.kt$CardActivation$3</ID>
-    <ID>MagicNumber:CardActivation.kt$CardActivation$4</ID>
-    <ID>MagicNumber:CardActivation.kt$CardActivation$5</ID>
-    <ID>MagicNumber:CardActivation.kt$CardActivation$6</ID>
-    <ID>MagicNumber:CardActivation.kt$CardActivation$7</ID>
-    <ID>MagicNumber:CardPreviews.kt$CardPreviews$0x33</ID>
-    <ID>MagicNumber:CardPreviews.kt$CardPreviews$0xFFFFFF</ID>
-    <ID>MagicNumber:CardPreviews.kt$CardPreviews$10</ID>
-    <ID>MagicNumber:CardPreviews.kt$CardPreviews$14f</ID>
-    <ID>MagicNumber:CardPreviews.kt$CardPreviews$24</ID>
-    <ID>MagicNumber:CardPreviews.kt$CardPreviews$48</ID>
-    <ID>MagicNumber:CardPreviews.kt$CardPreviews$6</ID>
-    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$0x33</ID>
     <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$0xB3</ID>
     <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$0xFFFFFF</ID>
-    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$10</ID>
     <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$14</ID>
-    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$18</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$16</ID>
     <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$24</ID>
     <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$56</ID>
-    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder$6</ID>
     <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$0x26</ID>
     <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$0xFFFFFF</ID>
     <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$14</ID>
     <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$14f</ID>
     <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$22</ID>
     <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$24</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$28</ID>
+    <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$44</ID>
     <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$6</ID>
     <ID>MagicNumber:CardViewBinder.kt$CardViewBinder.Companion$8</ID>
     <ID>MagicNumber:ChoiceMenu.kt$ChoiceMenu$14</ID>
@@ -300,13 +287,15 @@
     <ID>MagicNumber:Contrast.kt$Contrast$27.0</ID>
     <ID>MagicNumber:Contrast.kt$Contrast$50.0</ID>
     <ID>MagicNumber:Contrast.kt$Contrast$8</ID>
-    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$20</ID>
-    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$34</ID>
-    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$4</ID>
-    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$60</ID>
-    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$7</ID>
+    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$14</ID>
+    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$14f</ID>
+    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$16</ID>
+    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$180</ID>
+    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$18f</ID>
+    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$24</ID>
+    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$40</ID>
+    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$44</ID>
     <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$8</ID>
-    <ID>MagicNumber:CustomCardEditorSheet.kt$CustomCardEditorSheet$9</ID>
     <ID>MagicNumber:CustomShapeSpec.kt$CustomShapeSpec$100</ID>
     <ID>MagicNumber:DesktopPreviewsOverlay.kt$DesktopPreviewsOverlay$10</ID>
     <ID>MagicNumber:DesktopPreviewsOverlay.kt$DesktopPreviewsOverlay$12</ID>
@@ -343,7 +332,7 @@
     <ID>MagicNumber:FastScrollerView.kt$FastScrollerView$52f</ID>
     <ID>MagicNumber:FastScrollerView.kt$FastScrollerView$6f</ID>
     <ID>MagicNumber:FastScrollerView.kt$FastScrollerView$8f</ID>
-    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.AddHolder$0x26</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.AddHolder$0x29</ID>
     <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.AddHolder$0xFFFFFF</ID>
     <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.AddHolder$24</ID>
     <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.CalendarHolder$14f</ID>
@@ -353,16 +342,16 @@
     <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.ContactsHolder$10</ID>
     <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.ContactsHolder$24</ID>
     <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.ContactsHolder$48</ID>
-    <ID>MagicNumber:FeedController.kt$FeedController$0xB3</ID>
-    <ID>MagicNumber:FeedController.kt$FeedController$0xFFFFFF</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.EmptyHolder$0xB3</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.EmptyHolder$0xD9</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.EmptyHolder$0xFFFFFF</ID>
+    <ID>MagicNumber:FeedAdapter.kt$FeedAdapter.EmptyHolder$24</ID>
     <ID>MagicNumber:FeedController.kt$FeedController$1000</ID>
     <ID>MagicNumber:FeedController.kt$FeedController$12</ID>
     <ID>MagicNumber:FeedController.kt$FeedController$200</ID>
     <ID>MagicNumber:FeedController.kt$FeedController$24</ID>
-    <ID>MagicNumber:FeedController.kt$FeedController$3</ID>
     <ID>MagicNumber:FeedController.kt$FeedController$4</ID>
     <ID>MagicNumber:FeedController.kt$FeedController$48</ID>
-    <ID>MagicNumber:FeedController.kt$FeedController$60_000L</ID>
     <ID>MagicNumber:FeedController.kt$FeedController$8</ID>
     <ID>MagicNumber:FlowLayout.kt$FlowLayout$8</ID>
     <ID>MagicNumber:FolderIconDrawable.kt$FolderIconDrawable$0.03f</ID>
@@ -716,13 +705,11 @@
     <ID>MaxLineLength:DrawerDropTest.kt$DrawerDropTest$val result = LauncherRepository.withNewFolder(model, folder(2, 3), members("x", "y", "z"), emptyList(), cols, rows)</ID>
     <ID>MaxLineLength:FastScrollerView.kt$FastScrollerView$canvas.drawRoundRect(centre - thumbHalf, top, centre + thumbHalf, top + thumbHeight, thumbHalf, thumbHalf, thumbPaint)</ID>
     <ID>MaxLineLength:FeedController.kt$FeedController$private</ID>
-    <ID>MaxLineLength:FeedController.kt$FeedController$val header = listOf(prefs.feedShowSearch, prefs.feedShowFrequent, prefs.feedShowShortcuts, prefs.feedShortcutRows)</ID>
     <ID>MaxLineLength:FolderDissolveTest.kt$FolderDissolveTest$LauncherItem(id = "f", itemType = ItemType.FOLDER, container = ContainerType.DOCK, rank = 3, label = "F")</ID>
     <ID>MaxLineLength:FolderDissolveTest.kt$FolderDissolveTest$private</ID>
     <ID>MaxLineLength:HomeGestureDetector.kt$HomeGestureDetector$private</ID>
     <ID>MaxLineLength:LabsPermission.kt$LabsPermission$CALENDAR : LabsPermission</ID>
     <ID>MaxLineLength:LabsPermission.kt$LabsPermission$CONTACTS : LabsPermission</ID>
-    <ID>MaxLineLength:LabsPermission.kt$LabsPermission.NEARBY_DEVICES$if (Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.S) arrayOf(Manifest.permission.BLUETOOTH_CONNECT) else emptyArray()</ID>
     <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$binding.workspacePager</ID>
     <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$class</ID>
     <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$iconBase64 = shortcutOwnIcon(shortcut)?.let { com.supernova.launcher.data.GalleryIconCodec.encode(it) }</ID>
@@ -777,7 +764,6 @@
     <ID>NestedBlockDepth:AppMatcher.kt$AppMatcher$private fun oneTypo(l: String, starts: List&lt;Int&gt;, q: String): IntRange?</ID>
     <ID>NestedBlockDepth:Calculator.kt$Calculator$private fun toRpn(tokens: List&lt;Token&gt;): List&lt;Token&gt;?</ID>
     <ID>NestedBlockDepth:Calculator.kt$Calculator$private fun tokenize(text: String): List&lt;Token&gt;?</ID>
-    <ID>NestedBlockDepth:CardVisibility.kt$CardVisibility$fun minutesToNextBoundary(cards: List&lt;FeedCard&gt;, env: Environment): Int?</ID>
     <ID>NestedBlockDepth:FeedAdapter.kt$FeedAdapter.ContactsHolder$fun bind(state: ContactsCardSource.ContactsState)</ID>
     <ID>NestedBlockDepth:FeedController.kt$FeedController$fun onTouch(ev: MotionEvent): TouchResult</ID>
     <ID>NestedBlockDepth:HomeGestureDetector.kt$HomeGestureDetector$fun onTouchEvent(event: MotionEvent): Boolean</ID>
@@ -806,7 +792,6 @@
     <ID>ReturnCount:Calculator.kt$Calculator$private fun normalizeRun(run: String): String?</ID>
     <ID>ReturnCount:Calculator.kt$Calculator$private fun toRpn(tokens: List&lt;Token&gt;): List&lt;Token&gt;?</ID>
     <ID>ReturnCount:Calculator.kt$Calculator$private fun tokenize(text: String): List&lt;Token&gt;?</ID>
-    <ID>ReturnCount:CardVisibility.kt$CardVisibility$private fun dayTimeHolds(condition: CardCondition, env: Environment): Boolean</ID>
     <ID>ReturnCount:ContactSearchProvider.kt$ContactSearchProvider$private fun circularPhoto(photoUri: String?): Drawable?</ID>
     <ID>ReturnCount:Contrast.kt$Contrast$fun ensure(text: Int, surface: Int, minimum: Int?): Int</ID>
     <ID>ReturnCount:CustomCardEditorSheet.kt$CustomCardEditorSheet$internal fun iconForTarget(viewModel: LauncherViewModel, target: String): android.graphics.drawable.Drawable?</ID>
@@ -822,7 +807,6 @@
     <ID>ReturnCount:FeedCardRoutes.kt$FeedCardRoutes$private fun iconForCardTarget(target: String): Drawable?</ID>
     <ID>ReturnCount:FeedCardRoutes.kt$FeedCardRoutes$private fun labelForCardTarget(target: String): String?</ID>
     <ID>ReturnCount:FeedController.kt$FeedController$fun onTouch(ev: MotionEvent): TouchResult</ID>
-    <ID>ReturnCount:FeedController.kt$FeedController$private fun scheduleBoundary()</ID>
     <ID>ReturnCount:GalleryIconCodec.kt$GalleryIconCodec$fun encode(context: Context, uri: Uri): String?</ID>
     <ID>ReturnCount:GalleryIconCodec.kt$GalleryIconCodec$fun encode(drawable: android.graphics.drawable.Drawable): String?</ID>
     <ID>ReturnCount:HomeGestureDetector.kt$HomeGestureDetector$private fun fireSwipeIfAny(event: MotionEvent)</ID>
@@ -889,11 +873,11 @@
     <ID>TooManyFunctions:AppCatalog.kt$AppCatalog</ID>
     <ID>TooManyFunctions:AppDrawerAdapter.kt$AppDrawerAdapter : Adapter</ID>
     <ID>TooManyFunctions:Calculator.kt$Calculator</ID>
-    <ID>TooManyFunctions:CardActivation.kt$CardActivation</ID>
     <ID>TooManyFunctions:DesktopPreviewsOverlay.kt$DesktopPreviewsOverlay$Host</ID>
     <ID>TooManyFunctions:DrawerController.kt$DrawerController</ID>
     <ID>TooManyFunctions:EnumLabels.kt$EnumLabels</ID>
     <ID>TooManyFunctions:FastScrollerView.kt$FastScrollerView : View</ID>
+    <ID>TooManyFunctions:FeedCardRoutes.kt$FeedCardRoutes</ID>
     <ID>TooManyFunctions:FeedController.kt$FeedController</ID>
     <ID>TooManyFunctions:FolderIconDrawable.kt$FolderIconDrawable : Drawable</ID>
     <ID>TooManyFunctions:HomeEditController.kt$HomeEditController$Host</ID>

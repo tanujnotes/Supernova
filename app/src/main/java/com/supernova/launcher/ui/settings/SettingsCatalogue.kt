@@ -113,16 +113,10 @@ object SettingsCatalogue {
         // notification-access deep link for the media card note row.
         val onFeedCalendarEnabled: () -> Unit = {},
         val onFeedContactsEnabled: () -> Unit = {},
-        // null = create a new card.
-        val editCard: (com.supernova.launcher.feed.FeedCard?) -> Unit = {},
-        val openCards: () -> Unit = {},
+        val editCard: (com.supernova.launcher.feed.FeedCard) -> Unit = {},
+        // Add card: the add sheet.
+        val addCard: () -> Unit = {},
         val openNotificationAccess: () -> Unit = {},
-        // Cards page renderings: a custom card through the feed's own binder,
-        // a built-in card with placeholder content.
-        val cardPreview: (com.supernova.launcher.feed.FeedCard, android.view.ViewGroup) -> android.view.View =
-            { _, parent -> android.view.View(parent.context) },
-        val builtInPreview: (BuiltInCard, android.view.ViewGroup) -> android.view.View =
-            { _, parent -> android.view.View(parent.context) },
         // Opens a section by title (a built-in card's own settings page,
         // the Desktop search bar page).
         val openSection: (Int) -> Unit = {}
@@ -290,7 +284,6 @@ object SettingsCatalogue {
     private val animationsOff: (LauncherPrefs) -> Int? = {
         R.string.needs_animations.takeIf { _ -> it.disableAnimations }
     }
-    private val feedOff: (LauncherPrefs) -> Int? = { R.string.needs_feed.takeUnless { _ -> it.feedEnabled } }
 
     // The settings rows hide behind (SettingItem.hiddenWhen), shared by
     // every row that waits on them.
@@ -1178,175 +1171,94 @@ object SettingsCatalogue {
                 SettingItem.Header(R.string.search_bar_chips, visibleIf = { SearchBarPrefs.drawerFieldShown(it) }),
             ) + SearchBarButtons.ROWS.map { drawerButton(viewModel, it) }
         ),
-        // Feed page: the page toggle, then Layout (frequent apps and
-        // shortcuts, the rows stepper, the search bar, the edge swipe), and a
-        // link to the Cards page, which links back.
+        // Feed: the page and how it opens, the search bar, then every card
+        // (the user's and the ready-made ones) with a switch each; a tap on
+        // one of the user's opens its editor. Rebuilt by SettingsActivity
+        // whenever the card list changes, since those rows are the cards.
         SettingsSection(
             R.string.settings_section_feed,
-            listOf(
-                SettingItem.Toggle(
-                    R.string.feed_enabled,
-                    subtitle = R.string.feed_enabled_subtitle,
-                    get = { it.feedEnabled },
-                    set = { viewModel.set(Pref.feedEnabled, it) }
-                ),
-                // The cards' color and opacity: the Style tab's Cards row.
-                SettingItem.StyleTarget(
-                    R.string.feed_card_colors, SurfaceId.CARDS, { actions.openStylePicker(SurfaceId.CARDS) }
-                ).hiddenWhen(feedHidden),
-                SettingItem.Header(R.string.feed_layout_header, visibleIf = { it.feedEnabled }),
-                SettingItem.Toggle(
-                    R.string.feed_show_frequent,
-                    subtitle = R.string.feed_show_frequent_subtitle,
-                    get = { it.feedShowFrequent },
-                    set = { viewModel.set(Pref.feedShowFrequent, it) }
-                ).hiddenWhen(feedHidden),
-                SettingItem.Toggle(
-                    R.string.feed_show_shortcuts,
-                    subtitle = R.string.feed_show_shortcuts_subtitle,
-                    get = { it.feedShowShortcuts },
-                    set = { viewModel.set(Pref.feedShowShortcuts, it) }
-                ).hiddenWhen(feedHidden),
-                // "Suggested shortcuts rows": how many rows of pills.
-                SettingItem.Slider(
-                    R.string.feed_shortcut_rows,
-                    min = 1, max = 3,
-                    get = { it.feedShortcutRows },
-                    set = { viewModel.set(Pref.feedShortcutRows, it) },
-                    display = { context.resources.getQuantityString(R.plurals.feed_shortcut_rows_value, it, it) }
-                ).hiddenWhen { feedHidden(it) ?: needsOn(R.string.feed_show_shortcuts, !it.feedShowShortcuts) },
-                SettingItem.Toggle(
-                    R.string.feed_show_search,
-                    get = { it.feedShowSearch },
-                    set = { viewModel.set(Pref.feedShowSearch, it) }
-                ).hiddenWhen(feedHidden),
-                SettingItem.Toggle(
-                    R.string.feed_edge_swipe,
-                    get = { it.feedEdgeSwipe },
-                    set = { viewModel.set(Pref.feedEdgeSwipe, it) }
-                ).hiddenWhen(feedHidden),
-                // What the page shows lives on the Cards page.
-                SettingItem.Header(R.string.settings_section_cards),
-                SettingItem.Row(
-                    R.string.feed_cards_link,
-                    subtitle = { context.getString(R.string.feed_cards_link_summary) },
-                    onClick = actions.openCards
-                )
-            )
-        ),
-        // Cards page: every card - the user's own and the built-in
-        // ones - as a name with a gear over a live rendering; the FAB adds.
-        // Rebuilt by SettingsActivity whenever the card list changes, since
-        // the rows are the cards themselves.
-        SettingsSection(
-            R.string.settings_section_cards,
             buildList {
-                add(SettingItem.Header(R.string.cards_yours))
-                val cards = viewModel.feedCards()
-                if (cards.isEmpty()) {
-                    add(SettingItem.Row(R.string.cards_none, onClick = { actions.editCard(null) }))
-                }
-                cards.forEach { card ->
+                add(
+                    SettingItem.Toggle(
+                        R.string.feed_enabled,
+                        subtitle = R.string.feed_enabled_subtitle,
+                        get = { it.feedEnabled },
+                        set = { viewModel.set(Pref.feedEnabled, it) }
+                    )
+                )
+                add(
+                    SettingItem.Toggle(
+                        R.string.feed_edge_swipe,
+                        get = { it.feedEdgeSwipe },
+                        set = { viewModel.set(Pref.feedEdgeSwipe, it) }
+                    ).hiddenWhen(feedHidden)
+                )
+                add(
+                    SettingItem.Toggle(
+                        R.string.feed_show_search,
+                        get = { it.feedShowSearch },
+                        set = { viewModel.set(Pref.feedShowSearch, it) }
+                    ).hiddenWhen(feedHidden)
+                )
+                add(SettingItem.Header(R.string.settings_section_cards, visibleIf = { it.feedEnabled }))
+                viewModel.feedCards().forEach { card ->
                     add(
-                        SettingItem.Card(
-                            titleText = card.name.ifBlank { context.getString(R.string.card_untitled) },
-                            build = { parent -> actions.cardPreview(card, parent) },
-                            onGear = { actions.editCard(card) }
+                        SettingItem.Toggle(
+                            0,
+                            get = { viewModel.feedCards().firstOrNull { it.id == card.id }?.enabled ?: false },
+                            set = { on -> viewModel.upsertFeedCard(card.copy(enabled = on)) },
+                            titleText = card.name.ifBlank { cardFallbackName(context, card) },
+                            subtitleText = { cardSummary(context, card) },
+                            onOpen = { actions.editCard(card) },
+                            visibleIf = { it.feedEnabled }
                         )
                     )
                 }
                 add(
-                    SettingItem.Card(
-                        titleText = context.getString(R.string.cards_media_title),
-                        build = { parent -> actions.builtInPreview(BuiltInCard.MEDIA, parent) },
-                        onGear = { actions.openSection(R.string.cards_media_title) }
-                    )
+                    SettingItem.Toggle(
+                        R.string.cards_media_title,
+                        subtitle = R.string.feed_show_media,
+                        get = { it.feedShowMedia },
+                        set = { viewModel.set(Pref.feedShowMedia, it) }
+                    ).hiddenWhen(feedHidden)
                 )
-                add(
-                    SettingItem.Card(
-                        titleText = context.getString(R.string.feed_calendar_title),
-                        build = { parent -> actions.builtInPreview(BuiltInCard.CALENDAR, parent) },
-                        onGear = { actions.openSection(R.string.feed_calendar_title) }
-                    )
-                )
-                add(
-                    SettingItem.Card(
-                        titleText = context.getString(R.string.feed_contacts_title),
-                        build = { parent -> actions.builtInPreview(BuiltInCard.CONTACTS, parent) },
-                        onGear = { actions.openSection(R.string.feed_contacts_title) }
-                    )
-                )
-                // Cards show on the feed page; its switch is one tap away.
-                add(SettingItem.Header(R.string.settings_section_feed))
-                add(
-                    SettingItem.Row(
-                        R.string.cards_feed_link,
-                        subtitle = { prefs ->
-                            context.getString(if (prefs.feedEnabled) R.string.mode_on else R.string.mode_off)
-                        },
-                        onClick = { actions.openSection(R.string.settings_section_feed) }
-                    )
-                )
-            }
-        ),
-        // Behind each built-in card's gear (reached from the Cards page, not
-        // the root list): the rendering, then where the card shows.
-        SettingsSection(
-            R.string.cards_media_title,
-            listOf(
-                SettingItem.Card(
-                    titleText = context.getString(R.string.cards_media_title),
-                    build = { parent -> actions.builtInPreview(BuiltInCard.MEDIA, parent) },
-                    onGear = null
-                ),
-                SettingItem.Header(R.string.card_show_in_feed),
-                SettingItem.Toggle(
-                    R.string.feed_show_media,
-                    get = { it.feedShowMedia },
-                    set = { viewModel.set(Pref.feedShowMedia, it) }
-                ).blockedWhen(feedOff),
                 // Honest note when the media card can't work: notification
                 // access gates getActiveSessions, same as badges.
-                rows.needsNotificationAccess(R.string.feed_media_needs_access_summary) { it.feedShowMedia }
-            )
-        ),
-        SettingsSection(
-            R.string.feed_calendar_title,
-            listOf(
-                SettingItem.Card(
-                    titleText = context.getString(R.string.feed_calendar_title),
-                    build = { parent -> actions.builtInPreview(BuiltInCard.CALENDAR, parent) },
-                    onGear = null
-                ),
-                SettingItem.Header(R.string.card_show_in_feed),
-                SettingItem.Toggle(
-                    R.string.feed_show_calendar,
-                    get = { it.feedShowCalendar },
-                    set = { enabled ->
-                        viewModel.set(Pref.feedShowCalendar, enabled)
-                        if (enabled) actions.onFeedCalendarEnabled()
+                add(
+                    rows.needsNotificationAccess(R.string.feed_media_needs_access_summary) {
+                        it.feedEnabled && it.feedShowMedia
                     }
-                ).blockedWhen(feedOff)
-            )
-        ),
-        SettingsSection(
-            R.string.feed_contacts_title,
-            listOf(
-                SettingItem.Card(
-                    titleText = context.getString(R.string.feed_contacts_title),
-                    build = { parent -> actions.builtInPreview(BuiltInCard.CONTACTS, parent) },
-                    onGear = null
-                ),
-                SettingItem.Header(R.string.card_show_in_feed),
-                SettingItem.Toggle(
-                    R.string.feed_show_contacts,
-                    get = { it.feedShowContacts },
-                    set = { enabled ->
-                        viewModel.set(Pref.feedShowContacts, enabled)
-                        if (enabled) actions.onFeedContactsEnabled()
-                    }
-                ).blockedWhen(feedOff)
-            )
+                )
+                add(
+                    SettingItem.Toggle(
+                        R.string.feed_calendar_title,
+                        subtitle = R.string.feed_show_calendar,
+                        get = { it.feedShowCalendar },
+                        set = { enabled ->
+                            viewModel.set(Pref.feedShowCalendar, enabled)
+                            if (enabled) actions.onFeedCalendarEnabled()
+                        }
+                    ).hiddenWhen(feedHidden)
+                )
+                add(
+                    SettingItem.Toggle(
+                        R.string.feed_contacts_title,
+                        subtitle = R.string.feed_show_contacts,
+                        get = { it.feedShowContacts },
+                        set = { enabled ->
+                            viewModel.set(Pref.feedShowContacts, enabled)
+                            if (enabled) actions.onFeedContactsEnabled()
+                        }
+                    ).hiddenWhen(feedHidden)
+                )
+                add(SettingItem.Row(R.string.cards_add, onClick = actions.addCard, visibleIf = { it.feedEnabled }))
+                // The cards' color and opacity: the Style tab's Cards row.
+                add(
+                    SettingItem.StyleTarget(
+                        R.string.feed_card_colors, SurfaceId.CARDS, { actions.openStylePicker(SurfaceId.CARDS) }
+                    ).hiddenWhen(feedHidden)
+                )
+            }
         ),
         SettingsSection(
             R.string.settings_section_folders,
@@ -2051,23 +1963,36 @@ object SettingsCatalogue {
         )
     }
 
-    // One-line description of a custom card for its settings row: pin state,
-    // action count, and where it goes (drawer on conditions, or feed+search).
+    // One-line description of a custom card for its settings row: what it
+    // holds, then whether it is pinned.
     fun cardSummary(context: Context, card: com.supernova.launcher.feed.FeedCard): CharSequence {
-        val parts = ArrayList<String>(4)
-        if (!card.enabled) parts.add(context.getString(R.string.feed_card_disabled))
-        if (card.pinned) parts.add(context.getString(R.string.card_summary_pinned))
-        val actions = card.actions.size
-        if (actions > 0) {
-            parts.add(context.resources.getQuantityString(R.plurals.card_actions_count, actions, actions))
-        }
+        val parts = ArrayList<String>()
+        val widget = com.supernova.launcher.feed.CardItems.isWidget(card)
         parts.add(
-            context.getString(
-                if (card.hasConditions && card.activationEnabled) R.string.card_summary_conditions
-                else R.string.card_summary_no_conditions
-            )
+            when {
+                widget && card.fillPage -> context.getString(R.string.card_summary_fills)
+                widget -> context.getString(R.string.card_summary_widget)
+                else -> com.supernova.launcher.feed.CardItems.of(card).size.let {
+                    context.resources.getQuantityString(R.plurals.card_items_summary, it, it)
+                }
+            }
         )
+        if (card.pinned) parts.add(context.getString(R.string.card_caption_pinned))
         return parts.joinToString(" \u00b7 ")
+    }
+
+    // An unnamed card's row: its featured app or widget, else "Card".
+    private fun cardFallbackName(context: Context, card: com.supernova.launcher.feed.FeedCard): String {
+        val widgetId = card.appWidgetId
+        val label = if (com.supernova.launcher.feed.CardItems.isWidget(card) && widgetId != null) {
+            runCatching {
+                android.appwidget.AppWidgetManager.getInstance(context).getAppWidgetInfo(widgetId)
+                    ?.loadLabel(context.packageManager)
+            }.getOrNull()
+        } else {
+            null
+        }
+        return label ?: context.getString(R.string.card_untitled)
     }
 }
 

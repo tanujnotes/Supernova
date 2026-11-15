@@ -38,7 +38,6 @@ class SettingsGroupDecoration(context: Context, private val adapter: SettingsAda
     private val gutter = context.dp(GUTTER_DP)
     private val inset = context.dp(INSET_DP)
     private val groupGap = context.dp(GROUP_GAP_DP)
-    private val entryGap = context.dp(ENTRY_GAP_DP)
     // On a tiled page the search bar's own 8dp bottom padding makes up the
     // rest of the 24dp between it and the first card; a section page's list
     // starts under its toolbar or its preview card.
@@ -73,7 +72,6 @@ class SettingsGroupDecoration(context: Context, private val adapter: SettingsAda
         position == 0 -> firstGap
         adapter.isLabel(position - 1) -> 0
         !adapter.isGroupCard(position - 1) -> groupGap
-        adapter.isEntryCard(position) || adapter.isEntryCard(position - 1) -> entryGap
         else -> groupGap
     }
 
@@ -113,7 +111,6 @@ class SettingsGroupDecoration(context: Context, private val adapter: SettingsAda
         const val GUTTER_DP = 16
         const val INSET_DP = 4
         const val GROUP_GAP_DP = 24
-        const val ENTRY_GAP_DP = 12
         const val SEARCH_PADDING_DP = 8
         const val CORNER_DP = 20
         const val TILED_DIVIDER_START_DP = 72

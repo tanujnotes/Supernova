@@ -29,16 +29,10 @@
          posts one notification from Supernova itself; asked for from that
          row. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Feed page (Phase 7). All runtime-gated and requested contextually
-         (feed settings rows, in-card grant buttons, the card editor) - never
-         at startup. READ_CALENDAR backs the upcoming-events card;
-         BLUETOOTH_CONNECT (31+) / legacy BLUETOOTH (<= 30) back the
-         Bluetooth device-name condition. -->
+    <!-- Feed page (Phase 7). Runtime-gated and requested contextually (feed
+         settings rows, in-card grant buttons) - never at startup.
+         READ_CALENDAR backs the upcoming-events card. -->
     <uses-permission android:name="android.permission.READ_CALENDAR" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <uses-permission
-        android:name="android.permission.BLUETOOTH"
-        android:maxSdkVersion="30" />
 
     <queries>
         <intent>

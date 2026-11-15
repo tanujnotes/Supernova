@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A 48dp pill on the feed page (Add card, the empty page's choices); the
+     adapter mutates the fill to a tint of the page's text color. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="24dp" />
+    <solid android:color="#29FFFFFF" />
+</shape>

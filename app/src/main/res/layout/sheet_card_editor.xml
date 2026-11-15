@@ -1,228 +1,161 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The "Card details" page as a sheet: a toolbar (back, title, Save,
-     overflow), the card rendered live, its name, then Featured content,
-     Actions and Activation sections. Pickers and condition editors are
-     dialogs wired in CustomCardEditorSheet. -->
-<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- The card editor, one sheet for both kinds of card. An apps-and-shortcuts
+     card shows a live preview, its list of apps and shortcuts and the large
+     tile switch; a widget card shows its widget with Change, the height and
+     the background switch. Both have a name and Pin to top. The rows scroll
+     between the handle and a pinned button row: Remove on its own at the
+     left, Cancel then Save. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="@dimen/space_md">
 
-    <LinearLayout
+    <include layout="@layout/sheet_handle" />
+
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingBottom="@dimen/space_lg">
-
-        <include layout="@layout/sheet_handle" />
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="@dimen/space_sm"
-            android:paddingEnd="@dimen/space_sm">
+            android:orientation="vertical">
 
-            <ImageButton
-                android:id="@+id/cardBack"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/back"
-                android:src="@drawable/ic_back" />
-
-            <TextView
-                android:id="@+id/cardEditorTitle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/space_sm"
-                android:layout_weight="1"
-                android:text="@string/card_details"
-                android:textColor="@color/textPrimary"
-                android:textSize="@dimen/text_headline"
-                android:textStyle="bold" />
-
-            <Button
-                android:id="@+id/cardSave"
-                style="@style/Widget.Supernova.Button.Tonal"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/save" />
-
-            <ImageButton
-                android:id="@+id/cardEditorMenu"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="@dimen/space_xs"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/card_menu"
-                android:src="@drawable/ic_more_vert"
-                app:tint="@color/textPrimary" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingHorizontal="@dimen/space_ml">
-
-            <!-- The draft, drawn by the same binder the feed uses. -->
+            <!-- Apps and shortcuts: the card as the feed will draw it, on a
+                 dark well like the feed's dimmed page. -->
             <FrameLayout
-                android:id="@+id/cardPreview"
+                android:id="@+id/cardPreviewWell"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_xs" />
+                android:layout_marginHorizontal="@dimen/space_ml"
+                android:layout_marginTop="@dimen/space_xs"
+                android:background="@drawable/bg_card_preview_well"
+                android:padding="@dimen/space_ms">
+
+                <FrameLayout
+                    android:id="@+id/cardPreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </FrameLayout>
+
+            <!-- A widget card: the widget, and Change to pick another. -->
+            <LinearLayout
+                android:id="@+id/cardWidgetRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:minHeight="64dp"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/space_ml"
+                android:paddingEnd="@dimen/space_ms">
+
+                <ImageView
+                    android:id="@+id/cardWidgetIcon"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="@dimen/space_md"
+                    android:importantForAccessibility="no"
+                    android:scaleType="fitCenter" />
+
+                <LinearLayout style="@style/SheetRowText">
+
+                    <TextView
+                        android:id="@+id/cardWidgetLabel"
+                        style="@style/SheetRowTitle"
+                        android:layout_width="match_parent"
+                        android:ellipsize="end"
+                        android:fontFamily="sans-serif-medium"
+                        android:maxLines="1" />
+
+                    <TextView
+                        style="@style/SheetRowSubtitle"
+                        android:text="@string/card_widget_kind" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/cardWidgetChange"
+                    style="@style/Widget.Supernova.Button.Text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/card_widget_change" />
+            </LinearLayout>
 
             <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.Supernova.TextInput"
+                android:id="@+id/cardNameLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_md"
-                android:hint="@string/card_name">
+                android:layout_marginHorizontal="@dimen/space_ml"
+                android:layout_marginTop="@dimen/space_ms"
+                android:hint="@string/card_name_optional">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/cardName"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:imeOptions="actionDone"
                     android:inputType="textCapSentences"
-                    android:maxLength="@integer/label_max_length"
                     android:maxLines="1" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Featured content -->
-            <TextView
-                style="@style/CardEditorHeader"
-                android:text="@string/card_featured" />
-
-            <TextView
-                style="@style/CardEditorDescription"
-                android:text="@string/card_featured_desc" />
-
-            <!-- Nothing featured yet: a "+" row that opens the picker. -->
+            <!-- A widget card's height: the whole page, or a set height. -->
             <LinearLayout
-                android:id="@+id/cardFeaturedAdd"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:gravity="center_vertical"
-                android:minHeight="56dp"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_marginEnd="@dimen/space_ml"
-                    android:importantForAccessibility="no"
-                    android:src="@drawable/ic_menu_add"
-                    app:tint="@color/textPrimary" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/card_featured_choose"
-                    android:textColor="@color/textPrimary"
-                    android:textSize="@dimen/text_body" />
-            </LinearLayout>
-
-            <!-- Something featured: icon, label, clear. -->
-            <LinearLayout
-                android:id="@+id/cardFeaturedRow"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:gravity="center_vertical"
-                android:minHeight="56dp"
-                android:orientation="horizontal"
-                android:visibility="gone">
-
-                <ImageView
-                    android:id="@+id/cardFeaturedIcon"
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
-                    android:layout_marginEnd="@dimen/space_md"
-                    android:importantForAccessibility="no" />
-
-                <TextView
-                    android:id="@+id/cardFeaturedLabel"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="@color/textPrimary"
-                    android:textSize="@dimen/text_body" />
-
-                <ImageButton
-                    android:id="@+id/cardFeaturedClear"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/remove"
-                    android:src="@drawable/ic_menu_remove"
-                    app:tint="@color/textPrimary" />
-            </LinearLayout>
-
-            <!-- Widget height: only for a widget-featured card. -->
-            <LinearLayout
-                android:id="@+id/cardWidgetHeightRow"
+                android:id="@+id/cardHeightSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:visibility="gone">
-
-                <!-- Fill the page: the feed sizes the widget so the card
-                     takes the page's height; the stepper hides. -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/card_widget_fill"
-                        android:textColor="@color/textPrimary"
-                        android:textSize="@dimen/text_body" />
-
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/cardWidgetFill"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
+                android:paddingHorizontal="@dimen/space_ml"
+                android:paddingTop="@dimen/space_md">
 
                 <TextView
-                    style="@style/CardEditorDescription"
-                    android:text="@string/card_widget_fill_desc" />
-
-                <LinearLayout
-                    android:id="@+id/cardWidgetHeightLabel"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:text="@string/card_height"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="@dimen/text_body" />
 
-                    <TextView
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/cardHeightGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    app:selectionRequired="true"
+                    app:singleSelection="true">
+
+                    <Button
+                        android:id="@+id/cardHeightFill"
+                        style="@style/Widget.Supernova.Button.Segment"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/card_widget_height"
-                        android:textColor="@color/textPrimary"
-                        android:textSize="@dimen/text_body" />
+                        android:text="@string/card_widget_fill" />
 
-                    <TextView
-                        android:id="@+id/cardWidgetHeightValue"
-                        android:layout_width="wrap_content"
+                    <Button
+                        android:id="@+id/cardHeightSet"
+                        style="@style/Widget.Supernova.Button.Segment"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/textPrimary"
-                        android:textSize="@dimen/text_body" />
-                </LinearLayout>
+                        android:layout_weight="1"
+                        android:text="@string/card_height_set" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                <TextView
+                    android:id="@+id/cardHeightHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:text="@string/card_widget_fill_desc"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="@dimen/text_secondary" />
 
                 <LinearLayout
                     android:id="@+id/cardWidgetHeightStepper"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_xs"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
@@ -247,107 +180,141 @@
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:contentDescription="@string/increase"
                         android:src="@drawable/ic_step_plus" />
+
+                    <TextView
+                        android:id="@+id/cardWidgetHeightValue"
+                        android:layout_width="64dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="end"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="@dimen/text_body" />
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Card background: off draws the card bare. -->
+            <!-- The list: apps and shortcuts, or a widget's shortcuts. -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:paddingHorizontal="@dimen/space_ml"
+                android:paddingTop="@dimen/space_lg"
+                android:paddingBottom="@dimen/space_sm">
 
                 <TextView
-                    style="@style/CardEditorHeader"
+                    android:id="@+id/cardItemsLabel"
                     android:layout_width="0dp"
+                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="@string/card_frame" />
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="?attr/colorAccentOnRaised"
+                    android:textSize="@dimen/text_secondary" />
 
-                <com.google.android.material.switchmaterial.SwitchMaterial
+                <TextView
+                    android:id="@+id/cardItemsCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="@dimen/text_secondary" />
+            </LinearLayout>
+
+            <com.supernova.launcher.ui.FlowLayout
+                android:id="@+id/cardItems"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="@dimen/space_ml" />
+
+            <LinearLayout
+                android:id="@+id/cardLargeTileRow"
+                style="@style/SheetRow"
+                android:layout_marginTop="@dimen/space_sm">
+
+                <TextView
+                    style="@style/SheetRowTitle"
+                    android:text="@string/card_large_tile" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/cardLargeTile"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/card_large_tile" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/cardFrameRow"
+                style="@style/SheetRow">
+
+                <LinearLayout style="@style/SheetRowText">
+
+                    <TextView
+                        style="@style/SheetRowTitle"
+                        android:layout_width="match_parent"
+                        android:text="@string/card_frame" />
+
+                    <TextView
+                        style="@style/SheetRowSubtitle"
+                        android:text="@string/card_frame_desc" />
+                </LinearLayout>
+
+                <androidx.appcompat.widget.SwitchCompat
                     android:id="@+id/cardFrame"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_md"
-                    android:checked="true" />
+                    android:contentDescription="@string/card_frame" />
             </LinearLayout>
-
-            <TextView
-                style="@style/CardEditorDescription"
-                android:text="@string/card_frame_desc" />
-
-            <!-- Actions -->
-            <TextView
-                style="@style/CardEditorHeader"
-                android:text="@string/card_actions" />
-
-            <TextView
-                style="@style/CardEditorDescription"
-                android:text="@string/card_actions_desc" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/cardActionsList"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"
-                android:overScrollMode="never" />
 
             <LinearLayout
-                android:id="@+id/cardAddAction"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:gravity="center_vertical"
-                android:minHeight="56dp"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_marginEnd="@dimen/space_ml"
-                    android:importantForAccessibility="no"
-                    android:src="@drawable/ic_menu_add"
-                    app:tint="@color/textPrimary" />
+                android:id="@+id/cardPinRow"
+                style="@style/SheetRow">
 
                 <TextView
+                    style="@style/SheetRowTitle"
+                    android:text="@string/card_menu_pin" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/cardPin"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/card_add_action"
-                    android:textColor="@color/textPrimary"
-                    android:textSize="@dimen/text_body" />
+                    android:contentDescription="@string/card_menu_pin" />
             </LinearLayout>
 
-            <!-- Activation -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    style="@style/CardEditorHeader"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:text="@string/card_activate" />
-
-                <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/cardActivate"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_md"
-                    android:checked="true" />
-            </LinearLayout>
-
-            <TextView
-                style="@style/CardEditorDescription"
-                android:text="@string/card_activate_desc" />
-
-            <include
-                android:id="@+id/cardCondDay"
-                layout="@layout/row_card_condition" />
-
-            <include
-                android:id="@+id/cardCondBt"
-                layout="@layout/row_card_condition" />
         </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Remove stands apart on the left; Cancel still comes before Save,
+         which is what ButtonOrder asks for. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_sm"
+        android:gravity="end|center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/space_ml"
+        tools:ignore="ButtonOrder">
+
+        <Button
+            android:id="@+id/cardRemove"
+            style="@style/Widget.Supernova.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/card_menu_remove" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/cardCancel"
+            style="@style/Widget.Supernova.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cancel" />
+
+        <Button
+            android:id="@+id/cardSave"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_sm"
+            android:text="@string/save" />
     </LinearLayout>
-</androidx.core.widget.NestedScrollView>
+</LinearLayout>

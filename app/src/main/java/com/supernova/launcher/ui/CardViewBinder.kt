@@ -1,7 +1,6 @@
 package com.supernova.launcher.ui
 
 import android.content.Context
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
@@ -18,11 +17,11 @@ import com.supernova.launcher.databinding.ItemFeedCustomBinding
 import com.supernova.launcher.feed.FeaturedType
 import com.supernova.launcher.feed.FeedCard
 
-// Renders a custom card into item_feed_custom: type mark + name +
-// menu, a large featured tile (or hosted widget), a hairline, then wrapping
-// icon+label action pills. One binder per surface (feed, drawer, search,
-// editor preview) so each can route launches and the menu its own way; the
-// look is identical everywhere.
+// Renders a custom card into item_feed_custom: its name and caption (none
+// for an unnamed card), a large featured tile (or hosted widget), then
+// wrapping icon+label action pills. The menu is a long-press. One binder per
+// surface (feed, drawer, search, editor preview) so each can route launches
+// and the menu its own way; the look is identical everywhere.
 class CardViewBinder(
     private val callbacks: Callbacks,
     // Whether a long-press on the card opens its menu. The feed says no:
@@ -41,11 +40,10 @@ class CardViewBinder(
         // App / shortcut label for a target, used for the featured tile and
         // as the header fallback for an unnamed card.
         val labelForTarget: (String) -> String?,
-        // Null hides the menu button and the long-press (editor preview).
+        // The long-press menu; null for none (the previews).
         val onMenu: ((FeedCard, View) -> Unit)?,
-        // The history mark beside the menu: a tap reports the card's last
-        // activation. Null hides it.
-        val onHistory: ((FeedCard, View) -> Unit)? = null
+        // The header's caption ("Pinned"), or null.
+        val caption: (FeedCard) -> CharSequence? = { null }
     )
 
     // The room one card has on this surface (the list's content box), for a
@@ -69,33 +67,20 @@ class CardViewBinder(
 
     fun bind(binding: ItemFeedCustomBinding, card: FeedCard) {
         val context = binding.root.context
-        bindFrame(binding, card.showFrame)
-        binding.cardTypeIcon.imageTintList = ColorStateList.valueOf(textColor)
-        binding.customName.setTextColor(textColor)
         val featuredLabel = card.featuredTarget?.let { target ->
             if (FeaturedType.fromName(card.featuredType) == FeaturedType.WIDGET) null
             else callbacks.labelForTarget(target)
         }
-        binding.customName.text =
-            card.name.ifBlank { featuredLabel ?: context.getString(R.string.card_untitled) }
-
-        val history = callbacks.onHistory
-        binding.cardHistory.visibility = if (history == null) View.GONE else View.VISIBLE
-        binding.cardHistory.imageTintList = ColorStateList.valueOf(textColor)
-        binding.cardHistory.setOnClickListener { anchor -> history?.invoke(card, anchor) }
-        val menu = callbacks.onMenu
-        binding.cardMenu.visibility = if (menu == null) View.GONE else View.VISIBLE
-        binding.cardMenu.imageTintList = ColorStateList.valueOf(textColor)
-        binding.cardMenu.setOnClickListener { anchor -> menu?.invoke(card, anchor) }
-
+        bindHeader(binding, card)
         val hasFeatured = bindFeatured(binding, card, featuredLabel)
         bindLongPress(binding, card)
         val hasActions = bindActions(binding, card)
-        binding.cardDivider.setBackgroundColor((0x33 shl 24) or (textColor and 0xFFFFFF))
-        binding.cardDivider.visibility = if (hasFeatured && hasActions) View.VISIBLE else View.GONE
         binding.customActions.visibility = if (hasActions) View.VISIBLE else View.GONE
+        // A name with nothing under it needs no gap below it.
+        (binding.cardHeader.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin =
+            if (hasFeatured || hasActions) context.resources.getDimensionPixelSize(R.dimen.space_ms) else 0
         (binding.customActions.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin =
-            context.dp(if (hasFeatured) 10 else 2)
+            if (hasFeatured) context.resources.getDimensionPixelSize(R.dimen.space_ms) else 0
         applyFill(binding, card)
     }
 
@@ -123,11 +108,10 @@ class CardViewBinder(
         hosted.layoutParams = params
     }
 
-    // The card's menu as its ⋮ opens it, or against the card when it is
-    // drawn bare. False when this surface has no menu.
+    // The card's menu, against the card. False when this surface has none.
     fun openMenu(binding: ItemFeedCustomBinding, card: FeedCard): Boolean {
         val menu = callbacks.onMenu ?: return false
-        menu(card, if (card.showFrame) binding.cardMenu else binding.root)
+        menu(card, binding.root)
         return true
     }
 
@@ -148,19 +132,25 @@ class CardViewBinder(
         }
     }
 
-    // The plate and the header row, or neither: a card with its background
-    // off is its content alone, edge to edge, like a widget on the home
-    // screen. Set both ways on every bind, since rows are reused.
-    private fun bindFrame(binding: ItemFeedCustomBinding, framed: Boolean) {
-        val context = binding.root.context
+    // The plate, and a header only for a named card (its name, and the
+    // caption in the accent when there is one; a caption alone shows too).
+    // A card with its background off is its content alone, edge to edge,
+    // like a widget on the home screen. Set both ways on every bind, since
+    // rows are reused.
+    private fun bindHeader(binding: ItemFeedCustomBinding, card: FeedCard) {
+        val framed = card.showFrame
         (binding.root.background?.mutate() as? GradientDrawable)
             ?.setColor(if (framed) cardColor else Color.TRANSPARENT)
-        binding.cardHeader.visibility = if (framed) View.VISIBLE else View.GONE
-        val side = if (framed) context.resources.getDimensionPixelSize(R.dimen.space_md) else 0
-        val edge = if (framed) context.resources.getDimensionPixelSize(R.dimen.space_ms) else 0
-        binding.root.setPadding(side, edge, side, edge)
-        (binding.customFeatured.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin =
-            if (framed) context.resources.getDimensionPixelSize(R.dimen.space_sm) else 0
+        val pad = if (framed) binding.root.resources.getDimensionPixelSize(R.dimen.space_md) else 0
+        binding.root.setPadding(pad, pad, pad, pad)
+        val caption = callbacks.caption(card)?.takeIf { framed }
+        val name = card.name.trim().takeIf { framed && it.isNotEmpty() }
+        binding.cardHeader.visibility = if (name != null || caption != null) View.VISIBLE else View.GONE
+        binding.customName.setTextColor(textColor)
+        binding.customName.text = name
+        binding.cardCaption.setTextColor(accentColor)
+        binding.cardCaption.text = caption
+        binding.cardCaption.visibility = if (caption == null) View.GONE else View.VISIBLE
     }
 
     private fun bindFeatured(
@@ -182,7 +172,6 @@ class CardViewBinder(
                         orientation = LinearLayout.HORIZONTAL
                         gravity = Gravity.CENTER_VERTICAL
                         foreground = context.getDrawable(R.drawable.ripple_icon)
-                        setPadding(0, context.dp(6), 0, context.dp(6))
                         setOnClickListener { callbacks.onLaunchTarget(type, target, it) }
                         contentDescription = featuredLabel ?: card.name
                     }
@@ -195,9 +184,10 @@ class CardViewBinder(
                         text = featuredLabel
                             ?: com.supernova.launcher.data.LaunchTarget.split(target).first.substringBefore('/')
                         setTextColor(textColor)
-                        textSizeOf(R.dimen.text_headline)
+                        textSizeOf(R.dimen.text_title)
+                        typeface = MEDIUM
                         maxLines = 1
-                        setPadding(context.dp(18), 0, 0, 0)
+                        setPadding(context.dp(16), 0, 0, 0)
                     }
                     tile.addView(
                         label,
@@ -259,7 +249,7 @@ class CardViewBinder(
                     ?: com.supernova.launcher.data.LaunchTarget.split(action.target).first.substringBefore('/')
             }
             flow.addView(
-                pill(context, callbacks.iconForTarget(action.target), label, textColor) { view ->
+                pill(context, callbacks.iconForTarget(action.target), label, textColor, tall = true) { view ->
                     callbacks.onLaunchTarget(type, action.target, view)
                 }
             )
@@ -279,6 +269,8 @@ class CardViewBinder(
             textColor: Int,
             // Search's shortcut pills: menu and drag. Cards leave it off.
             onLongPress: ((View) -> Unit)? = null,
+            // A card's actions: a full 44dp touch target, the icon larger.
+            tall: Boolean = false,
             onTap: (View) -> Unit
         ): View {
             val pill = LinearLayout(context).apply {
@@ -287,8 +279,9 @@ class CardViewBinder(
                 background = (context.getDrawable(R.drawable.bg_card_chip)?.mutate() as? GradientDrawable)
                     ?.apply { setColor((0x26 shl 24) or (textColor and 0xFFFFFF)) }
                 foreground = context.getDrawable(R.drawable.ripple_icon)
-                val pad = context.dp(6)
+                val pad = context.dp(if (tall) 8 else 6)
                 setPadding(if (icon != null) context.dp(8) else context.dp(14), pad, context.dp(14), pad)
+                if (tall) minimumHeight = context.dp(44)
                 contentDescription = label
                 setOnClickListener { onTap(it) }
                 onLongPress?.let { longPress ->
@@ -300,7 +293,7 @@ class CardViewBinder(
             }
             if (icon != null) {
                 val iconView = ImageView(context).apply { setImageDrawable(copied(icon)) }
-                val size = context.dp(22)
+                val size = context.dp(if (tall) 28 else 22)
                 pill.addView(iconView, LinearLayout.LayoutParams(size, size).apply {
                     marginEnd = context.dp(8)
                 })
@@ -318,6 +311,8 @@ class CardViewBinder(
             )
             return pill
         }
+
+        private val MEDIUM = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
 
         private fun copied(icon: Drawable?): Drawable? =
             icon?.constantState?.newDrawable()?.mutate() ?: icon

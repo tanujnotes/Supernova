@@ -4,40 +4,21 @@ import android.graphics.Canvas
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.ViewConfiguration
-import androidx.annotation.StringRes
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.supernova.launcher.R
+import com.supernova.launcher.data.Pref
 import com.supernova.launcher.feed.FeedOrder
 import kotlin.math.abs
 
-// The feed's cards put in the user's own order (#150): Move up / Move down
-// from a card's menu, or a long-press to pick a card up and a drag to move
-// it (FeedCardDrag). A card only moves within its group (pinned, activated,
-// the rest; see FeedOrder).
+// The feed's cards put in the user's own order (#150): a long-press picks a
+// card up and a drag moves it (FeedCardDrag). A card only moves within its
+// group (pinned, the rest; see FeedOrder).
 class FeedCardOrder(
     private val adapter: FeedAdapter,
-    private val viewModel: LauncherViewModel,
-    // A built-in card's menu: its settings page.
-    private val openSettings: (section: Int) -> Unit
-) : FeedCardRoutes.Moves {
-
-    // The cards as shown: a card's neighbour has to be on screen with it,
-    // in the same group.
-    private fun shownEntries(): List<FeedOrder.Entry> =
-        adapter.rowsShown.mapNotNull { row ->
-            val key = row.key
-            val group = row.group
-            if (key == null || group == null) null else FeedOrder.Entry(key, group, null)
-        }
-
-    override fun canMove(key: String, up: Boolean): Boolean = FeedOrder.neighbour(shownEntries(), key, up) != null
-
-    override fun move(key: String, up: Boolean) {
-        val neighbour = FeedOrder.neighbour(shownEntries(), key, up) ?: return
-        placeNextTo(key, neighbour.key, after = !up)
-    }
+    private val viewModel: LauncherViewModel
+) {
 
     // A dragged card came to rest: after the card above it in its group,
     // or else before the one below.
@@ -62,24 +43,26 @@ class FeedCardOrder(
     }
 
     // A card let go where it was picked up: its menu. A custom card's is
-    // the one its ⋮ opens; a built-in's has its settings page and the moves.
+    // the binder's (Edit, Pin to top, Remove); a ready-made card's has only
+    // Remove, which turns it off, with an Undo.
     fun openMenu(holder: RecyclerView.ViewHolder, key: String) {
         if (adapter.openCardMenu(holder)) return
-        @StringRes val section = when (key) {
-            FeedOrder.MEDIA -> R.string.cards_media_title
-            FeedOrder.CALENDAR -> R.string.feed_calendar_title
-            FeedOrder.CONTACTS -> R.string.feed_contacts_title
+        val pref = when (key) {
+            FeedOrder.MEDIA -> Pref.feedShowMedia
+            FeedOrder.CALENDAR -> Pref.feedShowCalendar
+            FeedOrder.CONTACTS -> Pref.feedShowContacts
             else -> return
-        }
-        val entries = buildList<Pair<Int, () -> Unit>> {
-            add(R.string.card_menu_edit to { openSettings(section) })
-            if (canMove(key, up = true)) add(R.string.card_menu_move_up to { move(key, up = true) })
-            if (canMove(key, up = false)) add(R.string.card_menu_move_down to { move(key, up = false) })
         }
         val anchor = holder.itemView
         ChoiceMenu.showActions(
-            anchor, viewModel.state.value.prefs, entries.map { anchor.context.getString(it.first) }
-        ) { which -> entries[which].second() }
+            anchor, viewModel.state.value.prefs, listOf(anchor.context.getString(R.string.card_menu_remove))
+        ) {
+            viewModel.set(pref, false)
+            com.google.android.material.snackbar.Snackbar
+                .make(anchor.rootView, R.string.card_removed, com.google.android.material.snackbar.Snackbar.LENGTH_LONG)
+                .setAction(R.string.undo) { viewModel.set(pref, true) }
+                .show()
+        }
     }
 }
 

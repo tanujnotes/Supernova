@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A feed with no cards: what the page is for, the two kinds of card to
+     add, and the ready-made cards that are off, one tap each. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="40dp">
+
+    <TextView
+        android:id="@+id/feedEmptyTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="@dimen/space_ms"
+        android:text="@string/feed_empty_title"
+        android:textSize="28sp" />
+
+    <TextView
+        android:id="@+id/feedEmptyText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_sm"
+        android:layout_marginBottom="@dimen/space_lg"
+        android:lineSpacingExtra="4sp"
+        android:paddingHorizontal="@dimen/space_ms"
+        android:text="@string/feed_empty_text"
+        android:textSize="15sp" />
+
+    <LinearLayout
+        android:id="@+id/feedEmptyWidget"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_feed_card"
+        android:foreground="?attr/selectableItemBackground"
+        android:minHeight="72dp"
+        android:orientation="vertical"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="@dimen/space_md">
+
+        <TextView
+            android:id="@+id/feedEmptyWidgetTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/feed_add_widget"
+            android:textSize="@dimen/text_body" />
+
+        <TextView
+            android:id="@+id/feedEmptyWidgetText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="@string/feed_add_widget_desc"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/feedEmptyShortcuts"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_ms"
+        android:background="@drawable/bg_feed_card"
+        android:foreground="?attr/selectableItemBackground"
+        android:minHeight="72dp"
+        android:orientation="vertical"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="@dimen/space_md">
+
+        <TextView
+            android:id="@+id/feedEmptyShortcutsTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/feed_add_shortcuts_cta"
+            android:textSize="@dimen/text_body" />
+
+        <TextView
+            android:id="@+id/feedEmptyShortcutsText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="@string/feed_add_shortcuts_desc"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/feedEmptyReadyLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_lg"
+        android:layout_marginBottom="10dp"
+        android:paddingHorizontal="@dimen/space_ms"
+        android:text="@string/feed_ready_made"
+        android:textSize="13sp" />
+
+    <com.supernova.launcher.ui.FlowLayout
+        android:id="@+id/feedEmptyReady"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="@dimen/space_ms" />
+
+    <TextView
+        android:id="@+id/feedEmptySettings"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="@dimen/space_lg"
+        android:background="@drawable/ripple_icon"
+        android:gravity="center"
+        android:paddingHorizontal="18dp"
+        android:text="@string/feed_settings"
+        android:textSize="@dimen/text_body" />
+</LinearLayout>

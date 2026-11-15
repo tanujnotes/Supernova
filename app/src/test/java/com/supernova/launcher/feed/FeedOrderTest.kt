@@ -45,36 +45,21 @@ class FeedOrderTest {
     }
 
     @Test
-    fun layoutGroupsPinnedThenActivatedThenRestWithBuiltIns() {
+    fun layoutGroupsPinnedThenRestWithBuiltIns() {
         val plain = FeedCard(id = "plain")
-        val active = FeedCard(id = "active")
+        val other = FeedCard(id = "other")
         val pinned = FeedCard(id = "pinned", pinned = true)
         val off = FeedCard(id = "off", enabled = false)
-        val order = listOf("plain", CALENDAR, "active", MEDIA, "pinned", "off", CONTACTS)
+        val order = listOf("plain", CALENDAR, "other", MEDIA, "pinned", "off", CONTACTS)
         val entries = FeedOrder.layout(
-            order, listOf(plain, active, pinned, off), shownBuiltIns = setOf(MEDIA, CONTACTS)
-        ) { it.id == "active" }
-        assertEquals(listOf("pinned", "active", "plain", MEDIA, CONTACTS), entries.map { it.key })
+            order, listOf(plain, other, pinned, off), shownBuiltIns = setOf(MEDIA, CONTACTS)
+        )
+        assertEquals(listOf("pinned", "plain", "other", MEDIA, CONTACTS), entries.map { it.key })
         assertEquals(
-            listOf(Group.PINNED, Group.ACTIVATED, Group.REST, Group.REST, Group.REST),
+            listOf(Group.PINNED, Group.REST, Group.REST, Group.REST, Group.REST),
             entries.map { it.group }
         )
         assertNull(entries.first { it.key == MEDIA }.card)
-    }
-
-    @Test
-    fun neighbourStaysInsideTheGroup() {
-        val entries = listOf(
-            FeedOrder.Entry("p", Group.PINNED, null),
-            FeedOrder.Entry("x", Group.REST, null),
-            FeedOrder.Entry("y", Group.REST, null)
-        )
-        assertNull(FeedOrder.neighbour(entries, "p", up = false))
-        assertNull(FeedOrder.neighbour(entries, "x", up = true))
-        assertEquals("y", FeedOrder.neighbour(entries, "x", up = false)?.key)
-        assertEquals("x", FeedOrder.neighbour(entries, "y", up = true)?.key)
-        assertNull(FeedOrder.neighbour(entries, "y", up = false))
-        assertNull(FeedOrder.neighbour(entries, "missing", up = true))
     }
 
     @Test

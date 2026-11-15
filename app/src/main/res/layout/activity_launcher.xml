@@ -272,16 +272,6 @@
                 android:text="@string/work_apps_turn_off" />
         </LinearLayout>
 
-        <!-- Activated custom cards (all conditions met) sit above the list;
-             DrawerController fills and hides this. -->
-        <LinearLayout
-            android:id="@+id/drawerCards"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingHorizontal="@dimen/space_ms"
-            android:visibility="gone" />
-
         <!-- The top row of apps (drawerFrequentRow), with a short centred
              rule separating it from the list. DrawerController moves both
              into the list's header, the rule into DrawerSortBars' strip. -->
