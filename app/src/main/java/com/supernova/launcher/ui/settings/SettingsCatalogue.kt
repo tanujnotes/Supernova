@@ -888,7 +888,9 @@ object SettingsCatalogue {
                     R.string.drawer_work_tab,
                     get = { it.drawerWorkTab },
                     set = { viewModel.set(Pref.drawerWorkTab, it) },
-                    visibleIf = { viewModel.hasWorkApps() || it.drawerWorkTab }
+                    // Only the work profile decides: a pref clause here showed the switch
+                    // on phones without one, where turning it off hid it for good.
+                    visibleIf = { viewModel.hasWorkApps() }
                 ),
                 SettingItem.Row(
                     R.string.drawer_default_tab,
