@@ -45,8 +45,19 @@ class WidgetPickerAdapter(
     private val flat = mutableListOf<WidgetPickerEntry>()
     private val previewCache = LruCache<String, Drawable>(40)
 
+    // Each app's widgets and shortcuts, worked out the first time the app is
+    // opened (or searched), by group key; and the keys being worked out now.
+    private val contents = mutableMapOf<String, WidgetPickerContents>()
+    private val loading = mutableSetOf<String>()
+    // Bumped by every submit, so loads for an older list are dropped.
+    private var generation = 0
+    private val rebuildSoon = Runnable { rebuild() }
+
     fun submit(list: List<WidgetPickerGroup>, expandAll: Boolean) {
         groups = list
+        generation++
+        contents.clear()
+        loading.clear()
         startExpanded = expandAll
         if (expandAll) list.forEach { expanded.add(it.key) }
         rebuild()
@@ -59,24 +70,54 @@ class WidgetPickerAdapter(
         rebuild()
     }
 
+    // Works a group's contents out in the background; the list redraws
+    // when it lands. Results that land together redraw once.
+    private fun ensureLoaded(group: WidgetPickerGroup) {
+        if (group.key in contents || !loading.add(group.key)) return
+        val ticket = generation
+        groupLoader.execute {
+            val loaded = runCatching { group.load() }.getOrElse { WidgetPickerContents(emptyList(), emptyList()) }
+            mainHandler.post {
+                if (ticket != generation) return@post
+                loading.remove(group.key)
+                contents[group.key] = loaded
+                mainHandler.removeCallbacks(rebuildSoon)
+                mainHandler.post(rebuildSoon)
+            }
+        }
+    }
+
     val isEmpty: Boolean get() = groups.isEmpty()
 
     private fun rebuild() {
         flat.clear()
         val q = query
         for (group in groups) {
-            val groupMatches = q.isEmpty() || group.label.lowercase().contains(q)
-            val widgets = if (q.isEmpty() || groupMatches) group.widgets else group.widgets.filter { it.label.lowercase().contains(q) }
-            val shortcuts = if (q.isEmpty() || groupMatches) group.shortcuts else group.shortcuts.filter { it.label.lowercase().contains(q) }
-            if (widgets.isEmpty() && shortcuts.isEmpty()) continue
             val isExpanded = startExpanded || q.isNotEmpty() || group.key in expanded
+            // Searching looks inside every app, so all of them get loaded.
+            if (isExpanded) ensureLoaded(group)
+            val loaded = contents[group.key]
+            val groupMatches = q.isEmpty() || group.label.lowercase().contains(q)
+            val widgets = when {
+                loaded == null -> emptyList()
+                groupMatches -> loaded.widgets
+                else -> loaded.widgets.filter { it.label.lowercase().contains(q) }
+            }
+            val shortcuts = when {
+                loaded == null -> emptyList()
+                groupMatches -> loaded.shortcuts
+                else -> loaded.shortcuts.filter { it.label.lowercase().contains(q) }
+            }
+            // Not loaded yet: the app's row shows while browsing or when its
+            // name matches; a match inside it shows up once it has loaded.
+            if (if (loaded == null) !groupMatches else widgets.isEmpty() && shortcuts.isEmpty()) continue
             flat.add(
                 WidgetPickerEntry.Header(
                     key = group.key,
                     label = group.label,
                     icon = group.icon,
-                    widgetCount = group.widgets.size,
-                    shortcutCount = group.shortcuts.size,
+                    widgetCount = group.widgetCount,
+                    shortcutCount = group.shortcutCount,
                     expanded = isExpanded
                 )
             )
@@ -294,6 +335,14 @@ class WidgetPickerAdapter(
 
         // About 12% of the text colour: visible on both sheet themes, faint.
         private const val DIVIDER_ALPHA = 31
+
+        // One background thread for working out apps' contents, apart from
+        // the previews so an opened app never waits behind pictures.
+        private val groupLoader: java.util.concurrent.ExecutorService by lazy {
+            java.util.concurrent.Executors.newSingleThreadExecutor { task ->
+                Thread(task, "widget-picker-apps").apply { isDaemon = true }
+            }
+        }
 
         // One background thread for every picker's previews, in the order
         // the cells asked for them.

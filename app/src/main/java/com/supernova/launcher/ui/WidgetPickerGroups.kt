@@ -17,15 +17,24 @@ import com.supernova.launcher.widget.WidgetFeatures
 import com.supernova.launcher.widget.WidgetSizing
 
 // One app's worth of addable things: its widgets and its
-// CREATE_SHORTCUT shortcuts together under one collapsible row.
-data class WidgetPickerGroup(
-    val packageName: String,
+// CREATE_SHORTCUT shortcuts together under one collapsible row. The row
+// itself is cheap; its contents read every widget's and shortcut's name,
+// icon and size out of the app's own files, so they are only worked out
+// (off the main thread) once the app is opened or searched.
+class WidgetPickerGroup(
+    // The app's package; "serial/package" for a work profile's copy.
+    val key: String,
     val label: String,
     val icon: Drawable?,
+    val widgetCount: Int,
+    val shortcutCount: Int,
+    // Works the contents out; slow, never call it on the main thread.
+    val load: () -> WidgetPickerContents
+)
+
+class WidgetPickerContents(
     val widgets: List<WidgetPickerEntry.Widget>,
-    val shortcuts: List<WidgetPickerEntry.Shortcut>,
-    // Tells a work profile's copy of an app from the personal one.
-    val key: String = packageName
+    val shortcuts: List<WidgetPickerEntry.Shortcut>
 )
 
 // What tapping a shortcut row does.
@@ -130,32 +139,42 @@ object WidgetPickerGroups {
             }.getOrNull() ?: return@mapNotNull null
             val icon = icons.app(packageName, mySerial)
                 ?: runCatching { pm.getApplicationIcon(packageName) }.getOrNull()
-
-            val widgets = widgetEntries(context, widgetsByPackage[packageName].orEmpty(), appLabel, icon, grid)
-
-            val shortcuts = shortcutsByPackage[packageName].orEmpty().map { resolve ->
-                val activity = resolve.activityInfo
-                // A shortcut with no icon of its own wears its app's, as the
-                // app's row does; one with its own gets the same shape and
-                // glass.
-                val own = if (activity.icon != 0) {
-                    runCatching { resolve.loadIcon(pm) }.getOrNull()?.let(icons.render)
-                } else {
-                    null
-                }
-                WidgetPickerEntry.Shortcut(
-                    packageName = packageName,
-                    label = runCatching { resolve.loadLabel(pm).toString() }.getOrNull().orEmpty().ifBlank { appLabel },
-                    icon = own ?: icon,
-                    target = ShortcutTarget.Create(activity.packageName, activity.name)
+            val infos = widgetsByPackage[packageName].orEmpty()
+            val resolves = shortcutsByPackage[packageName].orEmpty()
+            WidgetPickerGroup(packageName, appLabel, icon, infos.size, resolves.size) {
+                WidgetPickerContents(
+                    widgetEntries(context, infos, appLabel, icon, grid),
+                    shortcutEntries(pm, appLabel, icon, resolves, icons)
                 )
-            }.sortedWith(com.supernova.launcher.data.LabelOrder.by { it.label })
-
-            WidgetPickerGroup(packageName, appLabel, icon, widgets, shortcuts)
+            }
         }
         return (personal + workGroups(context, filterPackage, filter, grid, icons))
             .sortedWith(com.supernova.launcher.data.LabelOrder.by { it.label })
     }
+
+    private fun shortcutEntries(
+        pm: android.content.pm.PackageManager,
+        appLabel: String,
+        icon: Drawable?,
+        resolves: List<android.content.pm.ResolveInfo>,
+        icons: WidgetPickerIcons
+    ): List<WidgetPickerEntry.Shortcut> = resolves.map { resolve ->
+        val activity = resolve.activityInfo
+        // A shortcut with no icon of its own wears its app's, as the
+        // app's row does; one with its own gets the same shape and
+        // glass.
+        val own = if (activity.icon != 0) {
+            runCatching { resolve.loadIcon(pm) }.getOrNull()?.let(icons.render)
+        } else {
+            null
+        }
+        WidgetPickerEntry.Shortcut(
+            packageName = activity.packageName,
+            label = runCatching { resolve.loadLabel(pm).toString() }.getOrNull().orEmpty().ifBlank { appLabel },
+            icon = own ?: icon,
+            target = ShortcutTarget.Create(activity.packageName, activity.name)
+        )
+    }.sortedWith(com.supernova.launcher.data.LabelOrder.by { it.label })
 
     // Widgets from work profiles, with the work badge on the app's name and
     // icon. Paused profiles offer none, and the private space stays out.
@@ -189,8 +208,9 @@ object WidgetPickerGroups {
                     val appLabel = pm.getUserBadgedLabel(app.loadLabel(pm), user).toString()
                     val icon = icons.app(packageName, serial)
                         ?: runCatching { pm.getUserBadgedIcon(app.loadIcon(pm), user) }.getOrNull()
-                    val widgets = widgetEntries(context, infos, appLabel, icon, grid)
-                    WidgetPickerGroup(packageName, appLabel, icon, widgets, emptyList(), key = "$serial/$packageName")
+                    WidgetPickerGroup("$serial/$packageName", appLabel, icon, infos.size, 0) {
+                        WidgetPickerContents(widgetEntries(context, infos, appLabel, icon, grid), emptyList())
+                    }
                 }
         }
     }
@@ -243,11 +263,11 @@ object WidgetPickerGroups {
             target = ShortcutTarget.Activities
         )
         return WidgetPickerGroup(
-            packageName = context.packageName,
+            key = context.packageName,
             label = context.getString(R.string.app_name),
             icon = context.getDrawable(R.mipmap.ic_launcher)?.let(renderTile),
-            widgets = emptyList(),
-            shortcuts = actions + activities
-        )
+            widgetCount = 0,
+            shortcutCount = actions.size + 1,
+        ) { WidgetPickerContents(emptyList(), actions + activities) }
     }
 }
