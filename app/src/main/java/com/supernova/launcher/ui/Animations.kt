@@ -98,11 +98,13 @@ enum class DrawerTransition {
 }
 
 // Forced status-bar icon tint (darkStatusIcons pref). AUTO follows the theme
-// (light theme = dark icons); LIGHT forces APPEARANCE_LIGHT_STATUS_BARS on
-// (dark icons), DARK forces it off (light icons).
+// (light theme = dark icons); WALLPAPER asks the wallpaper whether dark text
+// reads on it (ui/WallpaperStatusIcons); LIGHT forces
+// APPEARANCE_LIGHT_STATUS_BARS on (dark icons), DARK forces it off (light icons).
 @kotlinx.serialization.Serializable(with = StatusBarIcons.Names::class)
 enum class StatusBarIcons {
     AUTO,
+    WALLPAPER,
     LIGHT,
     DARK;
 

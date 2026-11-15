@@ -106,6 +106,7 @@ object EnumLabels {
     @StringRes
     fun of(icons: StatusBarIcons): Int = when (icons) {
         StatusBarIcons.AUTO -> R.string.status_icons_auto
+        StatusBarIcons.WALLPAPER -> R.string.status_icons_wallpaper
         StatusBarIcons.LIGHT -> R.string.status_icons_dark
         StatusBarIcons.DARK -> R.string.status_icons_light
     }

@@ -888,6 +888,9 @@ class LauncherActivity :
         WallpaperManager.OnColorsChangedListener { _, which ->
             if (which and WallpaperManager.FLAG_SYSTEM != 0) {
                 com.supernova.launcher.ui.theme.Styles.onWallpaperChanged()
+                // Based-on-wallpaper status icons; the guard skips it when
+                // their colour stays.
+                applySystemChrome(viewModel.state.value.prefs)
                 appliedDockChrome = null
                 // Palette-derived colors moved under everything the dock
                 // draws, and none of that is in its signature.
@@ -1828,8 +1831,11 @@ class LauncherActivity :
     // Status bar visibility/icon tint, nav bar transparency and rotation
     // (Part E). Guarded so repeat emissions don't touch the window.
     private fun applySystemChrome(prefs: LauncherPrefs) {
+        val night = resources.configuration.uiMode and
+            Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+        val lightBars = lightStatusBars(prefs, night)
         val key = listOf(
-            prefs.hideStatusBar, prefs.darkStatusIcons, prefs.transparentNav,
+            prefs.hideStatusBar, lightBars, prefs.transparentNav,
             prefs.transparentStatus, prefs.homeRotation,
             prefs.homeOrientation
         )
@@ -1838,16 +1844,7 @@ class LauncherActivity :
 
         applyStatusBarVisibility(prefs.hideStatusBar)
 
-        val night = resources.configuration.uiMode and
-            Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-        // AUTO follows the theme (light theme = light bar = dark icons),
-        // which is what the DayNight theme did before this pref existed.
-        WindowInsetsControllerCompat(window, binding.root).isAppearanceLightStatusBars =
-            when (prefs.darkStatusIcons) {
-                StatusBarIcons.AUTO -> !night
-                StatusBarIcons.LIGHT -> true
-                StatusBarIcons.DARK -> false
-            }
+        WindowInsetsControllerCompat(window, binding.root).isAppearanceLightStatusBars = lightBars
 
         window.statusBarColor =
             if (prefs.transparentStatus) android.graphics.Color.TRANSPARENT else android.graphics.Color.BLACK
@@ -1870,6 +1867,21 @@ class LauncherActivity :
         binding.navBarBand.isVisible = !prefs.transparentNav
 
         requestedOrientation = homeOrientationRequest(prefs)
+    }
+
+    // Whether the status bar gets dark icons (the light-bar appearance).
+    // AUTO follows the theme (light theme = light bar = dark icons), which
+    // is what the DayNight theme did before this pref existed. WALLPAPER
+    // asks the wallpaper each time; a wallpaper change re-applies
+    // (wallpaperColorsListener). An opaque bar is drawn black whatever the
+    // wallpaper, and a wallpaper with no colours (some live ones) falls
+    // back to the theme.
+    private fun lightStatusBars(prefs: LauncherPrefs, night: Boolean): Boolean = when (prefs.darkStatusIcons) {
+        StatusBarIcons.AUTO -> !night
+        StatusBarIcons.WALLPAPER -> prefs.transparentStatus &&
+            (com.supernova.launcher.ui.WallpaperStatusIcons.darkIcons(this) ?: !night)
+        StatusBarIcons.LIGHT -> true
+        StatusBarIcons.DARK -> false
     }
 
     // Landscape keeps the portrait grid: every icon stays in its cell,
