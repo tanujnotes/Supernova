@@ -328,6 +328,7 @@ object Pref {
     val feedEnabled = bool("feed_enabled")
     val feedEdgeSwipe = bool("feed_edge_swipe")
     val feedShowSearch = bool("feed_show_search")
+    val feedBarButtons = text("feed_bar_buttons")
     val feedShowFrequent = bool("feed_show_frequent")
     val feedShowShortcuts = bool("feed_show_shortcuts")
     val feedShowMedia = bool("feed_show_media")

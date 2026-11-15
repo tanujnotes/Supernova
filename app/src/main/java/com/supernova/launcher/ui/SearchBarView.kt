@@ -80,9 +80,13 @@ class SearchBarView @JvmOverloads constructor(
 
     }
 
+    // A host's own handling of a button (the feed's Settings opens the Feed
+    // page); true when it took the tap, else the button does its usual.
+    var onChip: ((SearchBarChip) -> Boolean)? = null
+
     private fun addChip(chip: SearchBarChip, color: Int) {
         val view = SearchBarButtons.view(context, chip, color) {
-            if (interactive) SearchBarButtons.run(context, chip)
+            if (interactive && onChip?.invoke(chip) != true) SearchBarButtons.run(context, chip)
         }
         view.tag = CHIP_TAG
         val size = dp(SearchBarButtons.BUTTON_DP)

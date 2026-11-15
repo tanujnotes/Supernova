@@ -621,6 +621,10 @@ class FeedController(
             androidx.recyclerview.widget.LinearLayoutManager(context)
         cardDrag.attach(pane.feedRecycler)
         pane.feedSearchBar.onTap = { host.onOpenSearch() }
+        // The feed's Settings button opens the Feed page.
+        pane.feedSearchBar.onChip = { chip ->
+            (chip == com.supernova.launcher.ui.SearchBarChip.SETTINGS).also { if (it) host.openFeedSettings() }
+        }
 
         // Park closed and keep parked across relayouts (rotation, inset
         // changes) - but never fight an active drag or the open state.
@@ -666,7 +670,8 @@ class FeedController(
         // The feed's bar wears the desktop bar's styling, so that is part of
         // the key: restyling the search bar never reached the feed's.
         val key = listOf(
-            prefs.styleConfig, prefs.paletteSource, prefs.paletteSeed, prefs.accentColor, prefs.searchBarConfig
+            prefs.styleConfig, prefs.paletteSource, prefs.paletteSeed, prefs.accentColor, prefs.searchBarConfig,
+            prefs.feedBarButtons
         )
         if (key == appliedStyle) return
         appliedStyle = key
@@ -681,9 +686,11 @@ class FeedController(
         val cards = resolved.of(SurfaceId.CARDS)
         adapter.setAppearance(cards.surface, cards.text, cards.accent, paneText)
         // The feed bar borrows the desktop bar's styling (radius, wireframe,
-        // logo, chips) - placement is this pane's own business.
+        // glass) - placement is this pane's own business, and so are its
+        // buttons (feedBarButtons).
+        val buttons = SearchBarButtons.decode(prefs.feedBarButtons).map { it.name }
         pane.feedSearchBar.apply(
-            SearchBarConfig.decode(prefs.searchBarConfig).desktop,
+            SearchBarConfig.decode(prefs.searchBarConfig).desktop.copy(chips = buttons),
             resolved.of(SurfaceId.SEARCH_BAR)
         )
     }

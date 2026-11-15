@@ -284,8 +284,9 @@ data class LauncherPrefs(
     // Fast-scroller active-letter color; "" follows the drawer accent.
     val drawerScrubberColor: String = "",
     // The buttons inside the drawer search field (comma-joined
-    // SearchBarChip names, see SearchBarButtons); "" = none.
-    val drawerActionButtons: String = "",
+    // SearchBarChip names, see SearchBarButtons); "" = none. Play Store
+    // until changed.
+    val drawerActionButtons: String = "PLAY_STORE",
     // Apps living in TAB-type drawer groups leave the All tab (tab
     // isolation); folder-type groups always did.
     val drawerIsolateTabs: Boolean = false,
@@ -510,6 +511,9 @@ data class LauncherPrefs(
     val feedEnabled: Boolean = true,
     val feedEdgeSwipe: Boolean = true,
     val feedShowSearch: Boolean = true,
+    // The buttons at the feed bar's right end, as drawerActionButtons; the
+    // date and Settings (the Feed page) until changed.
+    val feedBarButtons: String = "DATE,SETTINGS",
     val feedShowFrequent: Boolean = true,
     // A strip of app shortcuts pulled from the most-launched apps (D7).
     val feedShowShortcuts: Boolean = true,

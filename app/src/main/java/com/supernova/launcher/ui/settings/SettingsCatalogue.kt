@@ -1200,6 +1200,9 @@ object SettingsCatalogue {
                         set = { viewModel.set(Pref.feedShowSearch, it) }
                     ).hiddenWhen(feedHidden)
                 )
+                // The feed bar's own buttons; gone with the bar.
+                add(SettingItem.Header(R.string.search_bar_chips, visibleIf = { it.feedEnabled && it.feedShowSearch }))
+                SearchBarButtons.ROWS.forEach { add(feedBarButton(viewModel, it)) }
                 add(SettingItem.Header(R.string.settings_section_cards, visibleIf = { it.feedEnabled }))
                 viewModel.feedCards().forEach { card ->
                     add(
@@ -2015,6 +2018,16 @@ private val drawerFieldHidden: (LauncherPrefs) -> SettingItem.HiddenBy? = {
 
 // One of the drawer field's buttons (drawerActionButtons), on and off. As on
 // the home bar, turning one on adds it after the others.
+private fun feedBarButton(viewModel: LauncherViewModel, button: SearchBarChip) = SettingItem.Toggle(
+    SearchBarButtons.label(button),
+    get = { button in SearchBarButtons.decode(it.feedBarButtons) },
+    set = { on ->
+        val now = SearchBarButtons.decode(viewModel.state.value.prefs.feedBarButtons)
+        viewModel.set(Pref.feedBarButtons, SearchBarButtons.encode(SearchBarButtons.toggled(now, button, on)))
+    },
+    visibleIf = { it.feedEnabled && it.feedShowSearch }
+)
+
 private fun drawerButton(viewModel: LauncherViewModel, button: SearchBarChip) = SettingItem.Toggle(
     SearchBarButtons.label(button),
     get = { button in SearchBarButtons.decode(it.drawerActionButtons) },
