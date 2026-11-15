@@ -85,13 +85,15 @@ object WidgetPickerSheet {
         }
 
         activity.lifecycleScope.launch {
+            // The launcher's own actions are not search widgets either. Its
+            // row heads the list, so it shows at once while the apps load.
+            val own = if (singleApp || filter != null) null
+            else withContext(Dispatchers.Default) { WidgetPickerGroups.launcherGroup(activity, icons) }
+            own?.let { adapter.submit(listOf(it), expandAll = false) }
             val groups = withContext(Dispatchers.Default) {
-                val apps = WidgetPickerGroups.build(
+                listOfNotNull(own) + WidgetPickerGroups.build(
                     activity, cellWidthPx, cellHeightPx, cols, rows, filterPackage, filter, icons
                 )
-                // The launcher's own actions are not search widgets either.
-                if (singleApp || filter != null) apps
-                else listOf(WidgetPickerGroups.launcherGroup(activity, icons)) + apps
             }
             if (groups.isEmpty()) {
                 binding.widgetPickerEmpty.visibility = View.VISIBLE

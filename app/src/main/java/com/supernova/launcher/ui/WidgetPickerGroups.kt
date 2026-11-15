@@ -248,26 +248,32 @@ object WidgetPickerGroups {
         val hasPrivateSpace = launcherApps != null && runCatching {
             launcherApps.profiles.any { isPrivateSpace(launcherApps, it) }
         }.getOrDefault(false)
-        val actions = ActionShortcut.offered(ActionShortcut.choices, hasPrivateSpace).map { action ->
-            WidgetPickerEntry.Shortcut(
-                packageName = context.packageName,
-                label = context.getString(EnumLabels.of(action)),
-                icon = context.getDrawable(ActionIcons.of(action))?.let(renderTile),
-                target = ShortcutTarget.Action(action)
-            )
-        }
-        val activities = WidgetPickerEntry.Shortcut(
-            packageName = context.packageName,
-            label = context.getString(R.string.add_category_activities),
-            icon = context.getDrawable(R.drawable.ic_action_drawer)?.let(renderTile),
-            target = ShortcutTarget.Activities
-        )
+        val offered = ActionShortcut.offered(ActionShortcut.choices, hasPrivateSpace)
+        // Only the row's own icon is drawn up front, so this row is ready
+        // to show the moment the sheet opens; the action tiles are drawn
+        // when it is opened.
         return WidgetPickerGroup(
             key = context.packageName,
             label = context.getString(R.string.app_name),
             icon = context.getDrawable(R.mipmap.ic_launcher)?.let(renderTile),
             widgetCount = 0,
-            shortcutCount = actions.size + 1,
-        ) { WidgetPickerContents(emptyList(), actions + activities) }
+            shortcutCount = offered.size + 1,
+        ) {
+            val actions = offered.map { action ->
+                WidgetPickerEntry.Shortcut(
+                    packageName = context.packageName,
+                    label = context.getString(EnumLabels.of(action)),
+                    icon = context.getDrawable(ActionIcons.of(action))?.let(renderTile),
+                    target = ShortcutTarget.Action(action)
+                )
+            }
+            val activities = WidgetPickerEntry.Shortcut(
+                packageName = context.packageName,
+                label = context.getString(R.string.add_category_activities),
+                icon = context.getDrawable(R.drawable.ic_action_drawer)?.let(renderTile),
+                target = ShortcutTarget.Activities
+            )
+            WidgetPickerContents(emptyList(), actions + activities)
+        }
     }
 }

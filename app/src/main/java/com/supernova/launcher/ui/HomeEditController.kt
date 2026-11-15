@@ -267,12 +267,15 @@ class HomeEditController(
         activity.lifecycleScope.launch {
             val (cellWidth, cellHeight) = host.cellSizePx()
             val (cols, rows) = host.grid()
-            val groups = withContext(Dispatchers.Default) {
-                val icons = WidgetPickerIcons.of(viewModel.appCatalog())
-                listOf(WidgetPickerGroups.launcherGroup(activity, icons)) +
-                    WidgetPickerGroups.build(activity, cellWidth, cellHeight, cols, rows, icons = icons)
+            val icons = WidgetPickerIcons.of(viewModel.appCatalog())
+            // The launcher's own row heads the list and is all that shows
+            // as the sheet rises, so it goes in at once; the apps follow.
+            val own = withContext(Dispatchers.Default) { WidgetPickerGroups.launcherGroup(activity, icons) }
+            if (isOpen) adapter.submit(listOf(own), expandAll = false)
+            val apps = withContext(Dispatchers.Default) {
+                WidgetPickerGroups.build(activity, cellWidth, cellHeight, cols, rows, icons = icons)
             }
-            if (isOpen) adapter.submit(groups, expandAll = false)
+            if (isOpen) adapter.submit(listOf(own) + apps, expandAll = false)
         }
     }
 

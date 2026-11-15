@@ -54,10 +54,16 @@ class WidgetPickerAdapter(
     private val rebuildSoon = Runnable { rebuild() }
 
     fun submit(list: List<WidgetPickerGroup>, expandAll: Boolean) {
+        // A row handed over again as the very same group (the launcher's
+        // own, shown first while the rest load) keeps what it has loaded.
+        val kept = list.filter { group -> groups.any { it === group } }.mapNotNull { group ->
+            contents[group.key]?.let { group.key to it }
+        }
         groups = list
         generation++
         contents.clear()
         loading.clear()
+        contents.putAll(kept)
         startExpanded = expandAll
         if (expandAll) list.forEach { expanded.add(it.key) }
         rebuild()
