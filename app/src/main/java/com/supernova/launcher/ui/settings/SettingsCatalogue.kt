@@ -1167,6 +1167,11 @@ object SettingsCatalogue {
                     display = { context.getString(R.string.padding_dp_value, it) },
                     preview = { p, v -> SearchBarPrefs.withDrawerBar(p) { it.copy(radius = v) } }
                 ),
+                SettingItem.Toggle(
+                    R.string.drawer_bar_hint_text,
+                    get = { SearchBarPrefs.drawerBar(it).hint },
+                    set = { on -> rows.editDrawerBar { it.copy(hint = on) } }
+                ),
                 // The buttons inside the field, at its right end; gone with it.
                 SettingItem.Header(R.string.search_bar_chips, visibleIf = { SearchBarPrefs.drawerFieldShown(it) }),
             ) + SearchBarButtons.ROWS.map { drawerButton(viewModel, it) }

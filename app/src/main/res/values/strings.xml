@@ -798,6 +798,7 @@
     <string name="search_bar_wireframe_summary">Only an outline, with no fill</string>
     <string name="search_bar_shadow">Shadow</string>
     <string name="search_bar_hint_text">Show “Search” text</string>
+    <string name="drawer_bar_hint_text">Show “Search apps” text</string>
     <string name="search_bar_chips">Buttons</string>
     <string name="search_bar_chip_voice">Voice search</string>
     <string name="search_bar_chip_assistant">Assistant</string>

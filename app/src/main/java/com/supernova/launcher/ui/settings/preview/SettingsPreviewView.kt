@@ -288,7 +288,7 @@ class SettingsPreviewView @JvmOverloads constructor(
             marginEnd = dp(DRAWER_ICON_GAP_DP)
         })
         field.addView(TextView(context).apply {
-            setText(R.string.search_apps)
+            if (SearchBarConfig.decode(prefs.searchBarConfig).drawer.hint) setText(R.string.search_apps)
             textSize = DRAWER_HINT_SP
             setTextColor((DRAWER_HINT_ALPHA shl 24) or (surface.text and 0xFFFFFF))
         }, LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
