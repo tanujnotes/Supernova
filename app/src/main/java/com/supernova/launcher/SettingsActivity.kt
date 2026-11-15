@@ -1687,10 +1687,9 @@ class SettingsActivity : AppCompatActivity() {
             .setPositiveButton(R.string.reset) { _, _ -> viewModel.resetCustomIcons(ticked.toSet()) }
             .setNegativeButton(R.string.cancel, null)
             .show()
-        // Reset is destructive: bold red.
+        // Reset is destructive: red.
         resetButton = dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).apply {
             setTextColor(getColor(R.color.accentRedText))
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
         }
         updateReset()
         // Room under the buttons, which sit close to the dialog's edge.
