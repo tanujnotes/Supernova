@@ -117,6 +117,10 @@ class DrawerController(
     private var keyboardTriesLeft = 0
     private var keyboardFocusDeadline = 0L
     private val keyboardRetry = Runnable { tryShowKeyboard() }
+    // Checks after an accepted request that the keyboard really came up, and
+    // the asks it has left if not (see verifyKeyboard).
+    private var keyboardChecksLeft = 0
+    private val keyboardCheck = Runnable { verifyKeyboard() }
     private var transition = DrawerTransition.SLIDE_UP
     // Where the open choreography last drew everything (0 = closed, 1 =
     // open); the pull, the slides and the sheet's own drag all feed it. See
@@ -1129,13 +1133,47 @@ class DrawerController(
         // the field away from typing (#87). The last try asks whatever
         // isActive says, in case a phone never reports the field as served.
         val shown = (imm.isActive(field) || lastTry) && imm.showSoftInput(field, 0)
-        if (!shown && !lastTry) field.postDelayed(keyboardRetry, KEYBOARD_RETRY_MS)
+        if (!shown && !lastTry) {
+            field.postDelayed(keyboardRetry, KEYBOARD_RETRY_MS)
+        } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            keyboardChecksLeft = KEYBOARD_CHECKS
+            field.postDelayed(keyboardCheck, KEYBOARD_CHECK_MS)
+        }
     }
+
+    // Some keyboards take the request, say yes, and stay down: on an
+    // Infinix (Android 14) the drawer still opened focused with no keyboard
+    // after the retries above, until a tap on the field (#184). So a moment
+    // later the window's own insets are asked whether a keyboard is
+    // actually up, and if not it is asked for again through the window's
+    // insets controller - the path the system bars use, which such keyboards
+    // follow - and through the input method once more. ime() insets report
+    // only from API 30 on, so older phones keep the plain request.
+    private fun verifyKeyboard() {
+        val field = binding.drawerSearch
+        val ime = androidx.core.view.WindowInsetsCompat.Type.ime()
+        val up = androidx.core.view.ViewCompat.getRootWindowInsets(field)?.isVisible(ime) != false
+        if (up || !keyboardStillWanted(field)) return
+        keyboardChecksLeft--
+        val window = (field.context as? android.app.Activity)?.window
+        if (window != null) {
+            androidx.core.view.WindowCompat.getInsetsController(window, field).show(ime)
+        }
+        field.context.getSystemService(InputMethodManager::class.java)?.showSoftInput(field, 0)
+        if (keyboardChecksLeft > 0) field.postDelayed(keyboardCheck, KEYBOARD_CHECK_MS)
+    }
+
+    // The drawer is still open with the field focused in a focused window,
+    // and the check has asks left.
+    private fun keyboardStillWanted(field: View): Boolean =
+        isVisible && field.hasFocus() && field.hasWindowFocus() && keyboardChecksLeft > 0
 
     private fun cancelKeyboardRequest() {
         keyboardTriesLeft = 0
         keyboardFocusDeadline = 0L
         binding.drawerSearch.removeCallbacks(keyboardRetry)
+        keyboardChecksLeft = 0
+        binding.drawerSearch.removeCallbacks(keyboardCheck)
     }
 
     // Takes the keyboard down from outside - the item menu opens over it
@@ -2103,6 +2141,11 @@ class DrawerController(
         const val KEYBOARD_TRIES = 10
         const val KEYBOARD_RETRY_MS = 50L
         const val KEYBOARD_FOCUS_WAIT_MS = 1500L
+        // verifyKeyboard: how long after an accepted request the insets are
+        // read (past the keyboard's first animation frame), and how many
+        // more asks a keyboard that stayed down gets.
+        const val KEYBOARD_CHECK_MS = 400L
+        const val KEYBOARD_CHECKS = 2
         // Launcher3's MAX_TRACK_ALPHA.
         const val FAST_SCROLL_TRACK_ALPHA = 30
         // Narrowest a drawer cell is allowed to get when the column count is
