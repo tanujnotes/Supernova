@@ -1093,8 +1093,10 @@ class LauncherViewModel(
         return count.copy(folders = count.folders + drawerGroups().count { it.hasCustomIcon })
     }
 
-    fun resetCustomIcons() = persist {
-        repository.resetCustomIcons()
+    // Drawer folders and tabs go with the placed folders (FOLDERS).
+    fun resetCustomIcons(kinds: Set<CustomIcons.Kind>) = persist {
+        repository.resetCustomIcons(kinds)
+        if (CustomIcons.Kind.FOLDERS !in kinds) return@persist
         preferences.updateDrawerGroups { groups ->
             groups.map {
                 if (!it.hasCustomIcon) return@map it

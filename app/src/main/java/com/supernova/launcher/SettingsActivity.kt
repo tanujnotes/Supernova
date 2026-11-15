@@ -27,6 +27,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.supernova.launcher.data.CornerCut
+import com.supernova.launcher.data.CustomIcons
 import com.supernova.launcher.data.CustomShapeSpec
 import com.supernova.launcher.data.DrawerGroup
 import com.supernova.launcher.data.DrawerGroupType
@@ -1644,16 +1645,56 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun confirmResetCustomIcons() {
-        if (viewModel.customIcons().total == 0) {
+        val count = viewModel.customIcons()
+        if (count.total == 0) {
             Toast.makeText(this, R.string.reset_custom_icons_none_toast, Toast.LENGTH_SHORT).show()
             return
         }
-        MaterialAlertDialogBuilder(this)
+        // A tick per kind that has custom icons, with its count; only apps
+        // start ticked, so folder, tab, shortcut and contact icons stay
+        // unless picked (#168).
+        val kinds = CustomIcons.Kind.entries.filter { count.of(it) > 0 }
+        val ticked = kinds.filterTo(mutableSetOf()) { it == CustomIcons.Kind.APPS }
+        val density = resources.displayMetrics.density
+        fun dpPx(value: Int) = (value * density).toInt()
+        val column = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(dpPx(TICK_LIST_SIDE_DP), dpPx(4), dpPx(TICK_LIST_SIDE_DP), 0)
+        }
+        var resetButton: android.widget.Button? = null
+        // The dialog buttons' colour has no disabled state, so dim by hand.
+        fun updateReset() = resetButton?.run {
+            isEnabled = ticked.isNotEmpty()
+            alpha = if (isEnabled) 1f else DISABLED_ALPHA
+        }
+        kinds.forEach { kind ->
+            column.addView(android.widget.CheckBox(this).apply {
+                text = getString(
+                    when (kind) {
+                        CustomIcons.Kind.APPS -> R.string.reset_custom_icons_apps
+                        CustomIcons.Kind.FOLDERS -> R.string.reset_custom_icons_folders
+                        CustomIcons.Kind.SHORTCUTS -> R.string.reset_custom_icons_shortcuts
+                    },
+                    count.of(kind)
+                )
+                // The box drawable has no inset of its own.
+                setPaddingRelative(dpPx(12), paddingTop, paddingEnd, paddingBottom)
+                isChecked = kind in ticked
+                setOnCheckedChangeListener { _, checked ->
+                    if (checked) ticked.add(kind) else ticked.remove(kind)
+                    updateReset()
+                }
+            })
+        }
+        val dialog = MaterialAlertDialogBuilder(this)
             .setTitle(R.string.reset_custom_icons)
             .setMessage(R.string.reset_custom_icons_message)
-            .setPositiveButton(R.string.reset) { _, _ -> viewModel.resetCustomIcons() }
+            .setView(column)
+            .setPositiveButton(R.string.reset) { _, _ -> viewModel.resetCustomIcons(ticked.toSet()) }
             .setNegativeButton(R.string.cancel, null)
             .show()
+        resetButton = dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE)
+        updateReset()
     }
 
     private fun confirmResetHiddenLabels() {
@@ -2120,6 +2161,11 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     companion object {
+        private const val DISABLED_ALPHA = 0.38f
+
+        // Lines a tick box up with the dialog message's 24dp text edge.
+        private const val TICK_LIST_SIDE_DP = 18
+
         // Each root section's icon and the blurb under its title.
         private val ROOT_SECTIONS: Map<Int, Pair<Int, Int>> = mapOf(
             R.string.settings_section_home to (R.drawable.ic_settings_home to R.string.section_home_subtitle),

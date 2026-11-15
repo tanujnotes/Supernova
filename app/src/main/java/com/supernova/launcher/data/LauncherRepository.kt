@@ -782,8 +782,8 @@ class LauncherRepository(private val context: Context) {
         }
     }
 
-    suspend fun resetCustomIcons() {
-        mutate { CustomIcons.reset(it) }
+    suspend fun resetCustomIcons(kinds: Set<CustomIcons.Kind>) {
+        mutate { CustomIcons.reset(it, kinds) }
     }
 
     suspend fun resetHiddenLabels() {
