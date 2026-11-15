@@ -577,6 +577,20 @@ data class DrawerGroup(
 ) {
     val hasCustomIcon: Boolean get() = iconName != null || !iconBase64.isNullOrEmpty()
 
+    // A home or dock folder made from this drawer folder (Add to Home, or
+    // a drag) wears the same icon: the pack drawable, else the photo, and
+    // Reshape as it was set.
+    fun withIconOn(folder: LauncherItem): LauncherItem {
+        if (!hasCustomIcon) return folder
+        val packIcon = iconName != null
+        return folder.copy(
+            customIconPack = iconPack.takeIf { packIcon },
+            customIconName = iconName,
+            iconBase64 = iconBase64.takeIf { !packIcon },
+            iconRaw = iconRaw
+        )
+    }
+
 
     // "Name|key1,key2|order|type|smart|keep" - the order segment is absent in
     // pre-v2 entries and decodes as MAX_VALUE, which sorts after explicitly

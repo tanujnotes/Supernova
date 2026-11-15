@@ -717,7 +717,7 @@ class LauncherViewModel(
     }
 
     fun addFolderToWorkspace(
-        label: String,
+        group: DrawerGroup,
         apps: List<LaunchableApp>,
         page: Int,
         cellX: Int,
@@ -729,15 +729,15 @@ class LauncherViewModel(
         val prefs = state.value.prefs
         viewModelScope.launch {
             repository.addFolderToWorkspace(
-                label, apps, page, cellX, cellY, prefs.gridCols, prefs.gridRows, workspaceX, workspaceY, displace
+                group, apps, page, cellX, cellY, prefs.gridCols, prefs.gridRows, workspaceX, workspaceY, displace
             )
         }
     }
 
-    fun addFolderToDock(label: String, apps: List<LaunchableApp>, rank: Int, preferredPage: Int = 0) {
+    fun addFolderToDock(group: DrawerGroup, apps: List<LaunchableApp>, rank: Int, preferredPage: Int = 0) {
         val prefs = state.value.prefs
         viewModelScope.launch {
-            repository.addFolderToDock(label, apps, rank, prefs.gridCols, prefs.gridRows, preferredPage)
+            repository.addFolderToDock(group, apps, rank, prefs.gridCols, prefs.gridRows, preferredPage)
         }
     }
 

@@ -3180,7 +3180,7 @@ class LauncherActivity :
         if (!desktopLocked && apps.isNotEmpty()) {
             menu.addRow(getString(R.string.add_to_home), R.drawable.ic_menu_add) {
                 placeTapped(viewModel.state.value.currentPage) { spot ->
-                    viewModel.addFolderToWorkspace(group.name, apps, spot.page, spot.cellX, spot.cellY)
+                    viewModel.addFolderToWorkspace(group, apps, spot.page, spot.cellX, spot.cellY)
                     closeItemSources()
                 }
             }
@@ -3252,7 +3252,7 @@ class LauncherActivity :
         drawer.hideKeyboardIfShowing()
         // Search finds a folder whose apps are all hidden too; lifted, it
         // closed the drawer only to be refused where it was dropped.
-        drag.arm(view, DragPayload.DrawerFolder(group.name, apps), draggable = apps.isNotEmpty()) {
+        drag.arm(view, DragPayload.DrawerFolder(group, apps), draggable = apps.isNotEmpty()) {
             showDrawerFolderMenu(view, group, apps)
         }
     }
@@ -4401,7 +4401,7 @@ class LauncherActivity :
                         val item = shortcutItem(payload)
                         viewModel.addShortcutToDock(item.owner, payload.shortcutId, payload.label, item.iconBase64, rank, page)
                     }
-                    is DragPayload.DrawerFolder -> viewModel.addFolderToDock(payload.name, payload.apps, rank, page)
+                    is DragPayload.DrawerFolder -> viewModel.addFolderToDock(payload.group, payload.apps, rank, page)
                     else -> Unit
                 }
             }

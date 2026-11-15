@@ -187,10 +187,10 @@ class LauncherRepository(private val context: Context) {
     }
 
     // A drawer folder placed on the home screen: a new folder with the
-    // group's name, holding its apps in the order given. The copy is the
-    // home screen's own; the drawer group stays as it is.
+    // group's name and icon, holding its apps in the order given. The copy
+    // is the home screen's own; the drawer group stays as it is.
     suspend fun addFolderToWorkspace(
-        label: String,
+        group: DrawerGroup,
         apps: List<LaunchableApp>,
         page: Int,
         cellX: Int,
@@ -202,16 +202,18 @@ class LauncherRepository(private val context: Context) {
         displace: List<WorkspaceGeometry.ReorderMove> = emptyList()
     ) {
         if (apps.isEmpty()) return
-        val folder = LauncherItem(
-            id = id(),
-            itemType = ItemType.FOLDER,
-            container = ContainerType.WORKSPACE,
-            page = page,
-            cellX = cellX,
-            cellY = cellY,
-            workspaceX = workspaceX,
-            workspaceY = workspaceY,
-            label = label
+        val folder = group.withIconOn(
+            LauncherItem(
+                id = id(),
+                itemType = ItemType.FOLDER,
+                container = ContainerType.WORKSPACE,
+                page = page,
+                cellX = cellX,
+                cellY = cellY,
+                workspaceX = workspaceX,
+                workspaceY = workspaceY,
+                label = group.name
+            )
         )
         val members = folderMembers(folder.id, apps)
         mutateFitted(cols, rows) { withNewFolder(it, folder, members, displace, cols, rows) }
@@ -308,7 +310,7 @@ class LauncherRepository(private val context: Context) {
     }
 
     suspend fun addFolderToDock(
-        label: String,
+        group: DrawerGroup,
         apps: List<LaunchableApp>,
         rank: Int,
         cols: Int,
@@ -316,7 +318,11 @@ class LauncherRepository(private val context: Context) {
         preferredPage: Int = 0
     ) {
         if (apps.isEmpty()) return
-        val folder = LauncherItem(id = id(), itemType = ItemType.FOLDER, container = ContainerType.DOCK, rank = rank, label = label)
+        val folder = group.withIconOn(
+            LauncherItem(
+                id = id(), itemType = ItemType.FOLDER, container = ContainerType.DOCK, rank = rank, label = group.name
+            )
+        )
         addNewItemToDock(folder, folderMembers(folder.id, apps), rank, cols, rows, preferredPage)
     }
 

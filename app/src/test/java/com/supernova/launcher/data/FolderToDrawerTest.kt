@@ -92,4 +92,33 @@ class FolderToDrawerTest {
         val model = LauncherModel(items = listOf(folder, shortcut("s", 0), shortcut("t", 1)), pageCount = 2)
         assertSame(model, FolderToDrawer.homeAfterMove(model, "f"))
     }
+
+    @Test
+    fun aDrawerFolderPlacedOnHomeWearsItsIcon() {
+        val bare = LauncherItem(id = "h", itemType = ItemType.FOLDER, label = "Games")
+        val packed = DrawerGroup(
+            "Games", emptySet(), type = DrawerGroupType.FOLDER, iconPack = "pack", iconName = "games"
+        ).withIconOn(bare)
+        assertEquals("pack", packed.customIconPack)
+        assertEquals("games", packed.customIconName)
+        assertNull(packed.iconBase64)
+        assertFalse(packed.iconRaw)
+        val photo = DrawerGroup("Games", emptySet(), type = DrawerGroupType.FOLDER, iconBase64 = "png", iconRaw = true)
+            .withIconOn(bare)
+        assertEquals("png", photo.iconBase64)
+        assertNull(photo.customIconName)
+        assertTrue(photo.iconRaw)
+        assertSame(bare, DrawerGroup("Games", emptySet(), type = DrawerGroupType.FOLDER).withIconOn(bare))
+    }
+
+    @Test
+    fun anIconSurvivesTheRoundTripToTheDrawerAndBack() {
+        val group = FolderToDrawer
+            .withGroupAdded(emptyList(), folder, listOf(app("a", 0)), "Games", DrawerTarget.MainList)
+            .single()
+        val back = group.withIconOn(LauncherItem(id = "h", itemType = ItemType.FOLDER, label = "Games"))
+        assertEquals(folder.customIconPack, back.customIconPack)
+        assertEquals(folder.customIconName, back.customIconName)
+        assertEquals(folder.iconRaw, back.iconRaw)
+    }
 }

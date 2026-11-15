@@ -2,6 +2,7 @@ package com.supernova.launcher.ui
 
 import android.appwidget.AppWidgetProviderInfo
 import android.graphics.drawable.Drawable
+import com.supernova.launcher.data.DrawerGroup
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.data.LauncherItem
 
@@ -28,8 +29,9 @@ sealed interface DragPayload {
         override val isNew: Boolean get() = true
     }
     // A drawer folder: it lands as a home folder of its own, named and
-    // filled as the group is.
-    data class DrawerFolder(val name: String, val apps: List<LaunchableApp>) : DragPayload {
+    // filled as the group is, wearing its icon.
+    data class DrawerFolder(val group: DrawerGroup, val apps: List<LaunchableApp>) : DragPayload {
+        val name: String get() = group.name
         override val isNew: Boolean get() = true
     }
     // A widget dragged out of the add sheet, not yet bound; the spans are
