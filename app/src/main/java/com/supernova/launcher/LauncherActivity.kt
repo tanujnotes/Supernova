@@ -1278,6 +1278,7 @@ class LauncherActivity :
             // the whole home screen until the drawer next opened. The
             // settings root's reason (8dc7642).
             defaultFocusHighlightEnabled = false
+            com.supernova.launcher.ui.PageFlingSettle.attach(this)
         }
         binding.workspacePager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
