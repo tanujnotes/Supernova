@@ -96,6 +96,7 @@
     <string name="notification_access_title">Allow notification access</string>
     <string name="notification_access_badges">Badges are counted from your notifications, so Supernova needs notification access. They are read on this phone only.</string>
     <string name="notification_access_popup">The long-press menu lists an app\'s notifications, so Supernova needs notification access. They are read on this phone only.</string>
+    <string name="notification_access_restricted">If the notification access switch is greyed out, Android is blocking it because Supernova was not installed from the Play Store. Open App info, tap the \u22ee menu at the top right, choose Allow restricted settings, then open the notification access screen again.</string>
     <string name="open_settings">Open settings</string>
     <string name="not_now">Not now</string>
     <string name="continue_label">Continue</string>

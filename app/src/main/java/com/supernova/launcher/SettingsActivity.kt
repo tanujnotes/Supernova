@@ -168,7 +168,7 @@ class SettingsActivity : AppCompatActivity() {
         val granted = permission.granted(this)
         when (permission) {
             com.supernova.launcher.ui.settings.LabsPermission.NOTIFICATIONS ->
-                com.supernova.launcher.ui.PermissionPrompts.openNotificationAccess(this)
+                com.supernova.launcher.ui.PermissionPrompts.openNotificationAccessWithHelp(this)
             com.supernova.launcher.ui.settings.LabsPermission.ACCESSIBILITY ->
                 runLogged("open accessibility settings") {
                     startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
@@ -505,7 +505,9 @@ class SettingsActivity : AppCompatActivity() {
                 com.supernova.launcher.ui.CustomCardEditorSheet
                     .show(this, viewModel, card, undoAnchor = binding.settingsTabs)
             },
-            openNotificationAccess = { com.supernova.launcher.ui.PermissionPrompts.openNotificationAccess(this) },
+            openNotificationAccess = {
+                com.supernova.launcher.ui.PermissionPrompts.openNotificationAccessWithHelp(this)
+            },
             // Add card: the add sheet. A widget is bound by the launcher, so
             // that choice goes back to the feed and picks one there.
             addCard = {

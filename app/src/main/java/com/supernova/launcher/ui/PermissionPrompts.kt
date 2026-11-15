@@ -26,9 +26,41 @@ object PermissionPrompts {
         MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.notification_access_title)
             .setMessage(message)
-            .setPositiveButton(R.string.open_settings) { _, _ -> openNotificationAccess(activity) }
+            .setPositiveButton(R.string.open_settings) { _, _ -> openNotificationAccessWithHelp(activity) }
             .setNegativeButton(R.string.not_now, null)
             .show()
+    }
+
+    // Android 13+ greys the switch out for apps installed outside the Play
+    // Store until "Allow restricted settings" is ticked on the app info page.
+    // For such installs, say so first and offer the app info page.
+    fun openNotificationAccessWithHelp(activity: Activity) {
+        if (!mayBeRestricted(activity)) {
+            openNotificationAccess(activity)
+            return
+        }
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.notification_access_title)
+            .setMessage(R.string.notification_access_restricted)
+            .setPositiveButton(R.string.open_settings) { _, _ -> openNotificationAccess(activity) }
+            .setNeutralButton(R.string.app_info) { _, _ ->
+                runLogged("open app info") {
+                    activity.startActivity(
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                            .setData(android.net.Uri.fromParts("package", activity.packageName, null)),
+                    )
+                }
+            }
+            .setNegativeButton(R.string.not_now, null)
+            .show()
+    }
+
+    private fun mayBeRestricted(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return false
+        val installer = runCatching {
+            context.packageManager.getInstallSourceInfo(context.packageName).installingPackageName
+        }.getOrNull()
+        return installer != "com.android.vending"
     }
 
     // Supernova's own entry where the system has one (API 30+), else the list.
