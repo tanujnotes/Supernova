@@ -19,7 +19,9 @@ object PendingStarts {
 
     fun send(intent: PendingIntent) = intent.send(null, 0, null, null, null, null, options())
 
-    private fun options(): Bundle? {
+    // Also for the host's widget setup launch (WidgetController), whose
+    // system-made sender some builds refuse at once without it.
+    fun options(): Bundle? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return null
         val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
             ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOW_IF_VISIBLE

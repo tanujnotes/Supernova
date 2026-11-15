@@ -833,7 +833,7 @@ class WidgetController(
         // result arrives in onActivityResult (the host API predates contracts).
         val tokenLaunch = runCatching {
             appWidgetHost.startAppWidgetConfigureActivityForResult(
-                activity, pending.widgetId, 0, REQUEST_CONFIGURE_WIDGET, null
+                activity, pending.widgetId, 0, REQUEST_CONFIGURE_WIDGET, PendingStarts.options()
             )
         }
         if (tokenLaunch.isSuccess) {
@@ -882,7 +882,7 @@ class WidgetController(
         val widgetId = item.appWidgetId ?: return
         val opened = runCatching {
             appWidgetHost.startAppWidgetConfigureActivityForResult(
-                activity, widgetId, 0, REQUEST_RECONFIGURE_WIDGET, null
+                activity, widgetId, 0, REQUEST_RECONFIGURE_WIDGET, PendingStarts.options()
             )
         }.isSuccess
         if (!opened) Toast.makeText(activity, R.string.widget_configure_failed, Toast.LENGTH_SHORT).show()
