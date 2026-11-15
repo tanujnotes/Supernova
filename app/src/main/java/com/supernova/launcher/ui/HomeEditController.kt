@@ -269,9 +269,12 @@ class HomeEditController(
             val (cols, rows) = host.grid()
             val icons = WidgetPickerIcons.of(viewModel.appCatalog())
             // The launcher's own row heads the list and is all that shows
-            // as the sheet rises, so it goes in at once; the apps follow.
+            // as the sheet rises, so the first time it goes in at once; the
+            // apps follow. Later the last list stays until the new one is
+            // ready: cut to one row, the sheet lost its place and came back
+            // at the top every time.
             val own = withContext(Dispatchers.Default) { WidgetPickerGroups.launcherGroup(activity, icons) }
-            if (isOpen) adapter.submit(listOf(own), expandAll = false)
+            if (isOpen && adapter.isEmpty) adapter.submit(listOf(own), expandAll = false)
             val apps = withContext(Dispatchers.Default) {
                 WidgetPickerGroups.build(activity, cellWidth, cellHeight, cols, rows, icons = icons)
             }
