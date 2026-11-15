@@ -39,9 +39,11 @@ object NewGroupSheet {
             val keep = binding.newGroupKeep.isChecked
             val created = if (name.isEmpty()) null else viewModel.createGroup(name, picked(), keep)
             if (created == null) {
-                binding.newGroupNameLayout.error = context.getString(
-                    if (name.isEmpty()) R.string.group_name_required else R.string.group_name_taken
-                )
+                binding.newGroupNameLayout.error = if (name.isEmpty()) {
+                    context.getString(R.string.group_name_required)
+                } else {
+                    viewModel.nameTakenMessage(name)
+                }
             } else {
                 dialog.dismiss()
                 onCreated(created)

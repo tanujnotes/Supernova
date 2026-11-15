@@ -4110,7 +4110,7 @@ class LauncherActivity :
             onRename = { newName ->
                 val renamed = viewModel.renameGroup(group, newName)
                 if (renamed == null) {
-                    Toast.makeText(this, R.string.group_name_taken, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, viewModel.nameTakenMessage(newName), Toast.LENGTH_LONG).show()
                 } else {
                     groupName = renamed
                 }
@@ -4218,7 +4218,7 @@ class LauncherActivity :
                 val typed = input.text?.toString().orEmpty()
                 val renamed = viewModel.renameGroup(group, typed, content.newGroupKeep.isChecked)
                 if (renamed == null) {
-                    Toast.makeText(this, R.string.group_name_taken, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, viewModel.nameTakenMessage(typed), Toast.LENGTH_LONG).show()
                 } else {
                     drawer.followTabRename(group.name, renamed)
                     if (icon != TabIconChoice(group.iconPack, group.iconName, group.iconBase64)) {

@@ -720,6 +720,9 @@
     <string name="style_role_neutral_variant">Neutral variant</string>
     <string name="style_opacity">Opacity</string>
     <string name="group_name_taken">A group with that name already exists</string>
+    <string name="group_name_taken_tab">A tab is already named “%1$s”</string>
+    <string name="group_name_taken_folder">A drawer folder is already named “%1$s”</string>
+    <string name="group_name_taken_empty_folder">An empty drawer folder is already named “%1$s”. Find it in Drawer groups.</string>
     <string name="labs">Labs</string>
     <string name="group_home_button">Home button</string>
     <string name="section_labs_subtitle">Experiments and icon theme tools</string>

@@ -202,7 +202,7 @@ class GroupEditPage(
         val typed = binding.groupNameField.text?.toString().orEmpty().trim()
         val name = if (typed.isEmpty()) current.name else viewModel.renameGroup(current, typed)
         if (name == null) {
-            Toast.makeText(binding.root.context, R.string.group_name_taken, Toast.LENGTH_SHORT).show()
+            Toast.makeText(binding.root.context, viewModel.nameTakenMessage(typed), Toast.LENGTH_LONG).show()
         }
         val kept = name ?: current.name
         if (binding.groupNameField.text?.toString() != kept) binding.groupNameField.setText(kept)

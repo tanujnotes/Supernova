@@ -136,7 +136,7 @@ object FolderEditSheet {
             val typed = binding.editLabel.text?.toString().orEmpty().trim()
             val name = if (typed.isEmpty()) group.name else viewModel.renameGroup(group, typed)
             if (name == null) {
-                Toast.makeText(context, R.string.group_name_taken, Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, viewModel.nameTakenMessage(typed), Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
             if (icon.copy(raw = icon.savedRaw) != original) {

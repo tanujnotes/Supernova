@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.supernova.launcher.AppGraph
+import com.supernova.launcher.R
 import com.supernova.launcher.data.AppCatalog
 import com.supernova.launcher.data.AppChange
 import com.supernova.launcher.data.AppOverride
@@ -1246,6 +1247,22 @@ class LauncherViewModel(
             }
         }
         return name
+    }
+
+    // Why a typed name was refused: which group has it - a tab, a drawer
+    // folder, or an empty drawer folder, which the drawer doesn't draw and
+    // only the Drawer groups page lists. Tabs and drawer folders share one
+    // set of names (a group's name is its identity).
+    fun nameTakenMessage(typed: String): String {
+        val name = groupName(typed)
+        val other = drawerGroups().firstOrNull { it.name == name }
+        val res = when {
+            other == null -> return getApplication<Application>().getString(R.string.group_name_taken)
+            other.type == DrawerGroupType.TAB -> R.string.group_name_taken_tab
+            drawerFolderApps(other).isEmpty() -> R.string.group_name_taken_empty_folder
+            else -> R.string.group_name_taken_folder
+        }
+        return getApplication<Application>().getString(res, name)
     }
 
     // Swaps the group with the next one of its own type in that direction,
