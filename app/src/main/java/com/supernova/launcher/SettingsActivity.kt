@@ -1659,7 +1659,7 @@ class SettingsActivity : AppCompatActivity() {
         fun dpPx(value: Int) = (value * density).toInt()
         val column = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(dpPx(TICK_LIST_SIDE_DP), dpPx(4), dpPx(TICK_LIST_SIDE_DP), 0)
+            setPadding(dpPx(TICK_LIST_SIDE_DP), dpPx(TICK_LIST_GAP_DP), dpPx(TICK_LIST_SIDE_DP), dpPx(TICK_LIST_GAP_DP))
         }
         var resetButton: android.widget.Button? = null
         // The dialog buttons' colour has no disabled state, so dim by hand.
@@ -1669,14 +1669,8 @@ class SettingsActivity : AppCompatActivity() {
         }
         kinds.forEach { kind ->
             column.addView(android.widget.CheckBox(this).apply {
-                text = getString(
-                    when (kind) {
-                        CustomIcons.Kind.APPS -> R.string.reset_custom_icons_apps
-                        CustomIcons.Kind.FOLDERS -> R.string.reset_custom_icons_folders
-                        CustomIcons.Kind.SHORTCUTS -> R.string.reset_custom_icons_shortcuts
-                    },
-                    count.of(kind)
-                )
+                text = resetKindLabel(kind, count.of(kind))
+                minHeight = dpPx(TICK_ROW_MIN_DP)
                 // The box drawable has no inset of its own.
                 setPaddingRelative(dpPx(12), paddingTop, paddingEnd, paddingBottom)
                 isChecked = kind in ticked
@@ -1695,6 +1689,29 @@ class SettingsActivity : AppCompatActivity() {
             .show()
         resetButton = dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE)
         updateReset()
+        // Room under the buttons, which sit close to the dialog's edge.
+        dialog.findViewById<View>(androidx.appcompat.R.id.buttonPanel)?.let {
+            it.setPadding(it.paddingLeft, it.paddingTop, it.paddingRight, it.paddingBottom + dpPx(BUTTON_BAR_EXTRA_DP))
+        }
+    }
+
+    // "Apps • 2", the dot and count faded.
+    private fun resetKindLabel(kind: CustomIcons.Kind, count: Int): CharSequence {
+        val name = getString(
+            when (kind) {
+                CustomIcons.Kind.APPS -> R.string.reset_custom_icons_apps
+                CustomIcons.Kind.FOLDERS -> R.string.reset_custom_icons_folders
+                CustomIcons.Kind.SHORTCUTS -> R.string.reset_custom_icons_shortcuts
+            }
+        )
+        return android.text.SpannableStringBuilder(name).apply {
+            val start = length
+            append(" • $count")
+            setSpan(
+                android.text.style.ForegroundColorSpan(getColor(R.color.textSecondary)),
+                start, length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
     }
 
     private fun confirmResetHiddenLabels() {
@@ -2165,6 +2182,9 @@ class SettingsActivity : AppCompatActivity() {
 
         // Lines a tick box up with the dialog message's 24dp text edge.
         private const val TICK_LIST_SIDE_DP = 18
+        private const val TICK_LIST_GAP_DP = 8
+        private const val TICK_ROW_MIN_DP = 48
+        private const val BUTTON_BAR_EXTRA_DP = 12
 
         // Each root section's icon and the blurb under its title.
         private val ROOT_SECTIONS: Map<Int, Pair<Int, Int>> = mapOf(
