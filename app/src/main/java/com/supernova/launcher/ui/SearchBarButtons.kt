@@ -37,8 +37,8 @@ object SearchBarButtons {
     private const val BUTTON_PAD_DP = 8
 
     // Every search bar's icons (the magnifier and the buttons) sit a little
-    // back from the bar's text colour: 75% of it.
-    private const val ICON_ALPHA = 0xBF
+    // back from the bar's text colour: 80% of it.
+    private const val ICON_ALPHA = 0xCC
 
     fun iconTint(color: Int): Int = androidx.core.graphics.ColorUtils.setAlphaComponent(color, ICON_ALPHA)
 
