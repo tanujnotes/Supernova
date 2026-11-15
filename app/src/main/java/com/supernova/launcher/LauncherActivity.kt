@@ -1733,7 +1733,7 @@ class LauncherActivity :
                     if (last != null && state.onlyPageMovedFrom(last)) return@collect
                     // Disable-animations forces the NONE transformer path.
                     applyScrollEffect(
-                        if (Animations.enabled(state.prefs)) {
+                        if (Animations.pageEffects(state.prefs)) {
                             state.prefs.scrollEffect
                         } else {
                             ScrollEffect.NONE

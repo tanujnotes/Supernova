@@ -26,6 +26,12 @@ object Animations {
     // previews, a drag's edge flip) or a list's paging scrolls there or lands
     // at once. Scrollers ignore the system animator scale; enabled() checks it.
     fun scrollPages(prefs: LauncherPrefs): Boolean = enabled(prefs)
+
+    // Whether home page swipes play the chosen scroll effect. Only the
+    // launcher's own switch turns it off: the effect follows the finger and
+    // the scroller's settle, neither of which the system scale slows, so it
+    // plays with the system's animations removed too.
+    fun pageEffects(prefs: LauncherPrefs): Boolean = !prefs.disableAnimations
 }
 
 // Playback speed for launcher-owned animations. DEFAULT keeps the tuned
