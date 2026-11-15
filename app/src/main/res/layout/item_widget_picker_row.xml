@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Two widget previews side by side (a two-column grid). Each cell:
-     preview, widget name, span, app name. cellB hides when the row is odd. -->
+     preview, widget name, span, app name. cellB hides when the row is odd.
+     A preview shows at its own size and only shrinks to fit (never
+     stretched), and both cells sit on the row's bottom so the names line up. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -8,6 +10,7 @@
     android:layout_marginBottom="@dimen/space_xs"
     android:background="@drawable/bg_picker_card"
     android:baselineAligned="false"
+    android:gravity="bottom"
     android:orientation="horizontal"
     android:padding="@dimen/space_ms">
 
@@ -23,9 +26,11 @@
 
         <ImageView
             android:id="@+id/previewA"
-            android:layout_width="match_parent"
-            android:layout_height="150dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
             android:contentDescription="@string/widget"
+            android:maxHeight="@dimen/widget_preview_max_height"
             android:scaleType="fitCenter" />
 
         <com.supernova.launcher.ui.FadingTextView
@@ -68,9 +73,11 @@
 
         <ImageView
             android:id="@+id/previewB"
-            android:layout_width="match_parent"
-            android:layout_height="150dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
             android:contentDescription="@string/widget"
+            android:maxHeight="@dimen/widget_preview_max_height"
             android:scaleType="fitCenter" />
 
         <com.supernova.launcher.ui.FadingTextView

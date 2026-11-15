@@ -8,6 +8,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.graphics.drawable.toBitmap
+import androidx.core.graphics.drawable.toDrawable
 import androidx.recyclerview.widget.RecyclerView
 import com.supernova.launcher.R
 import com.supernova.launcher.databinding.ItemWidgetPickerHeaderBinding
@@ -164,6 +166,18 @@ class WidgetPickerAdapter(
             span.text = context.getString(R.string.widget_span, widget.spanX, widget.spanY)
             provider.text = widget.appLabel
 
+            // A preview is boxed by its widget's span and only ever shrunk
+            // into that box, so it keeps the size it will take on the grid
+            // relative to the others; the cell's own width caps it as well.
+            val res = context.resources
+            val perCell = res.getDimensionPixelSize(R.dimen.widget_preview_per_cell)
+            val floor = res.getDimensionPixelSize(R.dimen.widget_preview_icon)
+            preview.maxWidth = maxOf(widget.spanX * perCell, floor)
+            preview.maxHeight = (widget.spanY * perCell).coerceIn(
+                floor,
+                res.getDimensionPixelSize(R.dimen.widget_preview_max_height)
+            )
+
             val cacheKey = widget.info.provider.flattenToString()
             preview.tag = cacheKey
             val cached = previewCache.get(cacheKey)
@@ -178,14 +192,22 @@ class WidgetPickerAdapter(
                 previewLoader.execute {
                     // Providers that only declare a previewLayout hand back
                     // nothing usable here; fall back to the app icon, as the
-                    // launcher draws it.
+                    // launcher draws it. The cell shows a preview at its own
+                    // size, so the stand-in icon is drawn at a fixed one.
                     val loaded = runCatching { widget.info.loadPreviewImage(appContext, 0) }.getOrNull()
                         ?.takeIf { it.intrinsicWidth > 0 && it.intrinsicHeight > 0 }
-                        ?: widget.appIcon
-                        ?: runCatching {
-                            appContext.packageManager.getApplicationIcon(widget.info.provider.packageName)
-                        }.getOrNull()
-                        ?: appContext.getDrawable(R.drawable.ic_widget)
+                        ?: (
+                            widget.appIcon
+                                ?: runCatching {
+                                    appContext.packageManager.getApplicationIcon(widget.info.provider.packageName)
+                                }.getOrNull()
+                                ?: appContext.getDrawable(R.drawable.ic_widget)
+                            )?.let { icon ->
+                            val size = appContext.resources.getDimensionPixelSize(R.dimen.widget_preview_icon)
+                            runCatching {
+                                icon.toBitmap(size, size).toDrawable(appContext.resources)
+                            }.getOrNull()
+                        }
                     mainHandler.post {
                         if (loaded != null) previewCache.put(cacheKey, loaded)
                         // The cell may show another widget by now.
