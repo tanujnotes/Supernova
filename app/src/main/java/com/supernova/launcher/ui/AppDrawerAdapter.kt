@@ -55,9 +55,11 @@ class AppDrawerAdapter(
 
     private val stableIds = mutableMapOf<String, Long>()
 
-    override fun getItemId(position: Int): Long {
-        if (showWebRow()) return WEB_ROW_ID - position
-        return stableIds.getOrPut(keyAt(position)) { stableIds.size.toLong() }
+    override fun getItemId(position: Int): Long = when {
+        showWebRow() -> WEB_ROW_ID - position
+        // An empty tab's one row stands in for the empty list.
+        showEmpty() -> EMPTY_ROW_ID
+        else -> stableIds.getOrPut(keyAt(position)) { stableIds.size.toLong() }
     }
 
     private fun keyAt(position: Int): String = when (val item = displayItems[position]) {
@@ -259,7 +261,6 @@ class AppDrawerAdapter(
 
     private fun applyFilter() {
         val oldItems = displayItems.toList()
-        val oldWebRow = showWebRow()
         displayItems.clear()
         if (query.isBlank()) {
             when {
@@ -284,9 +285,11 @@ class AppDrawerAdapter(
         if (query.isBlank() && headerView != null && displayItems.isNotEmpty()) {
             displayItems.add(0, HeaderItem)
         }
-        // Diff so a keystroke rebinds only the rows that changed. The web-row
-        // sentinel changes the list shape; fall back to a full refresh there.
-        if (oldWebRow || showWebRow()) {
+        // Diff so a keystroke rebinds only the rows that changed. An empty
+        // list shows rows of its own instead (the web rows, or an empty tab's
+        // message), which the diff doesn't see; fall back to a full refresh
+        // there, which also rebinds an empty tab's action for the new tab.
+        if (oldItems.isEmpty() || displayItems.isEmpty()) {
             notifyDataSetChanged()
             return
         }
@@ -680,6 +683,7 @@ class AppDrawerAdapter(
         private const val POOL_ROWS = 3
         private const val DEFAULT_POOL = 5
         private const val WEB_ROW_ID = -2L
+        private const val EMPTY_ROW_ID = -1L
 
         // Folders merged in among the apps by name, in the list's direction
         // and the apps' own alphabet (LabelOrder). The folders come in the
