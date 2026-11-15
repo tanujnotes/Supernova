@@ -156,6 +156,10 @@ object Styles {
             textFor = { base, alpha -> drawerText(base, alpha, onWallpaper) }
         )
 
+        val popup = resolved(SurfaceId.POPUP, themeSurface, themeText, null)
+        val cardsText = cardText(config, onWallpaper)
+        val cards = resolved(SurfaceId.CARDS, popup.surface, popup.text, null, popup.accent, cardsText)
+
         val styles = ResolvedStyles(
             mapOf(
                 SurfaceId.DRAWER to drawer,
@@ -171,9 +175,8 @@ object Styles {
                 SurfaceId.FOLDER to resolved(
                     SurfaceId.FOLDER, folderLegacy, themeText, null
                 ),
-                SurfaceId.POPUP to resolved(
-                    SurfaceId.POPUP, themeSurface, themeText, null
-                ),
+                SurfaceId.POPUP to popup,
+                SurfaceId.CARDS to cards,
                 SurfaceId.SEARCH_BAR to resolved(
                     SurfaceId.SEARCH_BAR, themeSurface, themeText, null
                 ),
@@ -189,6 +192,16 @@ object Styles {
         cachedStyles = styles
         return styles
     }
+
+    // Cards wear the popup's colours until styled themselves. Once their
+    // color or opacity is set, the text follows the plate (dark on a light
+    // one), and the wallpaper's once the plate barely covers it.
+    private fun cardText(config: StyleConfig, onWallpaper: Int): ((Int, Float) -> Int)? =
+        if (config.styleFor(SurfaceId.CARDS).let { it.surface.isDefault && it.alpha == null }) {
+            null
+        } else {
+            { base, alpha -> drawerText(base, alpha, onWallpaper) }
+        }
 
     private fun colorFor(spec: ColorSpec, palette: TonalPalette): Int? = when {
         spec.fixed != null -> runCatching { android.graphics.Color.parseColor(spec.fixed) }.getOrNull()

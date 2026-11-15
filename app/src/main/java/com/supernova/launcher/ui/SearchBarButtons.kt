@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.provider.CalendarContract
-import android.speech.RecognizerIntent
 import android.text.format.DateUtils
 import android.util.TypedValue
 import android.view.Gravity
@@ -36,6 +35,12 @@ object SearchBarButtons {
     // leaves its 20dp.
     const val BUTTON_DP = 36
     private const val BUTTON_PAD_DP = 8
+
+    // Every search bar's icons (the magnifier and the buttons) sit a little
+    // back from the bar's text colour: 80% of it.
+    private const val ICON_ALPHA = 0xCC
+
+    fun iconTint(color: Int): Int = androidx.core.graphics.ColorUtils.setAlphaComponent(color, ICON_ALPHA)
 
     @StringRes
     fun label(chip: SearchBarChip): Int = when (chip) {
@@ -87,7 +92,7 @@ object SearchBarButtons {
                 setImageResource(iconRes)
                 scaleType = ImageView.ScaleType.FIT_CENTER
                 setPadding(pad, pad, pad, pad)
-                ImageViewCompat.setImageTintList(this, ColorStateList.valueOf(color))
+                ImageViewCompat.setImageTintList(this, ColorStateList.valueOf(iconTint(color)))
             }
         }
         if (onClick == null) {
@@ -108,12 +113,7 @@ object SearchBarButtons {
     // What a tap does. Each is blind-started: a missing handler just no-ops.
     fun run(context: Context, chip: SearchBarChip) {
         when (chip) {
-            SearchBarChip.VOICE -> runLogged("start voice search") {
-                context.startActivity(
-                    Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-                        .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                )
-            }
+            SearchBarChip.VOICE -> VoiceSearch.start(context)
             // Same ladder as the ASSISTANT gesture action, with the
             // voice-command front door first.
             SearchBarChip.ASSISTANT -> {

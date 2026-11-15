@@ -33,7 +33,9 @@ class GlassPainter {
     // side, as the plain render's do.
     fun drawIcon(canvas: Canvas, source: Drawable, mask: Path, glass: IconGlass, bleedFraction: Float) {
         val size = canvas.width
-        if (source is AdaptiveIconDrawable) {
+        if (source is AdaptiveIconDrawable && source.background is ThemedPlate) {
+            drawThemed(canvas, source, mask, glass, bleedFraction)
+        } else if (source is AdaptiveIconDrawable) {
             drawLayers(canvas, source, mask, glass, bleedFraction)
         } else {
             legacy.draw(canvas, source, mask, glass)
@@ -78,6 +80,27 @@ class GlassPainter {
         canvas.withClip(mask) {
             drawPane(this, glass, tint, size, size)
             if (frontTile == null) back?.let { drawPixels(this, it, size) }
+            front?.let { drawPixels(this, it, size) }
+        }
+    }
+
+    // A themed icon: its plate is the backing, so the pane takes the plate's
+    // colour, and the glyph on it - a generated one may span the icon, like a
+    // tinted copy of a whole picture - is drawn whole, never read for a tile.
+    private fun drawThemed(
+        canvas: Canvas,
+        icon: AdaptiveIconDrawable,
+        mask: Path,
+        glass: IconGlass,
+        bleedFraction: Float
+    ) {
+        val size = canvas.width
+        val plate = (icon.background as? ThemedPlate)?.color ?: Color.WHITE
+        val bleed = (size * bleedFraction).roundToInt()
+        val bounds = Rect(-bleed, -bleed, size + bleed, size + bleed)
+        val front = icon.foreground?.let { layerPixels(it, bounds, mask, size) }
+        canvas.withClip(mask) {
+            drawPane(this, glass, plate, size, size)
             front?.let { drawPixels(this, it, size) }
         }
     }

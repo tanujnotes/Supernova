@@ -42,6 +42,8 @@ class ActionRunner(
         fun launchShortcut(packageName: String, shortcutId: String, userSerial: Long)
         fun launchIntentUri(uri: String)
         fun toggleDock()
+        // The dock's middle page, the one Home brings back.
+        fun showMainDockPage()
         fun showDesktopPreviews()
         fun openFeed()
         // The private space card, grown out of anchor (the action's home
@@ -89,6 +91,7 @@ class ActionRunner(
             GestureAction.DEFAULT_PAGE -> {
                 val model = viewModel.state.value.model
                 host.showPage(model.defaultPage.coerceIn(0, model.pageCount - 1))
+                host.showMainDockPage()
                 true
             }
             GestureAction.OPEN_SEARCH -> {

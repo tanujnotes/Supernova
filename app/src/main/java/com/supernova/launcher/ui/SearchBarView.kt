@@ -80,9 +80,13 @@ class SearchBarView @JvmOverloads constructor(
 
     }
 
+    // A host's own handling of a button (the feed's Settings opens the Feed
+    // page); true when it took the tap, else the button does its usual.
+    var onChip: ((SearchBarChip) -> Boolean)? = null
+
     private fun addChip(chip: SearchBarChip, color: Int) {
         val view = SearchBarButtons.view(context, chip, color) {
-            if (interactive) SearchBarButtons.run(context, chip)
+            if (interactive && onChip?.invoke(chip) != true) SearchBarButtons.run(context, chip)
         }
         view.tag = CHIP_TAG
         val size = dp(SearchBarButtons.BUTTON_DP)
@@ -125,8 +129,8 @@ class SearchBarView @JvmOverloads constructor(
             }
 
             // The magnifier on the left is fixed (set in init), in the
-            // bar's text colour like its buttons.
-            val tint = ColorStateList.valueOf(resolved.text)
+            // bar's text colour dimmed a little, like its buttons.
+            val tint = ColorStateList.valueOf(SearchBarButtons.iconTint(resolved.text))
             ImageViewCompat.setImageTintList(searchIcon, tint)
             hint.setTextColor((0x99 shl 24) or (resolved.text and 0xFFFFFF))
             // Hidden, not gone: it still holds the chips to the right edge.

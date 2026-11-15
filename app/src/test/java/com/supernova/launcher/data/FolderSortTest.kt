@@ -123,4 +123,21 @@ class FolderSortTest {
         val handSet = FolderSort.reordered(model, "f", listOf("c", "a", "b"))
         assertEquals(listOf("a", "b", "c"), FolderSort.sorted(handSet, "f").order("f"))
     }
+
+    @Test
+    fun allSortedSortsEveryFolderAndLeavesTheRestAlone() {
+        val second = LauncherItem(id = "g", itemType = ItemType.FOLDER, label = "G")
+        val page = LauncherItem(id = "w", itemType = ItemType.APP, rank = 7, label = "Zed")
+        val model = LauncherModel(
+            items = listOf(
+                folder, member("a", "Zoo", 0), member("b", "Ant", 1),
+                second, member("c", "Owl", 0, folder = "g"), member("d", "Bee", 1, folder = "g"),
+                page
+            )
+        )
+        val sorted = FolderSort.allSorted(model)
+        assertEquals(listOf("b", "a"), sorted.order("f"))
+        assertEquals(listOf("d", "c"), sorted.order("g"))
+        assertSame(page, sorted.items.first { it.id == "w" })
+    }
 }

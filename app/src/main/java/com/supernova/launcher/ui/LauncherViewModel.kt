@@ -21,12 +21,17 @@ import com.supernova.launcher.data.DrawerGroup
 import com.supernova.launcher.data.DrawerGroupEdit
 import com.supernova.launcher.data.DrawerGroupOrder
 import com.supernova.launcher.data.DrawerGroupType
+import com.supernova.launcher.data.DrawerTarget
+import com.supernova.launcher.data.FolderMove
+import com.supernova.launcher.data.FolderToDrawer
 import com.supernova.launcher.data.GroupPick
+import com.supernova.launcher.data.HiddenLabels
 import com.supernova.launcher.data.IconPack
 import com.supernova.launcher.data.IconShape
 import com.supernova.launcher.data.ItemType
 import com.supernova.launcher.data.LabelOrder
 import com.supernova.launcher.data.LaunchableApp
+import com.supernova.launcher.data.LARGE_ICON_SPAN
 import com.supernova.launcher.data.LauncherItem
 import com.supernova.launcher.data.LauncherPreferences
 import com.supernova.launcher.data.LauncherPrefs
@@ -36,6 +41,7 @@ import com.supernova.launcher.data.PrefSpec
 import com.supernova.launcher.data.PrivateSpace
 import com.supernova.launcher.data.TabFolders
 import com.supernova.launcher.data.WorkspaceGeometry
+import com.supernova.launcher.data.isLargeIcon
 import com.supernova.launcher.data.imports.BackupFiles
 import com.supernova.launcher.data.imports.LayoutConverter
 import com.supernova.launcher.data.imports.PickedBackup
@@ -199,7 +205,11 @@ class LauncherViewModel(
             }
         }
         viewModelScope.launch {
-            preferences.flow.collect { prefs ->
+            // A large icon draws at twice the desktop size, so the icons
+            // render for it while there is one.
+            val largeIcons = repository.modelFlow.map { model -> model.items.any { it.isLargeIcon } }
+                .distinctUntilChanged()
+            preferences.flow.combine(largeIcons) { prefs, large -> prefs to large }.collect { (prefs, large) ->
                 WorkspaceGeometry.allowWidgetOverlap = prefs.widgetOverlap
                 WorkspaceGeometry.allowPlacementOverlap = prefs.overlapWhenPlacing
                 val packChanged = prefs.iconPack != appliedIconPack
@@ -211,7 +221,7 @@ class LauncherViewModel(
                 val glassChanged = prefs.iconGlass != appliedGlass
                 val themedSig = themedIconSignature(prefs)
                 val themedChanged = themedSig != appliedThemedSig
-                val resolution = iconResolution(prefs)
+                val resolution = iconResolution(prefs, large)
                 val resolutionChanged = resolution != appliedResolution
                 val changes = listOf(
                     packChanged, shapeChanged, normalizeChanged, shadowChanged,
@@ -442,6 +452,8 @@ class LauncherViewModel(
 
     init {
         registerProfileReceiver()
+        // A retired setting still has something to settle in the store.
+        persist { repository.retireFolderSortAz() }
     }
 
     private fun registerProfileReceiver() {
@@ -535,9 +547,9 @@ class LauncherViewModel(
 
     // The largest icon size any surface draws at, rounded up to a fifth so a
     // size slider's drag re-renders at a few steps rather than every tick.
-    private fun iconResolution(prefs: com.supernova.launcher.data.LauncherPrefs): Float {
+    private fun iconResolution(prefs: com.supernova.launcher.data.LauncherPrefs, largeIcons: Boolean): Float {
         val scales = listOf(
-            prefs.iconScale,
+            if (largeIcons) prefs.iconScale * LARGE_ICON_SPAN else prefs.iconScale,
             if (prefs.dockMatchDesktop) prefs.iconScale else prefs.dockIconScale,
             if (prefs.drawerMatchDesktop) prefs.iconScale else prefs.drawerIconScale,
             if (prefs.folderMatchDesktop) prefs.iconScale else prefs.folderIconScale
@@ -614,15 +626,8 @@ class LauncherViewModel(
     }
 
     // The app a swipe-to-open folder's tap launches: the first one its window
-    // shows, which is A-Z when the folder sort says so.
-    fun folderFirstMember(folderId: String): LauncherItem? {
-        val members = folderMembers(folderId)
-        return if (state.value.prefs.folderSortAz) {
-            members.minWithOrNull(LabelOrder.by { it.label })
-        } else {
-            members.firstOrNull()
-        }
-    }
+    // shows.
+    fun folderFirstMember(folderId: String): LauncherItem? = folderMembers(folderId).firstOrNull()
 
     fun setFolderSwipeToOpen(folderId: String, on: Boolean) = persist { repository.setFolderSwipeToOpen(folderId, on) }
 
@@ -633,6 +638,18 @@ class LauncherViewModel(
     }
 
     fun restackItem(itemId: String, toFront: Boolean) = persist { repository.restackItem(itemId, toFront) }
+
+    // Long-press > Large icon / Normal icon. False, and nothing written,
+    // when the page has no room for a large one.
+    fun setIconSize(itemId: String, large: Boolean): Boolean {
+        val current = state.value
+        val cols = current.prefs.gridCols
+        val rows = current.prefs.gridRows
+        val shown = WorkspaceGeometry.fitted(current.model, cols, rows)
+        if (com.supernova.launcher.data.LargeIcons.withIconSize(shown, itemId, large, cols, rows) == null) return false
+        persist { repository.setIconSize(itemId, large, cols, rows) }
+        return true
+    }
 
     // A widget's padding in dp: its own, or the Widget padding setting's.
     fun widgetPaddingDp(item: LauncherItem): Int = item.widgetPadding ?: state.value.prefs.widgetPadding
@@ -891,6 +908,13 @@ class LauncherViewModel(
 
     fun removeFeedCard(cardId: String) = persist { repository.removeFeedCard(cardId) }
 
+    fun restoreFeedCard(card: com.supernova.launcher.feed.FeedCard, index: Int) =
+        persist { repository.restoreFeedCard(card, index) }
+
+    fun feedOrder(): List<String> = state.value.model.feedOrder
+
+    fun setFeedOrder(keys: List<String>) = persist { repository.setFeedOrder(keys) }
+
     // "Pin": flips the stored flag; the feed re-sorts on the emission.
     fun setFeedCardPinned(cardId: String, pinned: Boolean) {
         val card = feedCards().firstOrNull { it.id == cardId } ?: return
@@ -905,6 +929,41 @@ class LauncherViewModel(
         val prefs = state.value.prefs
         viewModelScope.launch {
             repository.restoreItems(items, prefs.gridCols, prefs.gridRows, prefs.dockCount * prefs.dockPages.coerceAtLeast(1))
+        }
+    }
+
+    // A home or dock folder moved into the drawer (FolderToDrawer). Null,
+    // and nothing moved, when the folder holds no app a drawer group can.
+    fun moveFolderToDrawer(folder: LauncherItem, target: DrawerTarget): FolderMove? {
+        val members = folderMembers(folder.id)
+        val movable = FolderToDrawer.movable(members)
+        if (movable.isEmpty()) return null
+        val move = FolderMove(listOf(folder) + members, members.size - movable.size)
+        viewModelScope.launch {
+            // Named inside the edit, against what is stored.
+            preferences.updateDrawerGroups { groups ->
+                val name = FolderToDrawer.uniqueName(folder.label, groups.map { it.name })
+                move.groupName = name
+                FolderToDrawer.withGroupAdded(groups, folder, members, name, target)
+            }
+            repository.removeMovedFolder(folder.id)
+        }
+        return move
+    }
+
+    // The move's Undo: the group goes (and its place in a tab), and the
+    // folder comes back where it was.
+    fun undoFolderMove(move: FolderMove) {
+        val prefs = state.value.prefs
+        viewModelScope.launch {
+            move.groupName?.let { name ->
+                preferences.updateDrawerGroups { groups ->
+                    TabFolders.forgotten(groups.filterNot { it.name == name }, name)
+                }
+            }
+            repository.replaceItems(
+                move.items, prefs.gridCols, prefs.gridRows, prefs.dockCount * prefs.dockPages.coerceAtLeast(1)
+            )
         }
     }
 
@@ -1034,8 +1093,10 @@ class LauncherViewModel(
         return count.copy(folders = count.folders + drawerGroups().count { it.hasCustomIcon })
     }
 
-    fun resetCustomIcons() = persist {
-        repository.resetCustomIcons()
+    // Drawer folders and tabs go with the placed folders (FOLDERS).
+    fun resetCustomIcons(kinds: Set<CustomIcons.Kind>) = persist {
+        repository.resetCustomIcons(kinds)
+        if (CustomIcons.Kind.FOLDERS !in kinds) return@persist
         preferences.updateDrawerGroups { groups ->
             groups.map {
                 if (!it.hasCustomIcon) return@map it
@@ -1043,6 +1104,11 @@ class LauncherViewModel(
             }
         }
     }
+
+    fun hiddenLabels(): HiddenLabels.Count =
+        HiddenLabels.count(state.value.model)
+
+    fun resetHiddenLabels() = persist { repository.resetHiddenLabels() }
 
     // As a rename does, a custom icon makes a smart folder the user's, or the
     // next regeneration would drop it.
@@ -1072,13 +1138,10 @@ class LauncherViewModel(
 
     private fun usage(): AppUsage = AppUsage(launchCounts, recentLaunches, ::hiddenKey)
 
-    // The apps opened most recently (search's row of them). Until there is
-    // any recency to go on, the most-launched stand in.
+    // The apps opened most recently (search's row of them, and the drawer's
+    // top row). Until there is any recency to go on, the most-launched stand
+    // in.
     fun recentApps(limit: Int): List<LaunchableApp> = DrawerOrder.recentRow(visibleApps(), usage(), limit)
-
-    // The drawer's top row, in its own order (drawerTopRowSort).
-    fun topRowApps(limit: Int): List<LaunchableApp> =
-        DrawerOrder.topRow(visibleApps(), state.value.prefs.drawerTopRowSort, usage(), limit)
 
     fun noteLaunch(app: LaunchableApp) = persist { preferences.recordLaunch(hiddenKey(app)) }
 

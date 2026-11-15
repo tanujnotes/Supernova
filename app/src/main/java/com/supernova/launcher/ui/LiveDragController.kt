@@ -36,6 +36,7 @@ import com.supernova.launcher.data.LauncherItem
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.LauncherRepository
 import com.supernova.launcher.data.WorkspaceGeometry
+import com.supernova.launcher.data.isLargeIcon
 import com.supernova.launcher.databinding.ActivityLauncherBinding
 import com.supernova.launcher.runLogged
 import com.supernova.launcher.widget.WidgetResizeFrame
@@ -129,6 +130,8 @@ class LiveDragController(
         // The room a desktop icon needs at its own size, which a smaller
         // cell shrinks it to fit (WorkspaceCanvas.IconFit).
         fun desktopIconNeedPx(prefs: LauncherPrefs): android.util.Size
+        // The same for an icon `span` cells a side (a large icon).
+        fun desktopIconNeedPx(prefs: LauncherPrefs, span: Int): android.util.Size
         fun dockIconBoxPx(prefs: LauncherPrefs): Int
         fun dockIconTopInsetPx(): Int
         fun desktopIconBasePx(): Int
@@ -1398,15 +1401,29 @@ class LiveDragController(
         // icon's item, taller or wider than a cell, does in the outer rows
         // and columns; the icon sits at the top of the item. In a cell too
         // small for it the icon is shrunk to fit, and lands at that size.
-        val need = host.desktopIconNeedPx(prefs)
+        // A large icon lands on the 2x2 cells the hover outlined, at its
+        // own size: it brings its own view.
+        val (span, cells) = largeIconCells(payload, p)
+        val need = host.desktopIconNeedPx(prefs, span)
         val fit = iconFitScale(
-            cellSize(canvas.width, prefs.gridCols), cellSize(canvas.height, prefs.gridRows), need.width, need.height
+            cellSize(canvas.width, prefs.gridCols) * span, cellSize(canvas.height, prefs.gridRows) * span,
+            need.width, need.height
         )
-        val box = (host.desktopIconBoxPx(prefs) * fit).roundToInt()
+        val box = (host.desktopIconBoxPx(prefs) * span * fit).roundToInt()
         val item = desktopItemFrame(prefs, box, fit)
-        val left = iconOrigin(p[2], canvas.width, item.width) + item.iconLeft
-        val top = iconOrigin(p[3], canvas.height, item.height) + item.iconTop
+        val centerX = cells?.let { (it.left + it.right) / 2f / prefs.gridCols } ?: p[2]
+        val centerY = cells?.let { (it.top + it.bottom) / 2f / prefs.gridRows } ?: p[3]
+        val left = iconOrigin(centerX, canvas.width, item.width) + item.iconLeft
+        val top = iconOrigin(centerY, canvas.height, item.height) + item.iconTop
         return RectF(left.toFloat(), top.toFloat(), (left + box).toFloat(), (top + box).toFloat())
+    }
+
+    // A dragged large icon's span and the cells it lands on; 1 and none for
+    // anything else.
+    private fun largeIconCells(payload: DragPayload, p: FloatArray): Pair<Int, WorkspaceGeometry.CellRect?> {
+        val item = (payload as? DragPayload.ExistingItem)?.let { itemById(it.itemId) }?.takeIf { it.isLargeIcon }
+            ?: return 1 to null
+        return item.spanX to drops.hoverTargetRect(payload, p[0].toInt(), p[1].toInt(), p[4], p[5])?.first
     }
 
     // A desktop item's size, and where its icon box sits inside it.

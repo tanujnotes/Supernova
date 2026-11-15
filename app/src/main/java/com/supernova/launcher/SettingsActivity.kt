@@ -27,6 +27,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.supernova.launcher.data.CornerCut
+import com.supernova.launcher.data.CustomIcons
 import com.supernova.launcher.data.CustomShapeSpec
 import com.supernova.launcher.data.DrawerGroup
 import com.supernova.launcher.data.DrawerGroupType
@@ -421,6 +422,7 @@ class SettingsActivity : AppCompatActivity() {
             pickIconPack = ::showIconPackPicker,
             pickIconShape = ::showIconShapePicker,
             resetCustomIcons = ::confirmResetCustomIcons,
+            resetHiddenLabels = ::confirmResetHiddenLabels,
             exportIcons = { exportIconsLauncher.launch("supernova-icons.zip") },
             managePermission = ::manageLabsPermission,
             clearIconCache = {
@@ -497,50 +499,32 @@ class SettingsActivity : AppCompatActivity() {
                 }
             },
             editPopupRows = ::showPopupRowsDialog,
-            onFeedCalendarEnabled = {
-                if (checkSelfPermission(android.Manifest.permission.READ_CALENDAR) !=
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
-                ) {
-                    requestFeedCalendarPermission.launch(android.Manifest.permission.READ_CALENDAR)
-                }
-            },
-            onFeedContactsEnabled = {
-                if (checkSelfPermission(android.Manifest.permission.READ_CONTACTS) !=
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
-                ) {
-                    requestFeedContactsPermission.launch(android.Manifest.permission.READ_CONTACTS)
-                }
-            },
+            onFeedCalendarEnabled = ::requestFeedCalendarIfNeeded,
+            onFeedContactsEnabled = ::requestFeedContactsIfNeeded,
             editCard = { card ->
                 com.supernova.launcher.ui.CustomCardEditorSheet
                     .show(this, viewModel, card, undoAnchor = binding.settingsTabs)
             },
-            openCards = { navigateTo(R.string.settings_section_cards, 0) },
             openNotificationAccess = { com.supernova.launcher.ui.PermissionPrompts.openNotificationAccess(this) },
-            cardPreview = { card, parent ->
-                // The feed's own binder, inert: no launches, no menu, and a
-                // widget-featured card shows without its widget.
-                val binder = com.supernova.launcher.ui.CardViewBinder(
-                    com.supernova.launcher.ui.CardViewBinder.Callbacks(
-                        onLaunchTarget = { _, _, _ -> },
-                        widgetView = { null },
-                        iconForTarget = { target ->
-                            com.supernova.launcher.ui.CustomCardEditorSheet.iconForTarget(viewModel, target)
-                        },
-                        labelForTarget = { target ->
-                            com.supernova.launcher.ui.CustomCardEditorSheet.labelForTarget(viewModel, target)
-                        },
-                        onMenu = null
-                    )
+            // Add card: the add sheet. A widget is bound by the launcher, so
+            // that choice goes back to the feed and picks one there.
+            addCard = {
+                com.supernova.launcher.ui.FeedAddSheet.show(
+                    this, viewModel,
+                    onWidget = {
+                        startActivity(
+                            Intent(this, LauncherActivity::class.java)
+                                .putExtra(LauncherActivity.EXTRA_ADD_FEED_WIDGET, true)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    },
+                    onShortcuts = {
+                        com.supernova.launcher.ui.CustomCardEditorSheet
+                            .show(this, viewModel, null, undoAnchor = binding.settingsTabs)
+                    },
+                    requestCalendar = ::requestFeedCalendarIfNeeded,
+                    requestContacts = ::requestFeedContactsIfNeeded
                 )
-                val popup = com.supernova.launcher.ui.theme.Styles
-                    .resolve(this, viewModel.state.value.prefs)
-                    .of(com.supernova.launcher.ui.theme.SurfaceId.POPUP)
-                binder.setAppearance(popup.surface, popup.text, popup.accent)
-                binder.inflate(parent).also { binder.bind(it, card) }.root
-            },
-            builtInPreview = { kind, parent ->
-                com.supernova.launcher.ui.settings.CardPreviews.builtIn(kind, parent, viewModel.state.value.prefs)
             },
             openSection = { title -> navigateTo(title, 0) }
         )
@@ -567,9 +551,6 @@ class SettingsActivity : AppCompatActivity() {
         binding.settingsRecycler.adapter = adapter
         groupCards = com.supernova.launcher.ui.settings.SettingsGroupDecoration(this, adapter)
         binding.settingsRecycler.addItemDecoration(groupCards)
-        binding.cardsFab.setOnClickListener {
-            com.supernova.launcher.ui.CustomCardEditorSheet.show(this, viewModel, null)
-        }
         // Watched rather than consumed: the row's own click listener still
         // runs, this only remembers where the press landed so the menu it
         // opens can appear there.
@@ -702,10 +683,21 @@ class SettingsActivity : AppCompatActivity() {
         outState.putIntArray(STATE_OPEN_ACCORDIONS, adapter.openAccordions)
     }
 
-    // Sections reached only from a built-in card's gear on the Cards page.
-    private val cardSections = setOf(
-        R.string.cards_media_title, R.string.feed_calendar_title, R.string.feed_contacts_title
-    )
+    private fun requestFeedCalendarIfNeeded() {
+        if (checkSelfPermission(android.Manifest.permission.READ_CALENDAR) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            requestFeedCalendarPermission.launch(android.Manifest.permission.READ_CALENDAR)
+        }
+    }
+
+    private fun requestFeedContactsIfNeeded() {
+        if (checkSelfPermission(android.Manifest.permission.READ_CONTACTS) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            requestFeedContactsPermission.launch(android.Manifest.permission.READ_CONTACTS)
+        }
+    }
 
     // Pages opened from a row on another page rather than from the root,
     // and the page that row is on: back returns there.
@@ -713,7 +705,7 @@ class SettingsActivity : AppCompatActivity() {
         R.string.desktop_search_bar to R.string.settings_section_search,
         R.string.drawer_search_bar to R.string.settings_section_search,
         R.string.drawer_groups to R.string.settings_section_drawer
-    ) + cardSections.associateWith { R.string.settings_section_cards }
+    )
 
     // The Drawer groups page is the pane's, not the list's. A search from
     // its toolbar shows results in the list, and Back returns to the pane.
@@ -766,13 +758,6 @@ class SettingsActivity : AppCompatActivity() {
         binding.tabStyle.isSelected = currentTab == Tab.STYLE
         val section = currentSection
         backCallback.isEnabled = section != null || searchActive || (styleFromList && currentTab == Tab.STYLE)
-        // The Cards page adds from a FAB.
-        binding.cardsFab.visibility =
-            if (section?.title == R.string.settings_section_cards && !searchActive && currentTab == Tab.SETTINGS) {
-                View.VISIBLE
-            } else {
-                View.GONE
-            }
 
         applyHeader(section)
         showGroupsPane(onGroupsPage())
@@ -817,7 +802,7 @@ class SettingsActivity : AppCompatActivity() {
     // (a new one) joins the last card, so it is never lost from the list.
     private fun rootItems(): List<SettingItem> {
         val shown = sections.filter {
-            it.items.isNotEmpty() && it.title !in cardSections && it.title !in subPageParents
+            it.items.isNotEmpty() && it.title !in subPageParents
         }
         val groups = listOf(
             R.string.settings_group_screens to listOf(
@@ -825,8 +810,7 @@ class SettingsActivity : AppCompatActivity() {
                 R.string.settings_section_folders, R.string.settings_section_feed
             ),
             R.string.settings_group_customize to listOf(
-                R.string.settings_section_icons, R.string.gestures, R.string.settings_section_search,
-                R.string.settings_section_cards
+                R.string.settings_section_icons, R.string.gestures, R.string.settings_section_search
             ),
             R.string.settings_group_app to listOf(
                 R.string.settings_section_backup, R.string.permissions, R.string.about, R.string.labs
@@ -973,14 +957,35 @@ class SettingsActivity : AppCompatActivity() {
         }
         return found.map { entry ->
             // The entry's own name: a control found inside a row (the Label
-            // card's size) is listed as itself and leads to that row.
+            // card's size) is listed as itself and leads to that row. A row
+            // a setting hides isn't on its page to land on: the hit names
+            // that setting and leads to it instead (#133).
             SettingItem.Row(
                 entry.itemTitleRes,
-                subtitle = { entry.sectionLabel },
-                onClick = { navigateTo(entry.sectionTitleRes, entry.itemTitleRes) },
+                subtitle = { prefs -> hitSubtitle(entry, entry.hiddenBy(prefs)) },
+                onClick = {
+                    val hidden = entry.hiddenBy(viewModel.state.value.prefs)
+                    if (hidden == null) {
+                        navigateTo(entry.sectionTitleRes, entry.itemTitleRes)
+                    } else {
+                        navigateTo(hidden.page.takeIf { it != 0 } ?: entry.sectionTitleRes, hidden.setting)
+                    }
+                },
                 titleText = entry.itemLabel
             )
         }
+    }
+
+    // A hit's page, and for a hidden row what brings it back:
+    // "Dock · Needs Show dock on".
+    private fun hitSubtitle(entry: SettingsSearchIndex.Entry, hidden: SettingItem.HiddenBy?): CharSequence {
+        if (hidden == null) return entry.sectionLabel
+        val reason = when (hidden.needs) {
+            SettingItem.HiddenBy.Needs.ON -> R.string.settings_search_needs_on
+            SettingItem.HiddenBy.Needs.OFF -> R.string.settings_search_needs_off
+            SettingItem.HiddenBy.Needs.OTHER -> R.string.settings_search_depends_on
+        }
+        return "${entry.sectionLabel} · ${getString(reason, getString(hidden.setting))}"
     }
 
     private fun setSearchActive(active: Boolean) {
@@ -1369,7 +1374,7 @@ class SettingsActivity : AppCompatActivity() {
             .show()
     }
 
-    // Folder icon appearance: shape + outline/clip/window-color toggles, all
+    // Folder icon appearance: shape + outline/window-color toggles, all
     // edited against a live FolderIconDrawable preview of placeholder tiles.
     // Only OK commits the prefs.
     private fun showFolderIconEditor() {
@@ -1378,7 +1383,6 @@ class SettingsActivity : AppCompatActivity() {
         var shapeName = prefs.folderIconShape
         var plateColor = prefs.folderPlateColor
         dialogBinding.outlineCheck.isChecked = prefs.folderIconOutline
-        dialogBinding.clipCheck.isChecked = prefs.folderClipToBg
         dialogBinding.matchColorCheck.isChecked = prefs.folderMatchWindowColor
 
         // Placeholder members: colored tiles, so the preview needs no app icons.
@@ -1413,7 +1417,6 @@ class SettingsActivity : AppCompatActivity() {
                     customSpec = CustomShapeSpec.decode(prefs.iconShapeCustom),
                     outlineColor = if (dialogBinding.outlineCheck.isChecked) resolved.accent else 0,
                     outlineWidthPx = 2f * resources.displayMetrics.density,
-                    clipMembers = dialogBinding.clipCheck.isChecked,
                     prioritizeFirst = prefs.folderPrioritizeFirst,
                     glass = com.supernova.launcher.ui.FolderIconDrawable.glassFor(prefs),
                     shadow = prefs.iconShadow
@@ -1446,7 +1449,6 @@ class SettingsActivity : AppCompatActivity() {
         }
         listOf(
             dialogBinding.outlineRow to dialogBinding.outlineCheck,
-            dialogBinding.clipRow to dialogBinding.clipCheck,
             dialogBinding.matchColorRow to dialogBinding.matchColorCheck
         ).forEach { (row, box) ->
             row.setOnClickListener { box.toggle() }
@@ -1460,7 +1462,6 @@ class SettingsActivity : AppCompatActivity() {
             .setPositiveButton(R.string.ok) { _, _ ->
                 viewModel.set(Pref.folderIconShape, shapeName)
                 viewModel.set(Pref.folderIconOutline, dialogBinding.outlineCheck.isChecked)
-                viewModel.set(Pref.folderClipToBg, dialogBinding.clipCheck.isChecked)
                 viewModel.set(Pref.folderMatchWindowColor, dialogBinding.matchColorCheck.isChecked)
                 viewModel.set(Pref.folderPlateColor, plateColor)
             }
@@ -1644,14 +1645,87 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun confirmResetCustomIcons() {
-        if (viewModel.customIcons().total == 0) {
+        val count = viewModel.customIcons()
+        if (count.total == 0) {
             Toast.makeText(this, R.string.reset_custom_icons_none_toast, Toast.LENGTH_SHORT).show()
             return
         }
-        MaterialAlertDialogBuilder(this)
+        // A tick per kind that has custom icons, with its count; only apps
+        // start ticked, so folder, tab, shortcut and contact icons stay
+        // unless picked (#168).
+        val kinds = CustomIcons.Kind.entries.filter { count.of(it) > 0 }
+        val ticked = kinds.filterTo(mutableSetOf()) { it == CustomIcons.Kind.APPS }
+        val density = resources.displayMetrics.density
+        fun dpPx(value: Int) = (value * density).toInt()
+        val column = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(dpPx(TICK_LIST_SIDE_DP), dpPx(TICK_LIST_GAP_DP), dpPx(TICK_LIST_SIDE_DP), dpPx(TICK_LIST_GAP_DP))
+        }
+        var resetButton: android.widget.Button? = null
+        // The dialog buttons' colour has no disabled state, so dim by hand.
+        fun updateReset() = resetButton?.run {
+            isEnabled = ticked.isNotEmpty()
+            alpha = if (isEnabled) 1f else DISABLED_ALPHA
+        }
+        kinds.forEach { kind ->
+            column.addView(android.widget.CheckBox(this).apply {
+                text = resetKindLabel(kind, count.of(kind))
+                minHeight = dpPx(TICK_ROW_MIN_DP)
+                // The box drawable has no inset of its own.
+                setPaddingRelative(dpPx(12), paddingTop, paddingEnd, paddingBottom)
+                isChecked = kind in ticked
+                setOnCheckedChangeListener { _, checked ->
+                    if (checked) ticked.add(kind) else ticked.remove(kind)
+                    updateReset()
+                }
+            })
+        }
+        val dialog = MaterialAlertDialogBuilder(this)
             .setTitle(R.string.reset_custom_icons)
             .setMessage(R.string.reset_custom_icons_message)
-            .setPositiveButton(R.string.reset) { _, _ -> viewModel.resetCustomIcons() }
+            .setView(column)
+            .setPositiveButton(R.string.reset) { _, _ -> viewModel.resetCustomIcons(ticked.toSet()) }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+        // Reset is destructive: red.
+        resetButton = dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).apply {
+            setTextColor(getColor(R.color.accentRedText))
+        }
+        updateReset()
+        // Room under the buttons, which sit close to the dialog's edge.
+        dialog.findViewById<View>(androidx.appcompat.R.id.buttonPanel)?.let {
+            it.setPadding(it.paddingLeft, it.paddingTop, it.paddingRight, it.paddingBottom + dpPx(BUTTON_BAR_EXTRA_DP))
+        }
+    }
+
+    // "Apps • 2", the dot and count faded.
+    private fun resetKindLabel(kind: CustomIcons.Kind, count: Int): CharSequence {
+        val name = getString(
+            when (kind) {
+                CustomIcons.Kind.APPS -> R.string.reset_custom_icons_apps
+                CustomIcons.Kind.FOLDERS -> R.string.reset_custom_icons_folders
+                CustomIcons.Kind.SHORTCUTS -> R.string.reset_custom_icons_shortcuts
+            }
+        )
+        return android.text.SpannableStringBuilder(name).apply {
+            val start = length
+            append(" • $count")
+            setSpan(
+                android.text.style.ForegroundColorSpan(getColor(R.color.textSecondary)),
+                start, length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+    }
+
+    private fun confirmResetHiddenLabels() {
+        if (viewModel.hiddenLabels().total == 0) {
+            Toast.makeText(this, R.string.reset_hidden_labels_none_toast, Toast.LENGTH_SHORT).show()
+            return
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.reset_hidden_labels)
+            .setMessage(R.string.reset_hidden_labels_message)
+            .setPositiveButton(R.string.reset) { _, _ -> viewModel.resetHiddenLabels() }
             .setNegativeButton(R.string.cancel, null)
             .show()
     }
@@ -2107,6 +2181,14 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     companion object {
+        private const val DISABLED_ALPHA = 0.38f
+
+        // Lines a tick box up with the dialog message's 24dp text edge.
+        private const val TICK_LIST_SIDE_DP = 18
+        private const val TICK_LIST_GAP_DP = 8
+        private const val TICK_ROW_MIN_DP = 48
+        private const val BUTTON_BAR_EXTRA_DP = 12
+
         // Each root section's icon and the blurb under its title.
         private val ROOT_SECTIONS: Map<Int, Pair<Int, Int>> = mapOf(
             R.string.settings_section_home to (R.drawable.ic_settings_home to R.string.section_home_subtitle),
@@ -2114,7 +2196,6 @@ class SettingsActivity : AppCompatActivity() {
             R.string.settings_section_drawer to (R.drawable.ic_settings_drawer to R.string.section_drawer_subtitle),
             R.string.settings_section_search to (R.drawable.ic_settings_search to R.string.section_search_subtitle),
             R.string.settings_section_feed to (R.drawable.ic_settings_feed to R.string.section_feed_subtitle),
-            R.string.settings_section_cards to (R.drawable.ic_settings_cards to R.string.section_cards_subtitle),
             R.string.settings_section_folders to (R.drawable.ic_settings_folders to R.string.section_folders_subtitle),
             R.string.settings_section_icons to (R.drawable.ic_settings_icons to R.string.section_icons_subtitle),
             R.string.gestures to (R.drawable.ic_settings_gestures to R.string.section_gestures_subtitle),

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The dark well the card editor previews a card on: the feed draws cards
+     on a dimmed page, so the preview sits on dark too. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="22dp" />
+    <solid android:color="#E6151A24" />
+</shape>

@@ -10,10 +10,12 @@ import androidx.viewpager2.widget.ViewPager2
 import com.supernova.launcher.R
 import com.supernova.launcher.data.ContainerType
 import com.supernova.launcher.data.ItemType
+import com.supernova.launcher.data.LARGE_ICON_SPAN
 import com.supernova.launcher.data.LauncherItem
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.LauncherRepository
 import com.supernova.launcher.data.WorkspaceGeometry
+import com.supernova.launcher.data.isLargeIcon
 import com.supernova.launcher.databinding.ViewWorkspaceAddPageBinding
 import com.supernova.launcher.databinding.ViewWorkspacePageBinding
 import com.supernova.launcher.widget.WidgetResizeFrame
@@ -317,6 +319,8 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
                     "${it.swipeAction},${it.swipeActionDown},${it.swipeToOpen},${it.widgetPadding}," +
                     // A restored widget's new id swaps its placeholder for the real view.
                     "${it.appWidgetId}" +
+                    // Pausing work apps greys their icons.
+                    PausedIcon.mark(state, it.userSerial) +
                     FolderIconDrawable.customIconKey(it) +
                     // A folder's icon is drawn from its members, which live
                     // in the FOLDER container: an app dropped in from the
@@ -340,11 +344,11 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
             "${prefs.folderPreviewStyle}|${prefs.badgeColor},${prefs.badgePosition},${prefs.badgeScale}|" +
             // Folder icon appearance: the dock's signature takes every pref,
             // and without these a page kept its old plates until a restart.
-            "${prefs.folderIconShape},${prefs.folderIconOutline},${prefs.folderClipToBg}," +
+            "${prefs.folderIconShape},${prefs.folderIconOutline}," +
             "${prefs.folderMatchWindowColor},${prefs.folderPlateColor}," +
             "${prefs.folderPrioritizeFirst},${prefs.folderBgColor}," +
             // The window's order and columns pick the preview's members.
-            "${prefs.folderSortAz},${prefs.folderColumns},${prefs.folderMode}," +
+            "${prefs.folderColumns},${prefs.folderMode}," +
             "${prefs.folderIconScale},${prefs.folderMatchDesktop}," +
             "${prefs.styleConfig}|" +
             "${prefs.badgeTextColor},${prefs.badgeCornerRadius},${prefs.badgeOutline}|" +
@@ -364,7 +368,8 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
             .sortedBy { it.rank }
             .joinToString(",", prefix = "[", postfix = "]") {
                 // A shortcut member's Edit changes its tile in the preview.
-                "${it.id}:${it.packageName}/${it.className}/${it.shortcutEdit?.hashCode()}"
+                "${it.id}:${it.packageName}/${it.className}/${it.shortcutEdit?.hashCode()}" +
+                    PausedIcon.mark(state, it.userSerial)
             }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -523,10 +528,11 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
                         // layout, against the size it has then: it is on its
                         // point before the first draw, and stays on it when
                         // the canvas resizes after this bind.
-                        val centerX = item.workspaceX ?: ((item.cellX + 0.5f) / max(1, cols))
-                        val centerY = item.workspaceY ?: ((item.cellY + 0.5f) / max(1, rows))
+                        val span = if (item.isLargeIcon) LARGE_ICON_SPAN else 1
+                        val centerX = item.workspaceX ?: ((item.cellX + span / 2f) / max(1, cols))
+                        val centerY = item.workspaceY ?: ((item.cellY + span / 2f) / max(1, rows))
                         val fit = child.getTag(R.id.tag_icon_fit) as? WorkspaceCanvas.IconFit
-                        canvas.addView(child, WorkspaceCanvas.IconParams(centerX, centerY, cols, rows, fit))
+                        canvas.addView(child, WorkspaceCanvas.IconParams(centerX, centerY, cols, rows, fit, span))
                     }
                 }
             }

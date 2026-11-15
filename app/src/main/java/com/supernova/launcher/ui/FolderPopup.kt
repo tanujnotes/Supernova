@@ -32,7 +32,6 @@ class FolderPopup(private val context: Context) {
         members: List<LauncherItem>,
         adapter: FolderMemberAdapter,
         columnsOverride: Int = 0,
-        sortAz: Boolean = false,
         mode: FolderMode = FolderMode.WINDOW,
         scroll: FolderScroll = FolderScroll.VERTICAL,
         // Resolved FOLDER surface; null keeps the drawable's default color.
@@ -123,7 +122,6 @@ class FolderPopup(private val context: Context) {
         // Window folders cap at ~60% of the screen so long folders scroll;
         // immersive gets most of the height.
         val maxGridHeight = (metrics.heightPixels * if (immersive) 0.72f else 0.6f).toInt()
-        val ordered = if (sortAz) com.supernova.launcher.data.LabelOrder.sorted(members) { it.label } else members
         adapter.cellWidthPx = gridWidth / columns
 
         when (scroll) {
@@ -136,7 +134,7 @@ class FolderPopup(private val context: Context) {
                 }
             }
             FolderScroll.HORIZONTAL -> {
-                val cellHeight = measureCellHeight(adapter, ordered, gridWidth / columns)
+                val cellHeight = measureCellHeight(adapter, members, gridWidth / columns)
                 val visibleRows = rowsNeeded.coerceAtMost((maxGridHeight / cellHeight).coerceAtLeast(1))
                 // Pages filled row by row, the order the preview reads.
                 binding.folderGrid.layoutManager = PagedGridLayoutManager(columns, visibleRows)
@@ -152,7 +150,7 @@ class FolderPopup(private val context: Context) {
         if (!shadow) binding.folderCard.elevation = 0f
 
         binding.folderGrid.adapter = adapter
-        adapter.submit(ordered)
+        adapter.submit(members)
         if (showTitle && showCount) {
             // Kept to the folder's contents as apps leave or are added.
             fun showCount() {

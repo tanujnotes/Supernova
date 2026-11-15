@@ -35,6 +35,8 @@ import androidx.core.view.updateLayoutParams
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
@@ -63,13 +65,18 @@ import com.supernova.launcher.ui.WorkspaceCanvas
 import com.supernova.launcher.data.AppOverride
 import com.supernova.launcher.data.ContainerType
 import com.supernova.launcher.data.DrawerGroup
+import com.supernova.launcher.data.DrawerTarget
+import com.supernova.launcher.data.FolderToDrawer
 import com.supernova.launcher.data.ItemType
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.data.LaunchableApp
+import com.supernova.launcher.data.LARGE_ICON_SPAN
 import com.supernova.launcher.data.LauncherItem
+import com.supernova.launcher.data.isLargeIcon
 import com.supernova.launcher.data.LauncherRepository
 import com.supernova.launcher.data.WorkspaceGeometry
 import com.supernova.launcher.databinding.ActivityLauncherBinding
+import com.supernova.launcher.databinding.DialogMoveToDrawerBinding
 import com.supernova.launcher.databinding.ItemIconBinding
 import com.supernova.launcher.gesture.Gesture
 import com.supernova.launcher.gesture.GestureAction
@@ -99,6 +106,7 @@ import com.supernova.launcher.ui.FolderIconDrawable
 import com.supernova.launcher.ui.FolderMemberAdapter
 import com.supernova.launcher.ui.FolderPopup
 import com.supernova.launcher.ui.FolderReorderDrag
+import com.supernova.launcher.ui.PausedIcon
 import com.supernova.launcher.ui.PendingStarts
 import com.supernova.launcher.ui.LauncherUiState
 import com.supernova.launcher.ui.LauncherViewModel
@@ -128,7 +136,12 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDragController.Host, WidgetController.Host {
+class LauncherActivity :
+    AppCompatActivity(),
+    WorkspacePagerAdapter.Host,
+    LiveDragController.Host,
+    WidgetController.Host,
+    com.supernova.launcher.ui.VoiceSearch.Host {
 
     private lateinit var binding: ActivityLauncherBinding
     private val viewModel: LauncherViewModel by viewModels { LauncherViewModel.Factory(appGraph) }
@@ -153,13 +166,14 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     private var drawerKeptBehindLaunch = false
     // Circle's and Adaptive icon's launcher-side part (launchWithAnimation).
     private val launchPrelude by lazy { com.supernova.launcher.ui.LaunchPrelude(binding.root) }
-    // Shared by the feed and the drawer: one condition monitor, one answer to
-    // "which cards are activated right now".
-    private lateinit var cardActivation: com.supernova.launcher.feed.CardActivation
     // Custom cards on every surface that shows them: one look, one way to
     // launch, edit and pin.
     private val cards by lazy {
-        com.supernova.launcher.ui.FeedCardRoutes(this, viewModel, { actions }, { cardActivation }, { widgets })
+        com.supernova.launcher.ui.FeedCardRoutes(
+            this, viewModel, { actions }, { widgets },
+            requestCalendar = { requestFeedCalendarPermission.launch(android.Manifest.permission.READ_CALENDAR) },
+            requestContacts = { requestFeedContactsPermission.launch(android.Manifest.permission.READ_CONTACTS) }
+        )
     }
     // A home swipe turns the page or swipes up or down, never both (#82).
     private val pageSwipeGuard by lazy { com.supernova.launcher.ui.PageSwipeGuard(binding.workspacePager) }
@@ -192,6 +206,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     this@LauncherActivity.launchShortcut(packageName, shortcutId, userSerial)
                 override fun launchIntentUri(uri: String) = this@LauncherActivity.launchIntentUri(uri, null)
                 override fun toggleDock() = this@LauncherActivity.toggleDock()
+                override fun showMainDockPage() =
+                    this@LauncherActivity.showMainDockPage(Animations.scrollPages(viewModel.state.value.prefs))
                 override fun showDesktopPreviews() = desktopPreviews.show()
                 override fun openFeed() = feed.open()
                 override fun openPrivateSpace(anchor: View?) = privateSpaceCard.open(anchor)
@@ -383,7 +399,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     private var lastWallpaperPages = -1
 
     // Which dock page is showing (transient) and the applied dock chrome guard.
+    // Page 0 is the main one, drawn in the middle (DockPages).
     private var dockPage = 0
+    private val dockSlide by lazy { com.supernova.launcher.ui.DockSlide(binding.dockBar) }
     private var appliedDockChrome: List<Any>? = null
 
     // The window shape the chrome was last laid out against. The activity
@@ -447,6 +465,23 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             viewModel.setSwipeAction(pending.itemId, target, created.label, pending.down)
             pending.onPicked(created.label)
         }
+
+    // A search bar's mic: what was said goes into the search window, over
+    // whichever page the bar was on.
+    private val voiceSearchLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        val said = com.supernova.launcher.ui.VoiceSearch.heard(it.data)
+        if (it.resultCode != RESULT_OK || said == null) return@registerForActivityResult
+        if (::drawer.isInitialized && drawer.isVisible) hideDrawer()
+        if (feed.isOpen) feed.setBehindSearch(true)
+        search.open(said)
+    }
+
+    override fun startVoiceSearch() {
+        // No recognizer to answer: the phone's own voice search instead.
+        if (runCatching { voiceSearchLauncher.launch(com.supernova.launcher.ui.VoiceSearch.listenIntent()) }.isFailure) {
+            com.supernova.launcher.ui.VoiceSearch.webSearch(this)
+        }
+    }
 
     private val requestHomeRoleLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         // Result is informational; the user may decline and we never re-prompt automatically.
@@ -623,7 +658,11 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // close the drawer. A launcher always consumes back itself.
         onBackPressedDispatcher.addCallback(this) {
             when {
-                // A widget's resize frame first: it sits on the page, under
+                // A long-press menu first: it is not focusable, so back
+                // reaches here, and closing the drawer under it left the
+                // menu floating over the home screen.
+                drag.activeItemPopup?.isShowing == true -> drag.activeItemPopup?.dismiss()
+                // A widget's resize frame next: it sits on the page, under
                 // whatever else is open.
                 widgets.activeResizeFrame != null -> widgets.dismissResizeFrame()
                 ::editMode.isInitialized && editMode.isOpen -> editMode.exit()
@@ -863,12 +902,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
     override fun onDestroy() {
         // A recreate (a theme flip, an accent change) can come with the feed
-        // or the drawer's cards showing; their media, calendar and condition
-        // listeners are registered with the system and would keep this
-        // activity alive for good.
+        // showing; its media and calendar listeners are registered with the
+        // system and would keep this activity alive for good.
         if (::feed.isInitialized) feed.release()
-        if (::drawer.isInitialized) drawer.releaseCards()
-        if (::cardActivation.isInitialized) cardActivation.dispose()
         WallpaperManager.getInstance(this).removeOnColorsChangedListener(wallpaperColorsListener)
         runCatching { unregisterReceiver(screenOffReceiver) }
         // It takes itself off once the dock has settled; a destroy can come
@@ -929,6 +965,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // the lifted icon comes back.
         launchPrelude.clear()
         if (::drag.isInitialized) drag.cancel()
+        if (!viewModel.state.value.prefs.dockRememberPosition) showMainDockPage(animate = false)
         widgets.stopListening()
         runCatching { unregisterReceiver(dateChangeReceiver) }
         super.onStop()
@@ -959,6 +996,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         // Ahead of every route below: it has to see each stream's lift.
         if (::binding.isInitialized) pageSwipeGuard.onTouch(ev)
+        // A press on the home screen: a home press after it is the user's
+        // own, not the close of an unlock prompt that just went (#135).
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) privateSpaceCard.prompt.onHomeTouched()
         if (::pageDrag.isInitialized && pageDrag.isActive) {
             pageDrag.onTouch(ev)
             return true
@@ -1204,14 +1244,21 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 dockTouchDownX = Float.NaN
                 val quick = ev.eventTime - dockTouchDownAt < 350
                 if (quick && kotlin.math.abs(dx) > dp(56) && kotlin.math.abs(dy) < dp(48)) {
-                    val pages = prefs.dockPages
-                    val next = dockPage + if (dx < 0) 1 else -1
-                    dockPage = if (prefs.dockInfiniteScroll) next.mod(pages) else next.coerceIn(0, pages - 1)
-                    if (prefs.dockRememberPosition) viewModel.persistDockPage(dockPage)
-                    renderDock(viewModel.state.value)
+                    // A flick to the left brings in the page on the right.
+                    turnDockPage(prefs, toRight = dx < 0)
                 }
             }
         }
+    }
+
+    private fun turnDockPage(prefs: LauncherPrefs, toRight: Boolean) {
+        val next = com.supernova.launcher.ui.DockPages.step(
+            dockPage, prefs.dockPages, toRight, prefs.dockInfiniteScroll
+        )
+        if (next == dockPage) return
+        dockPage = next
+        if (prefs.dockRememberPosition) viewModel.persistDockPage(dockPage)
+        renderDock(viewModel.state.value, slide = if (toRight) 1 else -1)
     }
 
     private fun setupWorkspace() {
@@ -1306,7 +1353,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     }
 
     private fun setupDrawer() {
-        cardActivation = com.supernova.launcher.feed.CardActivation(this) { viewModel.feedCards() }
         drawer = DrawerController(
             binding = binding,
             viewModel = viewModel,
@@ -1333,32 +1379,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             onSelectTabApps = ::showDrawerGroupChecklist,
             customTabIcon = { group ->
                 itemIcons.customFolderIcon(group.iconBase64, group.iconPack, group.iconName, group.iconRaw)
-            },
-            cards = object : DrawerController.CardHost {
-                // Launches from a drawer card close the drawer like an app tap.
-                private val binder = cards.binder(afterLaunch = { hideDrawer() })
-
-                override fun onShown() = cardActivation.acquire(this)
-
-                override fun onHidden() = cardActivation.release(this)
-
-                override fun activatedCards() = cardActivation.activated()
-
-                override fun cardView(
-                    parent: android.view.ViewGroup,
-                    card: com.supernova.launcher.feed.FeedCard
-                ): View {
-                    val popup = com.supernova.launcher.ui.theme.Styles
-                        .resolve(this@LauncherActivity, viewModel.state.value.prefs)
-                        .of(com.supernova.launcher.ui.theme.SurfaceId.POPUP)
-                    binder.setAppearance(popup.surface, popup.text, popup.accent)
-                    val binding = binder.inflate(parent)
-                    binder.bind(binding, card)
-                    return binding.root
-                }
             }
         )
-        cardActivation.addListener { if (drawer.isVisible) drawer.refreshCards() }
         // Covers every close path (back, close button, drag-dismiss); opening
         // is also triggered directly from openDrawer for immediacy.
         drawer.onOpenStateChanged = { open ->
@@ -1479,8 +1501,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             binding = binding,
             viewModel = viewModel,
             scope = lifecycleScope,
-            activation = cardActivation,
-            cardBinder = cards.binder(afterLaunch = null),
+            // In the feed a long-press picks a card up; its menu opens when
+            // it is let go unmoved.
+            cardBinder = cards.binder(afterLaunch = null, inFeed = true),
             canPullFromWorkspace = ::feedPullAllowed,
             itemDragArmed = { drag.isArmed || drag.isActive },
             host = object : FeedController.Host {
@@ -1488,16 +1511,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     feed.setBehindSearch(true)
                     search.open()
                 }
-
-                override fun launchApp(anchor: View?, app: LaunchableApp) {
-                    this@LauncherActivity.launchApp(app, anchor)
-                }
-
-                override fun launchTarget(
-                    type: com.supernova.launcher.feed.FeaturedType,
-                    target: String,
-                    anchor: View?
-                ) = cards.launchTarget(type, target)
 
                 override fun requestCalendarPermission() {
                     requestFeedCalendarPermission.launch(android.Manifest.permission.READ_CALENDAR)
@@ -1537,7 +1550,11 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     }
                 }
 
-                override fun editCard(card: com.supernova.launcher.feed.FeedCard?) = cards.edit(card)
+                override fun addCard() = cards.add()
+
+                override fun addWidgetCard() = cards.addWidget()
+
+                override fun addShortcutsCard() = cards.edit(null)
 
                 override fun openFeedSettings() {
                     startActivity(
@@ -1559,17 +1576,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             },
             leftEdgeTaken = { viewModel.state.value.prefs.let { it.feedEnabled && it.feedEdgeSwipe } }
         )
-        // Card edits re-arm the shared monitor (new Wi-Fi/Bluetooth needs)
-        // and refresh whichever surface is showing cards. The feed collects
-        // the same emission itself.
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.state.map { it.model.feedCards }.distinctUntilChanged().collect {
-                    cardActivation.refresh()
-                    if (drawer.isVisible) drawer.refreshCards()
-                }
-            }
-        }
         // A launch from the drawer leaves it open behind the app (unless Close
         // drawer after launching is on), so its frequent row catches up here
         // rather than on the next open. The feed pane watches for itself.
@@ -1670,6 +1676,19 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
     // dockRememberPosition: pull the persisted page back in (0 when the pref
     // is off); renderDock clamps it against the current page count.
+    // Back to the dock's main page (page 0, the middle one): a Home press on
+    // the home screen and the Default page action slide it there; leaving home
+    // with Remember position off puts it there unseen.
+    private fun showMainDockPage(animate: Boolean) {
+        if (dockPage == 0) return
+        val state = viewModel.state.value
+        val direction = com.supernova.launcher.ui.DockPages.direction(dockPage, 0, state.prefs.dockPages)
+        dockPage = 0
+        if (state.prefs.dockRememberPosition) viewModel.persistDockPage(0)
+        // Not yet bindable: the emission that flips iconsReady renders page 0.
+        if (state.iconsReady) renderDock(state, slide = if (animate) direction else 0)
+    }
+
     private fun restoreDockPage() {
         lifecycleScope.launch {
             val saved = viewModel.restoredDockPage()
@@ -1741,6 +1760,10 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                             last.prefs.drawerGroups != state.prefs.drawerGroups ||
                             last.model.appOverrides != state.model.appOverrides)
                     ) {
+                        search.refresh()
+                    } else if (last != null && last.pausedWorkProfiles != state.pausedWorkProfiles) {
+                        // Work apps pausing or turning back on greys or
+                        // restores their icons in the results.
                         search.refresh()
                     }
                     workspaceAdapter.refresh()
@@ -1908,18 +1931,30 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // force: the dock's content changed without anything in its signature
     // moving. Two callers need it - a badge count, and the day rolling over
     // under a calendar icon - because neither lives in the prefs or the model.
-    private fun renderDock(state: LauncherUiState, force: Boolean = false) {
+    // slide: a page turn to animate, 1 when the new page comes in from the
+    // right and -1 from the left; 0 rebuilds in place.
+    // A page turn slides when animations are on and the dock is on screen,
+    // never under a drag (its drop lookup reads the slots' places).
+    private fun dockSlides(slide: Int, prefs: LauncherPrefs): Boolean {
+        val wanted = slide != 0 && Animations.enabled(prefs)
+        return wanted && binding.dockBar.isShown && !drag.isActive
+    }
+
+    private fun renderDock(state: LauncherUiState, force: Boolean = false, slide: Int = 0) {
         val key = dockSignature(state)
         if (!force && renderedDock == key) return
         renderedDock = key
         val prefs = state.prefs
+        dockSlide.cancel()
+        val leaving = if (dockSlides(slide, prefs)) dockSlide.capture() else null
         binding.dockBar.removeAllViews()
         if (!prefs.dockEnabled) {
             applyDockChrome(prefs)
             return
         }
 
-        if (dockPage >= prefs.dockPages) dockPage = prefs.dockPages - 1
+        // Fewer pages than the one showing: back to the main page.
+        if (dockPage >= prefs.dockPages) dockPage = 0
         val dockByRank = viewModel.dockItems().associateBy { it.rank }
         val rankBase = dockPage * prefs.dockCount
         // What each icon column has to work with, so the icon can be sized to
@@ -1971,6 +2006,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // up whether or not its neighbour's label wrapped. The chrome goes on
         // after the slots: the height it spaces from is theirs.
         applyDockChrome(prefs)
+        leaving?.let { dockSlide.play(it, slide, Animations.duration(prefs, DOCK_SLIDE_MS)) }
     }
 
     // Everything the dock draws from. renderDock tears the row down with
@@ -1988,13 +2024,15 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             "${item.id}:${item.rank}:${item.label}:${item.packageName}/${item.className}" +
                 // The swipes decide the icon's touch handling and its mark.
                 ":${item.swipeAction}:${item.swipeActionDown}:${item.swipeToOpen}" +
+                PausedIcon.mark(state, item.userSerial) +
                 FolderIconDrawable.customIconKey(item) +
                 // A folder's icon is drawn from its members, which are not
                 // dock items themselves, or from its own custom icon.
                 if (item.itemType == ItemType.FOLDER) {
                     viewModel.folderMembers(item.id)
                         .joinToString(",", "[", "]") {
-                            "${it.id}:${it.packageName}/${it.className}/${it.shortcutEdit?.hashCode()}"
+                            "${it.id}:${it.packageName}/${it.className}/${it.shortcutEdit?.hashCode()}" +
+                                PausedIcon.mark(state, it.userSerial)
                         }
                 } else {
                     ""
@@ -2122,6 +2160,18 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // no slot to stay inside: the canvas places an item by its centre, and a
     // big icon's item may be larger than its cell.
     override fun desktopIconBoxPx(prefs: LauncherPrefs): Int = (dp(ICON_BASE_DP) * prefs.iconScale).toInt()
+
+    // How many cells a side a desktop icon takes, and how many times the
+    // desktop size its icon is drawn: 2 for a large icon.
+    private fun iconSpan(item: LauncherItem): Int = if (item.isLargeIcon) LARGE_ICON_SPAN else 1
+
+    // The room a large icon takes: its box `span` times the size, the
+    // padding and label as they are.
+    override fun desktopIconNeedPx(prefs: LauncherPrefs, span: Int): android.util.Size {
+        val need = desktopIconNeedPx(prefs)
+        val grow = desktopIconBoxPx(prefs) * (span - 1)
+        return android.util.Size(need.width + grow, need.height + grow)
+    }
 
     // The room a desktop icon takes at its own size: its box inside the
     // item's padding, over a line of label when labels show. A cell smaller
@@ -2488,10 +2538,11 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     //
     // Returns whether any of it was actually open, which the home press needs
     // to tell a press with a job to do from a second press with none.
-    // keepDrawer spares the drawer alone (the drawerAutoClose pref), and
-    // animate = false makes the whole reset instant, for a screen nobody is
-    // looking at.
-    private fun resetToHome(animate: Boolean, keepDrawer: Boolean): Boolean {
+    // keepDrawer spares the drawer alone (the drawerAutoClose pref), keepPage
+    // the page (a press that only closed the private space's unlock prompt),
+    // and animate = false makes the whole reset instant, for a screen nobody
+    // is looking at.
+    private fun resetToHome(animate: Boolean, keepDrawer: Boolean, keepPage: Boolean = false): Boolean {
         var closed = false
         homeMenuDialog?.let {
             it.dismiss()
@@ -2530,7 +2581,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             search.hide()
             closed = true
         }
-        binding.workspacePager.setCurrentItem(defaultPagePosition(), animate)
+        if (!keepPage) binding.workspacePager.setCurrentItem(defaultPagePosition(), animate)
         return closed
     }
 
@@ -2542,6 +2593,15 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        // Settings' Add card chose a widget: the feed opens and the picker
+        // comes up over it (only the launcher can bind one).
+        if (intent.getBooleanExtra(EXTRA_ADD_FEED_WIDGET, false)) {
+            intent.removeExtra(EXTRA_ADD_FEED_WIDGET)
+            com.supernova.launcher.ui.OpenDialogs.dismissAll(this)
+            if (viewModel.state.value.prefs.feedEnabled) feed.open()
+            cards.addWidget()
+            return
+        }
         // Home press re-delivers MAIN/HOME to the singleTask instance: reset to
         // the default page with drawer and menus closed, like every launcher does.
         // cameFromBackground separates the two presses that land here: one made
@@ -2553,14 +2613,19 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // itself is frontmost still resets it like any launcher.
         val keepDrawerOpen = !viewModel.state.value.prefs.drawerAutoClose && cameFromBackground
         // Read before the reset moves the pager off it.
-        val wasOnDefaultPage = binding.workspacePager.currentItem == defaultPagePosition()
+        // The dock counts too: a press on home with the dock on a side page
+        // brings it back to its main page rather than running the action.
+        val wasOnDefaultPage = binding.workspacePager.currentItem == defaultPagePosition() && dockPage == 0
         // Whether this press had a job of its own. Anything dismissed by the
         // reset is what the press was for, so the home-button action stays out
         // of it.
         // A sheet or dialog left open is one too: the Edit sheet stayed up
         // and the drawer opened behind it (#91). `or`, so both run.
         // A private space card still waiting on its unlock is called off too,
-        // and a swipe home over its unlock prompt is that prompt's close.
+        // and a swipe home over its unlock prompt is that prompt's close:
+        // the home screen stays on its page under it (#135), even when the
+        // prompt finished as the swipe began and the launcher is already
+        // back in front.
         val promptClosed = privateSpaceCard.cancelPending()
         // With animations off (the launcher's or the system's) home lands
         // at once instead of scrolling past every page in between (#123).
@@ -2568,8 +2633,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         // A folder card the same swipe closed on its first touch (#110), read
         // after the reset, whose own closes don't count twice.
         val closed = com.supernova.launcher.ui.OpenDialogs.dismissAll(this) or
-            resetToHome(animate = scroll, keepDrawer = keepDrawerOpen) or
+            resetToHome(animate = scroll, keepDrawer = keepDrawerOpen, keepPage = promptClosed) or
             cardSwipeClose.takeFor(SystemClock.uptimeMillis()) or promptClosed
+        // A press on the home screen itself also slides the dock back to its
+        // main page. One made in another app leaves it, unless onStop already
+        // put it there (Remember position off).
+        if (!cameFromBackground && !promptClosed) showMainDockPage(animate = scroll)
         // The double-home action: pressing home when there was nothing to
         // close and nowhere to scroll runs the configured action instead of
         // no-opping. homeButtonAction supersedes the legacy homeSearch flag
@@ -2786,6 +2855,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         userSerial: Long,
         anchor: View? = null
     ) {
+        // A paused work app's shortcut can't start (an app itself gets the
+        // system's own prompt): offer to turn work apps back on instead.
+        if (userSerial in viewModel.state.value.pausedWorkProfiles) {
+            offerTurnOnWorkApps()
+            return
+        }
         val launcherApps = getSystemService(LauncherApps::class.java) ?: return
         val user = viewModel.appCatalog().userForSerial(userSerial) ?: Process.myUserHandle()
         launchWithAnimation(anchor) { bounds, options ->
@@ -2798,6 +2873,14 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 Toast.makeText(this, R.string.shortcut_failed, Toast.LENGTH_SHORT).show()
             }.isSuccess
         }
+    }
+
+    private fun offerTurnOnWorkApps() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.work_apps_paused_title)
+            .setPositiveButton(R.string.work_apps_turn_on) { _, _ -> viewModel.setWorkPaused(false) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     // Fires an arbitrary intent stored on an item (an activity chosen from the
@@ -2865,7 +2948,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         }
         if (PopupExtraRow.CLOSE_APP in extras) {
             menu.addRow(getString(R.string.popup_row_close_app), R.drawable.ic_menu_close_app) {
-                closeApp(app.packageName)
+                closeApp(app.packageName, app.label)
             }
         }
         if (PopupExtraRow.RELAUNCH in extras) {
@@ -3000,11 +3083,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 startActivity(viewModel.appCatalog().uninstallIntent(app.packageName, app.userSerial))
             }
         }
-        menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) {
+        menu.addRow(getString(R.string.edit_icon), R.drawable.ic_menu_edit) {
             source?.dismiss()
-            AppEditSheet.show(this, lifecycleScope, viewModel, app, ::pickPhoto)
+            AppEditSheet.show(this, lifecycleScope, viewModel, app, ::pickPhoto, fromDrawer = true)
         }
-        // A hidden app only gets here through search, whatever the row setting.
+        // A hidden app only gets here through search or Show hidden apps,
+        // whatever the row setting.
         if (viewModel.isAppHidden(app)) {
             menu.addRow(getString(R.string.unhide_app), R.drawable.ic_menu_hide) {
                 viewModel.setAppHidden(app, false)
@@ -3015,8 +3099,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 viewModel.setAppHidden(app, true)
                 source?.dismiss()
                 // Where it went, and the way back.
+                // Raised over the drawer and the search window it was hidden
+                // from: at its own elevation it drew under them, and a tap
+                // on Undo opened the app beneath (#137).
                 Snackbar.make(binding.root, getString(R.string.app_hidden, app.label), Snackbar.LENGTH_LONG)
                     .setAction(R.string.undo) { viewModel.setAppHidden(app, false) }
+                    .apply { view.elevation = dp(OVER_OVERLAYS_ELEVATION_DP) }
                     .show()
             }
         }
@@ -3187,13 +3275,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     menu.addRow(getString(R.string.select_apps), R.drawable.ic_menu_select_apps) {
                         showFolderChecklist(item)
                     }
-                    // An A-Z folder shows its apps sorted whatever their order.
-                    if (!viewModel.state.value.prefs.folderSortAz) {
-                        menu.addRow(getString(R.string.sort), R.drawable.ic_menu_sort) {
-                            viewModel.sortFolder(item.id)
-                        }
+                    menu.addRow(getString(R.string.sort), R.drawable.ic_menu_sort) {
+                        sortFolderWithUndo(item.id)
                     }
+                    addIconSizeRow(menu, item)
                 }
+                addMoveToDrawerRow(menu, item)
                 // Folder Edit: name, icon, Swipe to open folder and the swipe
                 // actions in one sheet, as an app's Edit holds its label, icon
                 // and swipes - and like an app's, it keeps the name and icon
@@ -3266,6 +3353,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                         widgets.showPickerFor(item.packageName)
                     }
                 }
+                if (!locked) addIconSizeRow(menu, item)
                 // A launcher action or a picked activity has no package, and
                 // the row did nothing for it.
                 item.packageName?.let { pkg ->
@@ -3273,7 +3361,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                         viewModel.appCatalog().openAppInfo(pkg, item.className, item.userSerial)
                     }
                 }
-                menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) {
+                menu.addRow(getString(R.string.edit_icon), R.drawable.ic_menu_edit) {
                     showItemEditSheet(item, allowSwipe = !locked)
                 }
                 item.toLaunchableApp()?.let { app ->
@@ -3308,6 +3396,21 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         return menu
     }
 
+    // Large icon / Normal icon, for an icon or folder on the desktop: a large
+    // one takes 2x2 cells and draws its icon twice the size. A grid too
+    // small for one has no row; a page with no room says so.
+    private fun addIconSizeRow(menu: SupernovaPopupMenu, item: LauncherItem) {
+        if (item.container != ContainerType.WORKSPACE) return
+        val prefs = viewModel.state.value.prefs
+        val large = item.isLargeIcon
+        if (!large && (prefs.gridCols < LARGE_ICON_SPAN || prefs.gridRows < LARGE_ICON_SPAN)) return
+        menu.addRow(getString(if (large) R.string.normal_icon else R.string.large_icon), R.drawable.ic_menu_resize) {
+            if (!viewModel.setIconSize(item.id, !large)) {
+                Toast.makeText(this, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     // Edit for a placed workspace item: the app-level fields (label, icon)
     // plus per-item swipe gestures, so the popup menu stays minimal.
     private fun showItemEditSheet(item: LauncherItem, allowSwipe: Boolean) {
@@ -3330,7 +3433,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             null
         } else {
             AppEditSheet.ShortcutEdit(
-                item.label, item.shortcutEdit ?: AppOverride(), pinnedShortcutLabel(item)
+                item.label, item.shortcutEdit ?: AppOverride(), pinnedShortcutLabel(item),
+                // Drawn as the item is on home, with the edit in the sheet.
+                preview = { edit ->
+                    itemIcons.intentItemIcon(item.copy(shortcutEdit = edit))
+                        ?: app?.let { viewModel.appCatalog().iconFor(it) }
+                }
             ) { label, edit -> viewModel.editShortcut(item.id, label, edit) }
         }
         if (app == null && shortcut == null) return
@@ -3391,6 +3499,124 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 if (undoSnackbar !== transientBottomBar) return
                 undoSnackbar = null
                 if (event != DISMISS_EVENT_ACTION) removeEmptyPages(emptied = item.desktopPage())
+            }
+        })
+        undoSnackbar = snackbar
+        snackbar.show()
+    }
+
+    // A folder's Sort rewrites its stored order, so the order it had stays an
+    // Undo away (#136). `window` is a view in the window the bar shows in
+    // (null: the activity's); `refresh` is handed the model from before each
+    // change, to redraw an open folder once that change is saved.
+    private fun sortFolderWithUndo(
+        folderId: String,
+        window: View? = null,
+        refresh: ((com.supernova.launcher.data.LauncherModel) -> Unit)? = null
+    ) {
+        val host = window ?: binding.root
+        val members = viewModel.folderMembers(folderId)
+        val manual = members.map { it.id }
+        val model = viewModel.state.value.model
+        viewModel.sortFolder(folderId)
+        refresh?.invoke(model)
+        // Already A-Z: nothing to take back.
+        if (com.supernova.launcher.data.LabelOrder.sorted(members) { it.label }.map { it.id } == manual) return
+        val bar = Snackbar
+            .make(host, R.string.folder_sorted, UNDO_DURATION_MS)
+            .setAction(R.string.undo) {
+                val sorted = viewModel.state.value.model
+                viewModel.reorderFolder(folderId, manual)
+                refresh?.invoke(sorted)
+            }
+        if (host === binding.root && binding.dockBar.isVisible) bar.anchorView = binding.dockBar
+        bar.show()
+    }
+
+    // Move to drawer, in a home or dock folder's menus: offered on an
+    // unlocked desktop, for a folder holding an app. `first` runs before the
+    // dialog opens (the open folder closes).
+    private fun addMoveToDrawerRow(menu: SupernovaPopupMenu, folder: LauncherItem, first: () -> Unit = {}) {
+        val movable = FolderToDrawer.movable(viewModel.folderMembers(folder.id))
+        if (desktopLocked || movable.isEmpty()) return
+        menu.addRow(getString(R.string.move_to_drawer), R.drawable.ic_menu_export) {
+            first()
+            promptMoveFolderToDrawer(folder)
+        }
+    }
+
+    // Move to drawer: a home or dock folder becomes a drawer folder, on the
+    // main list or in a tab, or a tab of its own. Its apps go with it; what a
+    // drawer group can't hold (shortcuts, contacts) stays on the home screen.
+    private fun promptMoveFolderToDrawer(folder: LauncherItem) {
+        val members = viewModel.folderMembers(folder.id)
+        val apps = FolderToDrawer.movable(members).size
+        val stays = members.size - apps
+        val name = FolderToDrawer.uniqueName(folder.label, viewModel.drawerGroups().map { it.name })
+        val view = DialogMoveToDrawerBinding.inflate(layoutInflater)
+        val iconSize = resources.getDimensionPixelSize(R.dimen.move_folder_icon)
+        val icon = itemIcons.folderPreviewDrawable(folder).apply { setBounds(0, 0, iconSize, iconSize) }
+        view.moveFolderSummary.setCompoundDrawablesRelative(icon, null, null, null)
+        // The folder as the home screen names it; the drawer may number it.
+        val shown = FolderToDrawer.uniqueName(folder.label, emptyList())
+        view.moveFolderSummary.text = resources.getQuantityString(R.plurals.move_to_drawer_summary, apps, shown, apps)
+        view.moveTabHint.text = getString(R.string.move_to_drawer_tab_hint, name)
+        view.moveLeftBehind.isVisible = stays > 0
+        view.moveLeftBehind.text = resources.getQuantityString(R.plurals.move_to_drawer_stays, stays, stays)
+        val tabTargets = addMoveTabChips(view.moveTabs)
+        view.moveType.addOnButtonCheckedListener { _, id, checked ->
+            if (!checked) return@addOnButtonCheckedListener
+            view.moveTabSection.isVisible = id == R.id.moveAsFolder
+            view.moveTabHint.isVisible = id == R.id.moveAsTab
+        }
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.move_to_drawer)
+            .setView(view.root)
+            .show()
+        view.moveCancel.setOnClickListener { dialog.dismiss() }
+        view.moveConfirm.setOnClickListener {
+            dialog.dismiss()
+            val target = if (view.moveType.checkedButtonId == R.id.moveAsTab) {
+                DrawerTarget.OwnTab
+            } else {
+                tabTargets[view.moveTabs.checkedChipId] ?: DrawerTarget.MainList
+            }
+            viewModel.moveFolderToDrawer(folder, target)?.let(::showFolderMovedBar)
+        }
+    }
+
+    // The Put it in chips: All, then each drawer tab, All chosen. Returns
+    // each chip's id with the place it stands for.
+    private fun addMoveTabChips(group: ChipGroup): Map<Int, DrawerTarget> {
+        val targets = listOf(DrawerTarget.MainList) +
+            viewModel.drawerTabGroups().map { DrawerTarget.InTab(it.name) }
+        val byId = targets.associateBy { View.generateViewId() }
+        byId.forEach { (id, target) ->
+            val chip = layoutInflater.inflate(R.layout.chip_move_tab, group, false) as Chip
+            chip.id = id
+            chip.text = if (target is DrawerTarget.InTab) target.tab else getString(R.string.drawer_all)
+            group.addView(chip)
+        }
+        group.check(byId.keys.first())
+        return byId
+    }
+
+    // Says what stayed on the home screen, and offers the move back.
+    private fun showFolderMovedBar(move: com.supernova.launcher.data.FolderMove) {
+        val text = if (move.leftBehind == 0) {
+            getString(R.string.moved_to_drawer)
+        } else {
+            resources.getQuantityString(R.plurals.moved_to_drawer_left_behind, move.leftBehind, move.leftBehind)
+        }
+        val snackbar = Snackbar.make(binding.root, text, UNDO_DURATION_MS)
+            .setAction(R.string.undo) { viewModel.undoFolderMove(move) }
+        if (binding.dockBar.isVisible) snackbar.anchorView = binding.dockBar
+        val page = move.items.first().desktopPage()
+        snackbar.addCallback(object : Snackbar.Callback() {
+            override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+                if (undoSnackbar !== transientBottomBar) return
+                undoSnackbar = null
+                if (event != DISMISS_EVENT_ACTION) removeEmptyPages(emptied = page)
             }
         })
         undoSnackbar = snackbar
@@ -3466,16 +3692,19 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         }
     }
 
-    private fun closeApp(packageName: String, toast: Boolean = true) {
+    // Android only lets a launcher end an app's background processes, and
+    // from Android 14 on not even those of another app, so the toast says
+    // what was asked rather than claiming the app closed (#169).
+    private fun closeApp(packageName: String, label: CharSequence, toast: Boolean = true) {
         runLogged("close app") {
             getSystemService(android.app.ActivityManager::class.java)
                 ?.killBackgroundProcesses(packageName)
         }
-        if (toast) Toast.makeText(this, R.string.app_closed, Toast.LENGTH_SHORT).show()
+        if (toast) Toast.makeText(this, getString(R.string.app_closed, label), Toast.LENGTH_SHORT).show()
     }
 
     private fun relaunchApp(app: LaunchableApp) {
-        closeApp(app.packageName, toast = false)
+        closeApp(app.packageName, app.label, toast = false)
         launchApp(app)
     }
 
@@ -3569,7 +3798,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 viewModel.appCatalog().openAppInfo(pkg, member.className, member.userSerial)
             }
         }
-        menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) {
+        menu.addRow(getString(R.string.edit_icon), R.drawable.ic_menu_edit) {
             // The folder closes first: as a focusable window it
             // would keep the keyboard from the sheet's name field.
             closeFolder()
@@ -3631,19 +3860,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         var memberMenu: SupernovaPopupMenu? = null
 
         // The folder shows its members again once a change is saved - waited
-        // for, not guessed at with a delay - and in the order it shows them:
-        // re-listed in stored order, an A-Z folder jumped out of order after
-        // every action.
+        // for, not guessed at with a delay.
         fun applied(before: com.supernova.launcher.data.LauncherModel) {
             lifecycleScope.launch {
                 withTimeoutOrNull(FOLDER_SAVE_WAIT_MS) { viewModel.state.first { it.model !== before } }
                 val remaining = viewModel.folderMembers(folder.id)
-                when {
-                    remaining.isEmpty() -> popup?.dismiss()
-                    viewModel.state.value.prefs.folderSortAz ->
-                        folderAdapter?.submit(com.supernova.launcher.data.LabelOrder.sorted(remaining) { it.label })
-                    else -> folderAdapter?.submit(remaining)
-                }
+                if (remaining.isEmpty()) popup?.dismiss() else folderAdapter?.submit(remaining)
             }
         }
 
@@ -3660,8 +3882,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             // An app in a home folder is a home icon like any other: its
             // menu while the finger is held, and a drag once it moves - to
             // another place in the folder, or out past the card's edge onto
-            // the home screen or the dock. An A-Z folder has no order of its
-            // own to change, so its apps only come out. The card is its own
+            // the home screen or the dock. The card is its own
             // window, so the gesture's touches come in through its
             // interceptor (below), not dispatchTouchEvent.
             onLongPress = { memberView, member ->
@@ -3672,7 +3893,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                         memberMenu = it
                     }
                 }
-                reorder?.takeUnless { viewModel.state.value.prefs.folderSortAz }?.let(drag::armWindowDrag)
+                reorder?.let(drag::armWindowDrag)
             }
         )
         adapter.decorateIcon = { icon, member ->
@@ -3691,7 +3912,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             members = viewModel.folderMembers(folder.id),
             adapter = adapter,
             columnsOverride = prefs.folderColumns,
-            sortAz = prefs.folderSortAz,
             mode = prefs.folderMode,
             scroll = prefs.folderScroll,
             surfaceColor = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
@@ -3720,13 +3940,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                     popup?.dismiss()
                     showFolderChecklist(folder)
                 }
-                if (!viewModel.state.value.prefs.folderSortAz) {
-                    menu.addRow(getString(R.string.sort), R.drawable.ic_menu_sort) {
-                        val before = viewModel.state.value.model
-                        viewModel.sortFolder(folder.id)
-                        applied(before)
-                    }
+                menu.addRow(getString(R.string.sort), R.drawable.ic_menu_sort) {
+                    // The folder's window covers the activity's, so its
+                    // Undo bar shows in the folder's own window.
+                    sortFolderWithUndo(folder.id, popup?.contentView, ::applied)
                 }
+                addMoveToDrawerRow(menu, folder) { popup?.dismiss() }
                 drag.activeItemPopup = menu
                 menu.show(button)
                 menu.makeModal()
@@ -3875,7 +4094,6 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             members = items,
             adapter = adapter,
             columnsOverride = prefs.folderColumns,
-            sortAz = prefs.folderSortAz,
             mode = prefs.folderMode,
             scroll = prefs.folderScroll,
             surfaceColor = com.supernova.launcher.ui.theme.Styles.resolve(this, prefs)
@@ -3957,6 +4175,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
                 showDrawerGroupChecklist(group)
             }
         }
+        // Tracked as the item menus are, so back and home close it.
+        drag.activeItemPopup = menu
         menu.show(anchor)
     }
 
@@ -4242,8 +4462,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             // item now measures what it draws, so the label sits below the
             // icon at any size. The label fills the item, which the page's
             // canvas widens to its cell (WorkspaceCanvas), so it runs the
-            // cell's width, whatever the icon's size.
-            val box = desktopIconBoxPx(prefs)
+            // cell's width, whatever the icon's size. A large icon's box is
+            // twice the size, over its 2x2 cells.
+            val box = desktopIconBoxPx(prefs) * iconSpan(item)
             iconBinding.icon.updateLayoutParams { width = box; height = box }
         }
         val displayLabel = override?.customLabel ?: item.label
@@ -4254,7 +4475,7 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             else com.supernova.launcher.ui.LabelContext.DESKTOP
         )
         iconBinding.label.visibility = if (labelVisible) View.VISIBLE else View.GONE
-        if (!inDock) iconBinding.root.setTag(R.id.tag_icon_fit, desktopIconFit(iconBinding, prefs))
+        if (!inDock) iconBinding.root.setTag(R.id.tag_icon_fit, desktopIconFit(iconBinding, prefs, iconSpan(item)))
         // Announce what the icon actually is; the label may be hidden.
         iconBinding.root.contentDescription = when (item.itemType) {
             ItemType.FOLDER -> getString(R.string.folder_desc, displayLabel)
@@ -4304,12 +4525,12 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     // page's canvas decides: icon, label and padding by the same scale, and
     // the label on one line, so icons in a dense grid stay clear of their
     // neighbours. Scale 1 puts it back as bound.
-    private fun desktopIconFit(iconBinding: ItemIconBinding, prefs: LauncherPrefs): WorkspaceCanvas.IconFit {
-        val box = desktopIconBoxPx(prefs)
+    private fun desktopIconFit(iconBinding: ItemIconBinding, prefs: LauncherPrefs, span: Int): WorkspaceCanvas.IconFit {
+        val box = desktopIconBoxPx(prefs) * span
         val textPx = iconBinding.label.textSize
         val lines = iconBinding.label.maxLines
         val pad = iconBinding.root.paddingTop
-        val need = desktopIconNeedPx(prefs)
+        val need = desktopIconNeedPx(prefs, span)
         return WorkspaceCanvas.IconFit(need.width, need.height) { scale ->
             val size = (box * scale).roundToInt()
             iconBinding.icon.updateLayoutParams { width = size; height = size }
@@ -4642,6 +4863,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
     }
 
     companion object {
+        // Settings' Add card → Widget: pick and bind one onto a new feed card.
+        const val EXTRA_ADD_FEED_WIDGET = "extra_add_feed_widget"
+
         // Same vertical bias the gesture detector uses for swipe-up/down.
         private const val DRAWER_PULL_BIAS = 1.2f
         // How long the Circle takes to fill the screen before the app opens.
@@ -4652,6 +4876,9 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
 
         // Undo snackbar lifetime after a removal.
         private const val UNDO_DURATION_MS = 4000
+        // Above the drawer (12dp), the edit sheet (14dp) and the search
+        // window (16dp); below the drop targets (20dp).
+        private const val OVER_OVERLAYS_ELEVATION_DP = 18f
 
         // The icon box and item padding item_icon declares, and the padding a
         // dock icon column keeps around it instead. Kept here because the
@@ -4664,6 +4891,8 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
         private const val DOCK_ITEM_PADDING_H_DP = 2
         private const val DOCK_ITEM_PADDING_V_DP = 4
         private const val DOCK_SLOT_PADDING_V_DP = 2
+        // A dock page turn; Launcher3 settles a flicked page in about this.
+        private const val DOCK_SLIDE_MS = 300L
         // The dock background's room above and below the icons.
         private const val DOCK_BG_PADDING_V_DP = 8
 

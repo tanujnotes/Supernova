@@ -95,8 +95,12 @@ internal object LayoutConverter {
             }
         }
 
+        // A backup with the drawer's tabs and folders has them as that
+        // launcher sorted them: Smart Folders go off, so no folder made here
+        // sorts the same apps a second time.
         private fun prefs(dockPages: Int): LauncherPrefs {
             val grid = layout.grid
+            val groups = layout.groups
             return base.copy(
                 gridCols = cols,
                 gridRows = rows,
@@ -107,7 +111,9 @@ internal object LayoutConverter {
                 drawerColumns = grid.drawerCols?.let { Pref.drawerColumns.clamped(max(1, it)) } ?: base.drawerColumns,
                 drawerRows = grid.drawerRows?.let { Pref.drawerRows.clamped(max(1, it)) } ?: base.drawerRows,
                 folderColumns = grid.folderCols?.let { Pref.folderColumns.clamped(max(1, it)) } ?: base.folderColumns,
-                drawerGroups = DrawerGroupConverter.merged(layout.groups, base.drawerGroups, maker.phone)
+                smartFolders = base.smartFolders && groups == null,
+                drawerGroups = groups?.let { DrawerGroupConverter.merged(it, base.drawerGroups, maker.phone) }
+                    ?: base.drawerGroups
             )
         }
 

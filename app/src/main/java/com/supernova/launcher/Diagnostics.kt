@@ -22,6 +22,8 @@ object Diagnostics {
     // A failure on a hot path (a scroll frame, a bind) repeats: logcat hears
     // the first few of a kind, the file only the first.
     private const val LOGCAT_REPEATS = 3
+    // Notes are rare and each one differs, so the file keeps a few.
+    private const val NOTE_REPEATS = 5
     private const val MAX_LOG_BYTES = 256 * 1024L
     private const val FRAMES = 8
 
@@ -49,6 +51,23 @@ object Diagnostics {
             runCatching { if (file.length() < MAX_LOG_BYTES) file.appendText(entry) }
         }
     }
+
+    // A failure with no exception behind it (an answer that found nothing
+    // waiting for it, say): `detail` is what a report needs to explain it.
+    // Logcat hears every one; the file takes the first few of a kind.
+    fun note(what: String, detail: String) {
+        val times = seen.merge("note/$what", 1, Int::plus) ?: 1
+        runCatching { Log.w(TAG, "$what\n$detail") }
+        val file = log ?: return
+        if (times > NOTE_REPEATS) return
+        val entry = noteEntry(what, detail, Instant.now())
+        writer.execute {
+            runCatching { if (file.length() < MAX_LOG_BYTES) file.appendText(entry) }
+        }
+    }
+
+    internal fun noteEntry(what: String, detail: String, at: Instant): String =
+        "\n$CAUGHT_ENTRY$at note: $what\n${detail.trimEnd()}\n"
 
     // What failed, the exception, and where: the top of the stack plus the
     // first frame of this app's own code, which a framework exception buries.

@@ -88,6 +88,7 @@ object FolderEditSheet {
             onEditSwipe(true) { picked -> downLabel = picked; renderSwipes() }
         }
 
+        binding.cancelButton.setOnClickListener { dialog.dismiss() }
         binding.saveButton.setOnClickListener {
             val typed = binding.editLabel.text?.toString().orEmpty().trim()
             if (typed.isNotEmpty() && typed != originalName) {
@@ -130,6 +131,7 @@ object FolderEditSheet {
         binding.swipeDownRow.visibility = View.GONE
         bindIconRows(scope, viewModel, binding, icon, pickPhoto)
 
+        binding.cancelButton.setOnClickListener { dialog.dismiss() }
         binding.saveButton.setOnClickListener {
             val typed = binding.editLabel.text?.toString().orEmpty().trim()
             val name = if (typed.isEmpty()) group.name else viewModel.renameGroup(group, typed)
@@ -159,7 +161,10 @@ object FolderEditSheet {
         val savedRaw: Boolean get() = raw && isCustom
     }
 
+    // A folder's sheet keeps its name, icon and swipe rows; the preview,
+    // style and shape are an app's.
     private fun hideAppRows(binding: SheetAppEditBinding) {
+        binding.previewCard.visibility = View.GONE
         binding.hideLabelRow.visibility = View.GONE
         binding.shapeRow.visibility = View.GONE
         binding.variantRow.visibility = View.GONE

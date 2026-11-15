@@ -112,7 +112,9 @@ class SearchController(
         var appliedStyle: List<Any?>? = null
         val orchestrator: SearchOrchestrator = buildOrchestrator(cards != null)
         val adapter: SearchResultsAdapter =
-            SearchResultsAdapter(viewModel.appCatalog(), adapterCallbacks(this)).also { created ->
+            SearchResultsAdapter(viewModel.appCatalog(), adapterCallbacks(this)) {
+                viewModel.state.value.pausedWorkProfiles
+            }.also { created ->
                 cards?.let(created::setCardBinder)
                 results.adapter = created
                 results.itemAnimator = null
@@ -449,10 +451,10 @@ class SearchController(
         surface.appliedStyle = key
         val styles = Styles.resolve(binding.root.context, prefs)
         val plate = styles.of(SurfaceId.DRAWER)
-        val popup = styles.of(SurfaceId.POPUP)
+        val cards = styles.of(SurfaceId.CARDS)
         surface.adapter.columns = columns
-        surface.adapter.setAppearance(prefs, plate.accent, plate.text, popup.surface, popup.text)
-        surface.cards?.setAppearance(popup.surface, popup.text, popup.accent)
+        surface.adapter.setAppearance(prefs, plate.accent, plate.text, cards.surface, cards.text)
+        surface.cards?.setAppearance(cards.surface, cards.text, cards.accent)
     }
 
     // Inline completion: when the best match starts with what was
@@ -680,7 +682,7 @@ class SearchController(
         ui.searchInput.setHintTextColor((0x99 shl 24) or (bar.text and 0xFFFFFF))
         ui.searchGhost.setTextColor((0x80 shl 24) or (bar.text and 0xFFFFFF))
         ui.searchGhost.typeface = ui.searchInput.typeface
-        val iconTint = ColorStateList.valueOf(bar.text)
+        val iconTint = ColorStateList.valueOf(SearchBarButtons.iconTint(bar.text))
         ImageViewCompat.setImageTintList(ui.searchIcon, iconTint)
         overlaySurface?.let { surface ->
             surface.appliedStyle = null

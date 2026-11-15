@@ -43,4 +43,21 @@ class DiagnosticsTest {
         // Crashes are counted by lines that open with CRASH_ENTRY.
         assertFalse(entry.lines().any { it.startsWith(SupernovaApp.CRASH_ENTRY) })
     }
+
+    @Test
+    fun `a note carries its detail and is not counted as a crash`() {
+        val entry = Diagnostics.noteEntry(
+            "widget add: interrupted at the setup screen",
+            "process 3s old, screen 3s old, no saved state\n",
+            Instant.parse("2026-11-14T10:00:00Z")
+        )
+        assertEquals(
+            listOf(
+                "--- 2026-11-14T10:00:00Z note: widget add: interrupted at the setup screen",
+                "process 3s old, screen 3s old, no saved state"
+            ),
+            entry.trim().lines()
+        )
+        assertFalse(entry.lines().any { it.startsWith(SupernovaApp.CRASH_ENTRY) })
+    }
 }

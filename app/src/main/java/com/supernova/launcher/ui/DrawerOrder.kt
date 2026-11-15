@@ -13,8 +13,8 @@ class AppUsage(
     fun count(app: LaunchableApp): Int = launchCounts[keyOf(app)] ?: 0
 }
 
-// The drawer's orders: the app list by DrawerSort, the top row by
-// TopRowSort. Apps level on the measure keep name order (LabelOrder), so a
+// The drawer's orders: the app list by DrawerSort, the top row by how
+// recently its apps were opened. Apps level on the measure keep name order (LabelOrder), so a
 // list never shuffles between two opens.
 object DrawerOrder {
 
@@ -27,17 +27,9 @@ object DrawerOrder {
             DrawerSort.RECENTLY_USED -> recentlyUsed(apps, usage)
         }
 
-    // Up to `limit` apps for the row over the list.
-    fun topRow(apps: List<LaunchableApp>, sort: TopRowSort, usage: AppUsage, limit: Int): List<LaunchableApp> =
-        when (sort) {
-            TopRowSort.RECENTLY_USED -> recentRow(apps, usage, limit)
-            TopRowSort.MOST_USED -> mostUsedRow(apps, usage, limit)
-            TopRowSort.INSTALL_DATE -> byName(apps).sortedByDescending { it.installTime }.take(limit)
-            TopRowSort.ALPHA -> byName(recentRow(apps, usage, limit))
-        }
-
-    // The apps opened most recently. Until there is any recency to go on,
-    // the most launched stand in.
+    // Up to `limit` apps for the row over the list: the apps opened most
+    // recently. Until there is any recency to go on, the most launched
+    // stand in.
     fun recentRow(apps: List<LaunchableApp>, usage: AppUsage, limit: Int): List<LaunchableApp> {
         if (usage.recent.isNotEmpty()) {
             val byKey = apps.associateBy(usage.keyOf)

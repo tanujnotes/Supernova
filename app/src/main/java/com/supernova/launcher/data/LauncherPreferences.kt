@@ -147,9 +147,12 @@ class LauncherPreferences(private val context: Context) {
     // group so a regeneration can never interleave with a user edit. The
     // dismissed names are read (and [dismiss] joins them) in that same edit:
     // on a fresh install the launcher's own first pass can land after the
-    // wizard's, and must still leave out the folders that one left out.
+    // wizard's, and must still leave out the folders that one left out. A
+    // pass that started before Smart Folders went off (an import turns them
+    // off) writes nothing.
     suspend fun replaceSmartGroups(groups: List<DrawerGroup>, dismiss: Set<String> = emptySet()) {
         context.supernovaStore.edit { prefs ->
+            if (prefs[Pref.smartFolders.key] == false) return@edit
             val dismissed = prefs[Pref.smartFoldersDismissed.key].orEmpty() + dismiss
             if (dismiss.isNotEmpty()) prefs[Pref.smartFoldersDismissed.key] = dismissed
             prefs[Pref.drawerGroups.key] =

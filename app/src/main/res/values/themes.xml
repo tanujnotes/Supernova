@@ -332,6 +332,26 @@
         <item name="android:textColor">@color/segment_text</item>
     </style>
 
+    <!-- A single-choice chip: the segment's look (hairline pill, accent tint
+         and outline when chosen), for choices that wrap onto more lines. -->
+    <style name="Widget.Supernova.Chip.Choice" parent="Widget.MaterialComponents.Chip.Choice">
+        <item name="chipSurfaceColor">@android:color/transparent</item>
+        <item name="chipBackgroundColor">@color/segment_background</item>
+        <item name="chipStrokeColor">@color/chip_choice_stroke</item>
+        <item name="chipStrokeWidth">1dp</item>
+        <item name="chipMinHeight">36dp</item>
+        <item name="checkedIconVisible">false</item>
+        <item name="rippleColor">@color/rippleHighlight</item>
+        <item name="android:textAppearance">@style/TextAppearance.Supernova.Chip</item>
+        <item name="android:textColor">@color/segment_text</item>
+    </style>
+
+    <style name="TextAppearance.Supernova.Chip" parent="TextAppearance.MaterialComponents.Chip">
+        <item name="android:textSize">@dimen/text_secondary</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">@color/segment_text</item>
+    </style>
+
     <style name="Widget.Supernova.Button.Dialog" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
         <item name="android:textAllCaps">false</item>
         <item name="android:textColor">?attr/colorAccentOnRaised</item>
@@ -431,23 +451,31 @@
         <item name="android:textSize">@dimen/text_secondary</item>
     </style>
 
-    <!-- Card editor sections: an accent group label over a muted blurb. -->
-    <style name="CardEditorHeader">
-        <item name="android:layout_width">match_parent</item>
+    <!-- A two-line sheet row's lines, and a sheet's small section label. -->
+    <style name="SheetRowText">
+        <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:paddingTop">22dp</item>
-        <item name="android:paddingBottom">@dimen/space_xs</item>
-        <item name="android:textColor">@color/accent</item>
-        <item name="android:textSize">@dimen/text_secondary</item>
-        <item name="android:textStyle">bold</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:orientation">vertical</item>
     </style>
 
-    <style name="CardEditorDescription">
+    <style name="SheetRowSubtitle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:paddingBottom">@dimen/space_sm</item>
+        <item name="android:layout_marginTop">2dp</item>
         <item name="android:textColor">@color/textSecondary</item>
         <item name="android:textSize">@dimen/text_secondary</item>
+    </style>
+
+    <style name="SheetSectionLabel">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingHorizontal">@dimen/space_ml</item>
+        <item name="android:paddingTop">@dimen/space_md</item>
+        <item name="android:paddingBottom">@dimen/space_xs</item>
+        <item name="android:textColor">?attr/colorAccentOnRaised</item>
+        <item name="android:textSize">@dimen/text_secondary</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
     <style name="SheetTitle">

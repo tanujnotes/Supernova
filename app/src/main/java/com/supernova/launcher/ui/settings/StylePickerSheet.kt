@@ -45,7 +45,8 @@ object StylePickerSheet {
 
     // The home bar's opacity is on its own page, with its radius.
     private val OPACITY_SURFACES = setOf(
-        SurfaceId.DRAWER, SurfaceId.DOCK, SurfaceId.FOLDER, SurfaceId.DRAWER_SEARCH_BAR, SurfaceId.HOME
+        SurfaceId.DRAWER, SurfaceId.DOCK, SurfaceId.FOLDER, SurfaceId.DRAWER_SEARCH_BAR, SurfaceId.HOME,
+        SurfaceId.CARDS
     )
 
     private val BAR_SURFACES = setOf(SurfaceId.SEARCH_BAR, SurfaceId.DRAWER_SEARCH_BAR)

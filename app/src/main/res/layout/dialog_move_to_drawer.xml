@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Move to drawer, for a home or dock folder: the folder, a switch between
+     a drawer folder and a tab of its own, the tab a drawer folder goes in,
+     and what stays on the home screen. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="@dimen/space_lg"
+    android:paddingTop="@dimen/space_sm"
+    android:paddingBottom="@dimen/space_md">
+
+    <!-- The folder's own icon goes in as a 40dp start drawable. -->
+    <TextView
+        android:id="@+id/moveFolderSummary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:drawablePadding="@dimen/space_ms"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:maxLines="2"
+        android:textColor="@color/textSecondary"
+        android:textSize="@dimen/text_body" />
+
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/moveType"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_ml"
+        app:checkedButton="@id/moveAsFolder"
+        app:selectionRequired="true"
+        app:singleSelection="true">
+
+        <Button
+            android:id="@+id/moveAsFolder"
+            style="@style/Widget.Supernova.Button.Segment"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/move_to_drawer_as_folder" />
+
+        <Button
+            android:id="@+id/moveAsTab"
+            style="@style/Widget.Supernova.Button.Segment"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/move_to_drawer_tab" />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+    <LinearLayout
+        android:id="@+id/moveTabSection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_ml"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/move_to_drawer_put_in"
+            android:textColor="@color/textSecondary"
+            android:textSize="@dimen/text_secondary" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/moveTabs"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_sm"
+            app:chipSpacingHorizontal="@dimen/space_sm"
+            app:chipSpacingVertical="@dimen/space_xs"
+            app:selectionRequired="true"
+            app:singleSelection="true" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/moveTabHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_ml"
+        android:textColor="@color/textSecondary"
+        android:textSize="@dimen/text_secondary"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/moveLeftBehind"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_ml"
+        android:background="@drawable/bg_move_note"
+        android:padding="@dimen/space_ms"
+        android:textColor="@color/textSecondary"
+        android:textSize="@dimen/text_secondary"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_ml"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/moveCancel"
+            style="@style/Widget.Supernova.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cancel" />
+
+        <Button
+            android:id="@+id/moveConfirm"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_sm"
+            android:text="@string/move"
+            tools:ignore="ButtonStyle" />
+    </LinearLayout>
+</LinearLayout>

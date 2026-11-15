@@ -223,9 +223,9 @@ class PrefRegistryTest {
         icon_glass:S icon_swipe_indicator:B themed_icons:B themed_icons_autogen:B lock_method:S
         badge_color:S badge_position:S badge_scale:F badge_text_color:S badge_corner_radius:I
         badge_outline:B folder_preview_style:S folder_prioritize_first:B folder_columns:I
-        folder_sort_az:B folder_close_on_launch:B folder_icon_scale:F folder_match_desktop:B
+        folder_close_on_launch:B folder_icon_scale:F folder_match_desktop:B
         folder_show_name:B folder_show_count:B folder_mode:S folder_shadow:B folder_scroll:S
-        folder_icon_shape:S folder_icon_outline:B folder_clip_to_bg:B folder_match_window_color:B
+        folder_icon_shape:S folder_icon_outline:B folder_match_window_color:B
         folder_plate_color:S folder_badges:B theme_mode:S theme_schedule_start:I
         theme_schedule_end:I accent_color:S drawer_bg_color:S folder_bg_color:S palette_source:S
         palette_seed:S style_config:S widget_corner_radius:I show_scrims:B wallpaper_zoom:B

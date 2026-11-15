@@ -1,21 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- "Add card": a centered pill after the last card. -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- The end of the feed: Add card, and Feed settings beside it. They are
+     the page's only doors to adding and to its settings (the header has no
+     menu). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingVertical="@dimen/space_ms">
+    android:gravity="center_horizontal"
+    android:orientation="horizontal"
+    android:paddingTop="@dimen/space_md"
+    android:paddingBottom="@dimen/space_sm">
 
     <TextView
         android:id="@+id/feedAddCard"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:background="@drawable/bg_card_chip"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_feed_pill"
         android:foreground="?attr/selectableItemBackground"
         android:gravity="center"
-        android:minWidth="140dp"
-        android:paddingHorizontal="28dp"
-        android:paddingVertical="@dimen/space_md"
+        android:paddingHorizontal="22dp"
         android:text="@string/feed_add_card"
         android:textSize="@dimen/text_body" />
-</FrameLayout>
+
+    <TextView
+        android:id="@+id/feedSettings"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:layout_marginStart="@dimen/space_sm"
+        android:background="@drawable/ripple_icon"
+        android:gravity="center"
+        android:paddingHorizontal="18dp"
+        android:text="@string/feed_settings"
+        android:textSize="@dimen/text_body" />
+</LinearLayout>

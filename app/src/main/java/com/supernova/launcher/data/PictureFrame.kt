@@ -34,6 +34,13 @@ internal object PictureFrame {
                 cornersSolid(pixels, size, box, TILE_CORNER_INSET)
         }
 
+    // Whether a picture's silhouette is one solid body: the disc inside its
+    // content box has no gap. A tile or a disc is; a logo made of pieces (a
+    // cloud over a page, a pattern of triangles) or with a bite out of it
+    // is not, whatever its colours.
+    fun solid(pixels: IntArray, size: Int): Boolean =
+        BakedBacking.contentBounds(pixels, size)?.let { discSolid(pixels, size, it) } ?: false
+
     // Whether the disc inside the box is solid, but for a speck.
     private fun discSolid(pixels: IntArray, size: Int, box: IntArray): Boolean {
         val centreX = (box[BakedBacking.LEFT] + box[BakedBacking.RIGHT]) / 2f

@@ -20,7 +20,18 @@
     <dimen name="space_ml">20dp</dimen>
     <dimen name="space_lg">24dp</dimen>
     <dimen name="space_xl">32dp</dimen>
+    <!-- Widget picker: tallest a preview is drawn (it shows at its own size
+         below that), and the size of the app icon that stands in for one. -->
+    <dimen name="picker_card_radius">18dp</dimen>
+    <dimen name="divider_thin">1dp</dimen>
+    <dimen name="widget_preview_max_height">128dp</dimen>
+    <dimen name="widget_preview_icon">48dp</dimen>
+    <!-- Room a preview gets per grid cell of its widget's span, so a 2x2 shows
+         smaller than a 4x2 whatever size its picture ships at. -->
+    <dimen name="widget_preview_per_cell">40dp</dimen>
 
     <!-- The smallest comfortable touch target. -->
     <dimen name="touch_min">48dp</dimen>
+    <!-- The folder icon in the Move to drawer dialog. -->
+    <dimen name="move_folder_icon">40dp</dimen>
 </resources>

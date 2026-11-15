@@ -2,12 +2,19 @@ package com.supernova.launcher.ui
 
 import android.appwidget.AppWidgetProviderInfo
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
+import android.view.Gravity
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.graphics.ColorUtils
 import android.util.LruCache
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.graphics.drawable.toBitmap
+import androidx.core.graphics.drawable.toDrawable
 import androidx.recyclerview.widget.RecyclerView
 import com.supernova.launcher.R
 import com.supernova.launcher.databinding.ItemWidgetPickerHeaderBinding
@@ -38,8 +45,25 @@ class WidgetPickerAdapter(
     private val flat = mutableListOf<WidgetPickerEntry>()
     private val previewCache = LruCache<String, Drawable>(40)
 
+    // Each app's widgets and shortcuts, worked out the first time the app is
+    // opened (or searched), by group key; and the keys being worked out now.
+    private val contents = mutableMapOf<String, WidgetPickerContents>()
+    private val loading = mutableSetOf<String>()
+    // Bumped by every submit, so loads for an older list are dropped.
+    private var generation = 0
+    private val rebuildSoon = Runnable { rebuild() }
+
     fun submit(list: List<WidgetPickerGroup>, expandAll: Boolean) {
+        // A row handed over again as the very same group (the launcher's
+        // own, shown first while the rest load) keeps what it has loaded.
+        val kept = list.filter { group -> groups.any { it === group } }.mapNotNull { group ->
+            contents[group.key]?.let { group.key to it }
+        }
         groups = list
+        generation++
+        contents.clear()
+        loading.clear()
+        contents.putAll(kept)
         startExpanded = expandAll
         if (expandAll) list.forEach { expanded.add(it.key) }
         rebuild()
@@ -52,24 +76,54 @@ class WidgetPickerAdapter(
         rebuild()
     }
 
+    // Works a group's contents out in the background; the list redraws
+    // when it lands. Results that land together redraw once.
+    private fun ensureLoaded(group: WidgetPickerGroup) {
+        if (group.key in contents || !loading.add(group.key)) return
+        val ticket = generation
+        groupLoader.execute {
+            val loaded = runCatching { group.load() }.getOrElse { WidgetPickerContents(emptyList(), emptyList()) }
+            mainHandler.post {
+                if (ticket != generation) return@post
+                loading.remove(group.key)
+                contents[group.key] = loaded
+                mainHandler.removeCallbacks(rebuildSoon)
+                mainHandler.post(rebuildSoon)
+            }
+        }
+    }
+
     val isEmpty: Boolean get() = groups.isEmpty()
 
     private fun rebuild() {
         flat.clear()
         val q = query
         for (group in groups) {
-            val groupMatches = q.isEmpty() || group.label.lowercase().contains(q)
-            val widgets = if (q.isEmpty() || groupMatches) group.widgets else group.widgets.filter { it.label.lowercase().contains(q) }
-            val shortcuts = if (q.isEmpty() || groupMatches) group.shortcuts else group.shortcuts.filter { it.label.lowercase().contains(q) }
-            if (widgets.isEmpty() && shortcuts.isEmpty()) continue
             val isExpanded = startExpanded || q.isNotEmpty() || group.key in expanded
+            // Searching looks inside every app, so all of them get loaded.
+            if (isExpanded) ensureLoaded(group)
+            val loaded = contents[group.key]
+            val groupMatches = q.isEmpty() || group.label.lowercase().contains(q)
+            val widgets = when {
+                loaded == null -> emptyList()
+                groupMatches -> loaded.widgets
+                else -> loaded.widgets.filter { it.label.lowercase().contains(q) }
+            }
+            val shortcuts = when {
+                loaded == null -> emptyList()
+                groupMatches -> loaded.shortcuts
+                else -> loaded.shortcuts.filter { it.label.lowercase().contains(q) }
+            }
+            // Not loaded yet: the app's row shows while browsing or when its
+            // name matches; a match inside it shows up once it has loaded.
+            if (if (loaded == null) !groupMatches else widgets.isEmpty() && shortcuts.isEmpty()) continue
             flat.add(
                 WidgetPickerEntry.Header(
                     key = group.key,
                     label = group.label,
                     icon = group.icon,
-                    widgetCount = group.widgets.size,
-                    shortcutCount = group.shortcuts.size,
+                    widgetCount = group.widgetCount,
+                    shortcutCount = group.shortcutCount,
                     expanded = isExpanded
                 )
             )
@@ -80,6 +134,43 @@ class WidgetPickerAdapter(
             flat.addAll(shortcuts)
         }
         notifyDataSetChanged()
+    }
+
+    // An expanded app reads as one card: the header takes the top corners,
+    // the group's last row the bottom ones, and the rows between are square
+    // and butt together with no gap.
+    private fun shapeAsCard(view: View, position: Int) {
+        val isHeader = flat[position] is WidgetPickerEntry.Header
+        val next = flat.getOrNull(position + 1)
+        val closesGroup = next == null || next is WidgetPickerEntry.Header
+        val res = view.resources
+        val radius = res.getDimension(R.dimen.picker_card_radius)
+        val top = if (isHeader) radius else 0f
+        val bottom = if (closesGroup) radius else 0f
+        val background = AppCompatResources.getDrawable(view.context, R.drawable.bg_picker_card)
+            ?.mutate() as? GradientDrawable
+        background?.cornerRadii = floatArrayOf(top, top, top, top, bottom, bottom, bottom, bottom)
+        // An open app's title gets a faint rule under it, inset from the
+        // card's sides, between it and the previews.
+        view.background = if (isHeader && !closesGroup && background != null) {
+            val ink = view.context.getColor(R.color.textPrimary)
+            val rule = ColorUtils.setAlphaComponent(ink, DIVIDER_ALPHA).toDrawable()
+            LayerDrawable(arrayOf(background, rule)).apply {
+                val inset = res.getDimensionPixelSize(R.dimen.space_md)
+                setLayerGravity(1, Gravity.BOTTOM or Gravity.FILL_HORIZONTAL)
+                setLayerHeight(1, res.getDimensionPixelSize(R.dimen.divider_thin).coerceAtLeast(1))
+                setLayerInsetLeft(1, inset)
+                setLayerInsetRight(1, inset)
+            }
+        } else {
+            background
+        }
+        val gap = res.getDimensionPixelSize(R.dimen.space_xs)
+        (view.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
+            lp.topMargin = if (isHeader) gap else 0
+            lp.bottomMargin = if (closesGroup) gap else 0
+            view.layoutParams = lp
+        }
     }
 
     private fun toggle(key: String) {
@@ -113,6 +204,7 @@ class WidgetPickerAdapter(
             is WidgetPickerEntry.Shortcut -> (holder as ShortcutViewHolder).bind(entry)
             is WidgetPickerEntry.Widget -> Unit
         }
+        shapeAsCard(holder.itemView, position)
     }
 
     inner class HeaderViewHolder(private val binding: ItemWidgetPickerHeaderBinding) :
@@ -140,14 +232,19 @@ class WidgetPickerAdapter(
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(entry: WidgetPickerEntry.WidgetRow) {
-            bindCell(binding.cellA, binding.previewA, binding.labelA, binding.spanA, binding.providerA, entry.first)
+            bindCell(binding.cellA, binding.previewA, binding.labelA, binding.spanA, entry.first)
             val second = entry.second
             if (second == null) {
                 binding.cellB.visibility = View.INVISIBLE
+                // A recycled row may still hold another widget's picture,
+                // which would keep the empty cell tall and push the lone
+                // preview down (the row lines its cells up at the bottom).
+                binding.previewB.tag = null
+                binding.previewB.setImageDrawable(null)
                 binding.cellB.setOnClickListener(null)
             } else {
                 binding.cellB.visibility = View.VISIBLE
-                bindCell(binding.cellB, binding.previewB, binding.labelB, binding.spanB, binding.providerB, second)
+                bindCell(binding.cellB, binding.previewB, binding.labelB, binding.spanB, second)
             }
         }
 
@@ -156,13 +253,23 @@ class WidgetPickerAdapter(
             preview: ImageView,
             label: TextView,
             span: TextView,
-            provider: TextView,
             widget: WidgetPickerEntry.Widget
         ) {
             val context = cell.context
             label.text = widget.label
             span.text = context.getString(R.string.widget_span, widget.spanX, widget.spanY)
-            provider.text = widget.appLabel
+
+            // A preview is boxed by its widget's span and only ever shrunk
+            // into that box, so it keeps the size it will take on the grid
+            // relative to the others; the cell's own width caps it as well.
+            val res = context.resources
+            val perCell = res.getDimensionPixelSize(R.dimen.widget_preview_per_cell)
+            val floor = res.getDimensionPixelSize(R.dimen.widget_preview_icon)
+            preview.maxWidth = maxOf(widget.spanX * perCell, floor)
+            preview.maxHeight = (widget.spanY * perCell).coerceIn(
+                floor,
+                res.getDimensionPixelSize(R.dimen.widget_preview_max_height)
+            )
 
             val cacheKey = widget.info.provider.flattenToString()
             preview.tag = cacheKey
@@ -178,14 +285,22 @@ class WidgetPickerAdapter(
                 previewLoader.execute {
                     // Providers that only declare a previewLayout hand back
                     // nothing usable here; fall back to the app icon, as the
-                    // launcher draws it.
+                    // launcher draws it. The cell shows a preview at its own
+                    // size, so the stand-in icon is drawn at a fixed one.
                     val loaded = runCatching { widget.info.loadPreviewImage(appContext, 0) }.getOrNull()
                         ?.takeIf { it.intrinsicWidth > 0 && it.intrinsicHeight > 0 }
-                        ?: widget.appIcon
-                        ?: runCatching {
-                            appContext.packageManager.getApplicationIcon(widget.info.provider.packageName)
-                        }.getOrNull()
-                        ?: appContext.getDrawable(R.drawable.ic_widget)
+                        ?: (
+                            widget.appIcon
+                                ?: runCatching {
+                                    appContext.packageManager.getApplicationIcon(widget.info.provider.packageName)
+                                }.getOrNull()
+                                ?: AppCompatResources.getDrawable(appContext, R.drawable.ic_widget)
+                            )?.let { icon ->
+                            val size = appContext.resources.getDimensionPixelSize(R.dimen.widget_preview_icon)
+                            runCatching {
+                                icon.toBitmap(size, size).toDrawable(appContext.resources)
+                            }.getOrNull()
+                        }
                     mainHandler.post {
                         if (loaded != null) previewCache.put(cacheKey, loaded)
                         // The cell may show another widget by now.
@@ -223,6 +338,17 @@ class WidgetPickerAdapter(
         private const val TYPE_HEADER = 0
         private const val TYPE_WIDGET_ROW = 1
         private const val TYPE_SHORTCUT = 2
+
+        // About 12% of the text colour: visible on both sheet themes, faint.
+        private const val DIVIDER_ALPHA = 31
+
+        // One background thread for working out apps' contents, apart from
+        // the previews so an opened app never waits behind pictures.
+        private val groupLoader: java.util.concurrent.ExecutorService by lazy {
+            java.util.concurrent.Executors.newSingleThreadExecutor { task ->
+                Thread(task, "widget-picker-apps").apply { isDaemon = true }
+            }
+        }
 
         // One background thread for every picker's previews, in the order
         // the cells asked for them.

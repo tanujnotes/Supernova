@@ -27,7 +27,6 @@ import com.supernova.launcher.ui.LaunchAnimation
 import com.supernova.launcher.ui.PopupMenuStyle
 import com.supernova.launcher.ui.ScrollEffect
 import com.supernova.launcher.ui.StatusBarIcons
-import com.supernova.launcher.ui.TopRowSort
 import com.supernova.launcher.ui.theme.AccentColor
 import com.supernova.launcher.ui.theme.PaletteSourceMode
 import com.supernova.launcher.ui.theme.ThemeMode
@@ -225,7 +224,6 @@ object Pref {
     val drawerActionButtons = text("drawer_action_buttons")
     val drawerIsolateTabs = bool("drawer_isolate_tabs")
     val drawerSort = choice("drawer_sort", DrawerSort.entries)
-    val drawerTopRowSort = choice("drawer_top_row_sort", TopRowSort.entries)
     val drawerSortButtons = bool("drawer_sort_buttons")
     val drawerWorkTab = bool("drawer_work_tab")
     val drawerDefaultTab = text("drawer_default_tab")
@@ -253,7 +251,6 @@ object Pref {
     val folderPreviewStyle = choice("folder_preview_style", FolderPreviewStyle.entries)
     val folderPrioritizeFirst = bool("folder_prioritize_first")
     val folderColumns = int("folder_columns", 0..GridLimits.FOLDER_COLUMNS_BIG)
-    val folderSortAz = bool("folder_sort_az")
     val folderCloseOnLaunch = bool("folder_close_on_launch")
     val folderIconScale = float("folder_icon_scale", ICON_SCALE_MIN..ICON_SCALE_MAX)
     val folderMatchDesktop = bool("folder_match_desktop")
@@ -264,7 +261,6 @@ object Pref {
     val folderScroll = choice("folder_scroll", FolderScroll.entries)
     val folderIconShape = text("folder_icon_shape")
     val folderIconOutline = bool("folder_icon_outline")
-    val folderClipToBg = bool("folder_clip_to_bg")
     val folderMatchWindowColor = bool("folder_match_window_color")
     val folderPlateColor = text("folder_plate_color")
     val folderBadges = bool("folder_badges")
@@ -332,6 +328,7 @@ object Pref {
     val feedEnabled = bool("feed_enabled")
     val feedEdgeSwipe = bool("feed_edge_swipe")
     val feedShowSearch = bool("feed_show_search")
+    val feedBarButtons = text("feed_bar_buttons")
     val feedShowFrequent = bool("feed_show_frequent")
     val feedShowShortcuts = bool("feed_show_shortcuts")
     val feedShowMedia = bool("feed_show_media")

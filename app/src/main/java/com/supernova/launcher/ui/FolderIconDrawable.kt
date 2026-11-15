@@ -49,8 +49,8 @@ enum class FolderPreviewStyle {
 // Folder preview: a plate with member icons arranged per the chosen style -
 // tiled grids, offset stack, rotated fan, a single row, or icon rings. The
 // plate clips to `shape` when one is set (plateShape: the folder's own pick,
-// else the icons'), and can carry an accent outline; `clipMembers` keeps
-// icons inside the plate. It is dressed as the icons are: a glass pane for
+// else the icons'), and can carry an accent outline; member icons are kept
+// inside the plate. It is dressed as the icons are: a glass pane for
 // iconGlass, the icons' drop shadow for iconShadow.
 class FolderIconDrawable(
     private val members: List<Drawable>,
@@ -61,7 +61,6 @@ class FolderIconDrawable(
     private val customSpec: CustomShapeSpec? = null,
     outlineColor: Int = 0,
     private val outlineWidthPx: Float = 0f,
-    private val clipMembers: Boolean = true,
     // First member drawn large and centred, the next three small along the
     // bottom; overrides the arrangement of every style.
     private val prioritizeFirst: Boolean = false,
@@ -134,13 +133,7 @@ class FolderIconDrawable(
         )
 
         if (members.isNotEmpty()) {
-            val save = if (clipMembers) {
-                canvas.save().also { canvas.clipPath(platePath) }
-            } else {
-                -1
-            }
-            drawMembers(canvas)
-            if (save >= 0) canvas.restoreToCount(save)
+            canvas.withClip(platePath) { drawMembers(this) }
         }
 
         outlinePaint?.let { canvas.drawPath(platePath, it) }

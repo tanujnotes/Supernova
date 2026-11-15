@@ -20,7 +20,6 @@ import com.supernova.launcher.ui.LaunchAnimation
 import com.supernova.launcher.ui.PopupMenuStyle
 import com.supernova.launcher.ui.ScrollEffect
 import com.supernova.launcher.ui.StatusBarIcons
-import com.supernova.launcher.ui.TopRowSort
 import com.supernova.launcher.ui.theme.AccentColor
 import com.supernova.launcher.ui.theme.PaletteSourceMode
 import com.supernova.launcher.ui.theme.ThemeMode
@@ -140,7 +139,10 @@ data class LauncherModel(
     val defaultPage: Int = 0,
     val appOverrides: Map<String, AppOverride> = emptyMap(),
     // v5: custom feed-page cards (see feed/FeedCards.kt).
-    val feedCards: List<com.supernova.launcher.feed.FeedCard> = emptyList()
+    val feedCards: List<com.supernova.launcher.feed.FeedCard> = emptyList(),
+    // The feed's card order, built-in cards included (feed/FeedOrder.kt);
+    // empty = the order it always had. Default-supplied, so no migration.
+    val feedOrder: List<String> = emptyList()
 )
 
 @Serializable
@@ -240,8 +242,7 @@ data class LauncherPrefs(
     val drawerTabAlign: DrawerTabAlign = DrawerTabAlign.START,
     // Isolate tabs: a sideways swipe on the list stays on the tab.
     val drawerTabsNoSwipe: Boolean = false,
-    // The top row over the drawer list (recently opened apps by default,
-    // drawerTopRowSort).
+    // The top row over the drawer list: the recently opened apps.
     val drawerFrequentRow: Boolean = true,
     // Keep the scroll position across close/reopen instead of resetting to top.
     val drawerRememberPosition: Boolean = false,
@@ -283,16 +284,15 @@ data class LauncherPrefs(
     // Fast-scroller active-letter color; "" follows the drawer accent.
     val drawerScrubberColor: String = "",
     // The buttons inside the drawer search field (comma-joined
-    // SearchBarChip names, see SearchBarButtons); "" = none.
-    val drawerActionButtons: String = "",
+    // SearchBarChip names, see SearchBarButtons); "" = none. Play Store
+    // until changed.
+    val drawerActionButtons: String = "PLAY_STORE",
     // Apps living in TAB-type drawer groups leave the All tab (tab
     // isolation); folder-type groups always did.
     val drawerIsolateTabs: Boolean = false,
     val drawerSort: DrawerSort = DrawerSort.ALPHA,
-    // The drawer top row's apps and order; recently used by default.
-    val drawerTopRowSort: TopRowSort = TopRowSort.RECENTLY_USED,
-    // The sort pickers at the top of the drawer's list and its top row.
-    val drawerSortButtons: Boolean = true,
+    // The sort button at the top of the drawer's list. Off by default.
+    val drawerSortButtons: Boolean = false,
     // On by default; it only shows with a work profile.
     val drawerWorkTab: Boolean = true,
     // Name of the group tab selected on open ("" = All), and whether the
@@ -325,8 +325,9 @@ data class LauncherPrefs(
     val iconSwipeIndicator: Boolean = true,
     // Draw adaptive icons' monochrome layer, palette-tinted (API 33+).
     val themedIcons: Boolean = false,
-    // Synthesize a monochrome layer for apps that ship none (D8).
-    val themedIconsAutogen: Boolean = false,
+    // Synthesize a monochrome layer for apps that ship none (D8). On, so
+    // Themed icons alone themes every app.
+    val themedIconsAutogen: Boolean = true,
     // Screen-lock mechanism: ACCESSIBILITY (default) or DEVICE_ADMIN.
     val lockMethod: LockMethod = LockMethod.ACCESSIBILITY,
     val badgeColor: String = "",
@@ -343,7 +344,6 @@ data class LauncherPrefs(
     val folderPrioritizeFirst: Boolean = false,
     // 0 = derive from member count.
     val folderColumns: Int = 0,
-    val folderSortAz: Boolean = false,
     val folderCloseOnLaunch: Boolean = true,
     // Scale of member icons inside the open folder window; matchDesktop
     // follows iconScale instead and hides the slider.
@@ -366,8 +366,6 @@ data class LauncherPrefs(
     val folderIconShape: String = "",
     // 2dp FOLDER-accent stroke around the plate.
     val folderIconOutline: Boolean = false,
-    // Member icons clipped inside the plate vs allowed to overflow it.
-    val folderClipToBg: Boolean = true,
     // Plate uses the resolved FOLDER window surface instead of the
     // translucent default plate.
     val folderMatchWindowColor: Boolean = false,
@@ -513,6 +511,9 @@ data class LauncherPrefs(
     val feedEnabled: Boolean = true,
     val feedEdgeSwipe: Boolean = true,
     val feedShowSearch: Boolean = true,
+    // The buttons at the feed bar's right end, as drawerActionButtons; the
+    // date and Settings (the Feed page) until changed.
+    val feedBarButtons: String = "DATE,SETTINGS",
     val feedShowFrequent: Boolean = true,
     // A strip of app shortcuts pulled from the most-launched apps (D7).
     val feedShowShortcuts: Boolean = true,

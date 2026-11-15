@@ -2,6 +2,7 @@ package com.supernova.launcher.ui
 
 import android.content.IntentSender
 import android.graphics.drawable.Drawable
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupWindow
@@ -13,7 +14,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.withResumed
 import com.supernova.launcher.R
 import com.supernova.launcher.data.ItemType
-import com.supernova.launcher.data.LabelOrder
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.data.LauncherItem
 import com.supernova.launcher.runLogged
@@ -67,14 +67,15 @@ class PrivateSpaceCard(
 
     private var unlockWait: Job? = null
 
-    // The system's unlock prompt asked for, and the home screen not back in
-    // front since: the prompt is what is showing.
-    private var promptUp = false
+    // The system's unlock prompt, showing or just gone: a home press made
+    // over it only closes it. A press on the home screen ends it too, told
+    // by the activity, which sees every touch.
+    val prompt = UnlockPromptClose()
 
     init {
         activity.lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onResume(owner: LifecycleOwner) {
-                promptUp = false
+                prompt.onResumed(SystemClock.uptimeMillis())
             }
         })
     }
@@ -98,7 +99,7 @@ class PrivateSpaceCard(
         // apps, and the page can be bound afresh under the one tapped.
         val itemId = anchor?.getTag(R.id.tag_item_id) as? String
         viewModel.setPrivateSpaceLocked(false)
-        promptUp = true
+        prompt.onPromptAsked()
         unlockWait = activity.lifecycleScope.launch {
             withTimeoutOrNull(UNLOCK_WAIT_MS) {
                 viewModel.state.first { it.privateSpace?.locked == false }
@@ -121,18 +122,21 @@ class PrivateSpaceCard(
     }
 
     // A home press or the screen going off calls off a card still waiting
-    // on its unlock. Returns whether its unlock prompt was what was showing:
-    // a home press that swipes the prompt away has done its job then, and
-    // must not go on to the home button's action (#110).
+    // on its unlock. Returns whether that press closed the unlock prompt,
+    // still showing or gone a moment before: it has done its job then, and
+    // must neither run the home button's action (#110) nor move the page
+    // (#135).
     fun cancelPending(): Boolean {
-        val prompting = unlockWait != null && promptUp
+        val prompting = prompt.takeFor(SystemClock.uptimeMillis())
         unlockWait?.cancel()
         unlockWait = null
-        promptUp = false
         return prompting
     }
 
     private fun show(anchor: View) {
+        // The space unlocked: a home press now closes this card, not the
+        // prompt.
+        prompt.forget()
         host.closeOtherCards()
         val prefs = viewModel.state.value.prefs
         val catalog = viewModel.appCatalog()
@@ -148,7 +152,6 @@ class PrivateSpaceCard(
             members = items(appsById),
             adapter = adapter,
             columnsOverride = prefs.folderColumns,
-            sortAz = prefs.folderSortAz,
             mode = prefs.folderMode,
             scroll = prefs.folderScroll,
             surfaceColor = surface.surface,
@@ -231,12 +234,9 @@ class PrivateSpaceCard(
         runLogged("start private space sender") { PendingStarts.start(activity, sender) }
     }
 
-    // In the order the card shows them: the drawer's, or A-Z with the
-    // folder setting.
+    // In the order the card shows them: the drawer's.
     private fun privateAppsById(): Map<String, LaunchableApp> {
-        val apps = viewModel.privateApps()
-        val ordered = if (viewModel.state.value.prefs.folderSortAz) LabelOrder.sorted(apps) { it.label } else apps
-        return ordered.associateBy { "private/${it.userSerial}/${it.packageName}/${it.className}" }
+        return viewModel.privateApps().associateBy { "private/${it.userSerial}/${it.packageName}/${it.className}" }
     }
 
     private fun items(apps: Map<String, LaunchableApp>): List<LauncherItem> = apps.map { (id, app) ->

@@ -206,17 +206,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:visibility="gone" />
-
-            <!-- The Cards page adds cards from a FAB; shown on that page only. -->
-            <com.google.android.material.floatingactionbutton.FloatingActionButton
-                android:id="@+id/cardsFab"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom|end"
-                android:layout_margin="@dimen/space_ml"
-                android:contentDescription="@string/cards_add"
-                android:visibility="gone"
-                app:srcCompat="@drawable/ic_menu_add" />
         </FrameLayout>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 

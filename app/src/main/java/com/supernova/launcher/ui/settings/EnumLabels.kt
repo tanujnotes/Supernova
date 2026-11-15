@@ -25,7 +25,6 @@ import com.supernova.launcher.ui.LaunchAnimation
 import com.supernova.launcher.ui.PopupExtraRow
 import com.supernova.launcher.ui.ScrollEffect
 import com.supernova.launcher.ui.StatusBarIcons
-import com.supernova.launcher.ui.TopRowSort
 import com.supernova.launcher.ui.WallpaperScrollMode
 import com.supernova.launcher.data.IconGlass
 import com.supernova.launcher.data.ReshapeLegacy
@@ -281,14 +280,6 @@ object EnumLabels {
     }
 
     @StringRes
-    fun of(sort: TopRowSort): Int = when (sort) {
-        TopRowSort.RECENTLY_USED -> R.string.sort_recently_used
-        TopRowSort.MOST_USED -> R.string.sort_most_used
-        TopRowSort.INSTALL_DATE -> R.string.sort_install
-        TopRowSort.ALPHA -> R.string.sort_alpha
-    }
-
-    @StringRes
     fun of(style: DockBgStyle): Int = when (style) {
         DockBgStyle.NONE -> R.string.dock_bg_none
         DockBgStyle.ROUNDED -> R.string.dock_bg_rounded
@@ -357,6 +348,7 @@ object EnumLabels {
         SurfaceId.DRAWER_SEARCH_BAR -> R.string.drawer_search_bar
         SurfaceId.SETTINGS -> R.string.settings
         SurfaceId.HOME -> R.string.settings_section_home
+        SurfaceId.CARDS -> R.string.style_cards
     }
 
     @StringRes

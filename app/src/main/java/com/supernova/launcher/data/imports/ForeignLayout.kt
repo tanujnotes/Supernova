@@ -92,6 +92,7 @@ internal data class ForeignLayout(
     val homePage: Int = 0,
     // Rows the backup holds that are nothing Supernova knows.
     val unread: Int = 0,
-    // The app drawer's tabs and folders.
-    val groups: List<ForeignGroup> = emptyList()
+    // The app drawer's tabs and folders; null where the backup holds no
+    // table of them.
+    val groups: List<ForeignGroup>? = null
 )

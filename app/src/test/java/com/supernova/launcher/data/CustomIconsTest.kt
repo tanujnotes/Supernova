@@ -97,6 +97,55 @@ class CustomIconsTest {
     }
 
     @Test
+    fun appsOnlyResetLeavesFolderShortcutAndContactIcons() {
+        val reset = CustomIcons.reset(model, setOf(CustomIcons.Kind.APPS))
+
+        assertEquals(CustomIcons.Count(apps = 0, folders = 2, shortcuts = 4), CustomIcons.count(reset))
+        assertEquals(model.items, reset.items)
+        assertEquals(AppOverride(customLabel = "Bee"), reset.appOverrides["0/com.b/com.b.Main"])
+    }
+
+    @Test
+    fun foldersOnlyResetLeavesAppAndShortcutIcons() {
+        val reset = CustomIcons.reset(model, setOf(CustomIcons.Kind.FOLDERS))
+        val items = reset.items.associateBy { it.id }
+
+        assertEquals(CustomIcons.Count(apps = 3, folders = 0, shortcuts = 4), CustomIcons.count(reset))
+        assertEquals(model.appOverrides, reset.appOverrides)
+        assertEquals("com.pack", items.getValue("action").customIconPack)
+        assertEquals("Games", items.getValue("packFolder").label)
+    }
+
+    @Test
+    fun shortcutsOnlyResetClearsActionsAndContactStylesButNotFolders() {
+        val reset = CustomIcons.reset(model, setOf(CustomIcons.Kind.SHORTCUTS))
+        val items = reset.items.associateBy { it.id }
+
+        assertEquals(CustomIcons.Count(apps = 3, folders = 2, shortcuts = 0), CustomIcons.count(reset))
+        assertEquals(model.appOverrides, reset.appOverrides)
+        assertNull(items.getValue("action").customIconPack)
+        assertNull(items.getValue("styled").shortcutEdit)
+        assertEquals("OWN", items.getValue("styled").iconBase64)
+        assertEquals("folder_games", items.getValue("packFolder").customIconName)
+    }
+
+    @Test
+    fun resetWithNothingTickedChangesNothing() {
+        assertEquals(model, CustomIcons.reset(model, emptySet()))
+    }
+
+    @Test
+    fun resetKeepsALargeIconsSpan() {
+        val large = model.copy(
+            items = model.items.map { if (it.id == "app") it.copy(spanX = 2, spanY = 2) else it }
+        )
+        val app = CustomIcons.reset(large).items.first { it.id == "app" }
+
+        assertEquals(2, app.spanX)
+        assertEquals(2, app.spanY)
+    }
+
+    @Test
     fun resetOfAModelWithoutCustomIconsChangesNothing() {
         val plain = CustomIcons.reset(model)
         assertEquals(plain, CustomIcons.reset(plain))

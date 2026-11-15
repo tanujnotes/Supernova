@@ -159,7 +159,7 @@ class BackupFilesTest {
         )
         val layout = other(archive("launcher.db" to layoutDb, "preferences" to prefsDb))
         assertEquals(1, layout.items.size)
-        val folder = layout.groups.single()
+        val folder = layout.groups.orEmpty().single()
         assertEquals("Tools", folder.title)
         assertEquals("com.m", folder.apps.single().packageName)
     }
