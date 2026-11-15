@@ -84,7 +84,7 @@
     <ID>ForEachOnRange:SearchResultsAdapter.kt$SearchResultsAdapter.RowHolder$root.childCount - 1 downTo 0</ID>
     <ID>ForEachOnRange:WorkspacePagerAdapter.kt$WorkspacePagerAdapter$0 until pageCount</ID>
     <ID>LargeClass:DrawerController.kt$DrawerController</ID>
-    <ID>LargeClass:LauncherActivity.kt$LauncherActivity : AppCompatActivityHostHostHost</ID>
+    <ID>LargeClass:LauncherActivity.kt$LauncherActivity : AppCompatActivityHostHostHostHost</ID>
     <ID>LargeClass:LauncherRepository.kt$LauncherRepository</ID>
     <ID>LargeClass:LauncherViewModel.kt$LauncherViewModel : AndroidViewModel</ID>
     <ID>LargeClass:LiveDragController.kt$LiveDragController</ID>
@@ -711,7 +711,6 @@
     <ID>MaxLineLength:LabsPermission.kt$LabsPermission$CALENDAR : LabsPermission</ID>
     <ID>MaxLineLength:LabsPermission.kt$LabsPermission$CONTACTS : LabsPermission</ID>
     <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$binding.workspacePager</ID>
-    <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$class</ID>
     <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$iconBase64 = shortcutOwnIcon(shortcut)?.let { com.supernova.launcher.data.GalleryIconCodec.encode(it) }</ID>
     <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$if</ID>
     <ID>MaxLineLength:LauncherActivity.kt$LauncherActivity$private</ID>
@@ -884,7 +883,7 @@
     <ID>TooManyFunctions:IconPackRepository.kt$IconPackRepository</ID>
     <ID>TooManyFunctions:IconRenderer.kt$IconRenderer</ID>
     <ID>TooManyFunctions:IconShape.kt$IconShape</ID>
-    <ID>TooManyFunctions:LauncherActivity.kt$LauncherActivity : AppCompatActivityHostHostHost</ID>
+    <ID>TooManyFunctions:LauncherActivity.kt$LauncherActivity : AppCompatActivityHostHostHostHost</ID>
     <ID>TooManyFunctions:LauncherActivity.kt$LauncherActivity$&lt;no name provided&gt; : Host</ID>
     <ID>TooManyFunctions:LauncherPreferences.kt$LauncherPreferences</ID>
     <ID>TooManyFunctions:LauncherRepository.kt$LauncherRepository</ID>

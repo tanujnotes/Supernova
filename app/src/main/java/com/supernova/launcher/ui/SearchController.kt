@@ -682,7 +682,7 @@ class SearchController(
         ui.searchInput.setHintTextColor((0x99 shl 24) or (bar.text and 0xFFFFFF))
         ui.searchGhost.setTextColor((0x80 shl 24) or (bar.text and 0xFFFFFF))
         ui.searchGhost.typeface = ui.searchInput.typeface
-        val iconTint = ColorStateList.valueOf(bar.text)
+        val iconTint = ColorStateList.valueOf(SearchBarButtons.iconTint(bar.text))
         ImageViewCompat.setImageTintList(ui.searchIcon, iconTint)
         overlaySurface?.let { surface ->
             surface.appliedStyle = null

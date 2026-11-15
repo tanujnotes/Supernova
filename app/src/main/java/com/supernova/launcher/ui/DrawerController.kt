@@ -1697,7 +1697,8 @@ class DrawerController(
         // The magnifier on the left is fixed, in the drawer's text colour.
         binding.drawerSearchIcon.visibility = View.VISIBLE
         binding.drawerSearchIcon.setImageResource(R.drawable.ic_search)
-        binding.drawerSearchIcon.imageTintList = android.content.res.ColorStateList.valueOf(resolvedField.text)
+        binding.drawerSearchIcon.imageTintList =
+            android.content.res.ColorStateList.valueOf(SearchBarButtons.iconTint(resolvedField.text))
         // The field isn't on a Material card, so its text follows its own style.
         binding.drawerSearch.setTextColor(resolvedField.text)
         binding.drawerSearchGhost.setTextColor((0x80 shl 24) or (resolvedField.text and 0xFFFFFF))

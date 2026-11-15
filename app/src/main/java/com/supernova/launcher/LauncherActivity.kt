@@ -136,7 +136,12 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDragController.Host, WidgetController.Host {
+class LauncherActivity :
+    AppCompatActivity(),
+    WorkspacePagerAdapter.Host,
+    LiveDragController.Host,
+    WidgetController.Host,
+    com.supernova.launcher.ui.VoiceSearch.Host {
 
     private lateinit var binding: ActivityLauncherBinding
     private val viewModel: LauncherViewModel by viewModels { LauncherViewModel.Factory(appGraph) }
@@ -460,6 +465,23 @@ class LauncherActivity : AppCompatActivity(), WorkspacePagerAdapter.Host, LiveDr
             viewModel.setSwipeAction(pending.itemId, target, created.label, pending.down)
             pending.onPicked(created.label)
         }
+
+    // A search bar's mic: what was said goes into the search window, over
+    // whichever page the bar was on.
+    private val voiceSearchLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        val said = com.supernova.launcher.ui.VoiceSearch.heard(it.data)
+        if (it.resultCode != RESULT_OK || said == null) return@registerForActivityResult
+        if (::drawer.isInitialized && drawer.isVisible) hideDrawer()
+        if (feed.isOpen) feed.setBehindSearch(true)
+        search.open(said)
+    }
+
+    override fun startVoiceSearch() {
+        // No recognizer to answer: the phone's own voice search instead.
+        if (runCatching { voiceSearchLauncher.launch(com.supernova.launcher.ui.VoiceSearch.listenIntent()) }.isFailure) {
+            com.supernova.launcher.ui.VoiceSearch.webSearch(this)
+        }
+    }
 
     private val requestHomeRoleLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         // Result is informational; the user may decline and we never re-prompt automatically.
