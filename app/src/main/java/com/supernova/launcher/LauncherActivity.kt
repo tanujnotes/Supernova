@@ -771,7 +771,6 @@ class LauncherActivity :
         workspaceAdapter.invalidateAll()
         if (::drawer.isInitialized) drawer.onWindowResized()
         if (::search.isInitialized) search.onWindowResized()
-        if (::feed.isInitialized) feed.applyGestureExclusion(state.prefs)
         // The wallpaper's scroll step is per-page across the new width.
         lastWallpaperPages = -1
         binding.workspacePager.post {
@@ -1577,8 +1576,7 @@ class LauncherActivity :
                     (::search.isInitialized && search.isOpen) ||
                     (::editMode.isInitialized && editMode.isOpen) ||
                     feed.isOpen || desktopPreviews.isShowing)
-            },
-            leftEdgeTaken = { viewModel.state.value.prefs.let { it.feedEnabled && it.feedEdgeSwipe } }
+            }
         )
         // A launch from the drawer leaves it open behind the app (unless Close
         // drawer after launching is on), so its frequent row catches up here

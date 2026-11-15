@@ -1,6 +1,5 @@
 package com.supernova.launcher.ui
 
-import android.graphics.Rect
 import android.view.MotionEvent
 import android.view.VelocityTracker
 import android.view.View
@@ -26,7 +25,6 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.math.abs
-import kotlin.math.min
 
 // Owns the feed page: a ViewStub-lazy sibling overlay pane on the workspace's
 // left (never a page inside the pager's infinite-scroll trick), following the
@@ -131,10 +129,6 @@ class FeedController(
     private val minFlingVelocity = ViewConfiguration.get(context).scaledMinimumFlingVelocity * 4
 
     private var appliedStyle: List<Any?>? = null
-    private var exclusionPrefs: Pair<Boolean, Boolean>? = null
-    private val exclusionLayoutListener = android.view.View.OnLayoutChangeListener { _, l, t, r, b, oldL, oldT, oldR, oldB ->
-        if (r - l != oldR - oldL || b - t != oldB - oldT) setExclusionRects()
-    }
 
     // ---- Open / close ----------------------------------------------------
 
@@ -422,44 +416,6 @@ class FeedController(
         velocityTracker = null
     }
 
-    // ---- System gesture exclusion ---------------------------------------
-
-    // Best effort against gesture-nav back always winning the left edge: a
-    // 24dp-wide strip, capped at 200dp tall (the OS honors at most 200dp of
-    // exclusions per window) in the bottom half of the screen, stopping 48dp
-    // above the bottom edge so the home gesture area stays untouched. The OS
-    // is free to trim this further; the pager-overscroll and OPEN_FEED paths
-    // remain the reliable openers.
-    // The strip is placed from the root's height, so it is set again
-    // whenever the root changes size - a rotation, a window resize - and
-    // not only when the feed prefs change. Left as it was, portrait's strip
-    // sat below a landscape window, handing the whole left edge to system
-    // Back, and landscape's sat mid-screen in portrait; the edge swipe
-    // stopped working either way.
-    fun applyGestureExclusion(prefs: LauncherPrefs) {
-        val key = prefs.feedEnabled to prefs.feedEdgeSwipe
-        if (key == exclusionPrefs) return
-        exclusionPrefs = key
-        val root = binding.root
-        root.removeOnLayoutChangeListener(exclusionLayoutListener)
-        root.addOnLayoutChangeListener(exclusionLayoutListener)
-        root.doOnLayout { setExclusionRects() }
-    }
-
-    private fun setExclusionRects() {
-        val (enabled, edgeSwipe) = exclusionPrefs ?: return
-        val root = binding.root
-        val rects = if (enabled && edgeSwipe) {
-            val height = root.height
-            val strip = min(context.dp(200), height / 2)
-            val bottom = (height - context.dp(48)).coerceAtLeast(strip)
-            listOf(Rect(0, bottom - strip, context.dp(EDGE_GUTTER_DP), bottom))
-        } else {
-            emptyList()
-        }
-        ViewCompat.setSystemGestureExclusionRects(root, rects)
-    }
-
     // ---- Shown lifecycle -------------------------------------------------
 
     private fun beginShown() {
@@ -644,7 +600,6 @@ class FeedController(
     // (the ⋮, then Settings) and back, it went on showing its old rows and
     // styling; turned off, an open pane could no longer be swiped shut.
     fun onPrefs(prefs: LauncherPrefs) {
-        applyGestureExclusion(prefs)
         if (!shown) return
         if (!prefs.feedEnabled) {
             close()
