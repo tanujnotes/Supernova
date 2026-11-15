@@ -48,6 +48,12 @@ class CardViewBinder(
         val onHistory: ((FeedCard, View) -> Unit)? = null
     )
 
+    // The room one card has on this surface (the list's content box), for a
+    // "Fill the page" widget card. Only the feed sets it; everywhere else
+    // such a card keeps its stepper height. Null or empty (not laid out yet)
+    // also means the stepper height; the feed binds again once it has a size.
+    var fillSpace: (() -> android.util.Size?)? = null
+
     private var cardColor: Int = 0xF0202124.toInt()
     private var textColor: Int = Color.WHITE
     private var accentColor: Int = Color.WHITE
@@ -90,6 +96,31 @@ class CardViewBinder(
         binding.customActions.visibility = if (hasActions) View.VISIBLE else View.GONE
         (binding.customActions.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin =
             context.dp(if (hasFeatured) 10 else 2)
+        applyFill(binding, card)
+    }
+
+    // "Fill the page": with everything else bound, the card is measured with
+    // its widget at zero height; what that leaves of the list's height, less
+    // the card's margins, is the widget's.
+    private fun applyFill(binding: ItemFeedCustomBinding, card: FeedCard) {
+        val hosted = binding.customFeatured.getChildAt(0) as? android.appwidget.AppWidgetHostView
+        val space = fillSpace?.takeIf { card.fillPage }?.invoke()?.takeIf { it.width > 0 && it.height > 0 }
+        if (hosted == null || space == null) return
+        val root = binding.root
+        val margins = root.layoutParams as? ViewGroup.MarginLayoutParams
+        val width = space.width - (margins?.leftMargin ?: 0) - (margins?.rightMargin ?: 0)
+        val params = hosted.layoutParams
+        params.height = 0
+        hosted.layoutParams = params
+        root.measure(
+            View.MeasureSpec.makeMeasureSpec(width.coerceAtLeast(0), View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val chrome = root.measuredHeight + (margins?.topMargin ?: 0) + (margins?.bottomMargin ?: 0)
+        params.height = com.supernova.launcher.feed.CardFill.widgetHeightPx(
+            space.height, chrome, root.context.dp(FeedCard.WIDGET_HEIGHT_MIN_DP)
+        )
+        hosted.layoutParams = params
     }
 
     // The card's menu as its ⋮ opens it, or against the card when it is
@@ -203,7 +234,7 @@ class CardViewBinder(
                     container.addView(
                         hosted,
                         FrameLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT, context.dp(card.widgetHeightDp)
+                            ViewGroup.LayoutParams.MATCH_PARENT, context.dp(card.widgetHeight)
                         )
                     )
                     true

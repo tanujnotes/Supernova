@@ -28,6 +28,9 @@ import com.supernova.launcher.feed.CardCondition
 import com.supernova.launcher.feed.ConditionKind
 import com.supernova.launcher.feed.FeaturedType
 import com.supernova.launcher.feed.FeedCard
+import com.supernova.launcher.feed.FeedCard.Companion.WIDGET_HEIGHT_MAX_DP
+import com.supernova.launcher.feed.FeedCard.Companion.WIDGET_HEIGHT_MIN_DP
+import com.supernova.launcher.feed.FeedCard.Companion.WIDGET_HEIGHT_STEP_DP
 import java.util.Collections
 import java.util.UUID
 
@@ -72,7 +75,7 @@ object CustomCardEditorSheet {
         // Working state, committed only on Save.
         var featuredType: String? = existing?.featuredType
         var featuredTarget: String? = existing?.featuredTarget
-        var widgetHeightDp = existing?.widgetHeightDp ?: DEFAULT_WIDGET_HEIGHT_DP
+        var widgetHeightDp = existing?.widgetHeight ?: FeedCard.DEFAULT_WIDGET_HEIGHT_DP
         val actions = existing?.actions.orEmpty().take(FeedCard.MAX_ACTIONS).toMutableList()
         var dayTime: CardCondition? = existing?.conditions?.firstOrNull {
             ConditionKind.fromName(it.kind) == ConditionKind.DAY_TIME
@@ -84,6 +87,7 @@ object CustomCardEditorSheet {
         var enabled = existing?.enabled ?: true
         binding.cardActivate.isChecked = existing?.activationEnabled ?: true
         binding.cardFrame.isChecked = existing?.showFrame ?: true
+        binding.cardWidgetFill.isChecked = existing?.fillPage ?: false
         binding.cardName.setText(existing?.name.orEmpty())
 
         // Live preview: the draft rendered by the feed's own binder. Launch
@@ -123,7 +127,8 @@ object CustomCardEditorSheet {
                 pinned = pinned,
                 widgetHeightDp = widgetHeightDp,
                 activationEnabled = binding.cardActivate.isChecked,
-                showFrame = binding.cardFrame.isChecked
+                showFrame = binding.cardFrame.isChecked,
+                fillPage = widget && binding.cardWidgetFill.isChecked
             )
         }
         val refreshPreview = { previewBinder.bind(previewBinding, buildCard()) }
@@ -257,7 +262,15 @@ object CustomCardEditorSheet {
             refreshFeatured()
         }
 
-        // Widget height: a stepper slider.
+        // Widget height: a stepper slider, hidden while the widget fills
+        // the page (the feed then sizes it; elsewhere it keeps this height).
+        fun refreshFill() {
+            val stepper = if (binding.cardWidgetFill.isChecked) View.GONE else View.VISIBLE
+            binding.cardWidgetHeightLabel.visibility = stepper
+            binding.cardWidgetHeightStepper.visibility = stepper
+        }
+        refreshFill()
+        binding.cardWidgetFill.setOnCheckedChangeListener { _, _ -> refreshFill() }
         fun refreshHeight() {
             binding.cardWidgetHeightValue.text =
                 activity.getString(R.string.card_widget_height_value, widgetHeightDp)
@@ -593,10 +606,6 @@ object CustomCardEditorSheet {
         R.string.card_day_thu, R.string.card_day_fri, R.string.card_day_sat,
         R.string.card_day_sun
     )
-    private const val DEFAULT_WIDGET_HEIGHT_DP = 160
-    private const val WIDGET_HEIGHT_MIN_DP = 60
-    private const val WIDGET_HEIGHT_MAX_DP = 400
-    private const val WIDGET_HEIGHT_STEP_DP = 10
 
     // Preview-side target resolution, mirroring LauncherActivity's routes
     // without needing the activity.

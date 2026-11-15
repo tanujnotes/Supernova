@@ -171,7 +171,34 @@
                 android:orientation="vertical"
                 android:visibility="gone">
 
+                <!-- Fill the page: the feed sizes the widget so the card
+                     takes the page's height; the stepper hides. -->
                 <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/card_widget_fill"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="@dimen/text_body" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/cardWidgetFill"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <TextView
+                    style="@style/CardEditorDescription"
+                    android:text="@string/card_widget_fill_desc" />
+
+                <LinearLayout
+                    android:id="@+id/cardWidgetHeightLabel"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
@@ -193,6 +220,7 @@
                 </LinearLayout>
 
                 <LinearLayout
+                    android:id="@+id/cardWidgetHeightStepper"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"

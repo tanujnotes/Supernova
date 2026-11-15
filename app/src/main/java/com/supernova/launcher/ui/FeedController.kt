@@ -634,6 +634,7 @@ class FeedController(
 
         pane.feedRecycler.adapter = adapter
         pane.feedRecycler.itemAnimator = null
+        FeedFillPages(adapter, cardBinder) { cardDrag.holding }.attach(pane.feedRecycler)
         pane.feedRecycler.layoutManager =
             androidx.recyclerview.widget.LinearLayoutManager(context)
         cardDrag.attach(pane.feedRecycler)

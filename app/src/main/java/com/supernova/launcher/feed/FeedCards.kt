@@ -28,15 +28,20 @@ data class FeedCard(
     // "Pin": the card stays at the top of the feed, ahead of the
     // activated ones.
     val pinned: Boolean = false,
-    // Height of a featured widget's tile ("Widget height").
-    val widgetHeightDp: Int = 160,
+    // Height of a featured widget's tile ("Widget height"). Read through
+    // widgetHeight, which keeps an old or hand-edited value in range.
+    val widgetHeightDp: Int = DEFAULT_WIDGET_HEIGHT_DP,
     // The "Activate" switch: off keeps the conditions but stops them
     // activating the card (it then lives in the feed and search only).
     val activationEnabled: Boolean = true,
     // "Card background": off draws the card bare, with no plate and no
     // header row, so a featured widget sits on the page as on the home
     // screen. Its menu is then a long-press away.
-    val showFrame: Boolean = true
+    val showFrame: Boolean = true,
+    // "Fill the page": a featured widget grows so the whole card fills the
+    // feed page's visible height (CardFill). Elsewhere (search, previews)
+    // it keeps widgetHeight. Absent in older stores, so off.
+    val fillPage: Boolean = false
 ) {
     // Activation: a card with conditions is "activated" while they all
     // hold; that is what promotes it into the app drawer. A card without
@@ -45,9 +50,19 @@ data class FeedCard(
     // retired WIFI kind) isn't activated all the time.
     val hasConditions: Boolean get() = conditions.any { ConditionKind.fromName(it.kind) != null }
 
+    // The stored widget height, kept to the stepper's range: a backup or an
+    // old store may hold anything.
+    val widgetHeight: Int get() = widgetHeightDp.coerceIn(WIDGET_HEIGHT_MIN_DP, WIDGET_HEIGHT_MAX_DP)
+
     companion object {
         // Action chips are a compact row; more than six stops being one.
         const val MAX_ACTIONS = 6
+
+        // The "Widget height" stepper.
+        const val DEFAULT_WIDGET_HEIGHT_DP = 160
+        const val WIDGET_HEIGHT_MIN_DP = 60
+        const val WIDGET_HEIGHT_MAX_DP = 800
+        const val WIDGET_HEIGHT_STEP_DP = 10
     }
 }
 

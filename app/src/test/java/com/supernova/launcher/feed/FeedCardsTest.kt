@@ -44,8 +44,10 @@ class FeedCardsTest {
         ),
         enabled = false,
         pinned = true,
-        widgetHeightDp = 220,
-        activationEnabled = false
+        widgetHeightDp = 720,
+        activationEnabled = false,
+        showFrame = false,
+        fillPage = true
     )
 
     @Test
@@ -95,6 +97,38 @@ class FeedCardsTest {
                 CardVisibility.Environment(dayOfWeek = 1, minuteOfDay = 0)
             )
         )
+    }
+
+    // A backup carries "Fill the page" and a height past the old 400dp cap.
+    @Test
+    fun backupKeepsFillPageAndTallHeight() {
+        val payload = com.supernova.launcher.data.BackupPayload(
+            exportedAtEpochMs = 1,
+            model = LauncherModel(version = CURRENT_MODEL_VERSION, feedCards = listOf(fullCard())),
+            prefs = com.supernova.launcher.data.LauncherPrefs()
+        )
+        val raw = json.encodeToString(com.supernova.launcher.data.BackupPayload.serializer(), payload)
+        val card = json.decodeFromString<com.supernova.launcher.data.BackupPayload>(raw).model.feedCards.single()
+        assertTrue(card.fillPage)
+        assertEquals(720, card.widgetHeight)
+    }
+
+    // Stores and backups from before the switch existed: off.
+    @Test
+    fun olderCardWithoutFillPageIsOff() {
+        val decoded = json.decodeFromString<FeedCard>("""{"id":"x","featuredType":"WIDGET","widgetHeightDp":300}""")
+        assertFalse(decoded.fillPage)
+        assertEquals(300, decoded.widgetHeight)
+    }
+
+    // Whatever was stored, the height read back stays on the stepper.
+    @Test
+    fun widgetHeightIsClampedToTheStepperRange() {
+        assertEquals(FeedCard.WIDGET_HEIGHT_MIN_DP, FeedCard(id = "a", widgetHeightDp = 0).widgetHeight)
+        assertEquals(FeedCard.WIDGET_HEIGHT_MIN_DP, FeedCard(id = "a", widgetHeightDp = -40).widgetHeight)
+        assertEquals(FeedCard.WIDGET_HEIGHT_MAX_DP, FeedCard(id = "a", widgetHeightDp = 5000).widgetHeight)
+        assertEquals(800, FeedCard(id = "a", widgetHeightDp = 800).widgetHeight)
+        assertEquals(160, FeedCard(id = "a").widgetHeight)
     }
 
     @Test
