@@ -53,7 +53,10 @@ object AppEditSheet {
         // async model write.
         swipeLabels: ((down: Boolean) -> String?)? = null,
         onEditSwipe: ((down: Boolean, onPicked: (String?) -> Unit) -> Unit)? = null,
-        shortcut: ShortcutEdit? = null
+        shortcut: ShortcutEdit? = null,
+        // Opened from the drawer: the sheet also lists the drawer tabs and
+        // folders to put the app in.
+        fromDrawer: Boolean = false
     ) {
         if (app == null && shortcut == null) return
         val binding = SheetAppEditBinding.inflate(LayoutInflater.from(context))
@@ -122,6 +125,10 @@ object AppEditSheet {
         // From here on an app is being edited.
         app ?: return
 
+        val groups = DrawerGroupsPick.forSheet(context, viewModel, app, fromDrawer, binding)
+
+        // Reset undoes the icon and name edits, not the groups: those are
+        // where the app lives, as Select apps sets them.
         binding.resetButton.setOnClickListener {
             viewModel.setAppOverride(app) { AppOverride() }
             dialog.dismiss()
@@ -129,6 +136,7 @@ object AppEditSheet {
 
         binding.saveButton.setOnClickListener {
             viewModel.setAppOverride(app) { draft.edit() }
+            groups?.save()
             dialog.dismiss()
         }
 

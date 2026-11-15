@@ -517,6 +517,13 @@ class DrawerController(
         binding.drawerSearch.setOnClickListener {
             if (searchGlobalOnTap) onGlobalSearch()
         }
+        // The field is one text line tall inside the 48dp pill, so a tap on
+        // the pill around it, or on the magnifier, landed on nothing and
+        // brought no keyboard (#169). The whole pill answers like the field.
+        // The pill's buttons take their own taps.
+        binding.drawerSearchField.setOnClickListener {
+            if (searchGlobalOnTap) onGlobalSearch() else showKeyboard()
+        }
         // A keyboard asked for while the window had no focus (#165) goes up
         // once focus arrives. Kept on the tree only while the field is in a
         // window, like every tree listener here.

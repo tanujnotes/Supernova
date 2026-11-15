@@ -386,6 +386,22 @@
                     android:id="@+id/swipeDownValue"
                     style="@style/SheetRowValue" />
             </LinearLayout>
+
+            <!-- The drawer tabs and folders the app is in; only for an app
+                 edited from the drawer, with groups to pick from. -->
+            <LinearLayout
+                android:id="@+id/drawerGroupsRow"
+                style="@style/SheetRow"
+                android:visibility="gone">
+
+                <TextView
+                    style="@style/SheetRowTitle"
+                    android:text="@string/drawer_groups" />
+
+                <TextView
+                    android:id="@+id/drawerGroupsValue"
+                    style="@style/SheetRowValue" />
+            </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 

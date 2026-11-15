@@ -894,7 +894,7 @@
     <string name="popup_row_close_app">Close app</string>
     <string name="popup_row_relaunch">Relaunch</string>
     <string name="popup_row_save_apk">Save APK</string>
-    <string name="app_closed">App closed</string>
+    <string name="app_closed">Closed background tasks for “%s”</string>
     <string name="apk_saved">APK saved</string>
     <string name="apk_saved_base">Base APK saved (app uses split APKs)</string>
     <string name="apk_save_failed">Couldn\'t save APK</string>

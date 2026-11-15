@@ -2948,7 +2948,7 @@ class LauncherActivity :
         }
         if (PopupExtraRow.CLOSE_APP in extras) {
             menu.addRow(getString(R.string.popup_row_close_app), R.drawable.ic_menu_close_app) {
-                closeApp(app.packageName)
+                closeApp(app.packageName, app.label)
             }
         }
         if (PopupExtraRow.RELAUNCH in extras) {
@@ -3085,7 +3085,7 @@ class LauncherActivity :
         }
         menu.addRow(getString(R.string.edit_icon), R.drawable.ic_menu_edit) {
             source?.dismiss()
-            AppEditSheet.show(this, lifecycleScope, viewModel, app, ::pickPhoto)
+            AppEditSheet.show(this, lifecycleScope, viewModel, app, ::pickPhoto, fromDrawer = true)
         }
         // A hidden app only gets here through search or Show hidden apps,
         // whatever the row setting.
@@ -3692,16 +3692,19 @@ class LauncherActivity :
         }
     }
 
-    private fun closeApp(packageName: String, toast: Boolean = true) {
+    // Android only lets a launcher end an app's background processes, and
+    // from Android 14 on not even those of another app, so the toast says
+    // what was asked rather than claiming the app closed (#169).
+    private fun closeApp(packageName: String, label: CharSequence, toast: Boolean = true) {
         runLogged("close app") {
             getSystemService(android.app.ActivityManager::class.java)
                 ?.killBackgroundProcesses(packageName)
         }
-        if (toast) Toast.makeText(this, R.string.app_closed, Toast.LENGTH_SHORT).show()
+        if (toast) Toast.makeText(this, getString(R.string.app_closed, label), Toast.LENGTH_SHORT).show()
     }
 
     private fun relaunchApp(app: LaunchableApp) {
-        closeApp(app.packageName, toast = false)
+        closeApp(app.packageName, app.label, toast = false)
         launchApp(app)
     }
 
