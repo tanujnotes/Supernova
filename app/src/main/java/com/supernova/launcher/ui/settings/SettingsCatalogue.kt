@@ -833,11 +833,6 @@ object SettingsCatalogue {
                     get = { it.drawerFastScroller },
                     set = { viewModel.set(Pref.drawerFastScroller, it) }
                 ).hiddenWhen { dependsOn(R.string.drawer_style, it.drawerStyle == DrawerStyle.PAGED_GRID) },
-                SettingItem.Toggle(
-                    R.string.drawer_pull_to_search,
-                    get = { it.drawerPullToSearch },
-                    set = { viewModel.set(Pref.drawerPullToSearch, it) }
-                ),
                 rows.color(
                     R.string.drawer_scrubber_color, { it.drawerScrubberColor },
                     // As the scroller's own switch, none in the paged style.
@@ -845,6 +840,11 @@ object SettingsCatalogue {
                     dependsOn(R.string.drawer_style, it.drawerStyle == DrawerStyle.PAGED_GRID)
                         ?: needsOn(R.string.drawer_fast_scroller, !it.drawerFastScroller)
                 },
+                SettingItem.Toggle(
+                    R.string.drawer_pull_to_search,
+                    get = { it.drawerPullToSearch },
+                    set = { viewModel.set(Pref.drawerPullToSearch, it) }
+                ),
                 SettingItem.Header(R.string.group_tabs),
                 rows.choice(
                     R.string.drawer_tab_bar, DrawerTabBar.entries,
