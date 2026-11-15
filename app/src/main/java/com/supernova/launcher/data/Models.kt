@@ -669,7 +669,10 @@ data class LaunchableApp(
     // Resolved from the app's override so list surfaces can honor it.
     val hideLabel: Boolean = false,
     // In the private space: drawer and search only, never the home screen.
-    val privateSpace: Boolean = false
+    val privateSpace: Boolean = false,
+    // In a work profile: the drawer's Work tab. A clone profile's apps
+    // (dual apps) are not work apps and stay on the personal list.
+    val work: Boolean = false
 )
 
 data class PrivateSpace(

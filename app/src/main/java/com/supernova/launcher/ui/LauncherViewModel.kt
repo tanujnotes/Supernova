@@ -1146,13 +1146,13 @@ class LauncherViewModel(
 
     fun noteLaunch(app: LaunchableApp) = persist { preferences.recordLaunch(hiddenKey(app)) }
 
-    fun personalApps(): List<LaunchableApp> = visibleApps().filter { it.userSerial == 0L }
+    fun personalApps(): List<LaunchableApp> = visibleApps().filterNot { it.work }
 
-    fun workApps(): List<LaunchableApp> = visibleApps().filter { it.userSerial != 0L }
+    fun workApps(): List<LaunchableApp> = visibleApps().filter { it.work }
 
     // A paused work profile counts too, so its tab stays to turn it back on.
     fun hasWorkApps(): Boolean =
-        workPaused() || state.value.apps.any { it.userSerial != 0L && !it.privateSpace }
+        workPaused() || state.value.apps.any { it.work }
 
     fun drawerGroups(): List<DrawerGroup> =
         state.value.prefs.drawerGroups.mapNotNull(DrawerGroup::decode)
@@ -1331,7 +1331,7 @@ class LauncherViewModel(
     // on, a work app stays in that tab, out of the personal folders.
     fun drawerFolderApps(group: DrawerGroup): List<LaunchableApp> {
         val apps = appsInGroup(group)
-        return if (workTabActive()) apps.filter { it.userSerial == 0L } else apps
+        return if (workTabActive()) apps.filterNot { it.work } else apps
     }
 
     // A checklist's Save: every changed tick in one write. Picking a smart
@@ -1394,7 +1394,7 @@ class LauncherViewModel(
             val apps = catalog.listLaunchableApps().filterNot { it.privateSpace || hiddenKey(it) in hidden }
                 // With the Work tab on, work apps live there and stay out of
                 // the folders on the personal list.
-                .filter { !state.value.prefs.drawerWorkTab || it.userSerial == 0L }
+                .filter { !state.value.prefs.drawerWorkTab || !it.work }
             // Apps the user already placed in a folder group stay theirs.
             val claimed = drawerGroups()
                 .filter { it.type == DrawerGroupType.FOLDER && !it.smart }

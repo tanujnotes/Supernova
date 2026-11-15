@@ -76,7 +76,7 @@ class GroupListBuilder(private val context: Context, private val viewModel: Laun
             ?: tabs.first().takeIf { builtIn.isEmpty() }
         val shown = when {
             opensOn != null -> apps.filter { viewModel.hiddenKey(it) in opensOn.members }
-            prefs.drawerHideAllTab -> apps.filter { it.userSerial != 0L }
+            prefs.drawerHideAllTab -> apps.filter { it.work }
             else -> mainList(apps, work)
         }
         return GroupListRow.Preview(
@@ -92,7 +92,7 @@ class GroupListBuilder(private val context: Context, private val viewModel: Laun
     // work apps while they have a tab of their own.
     private fun mainList(apps: List<LaunchableApp>, work: Boolean): List<LaunchableApp> {
         val isolated = viewModel.isolatedTabKeys()
-        return apps.filter { viewModel.hiddenKey(it) !in isolated && !(work && it.userSerial != 0L) }
+        return apps.filter { viewModel.hiddenKey(it) !in isolated && !(work && it.work) }
     }
 
     private companion object {

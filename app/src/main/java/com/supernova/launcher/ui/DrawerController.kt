@@ -1277,7 +1277,7 @@ class DrawerController(
             // Show hidden apps: every app but the private space's, hidden
             // ones too.
             val pool = if (hiddenAppsShown) viewModel.appsForPicking() else viewModel.visibleApps()
-            val all = if (workTabActive()) pool.filter { it.userSerial == 0L } else pool
+            val all = if (workTabActive()) pool.filterNot { it.work } else pool
             val isolated = viewModel.isolatedTabKeys() - peekedHiddenKeys()
             if (isolated.isEmpty()) all else all.filterNot { viewModel.hiddenKey(it) in isolated }
         }

@@ -86,9 +86,11 @@ class AppCatalog(
     fun listLaunchableApps(): List<LaunchableApp> {
         val infoCache = mutableMapOf<String, LauncherActivityInfo>()
         val privateUser = privateSpaceUser()
+        val self = android.os.Process.myUserHandle()
         val apps = launcherApps.profiles.flatMap { user ->
             val serial = serialFor(user)
             val isPrivate = user == privateUser
+            val isWork = user != self && !isPrivate && isWorkUser(user)
             // A locked private space shows nothing anywhere, search included.
             if (isPrivate && userManager.isQuietModeEnabled(user)) return@flatMap emptyList()
             launcherApps.getActivityList(null, user).map { info ->
@@ -100,7 +102,8 @@ class AppCatalog(
                     label = info.label?.toString().orEmpty(),
                     userSerial = serial,
                     installTime = info.firstInstallTime,
-                    privateSpace = isPrivate
+                    privateSpace = isPrivate,
+                    work = isWork
                 )
             }
         }.let { apps -> LabelOrder.sorted(apps) { it.label } }
@@ -722,8 +725,21 @@ class AppCatalog(
     }
 
     private fun workUsers(): List<UserHandle> = runCatching {
-        WorkProfiles.workUsers(launcherApps.profiles, android.os.Process.myUserHandle(), privateSpaceUser())
+        val self = android.os.Process.myUserHandle()
+        WorkProfiles.workUsers(launcherApps.profiles, self, privateSpaceUser(), ::isWorkUser)
     }.getOrDefault(emptyList())
+
+    // A managed profile, not a clone one (dual apps). Android 15 on says
+    // which; before it, the user id tells the OEM clones apart (a
+    // UserHandle's hash is its user id).
+    private fun isWorkUser(user: UserHandle): Boolean {
+        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            runCatching { launcherApps.getLauncherUserInfo(user)?.userType }.getOrNull()
+        } else {
+            null
+        }
+        return WorkProfiles.isWork(type, user.hashCode())
+    }
 
     private fun isPaused(user: UserHandle): Boolean =
         runCatching { userManager.isQuietModeEnabled(user) }.getOrDefault(false)
