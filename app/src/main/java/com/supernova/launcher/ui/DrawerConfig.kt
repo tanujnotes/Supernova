@@ -35,24 +35,6 @@ enum class DrawerSort {
     }
 }
 
-// Which apps the drawer's top row shows, and in what order. ALPHA keeps
-// the recently used apps and puts them in name order, so the row stays put
-// while its apps change.
-@kotlinx.serialization.Serializable(with = TopRowSort.Names::class)
-enum class TopRowSort {
-    RECENTLY_USED,
-    MOST_USED,
-    INSTALL_DATE,
-    ALPHA;
-
-    // Its name in the store and in a backup, read back leniently.
-    object Names : SettingEnumSerializer<TopRowSort>("TopRowSort", entries, RECENTLY_USED)
-
-    companion object {
-        fun fromName(name: String): TopRowSort = Names.parse(name)
-    }
-}
-
 // Where the drawer's group tab bar renders. NONE hides it entirely, which
 // makes group tabs unreachable - the drawer then always shows the All list.
 @kotlinx.serialization.Serializable(with = DrawerTabBar.Names::class)

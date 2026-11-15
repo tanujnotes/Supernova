@@ -12,7 +12,6 @@ import com.supernova.launcher.ui.LaunchAnimation
 import com.supernova.launcher.ui.PopupMenuStyle
 import com.supernova.launcher.ui.ScrollEffect
 import com.supernova.launcher.ui.StatusBarIcons
-import com.supernova.launcher.ui.TopRowSort
 import com.supernova.launcher.ui.theme.PaletteSourceMode
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
@@ -62,8 +61,7 @@ class BackupRoundTripTest {
         drawerTabBar = DrawerTabBar.BOTTOM,
         drawerFrequentRow = true,
         drawerSort = DrawerSort.RECENTLY_USED,
-        drawerTopRowSort = TopRowSort.INSTALL_DATE,
-        drawerSortButtons = false,
+        drawerSortButtons = true,
         drawerRememberPosition = true,
         drawerAutoClose = false,
         drawerFoldersFirst = false,
@@ -273,6 +271,26 @@ class BackupRoundTripTest {
         assertEquals(0, decoded.prefs.dockPaddingH)
         assertEquals(0, decoded.prefs.drawerPaddingH)
         assertEquals(0, decoded.prefs.drawerPaddingV)
+    }
+
+    // The top row's own order was retired (#164): a backup or store that
+    // still holds it reads as if it weren't there, and the sort button
+    // keeps the choice stored with it.
+    @Test
+    fun theRetiredTopRowOrderIsIgnored() {
+        val raw = """
+            {"version":1,"exportedAtEpochMs":1,
+             "model":{"version":5,"items":[],"pageCount":1,"defaultPage":0},
+             "prefs":{"drawerTopRowSort":"INSTALL_DATE","drawerSortButtons":true}}
+        """.trimIndent()
+        assertEquals(true, json.decodeFromString<BackupPayload>(raw).prefs.drawerSortButtons)
+
+        val store = mutablePreferencesOf(
+            androidx.datastore.preferences.core.stringPreferencesKey("drawer_top_row_sort") to "ALPHA",
+            Pref.drawerSortButtons.key to true
+        )
+        assertEquals(true, LauncherPreferences.decode(store).drawerSortButtons)
+        assertEquals(false, LauncherPreferences.decode(mutablePreferencesOf()).drawerSortButtons)
     }
 
     @Test

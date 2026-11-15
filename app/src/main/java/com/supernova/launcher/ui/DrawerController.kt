@@ -427,8 +427,8 @@ class DrawerController(
     // stay put above the pages. Built with the controller, before init: taken
     // out of the sheet on first use instead, as it once was, that could land
     // inside the sheet's view-state restore and crash it.
-    // The sort pickers ride in the same header: one over the row, one (with
-    // the hairline) over the list.
+    // The sort picker rides in the same header, with the hairline, over the
+    // list.
     private val sortBars = DrawerSortBars(context, binding.drawerFrequentDivider, viewModel)
 
     private val listHeader: LinearLayout = LinearLayout(context).apply {
@@ -437,7 +437,6 @@ class DrawerController(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
         )
         binding.drawerSheet.removeView(binding.drawerFrequentRow)
-        addView(sortBars.topBar)
         addView(binding.drawerFrequentRow)
         addView(sortBars.listBar)
     }
@@ -1398,10 +1397,10 @@ class DrawerController(
             setFrequentRowVisible(prefs, false, list = !searching)
             return
         }
-        // The top row: apps in its own order (recently opened by default),
-        // labelled, one per grid column.
+        // The top row: the recently opened apps, labelled, one per grid
+        // column.
         val columns = columnCount(prefs)
-        val apps = viewModel.topRowApps(columns)
+        val apps = viewModel.recentApps(columns)
         if (apps.isEmpty()) {
             setFrequentRowVisible(prefs, false, list = true)
             return

@@ -13,8 +13,8 @@ class DrawerOrderTest {
 
     private fun sorted(sort: DrawerSort, usage: AppUsage = usage()) = labels(DrawerOrder.sorted(apps, sort, usage))
 
-    private fun row(sort: TopRowSort, usage: AppUsage, limit: Int) =
-        labels(DrawerOrder.topRow(apps, sort, usage, limit))
+    private fun row(usage: AppUsage, limit: Int) =
+        labels(DrawerOrder.recentRow(apps, usage, limit))
 
     private val camera = app("Camera", installed = 30)
     private val maps = app("maps", installed = 10)
@@ -69,37 +69,18 @@ class DrawerOrderTest {
     @Test
     fun topRowTakesTheRecentAppsInRecencyOrder() {
         val used = usage(counts = mapOf(camera to 9), recent = listOf(zoom, bank, maps))
-        assertEquals(listOf("Zoom", "Bank"), row(TopRowSort.RECENTLY_USED, used, limit = 2))
+        assertEquals(listOf("Zoom", "Bank"), row(used, limit = 2))
     }
 
     // Before anything was opened recently, the most opened stand in.
     @Test
     fun topRowFallsBackToMostUsedWithoutRecents() {
         val used = usage(counts = mapOf(camera to 2, maps to 5))
-        assertEquals(listOf("maps", "Camera"), row(TopRowSort.RECENTLY_USED, used, limit = 4))
-    }
-
-    @Test
-    fun topRowMostUsedSkipsNeverOpenedApps() {
-        val used = usage(counts = mapOf(zoom to 1, camera to 4), recent = listOf(bank))
-        assertEquals(listOf("Camera", "Zoom"), row(TopRowSort.MOST_USED, used, limit = 4))
-    }
-
-    @Test
-    fun topRowNewestInstalled() {
-        assertEquals(listOf("Camera", "Bank"), row(TopRowSort.INSTALL_DATE, usage(), limit = 2))
-    }
-
-    // Name order keeps the recent apps and sorts them, so the row holds still.
-    @Test
-    fun topRowByNameSortsTheRecentApps() {
-        val used = usage(recent = listOf(zoom, maps, bank, camera))
-        assertEquals(listOf("maps", "Zoom"), row(TopRowSort.ALPHA, used, limit = 2))
+        assertEquals(listOf("maps", "Camera"), row(used, limit = 4))
     }
 
     @Test
     fun anEmptyHistoryLeavesTheUsageRowEmpty() {
-        assertEquals(emptyList<String>(), row(TopRowSort.RECENTLY_USED, usage(), limit = 4))
-        assertEquals(emptyList<String>(), row(TopRowSort.MOST_USED, usage(), limit = 4))
+        assertEquals(emptyList<String>(), row(usage(), limit = 4))
     }
 }

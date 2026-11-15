@@ -154,11 +154,9 @@
     <string name="drawer_tab_bar_no_tabs">%1$s · add tabs in Drawer groups</string>
     <string name="drawer_frequent_row">Top row</string>
     <string name="drawer_frequent_row_summary">A row of apps above the app list</string>
-    <string name="drawer_top_row_sort">Top row order</string>
     <string name="drawer_sort_buttons">Sort buttons</string>
-    <string name="drawer_sort_buttons_summary">Change the order from the top of the app list and the top row</string>
+    <string name="drawer_sort_buttons_summary">Change the order from the top of the app list</string>
     <string name="drawer_sort_apps_desc">App order: %1$s</string>
-    <string name="drawer_sort_top_row_desc">Top row order: %1$s</string>
     <string name="drawer_remember_position">Remember position</string>
     <string name="drawer_auto_close">Automatically close</string>
     <string name="drawer_folders_first">Show folders first</string>

@@ -20,7 +20,6 @@ import com.supernova.launcher.ui.LaunchAnimation
 import com.supernova.launcher.ui.PopupMenuStyle
 import com.supernova.launcher.ui.ScrollEffect
 import com.supernova.launcher.ui.StatusBarIcons
-import com.supernova.launcher.ui.TopRowSort
 import com.supernova.launcher.ui.theme.AccentColor
 import com.supernova.launcher.ui.theme.PaletteSourceMode
 import com.supernova.launcher.ui.theme.ThemeMode
@@ -243,8 +242,7 @@ data class LauncherPrefs(
     val drawerTabAlign: DrawerTabAlign = DrawerTabAlign.START,
     // Isolate tabs: a sideways swipe on the list stays on the tab.
     val drawerTabsNoSwipe: Boolean = false,
-    // The top row over the drawer list (recently opened apps by default,
-    // drawerTopRowSort).
+    // The top row over the drawer list: the recently opened apps.
     val drawerFrequentRow: Boolean = true,
     // Keep the scroll position across close/reopen instead of resetting to top.
     val drawerRememberPosition: Boolean = false,
@@ -292,10 +290,8 @@ data class LauncherPrefs(
     // isolation); folder-type groups always did.
     val drawerIsolateTabs: Boolean = false,
     val drawerSort: DrawerSort = DrawerSort.ALPHA,
-    // The drawer top row's apps and order; recently used by default.
-    val drawerTopRowSort: TopRowSort = TopRowSort.RECENTLY_USED,
-    // The sort pickers at the top of the drawer's list and its top row.
-    val drawerSortButtons: Boolean = true,
+    // The sort button at the top of the drawer's list. Off by default.
+    val drawerSortButtons: Boolean = false,
     // On by default; it only shows with a work profile.
     val drawerWorkTab: Boolean = true,
     // Name of the group tab selected on open ("" = All), and whether the

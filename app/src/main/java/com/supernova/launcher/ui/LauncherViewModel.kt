@@ -1136,13 +1136,10 @@ class LauncherViewModel(
 
     private fun usage(): AppUsage = AppUsage(launchCounts, recentLaunches, ::hiddenKey)
 
-    // The apps opened most recently (search's row of them). Until there is
-    // any recency to go on, the most-launched stand in.
+    // The apps opened most recently (search's row of them, and the drawer's
+    // top row). Until there is any recency to go on, the most-launched stand
+    // in.
     fun recentApps(limit: Int): List<LaunchableApp> = DrawerOrder.recentRow(visibleApps(), usage(), limit)
-
-    // The drawer's top row, in its own order (drawerTopRowSort).
-    fun topRowApps(limit: Int): List<LaunchableApp> =
-        DrawerOrder.topRow(visibleApps(), state.value.prefs.drawerTopRowSort, usage(), limit)
 
     fun noteLaunch(app: LaunchableApp) = persist { preferences.recordLaunch(hiddenKey(app)) }
 
