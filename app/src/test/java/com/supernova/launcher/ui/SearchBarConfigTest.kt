@@ -121,7 +121,7 @@ class SearchBarConfigTest {
 
     @Test
     fun drawerHintStaysOnForOldConfigsAndCanBeTurnedOff() {
-        // A drawer field saved before the text toggle keeps its "Search apps".
+        // A drawer field saved before the text toggle keeps its "Search" text.
         val old = SearchBarConfig.decode("""{"drawer":{"placement":"BOTTOM"}}""").drawer
         assertEquals(true, old.hint)
         val off = SearchBarConfig(drawer = DrawerSearchBarConfig(hint = false))

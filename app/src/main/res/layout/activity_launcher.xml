@@ -184,7 +184,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:background="@null"
-                        android:hint="@string/search_apps"
+                        android:hint="@string/drawer_search_hint"
                         android:imeOptions="actionSearch|flagNoExtractUi|flagNoFullscreen"
                         android:importantForAutofill="no"
                         android:inputType="text"

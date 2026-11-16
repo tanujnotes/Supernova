@@ -288,7 +288,7 @@ class SettingsPreviewView @JvmOverloads constructor(
             marginEnd = dp(DRAWER_ICON_GAP_DP)
         })
         field.addView(TextView(context).apply {
-            if (SearchBarConfig.decode(prefs.searchBarConfig).drawer.hint) setText(R.string.search_apps)
+            if (SearchBarConfig.decode(prefs.searchBarConfig).drawer.hint) setText(R.string.drawer_search_hint)
             textSize = DRAWER_HINT_SP
             setTextColor((DRAWER_HINT_ALPHA shl 24) or (surface.text and 0xFFFFFF))
         }, LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
@@ -782,7 +782,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         sheet.background = surfaceDrawable(resolved, dp(18).toFloat())
 
         val pill = TextView(context)
-        pill.text = context.getString(R.string.search_apps)
+        pill.text = context.getString(R.string.drawer_search_hint)
         pill.setTextColor((0x99 shl 24) or (resolved.text and 0xFFFFFF))
         pill.textSizeOf(R.dimen.text_secondary)
         pill.setPadding(dp(14), dp(7), dp(14), dp(7))

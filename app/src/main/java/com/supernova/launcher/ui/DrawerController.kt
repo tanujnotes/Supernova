@@ -1840,9 +1840,9 @@ class DrawerController(
         binding.drawerSearchGhost.typeface = binding.drawerSearch.typeface
         // The empty field's text can be turned off, as the home bar's; the
         // field keeps its name for TalkBack either way.
-        binding.drawerSearch.hint = if (searchConfig.hint) context.getString(R.string.search_apps) else null
+        binding.drawerSearch.hint = if (searchConfig.hint) context.getString(R.string.drawer_search_hint) else null
         binding.drawerSearch.contentDescription =
-            if (searchConfig.hint) null else context.getString(R.string.search_apps)
+            if (searchConfig.hint) null else context.getString(R.string.drawer_search_hint)
         binding.drawerSearch.setHintTextColor((0x8A shl 24) or (resolvedField.text and 0xFFFFFF))
         binding.drawerSearch.highlightColor =
             (0x40 shl 24) or (resolvedField.accent and 0xFFFFFF)

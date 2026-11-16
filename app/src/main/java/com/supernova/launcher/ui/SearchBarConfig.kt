@@ -90,7 +90,7 @@ data class DrawerSearchBarConfig(
     // magnifier now. Kept so older configs and backups decode.
     val logo: String = "SEARCH",
     val logoMonochrome: Boolean = true,
-    // The "Search apps" text in the empty field, as the home bar's hint.
+    // The "Search" text in the empty field, as the home bar's hint.
     val hint: Boolean = true,
     // IconGlass name: the field as the icons' glass, as the home bar's
     // glass. It takes the place of the filled box and the outline.
