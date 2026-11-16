@@ -10,6 +10,7 @@ object ModelMigrations {
                 2 -> migrate2To3(current)
                 3 -> migrate3To4(current)
                 4 -> migrate4To5(current)
+                5 -> AppItemEdits.migrateLabels(current).copy(version = 6)
                 else -> current.copy(version = CURRENT_MODEL_VERSION)
             }
         }

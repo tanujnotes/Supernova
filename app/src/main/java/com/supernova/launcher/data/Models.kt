@@ -100,11 +100,18 @@ data class LauncherItem(
     // photo), shape and style. Its label stays in `label`; the shortcut's
     // own picture stays in iconBase64 and comes back when the custom icon
     // is reset.
-    val shortcutEdit: AppOverride? = null
+    val shortcutEdit: AppOverride? = null,
+    // APP items only: this copy's own edit from its Edit on the home screen,
+    // the dock or a folder. Its name and hidden label are the copy's own; an
+    // icon, shape or style set here is too, and with none set the copy draws
+    // the drawer's (appOverrides) - see AppItemEdits.
+    val appEdit: AppOverride? = null
 )
 
-// Per-app customization, keyed "userSerial/pkg/cls" in LauncherModel so one
-// override reaches the drawer entry and every pinned copy of the app.
+// Per-app customization, keyed "userSerial/pkg/cls" in LauncherModel: the
+// drawer entry's. A placed copy of the app draws its icon too unless it has
+// an icon of its own (LauncherItem.appEdit); names and hidden labels are each
+// copy's own.
 @Serializable
 data class AppOverride(
     val customLabel: String? = null,
@@ -127,7 +134,7 @@ data class AppOverride(
             iconVariant == null
 }
 
-const val CURRENT_MODEL_VERSION = 5
+const val CURRENT_MODEL_VERSION = 6
 
 @Serializable
 data class LauncherModel(

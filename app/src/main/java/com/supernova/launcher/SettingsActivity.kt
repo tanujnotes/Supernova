@@ -1663,9 +1663,10 @@ class SettingsActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.reset_custom_icons_none_toast, Toast.LENGTH_SHORT).show()
             return
         }
-        // A tick per kind that has custom icons, with its count; only apps
-        // start ticked, so folder, tab, shortcut and contact icons stay
-        // unless picked (#168).
+        // A tick per kind that has custom icons, with its count; only the
+        // drawer's apps start ticked, so icons given to apps on the home
+        // screen and folder, tab, shortcut and contact icons stay unless
+        // picked (#168, #211).
         val kinds = CustomIcons.Kind.entries.filter { count.of(it) > 0 }
         val ticked = kinds.filterTo(mutableSetOf()) { it == CustomIcons.Kind.APPS }
         val density = resources.displayMetrics.density
@@ -1716,6 +1717,7 @@ class SettingsActivity : AppCompatActivity() {
         val name = getString(
             when (kind) {
                 CustomIcons.Kind.APPS -> R.string.reset_custom_icons_apps
+                CustomIcons.Kind.PLACED_APPS -> R.string.reset_custom_icons_placed_apps
                 CustomIcons.Kind.FOLDERS -> R.string.reset_custom_icons_folders
                 CustomIcons.Kind.SHORTCUTS -> R.string.reset_custom_icons_shortcuts
             }

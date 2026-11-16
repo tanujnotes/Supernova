@@ -115,7 +115,8 @@
     <string name="reset_custom_icons_none">None set</string>
     <string name="reset_custom_icons_none_toast">No app, folder or shortcut has a custom icon</string>
     <string name="reset_custom_icons_message">Icons you changed in the ticked groups go back to the default, with any shape or style picked for them. Names, hidden labels, swipe actions and icon sizes stay.</string>
-    <string name="reset_custom_icons_apps">Apps</string>
+    <string name="reset_custom_icons_apps">Drawer apps</string>
+    <string name="reset_custom_icons_placed_apps">Apps on the home screen</string>
     <string name="reset_custom_icons_folders">Folders and tabs</string>
     <string name="reset_custom_icons_shortcuts">Shortcuts and contacts</string>
     <string name="reset_hidden_labels">Reset hidden labels</string>

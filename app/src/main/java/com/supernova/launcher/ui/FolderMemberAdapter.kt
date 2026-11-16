@@ -87,10 +87,13 @@ class FolderMemberAdapter(
 
         fun bind(item: LauncherItem) {
             binding.root.alpha = if (item.id == hiddenItemId) 0f else 1f
-            binding.label.text = item.label
+            // An app's own name and hidden label, from its Edit here.
+            val own = item.appEdit
+            val label = own?.customLabel ?: item.label
+            binding.label.text = label
             labelPrefs?.let { LabelStyler.apply(binding.label, it, onWallpaper = false, context = LabelContext.FOLDER) }
-            binding.label.visibility = if (showLabels) View.VISIBLE else View.GONE
-            binding.root.contentDescription = item.label
+            binding.label.visibility = if (showLabels && own?.hideLabel != true) View.VISIBLE else View.GONE
+            binding.root.contentDescription = label
             binding.icon.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             // Sized, not scaled, as on the desktop: scaleX/scaleY drew a big
             // icon out past its box, where the tile's padding cut it square
@@ -106,7 +109,8 @@ class FolderMemberAdapter(
                 item.className?.let { cls -> LaunchableApp(pkg, cls, item.label, item.userSerial) }
             }
             binding.icon.setImageDrawable(
-                (shortcutIcon(item) ?: app?.let { appCatalog.iconFor(it) })?.let { decorateIcon(it, item) }
+                (shortcutIcon(item) ?: app?.let { appCatalog.iconFor(it, item.appEdit) })
+                    ?.let { decorateIcon(it, item) }
                     ?: binding.root.context.getDrawable(com.supernova.launcher.R.drawable.ic_folder)
             )
             binding.root.setOnClickListener { onClick(item) }

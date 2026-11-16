@@ -369,6 +369,7 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
             .joinToString(",", prefix = "[", postfix = "]") {
                 // A shortcut member's Edit changes its tile in the preview.
                 "${it.id}:${it.packageName}/${it.className}/${it.shortcutEdit?.hashCode()}" +
+                    "/${it.appEdit?.hashCode()}" +
                     PausedIcon.mark(state, it.userSerial)
             }
 

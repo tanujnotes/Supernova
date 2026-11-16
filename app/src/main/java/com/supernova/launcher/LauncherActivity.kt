@@ -2056,6 +2056,7 @@ class LauncherActivity :
                     viewModel.folderMembers(item.id)
                         .joinToString(",", "[", "]") {
                             "${it.id}:${it.packageName}/${it.className}/${it.shortcutEdit?.hashCode()}" +
+                                "/${it.appEdit?.hashCode()}" +
                                 PausedIcon.mark(state, it.userSerial)
                         }
                 } else {
@@ -3465,12 +3466,14 @@ class LauncherActivity :
             ) { label, edit -> viewModel.editShortcut(item.id, label, edit) }
         }
         if (app == null && shortcut == null) return
+        // An app icon's Edit is this copy's own, not the drawer's.
+        val placed = item.takeIf { shortcut == null }
         if (!allowSwipe) {
-            AppEditSheet.show(this, lifecycleScope, viewModel, app, ::pickPhoto, shortcut = shortcut)
+            AppEditSheet.show(this, lifecycleScope, viewModel, app, ::pickPhoto, shortcut = shortcut, placed = placed)
             return
         }
         AppEditSheet.show(
-            this, lifecycleScope, viewModel, app, ::pickPhoto, shortcut = shortcut,
+            this, lifecycleScope, viewModel, app, ::pickPhoto, shortcut = shortcut, placed = placed,
             // Read live so a re-open (or a just-committed pick) shows the
             // current binding, not the snapshot captured when the menu opened.
             swipeLabels = { down ->
@@ -4366,7 +4369,8 @@ class LauncherActivity :
         val icon = when (item.itemType) {
             ItemType.FOLDER -> itemIcons.folderPreviewDrawable(item)
             ItemType.WIDGET -> getDrawable(R.drawable.ic_widget)
-            ItemType.APP -> app?.let { viewModel.appCatalog().iconFor(it) } ?: getDrawable(R.drawable.ic_supernova)
+            ItemType.APP -> app?.let { viewModel.appCatalog().iconFor(it, item.appEdit) }
+                ?: getDrawable(R.drawable.ic_supernova)
             ItemType.SHORTCUT -> itemIcons.intentItemIcon(item)
                 ?: app?.let { viewModel.appCatalog().iconFor(it) } ?: getDrawable(R.drawable.ic_supernova)
         }

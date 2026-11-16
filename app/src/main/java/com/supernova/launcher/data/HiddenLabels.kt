@@ -1,8 +1,9 @@
 package com.supernova.launcher.data
 
 // "Reset hidden labels": every app and shortcut whose label was hidden in its
-// own Edit shows it again. Only the hidden flag goes; names, icons, shapes,
-// styles and swipe actions stay, as Reset custom icons leaves labels alone.
+// own Edit shows it again, in the drawer and on every placed copy. Only the
+// hidden flag goes; names, icons, shapes, styles and swipe actions stay, as
+// Reset custom icons leaves labels alone.
 // Folders and launcher actions have no per-item hidden label.
 object HiddenLabels {
 
@@ -11,7 +12,7 @@ object HiddenLabels {
     }
 
     fun count(model: LauncherModel): Count = Count(
-        apps = model.appOverrides.values.count { it.hideLabel },
+        apps = model.appOverrides.values.count { it.hideLabel } + model.items.count { it.appEdit?.hideLabel == true },
         shortcuts = model.items.count { it.shortcutEdit?.hideLabel == true }
     )
 
@@ -21,10 +22,12 @@ object HiddenLabels {
             .filterValues { !it.isEmpty() },
         items = model.items.map { item ->
             val edit = item.shortcutEdit
-            if (edit?.hideLabel == true) {
-                item.copy(shortcutEdit = edit.copy(hideLabel = false).takeUnless { it.isEmpty() })
-            } else {
-                item
+            val own = item.appEdit
+            when {
+                edit?.hideLabel == true ->
+                    item.copy(shortcutEdit = edit.copy(hideLabel = false).takeUnless { it.isEmpty() })
+                own?.hideLabel == true -> item.copy(appEdit = own.copy(hideLabel = false).takeUnless { it.isEmpty() })
+                else -> item
             }
         }
     )

@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.supernova.launcher.AppGraph
 import com.supernova.launcher.R
 import com.supernova.launcher.data.AppCatalog
+import com.supernova.launcher.data.AppItemEdits
 import com.supernova.launcher.data.AppChange
 import com.supernova.launcher.data.AppOverride
 import com.supernova.launcher.data.ContainerType
@@ -1034,15 +1035,21 @@ class LauncherViewModel(
         }
     }
 
+    // What a placed item shows: a shortcut's own edit, or an app copy's own
+    // name and hidden label with its own icon or else the drawer's
+    // (AppItemEdits).
     fun overrideFor(item: LauncherItem): AppOverride? {
-        // An app's rename and hidden label are the app icon's. A pinned
-        // shortcut carries the same package and class, and took the app's
-        // new name with them; its hidden label and icon are its own.
         if (item.itemType == ItemType.SHORTCUT) return item.shortcutEdit
-        if (item.itemType != ItemType.APP) return null
-        val pkg = item.packageName ?: return null
-        val cls = item.className ?: return null
-        return state.value.model.appOverrides["${item.userSerial}/$pkg/$cls"]
+        return AppItemEdits.effective(item, state.value.model.appOverrides)
+    }
+
+    // An app copy's Edit: saved on the item, the drawer's icon left out
+    // when it is unchanged so the copy keeps following it. Reset (null)
+    // gives the copy back the app's own name and the drawer's icon.
+    fun setItemAppEdit(item: LauncherItem, app: LaunchableApp, edit: AppOverride?) {
+        val drawer = state.value.model.appOverrides[hiddenKey(app)]
+        val stored = edit?.let { AppItemEdits.stored(it, drawer) }
+        persist { repository.setItemAppEdit(item.id, rawLabelOf(app), stored) }
     }
 
     fun overrideFor(app: LaunchableApp): AppOverride =
@@ -1063,19 +1070,10 @@ class LauncherViewModel(
     fun setAppOverride(app: LaunchableApp, transform: (AppOverride) -> AppOverride) {
         val key = hiddenKey(app)
         viewModelScope.launch {
-            val before = state.value.model.appOverrides[key] ?: AppOverride()
-            val after = transform(before)
+            // The drawer entry's edit. Placed copies keep their own names
+            // and hidden labels; those with no icon of their own draw its icon.
+            val after = transform(state.value.model.appOverrides[key] ?: AppOverride())
             repository.setAppOverride(key) { after }
-            // A cleared rename restores the catalog label on pinned copies.
-            if (before.customLabel != null && after.customLabel == null) {
-                val raw = state.value.apps.firstOrNull {
-                    it.packageName == app.packageName && it.className == app.className &&
-                        it.userSerial == app.userSerial
-                }?.label
-                if (raw != null) {
-                    repository.relabelItems(app.packageName, app.className, app.userSerial, raw)
-                }
-            }
         }
     }
 

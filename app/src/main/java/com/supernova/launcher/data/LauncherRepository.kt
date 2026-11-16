@@ -720,15 +720,13 @@ class LauncherRepository(private val context: Context) {
         mutate { current -> current.copy(appOverrides = current.appOverrides - key) }
     }
 
-    // Items snapshot their label at add time; a cleared rename restores the
-    // catalog's label on every pinned copy.
-    suspend fun relabelItems(packageName: String, className: String, userSerial: Long, label: String) {
+    // One placed app's own Edit (AppItemEdits): `label` is the app's own
+    // name, what the copy shows with no name of its own; null edit = none.
+    suspend fun setItemAppEdit(itemId: String, label: String, edit: AppOverride?) {
         mutate { current ->
             current.copy(items = current.items.map { item ->
-                if (item.packageName == packageName && item.className == className &&
-                    item.userSerial == userSerial && item.itemType == ItemType.APP
-                ) {
-                    item.copy(label = label)
+                if (item.id == itemId && item.itemType == ItemType.APP) {
+                    item.copy(label = label, appEdit = edit)
                 } else {
                     item
                 }
@@ -1202,7 +1200,7 @@ class LauncherRepository(private val context: Context) {
             // Never over a layout this build couldn't read: an edit to the
             // empty stand-in would replace it for good.
             val current = decode(context.supernovaStore.data.first()[StoreKeys.model]) ?: return
-            val next = LargeIcons.withSmallIconsOffDesktop(block(current))
+            val next = AppItemEdits.stampNew(current, LargeIcons.withSmallIconsOffDesktop(block(current)))
             if (next == current) return
             context.supernovaStore.edit { prefs ->
                 prefs[StoreKeys.model] = json.encodeToString(next)

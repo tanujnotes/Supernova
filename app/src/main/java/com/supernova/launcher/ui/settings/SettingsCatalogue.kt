@@ -1462,7 +1462,8 @@ object SettingsCatalogue {
                             context.getString(R.string.reset_custom_icons_none)
                         } else {
                             listOfNotNull(
-                                count.apps.takeIf { it > 0 }?.let {
+                                // The drawer's and those given to home screen copies.
+                                (count.apps + count.placedApps).takeIf { it > 0 }?.let {
                                     context.resources.getQuantityString(R.plurals.custom_icon_apps, it, it)
                                 },
                                 count.folders.takeIf { it > 0 }?.let {

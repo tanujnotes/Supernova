@@ -156,10 +156,20 @@ class AppCatalog(
 
     // An app's icon, rendered now if it isn't cached. Whoever waits here (a
     // bind, the first run's preview) goes ahead of the background warm.
-    fun iconFor(app: LaunchableApp): Drawable? = waiters.ahead { renderIcon(app) }
+    fun iconFor(app: LaunchableApp): Drawable? = waiters.ahead { renderIcon(app, null) }
 
-    private fun renderIcon(app: LaunchableApp): Drawable? {
-        val cacheKey = "${app.userSerial}/${app.packageName}/${app.className}"
+    // A placed copy's icon: with an icon of its own (LauncherItem.appEdit,
+    // see AppItemEdits) drawn from that, cached under the edit; else the
+    // app's, as the drawer draws it.
+    fun iconFor(app: LaunchableApp, itemEdit: AppOverride?): Drawable? {
+        val own = itemEdit?.takeIf { with(AppItemEdits) { it.hasIcon() } } ?: return iconFor(app)
+        return waiters.ahead { renderIcon(app, own.copy(customLabel = null, hideLabel = false)) }
+    }
+
+    // `own` is a placed copy's icon edit, which stands in for the app's.
+    private fun renderIcon(app: LaunchableApp, own: AppOverride?): Drawable? {
+        val appKey = "${app.userSerial}/${app.packageName}/${app.className}"
+        val cacheKey = if (own == null) appKey else "$appKey#${own.hashCode()}"
         iconCache.get(cacheKey)?.let { return it }
         val user = userForSerial(app.userSerial) ?: return null
 
@@ -167,7 +177,7 @@ class AppCatalog(
             // A pre-warm may have rendered it while we waited for the lock.
             iconCache.get(cacheKey)?.let { return it }
 
-            val override = overrides[cacheKey]
+            val override = own ?: overrides[appKey]
             val variant = override?.iconVariant
 
             // Dynamic calendar icons: an isolated day-keyed cache entry, so the
@@ -198,7 +208,7 @@ class AppCatalog(
             }
 
             val rendered = drawEdited(app, user, override) ?: return null
-            dominantColorOf(IconRenderer.bitmapOf(rendered))?.let { dominantColors[cacheKey] = it }
+            if (own == null) dominantColorOf(IconRenderer.bitmapOf(rendered))?.let { dominantColors[cacheKey] = it }
             val icon = runLogged("badge icon for its profile") {
                 pm.getUserBadgedIcon(rendered, user)
             }.getOrNull() ?: return null
@@ -352,7 +362,7 @@ class AppCatalog(
     fun warmIcons(apps: List<LaunchableApp>) {
         for (app in apps) {
             waiters.stepAside()
-            renderIcon(app)
+            renderIcon(app, null)
         }
     }
 
@@ -849,6 +859,8 @@ class AppCatalog(
                 iconCache.remove(key)
                 dominantColors.remove(key)
             }
+            // So may a placed copy with an icon of its own: few, so all of them.
+            iconCache.snapshot().keys.filter { '#' in it }.forEach(iconCache::remove)
         }
     }
 

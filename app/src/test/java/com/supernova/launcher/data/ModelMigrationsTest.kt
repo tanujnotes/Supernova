@@ -74,10 +74,12 @@ class ModelMigrationsTest {
         assertEquals(4, decoded.version)
         val migrated = ModelMigrations.migrate(decoded)
         assertEquals(CURRENT_MODEL_VERSION, migrated.version)
-        assertEquals(5, migrated.version)
-        // Only the version changes: items, layout and overrides are untouched
-        // and feedCards arrives as the default empty list.
-        assertEquals(decoded.items, migrated.items)
+        // Layout and overrides are untouched and feedCards arrives as the
+        // default empty list; v6 gives the placed copy the shared name.
+        assertEquals(
+            decoded.items.map { it.copy(appEdit = AppOverride(customLabel = "Renamed")) },
+            migrated.items
+        )
         assertEquals(2, migrated.pageCount)
         assertEquals(1, migrated.defaultPage)
         assertEquals("Renamed", migrated.appOverrides["0/com.example/com.example.Main"]?.customLabel)
