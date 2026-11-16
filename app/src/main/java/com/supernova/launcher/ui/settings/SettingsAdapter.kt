@@ -345,6 +345,9 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
                 binding.settingSeek.progress = current - item.min
             }
             binding.settingValue.text = item.display(current)
+            val note = item.note?.invoke(prefs)
+            binding.settingNote.text = note
+            binding.settingNote.visibility = if (note == null) View.GONE else View.VISIBLE
             // Named, and its value read as the row shows it (not a percent).
             val title = binding.root.context.getString(item.title)
             binding.settingSeek.contentDescription = title

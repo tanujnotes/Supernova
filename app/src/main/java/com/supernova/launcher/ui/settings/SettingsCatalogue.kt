@@ -337,6 +337,7 @@ object SettingsCatalogue {
         actions: Actions
     ): List<SettingsSection> {
         val rows = Rows(context, viewModel, actions)
+        val fitHint = IconFitHint(context)
         return listOf(
         SettingsSection(
             R.string.settings_section_home,
@@ -353,7 +354,8 @@ object SettingsCatalogue {
                     get = { (it.iconScale * 100f).roundToInt() },
                     set = { viewModel.set(Pref.iconScale, it / 100f) },
                     display = { context.getString(R.string.opacity_percent, it) },
-                    preview = { p, v -> p.copy(iconScale = v / 100f) }
+                    preview = { p, v -> p.copy(iconScale = v / 100f) },
+                    note = { fitHint.desktop(it) }
                 ),
                 SettingItem.LabelGroup(
                     R.string.label_group,
@@ -793,7 +795,8 @@ object SettingsCatalogue {
                     get = { (it.drawerIconScale * 100f).roundToInt() },
                     set = { viewModel.set(Pref.drawerIconScale, it / 100f) },
                     display = { context.getString(R.string.opacity_percent, it) },
-                    preview = { p, v -> p.copy(drawerIconScale = v / 100f) }
+                    preview = { p, v -> p.copy(drawerIconScale = v / 100f) },
+                    note = { fitHint.drawer(it) }
                 ).hiddenWhen { needsOff(R.string.dock_match_desktop, it.drawerMatchDesktop) },
                 SettingItem.Slider(
                     R.string.drawer_padding_h,

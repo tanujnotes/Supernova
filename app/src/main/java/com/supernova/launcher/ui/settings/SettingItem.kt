@@ -82,7 +82,9 @@ sealed class SettingItem {
         val preview: ((LauncherPrefs, Int) -> LauncherPrefs)? = null,
         override val visibleIf: (LauncherPrefs) -> Boolean = { true },
         // The max while Labs' Big grid size options is on; null = max.
-        val bigGridMax: Int? = null
+        val bigGridMax: Int? = null,
+        // A note under the bar; null = none.
+        val note: ((LauncherPrefs) -> CharSequence?)? = null
     ) : SettingItem() {
         fun maxFor(prefs: LauncherPrefs): Int = bigGridMax?.takeIf { prefs.labsBigGrid } ?: max
     }
