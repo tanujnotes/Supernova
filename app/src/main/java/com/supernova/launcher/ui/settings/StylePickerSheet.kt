@@ -10,6 +10,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
+import androidx.core.view.isVisible
 import com.supernova.launcher.R
 import com.supernova.launcher.data.Pref
 import com.supernova.launcher.databinding.SheetStylePickerBinding
@@ -259,7 +260,7 @@ object StylePickerSheet {
         // an AARRGGBB hex sets the surface's opacity as well.
         custom = CustomColorRows(context, binding.customRows) { rgb, alpha ->
             onPick(ColorSpec(fixed = String.format(java.util.Locale.ROOT, "#%08X", rgb or OPAQUE)), fromCustom = true)
-            if (alpha != null && slot == Slot.SURFACE && binding.opacityRow.visibility == android.view.View.VISIBLE) {
+            if (alpha != null && slot == Slot.SURFACE && binding.opacityRow.isVisible) {
                 val percent = (alpha * 100 / 255).coerceAtLeast(binding.opacitySeek.min)
                 binding.opacitySeek.progress = percent
                 binding.opacityValue.text = context.getString(R.string.opacity_percent, percent)
