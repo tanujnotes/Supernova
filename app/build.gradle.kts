@@ -28,8 +28,8 @@ android {
         applicationId = "com.supernova.launcher"
         minSdk = 28
         targetSdk = 36
-        versionCode = 22
-        versionName = "v0.2.2"
+        versionCode = 23
+        versionName = "v0.2.3"
         // For app/src/androidTest (SmokeTest): read its warning before
         // running it on a phone in use.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

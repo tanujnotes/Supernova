@@ -1,0 +1,11 @@
+Icons keep their own edits, any colour for surfaces, wallpaper-aware status icons.
+
+- Home, dock and folder icons keep their own edits
+- Style: any colour for every surface
+- Status bar icons can follow the wallpaper
+- Drawer tabs: drag to reorder, edit from the tab menu
+- Private space shows in a drawer without tabs
+- On/off settings are switches
+- Clone apps stay off the Work tab
+- New apps go on a new page when home is full
+- Fixed widget setup being cancelled on Android 14
