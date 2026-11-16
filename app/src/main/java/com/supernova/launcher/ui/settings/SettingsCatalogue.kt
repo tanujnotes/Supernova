@@ -337,6 +337,25 @@ object SettingsCatalogue {
         actions: Actions
     ): List<SettingsSection> {
         val rows = Rows(context, viewModel, actions)
+        // The drawer field's Top/Bottom/Hidden, on its own page and on the
+        // App drawer page next to the tab bar's.
+        val drawerBarPlacement = { title: Int ->
+            rows.choice(
+                title, DrawerBarPlacement.entries,
+                { DrawerBarPlacement.fromConfig(SearchBarPrefs.drawerBar(it)) },
+                {
+                    when (it) {
+                        DrawerBarPlacement.TOP -> R.string.tab_bar_top
+                        DrawerBarPlacement.BOTTOM -> R.string.tab_bar_bottom
+                        DrawerBarPlacement.HIDDEN -> R.string.placement_hidden
+                    }
+                }
+            ) { placement ->
+                rows.editDrawerBar {
+                    it.copy(placement = placement.name, enabled = placement != DrawerBarPlacement.HIDDEN)
+                }
+            }
+        }
         val fitHint = IconFitHint(context)
         return listOf(
         SettingsSection(
@@ -848,6 +867,7 @@ object SettingsCatalogue {
                     get = { it.drawerPullToSearch },
                     set = { viewModel.set(Pref.drawerPullToSearch, it) }
                 ),
+                drawerBarPlacement(R.string.drawer_search_bar_position),
                 SettingItem.Header(R.string.group_tabs),
                 rows.choice(
                     R.string.drawer_tab_bar, DrawerTabBar.entries,
@@ -1133,21 +1153,7 @@ object SettingsCatalogue {
             R.string.drawer_search_bar,
             listOf(
                 SettingItem.Preview(PreviewKind.DRAWER_SEARCH_BAR),
-                rows.choice(
-                    R.string.search_bar_placement, DrawerBarPlacement.entries,
-                    { DrawerBarPlacement.fromConfig(SearchBarPrefs.drawerBar(it)) },
-                    {
-                        when (it) {
-                            DrawerBarPlacement.TOP -> R.string.tab_bar_top
-                            DrawerBarPlacement.BOTTOM -> R.string.tab_bar_bottom
-                            DrawerBarPlacement.HIDDEN -> R.string.placement_hidden
-                        }
-                    }
-                ) { placement ->
-                    rows.editDrawerBar {
-                        it.copy(placement = placement.name, enabled = placement != DrawerBarPlacement.HIDDEN)
-                    }
-                },
+                drawerBarPlacement(R.string.search_bar_placement),
                 SettingItem.Toggle(
                     R.string.drawer_search_global,
                     get = { SearchBarPrefs.drawerBar(it).globalOnTap },

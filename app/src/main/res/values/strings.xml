@@ -151,6 +151,7 @@
     <string name="drawer_swipe_indicator_summary">Place a small arrow above the dock</string>
     <string name="drawer_swipe_haptic">Haptic feedback</string>
     <string name="drawer_swipe_haptic_summary">Vibrate when a swipe up starts opening the drawer</string>
+    <string name="drawer_search_bar_position">Search bar position</string>
     <string name="drawer_tab_bar">Tab bar position</string>
     <string name="tab_bar_top">Top</string>
     <string name="tab_bar_bottom">Bottom</string>
