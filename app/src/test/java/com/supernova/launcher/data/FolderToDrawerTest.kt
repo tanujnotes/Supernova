@@ -8,7 +8,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 // A home folder moved into the drawer: its apps become a group's members
-// under a free name, a tab can hold the new folder, and what a group can't
+// under the folder's name and a new id, a tab can hold the new folder, and what a group can't
 // hold stays on the home screen.
 class FolderToDrawerTest {
 
@@ -30,32 +30,42 @@ class FolderToDrawerTest {
     private val tab = DrawerGroup("Fun", setOf("0/x/y"), type = DrawerGroupType.TAB)
 
     @Test
-    fun nameIsTheFoldersOrTheNextFreeOne() {
-        assertEquals("Games", FolderToDrawer.uniqueName(" Games ", listOf("Work")))
-        assertEquals("Games 3", FolderToDrawer.uniqueName("Games", listOf("Games", "Games 2")))
-        assertEquals("Folder", FolderToDrawer.uniqueName("  ", emptyList()))
-        assertEquals("a/b", FolderToDrawer.uniqueName("a|b", emptyList()))
+    fun nameIsTheFolders() {
+        assertEquals("Games", FolderToDrawer.groupName(" Games "))
+        assertEquals("Folder", FolderToDrawer.groupName("  "))
+        assertEquals("a/b", FolderToDrawer.groupName("a|b"))
+    }
+
+    @Test
+    fun aNameAnotherGroupHasIsKept() {
+        val games = DrawerGroup("Games", emptySet(), type = DrawerGroupType.TAB)
+        val groups = FolderToDrawer
+            .withGroupAdded(listOf(games), folder, listOf(app("a", 0)), "#g", DrawerTarget.MainList)
+        assertEquals(listOf("Games", "Games"), groups.map { it.name })
+        assertEquals(games, groups.single { it.id == "Games" })
+        assertEquals(setOf("0/p.a/c.a"), groups.single { it.id == "#g" }.members)
     }
 
     @Test
     fun aDrawerFolderInATabKeepsItsAppsAndIcon() {
         val members = listOf(app("a", 0), shortcut("s", 1), app("w", 2, serial = 10L))
-        val groups = FolderToDrawer.withGroupAdded(listOf(tab), folder, members, "Games", DrawerTarget.InTab("Fun"))
-        val added = groups.single { it.name == "Games" }
+        val groups = FolderToDrawer.withGroupAdded(listOf(tab), folder, members, "#g", DrawerTarget.InTab("Fun"))
+        val added = groups.single { it.id == "#g" }
+        assertEquals("Games", added.name)
         assertEquals(setOf("0/p.a/c.a", "10/p.w/c.w"), added.members)
         assertEquals(DrawerGroupType.FOLDER, added.type)
         assertEquals(false, added.keepInMain)
         assertEquals("pack", added.iconPack)
         assertEquals("games", added.iconName)
         assertTrue(added.iconRaw)
-        assertTrue(TabFolders.keyOf("Games") in groups.single { it.name == "Fun" }.members)
+        assertTrue(TabFolders.keyOf("#g") in groups.single { it.name == "Fun" }.members)
     }
 
     @Test
     fun aTabHasNoIconAndNoTabHoldsIt() {
         val members = listOf(app("a", 0))
-        val groups = FolderToDrawer.withGroupAdded(listOf(tab), folder, members, "Games", DrawerTarget.OwnTab)
-        val added = groups.single { it.name == "Games" }
+        val groups = FolderToDrawer.withGroupAdded(listOf(tab), folder, members, "#g", DrawerTarget.OwnTab)
+        val added = groups.single { it.id == "#g" }
         assertEquals(DrawerGroupType.TAB, added.type)
         assertNull(added.iconPack)
         assertFalse(added.iconRaw)
@@ -91,5 +101,34 @@ class FolderToDrawerTest {
     fun aFolderOfShortcutsOnlyStays() {
         val model = LauncherModel(items = listOf(folder, shortcut("s", 0), shortcut("t", 1)), pageCount = 2)
         assertSame(model, FolderToDrawer.homeAfterMove(model, "f"))
+    }
+
+    @Test
+    fun aDrawerFolderPlacedOnHomeWearsItsIcon() {
+        val bare = LauncherItem(id = "h", itemType = ItemType.FOLDER, label = "Games")
+        val packed = DrawerGroup(
+            "Games", emptySet(), type = DrawerGroupType.FOLDER, iconPack = "pack", iconName = "games"
+        ).withIconOn(bare)
+        assertEquals("pack", packed.customIconPack)
+        assertEquals("games", packed.customIconName)
+        assertNull(packed.iconBase64)
+        assertFalse(packed.iconRaw)
+        val photo = DrawerGroup("Games", emptySet(), type = DrawerGroupType.FOLDER, iconBase64 = "png", iconRaw = true)
+            .withIconOn(bare)
+        assertEquals("png", photo.iconBase64)
+        assertNull(photo.customIconName)
+        assertTrue(photo.iconRaw)
+        assertSame(bare, DrawerGroup("Games", emptySet(), type = DrawerGroupType.FOLDER).withIconOn(bare))
+    }
+
+    @Test
+    fun anIconSurvivesTheRoundTripToTheDrawerAndBack() {
+        val group = FolderToDrawer
+            .withGroupAdded(emptyList(), folder, listOf(app("a", 0)), "#g", DrawerTarget.MainList)
+            .single()
+        val back = group.withIconOn(LauncherItem(id = "h", itemType = ItemType.FOLDER, label = "Games"))
+        assertEquals(folder.customIconPack, back.customIconPack)
+        assertEquals(folder.customIconName, back.customIconName)
+        assertEquals(folder.iconRaw, back.iconRaw)
     }
 }

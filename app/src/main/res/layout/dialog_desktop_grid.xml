@@ -159,14 +159,13 @@
                 android:textColor="@color/textPrimary"
                 android:textSize="@dimen/text_body" />
     
-            <com.google.android.material.checkbox.MaterialCheckBox
+            <androidx.appcompat.widget.SwitchCompat
                 android:id="@+id/subgridCheck"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/space_md"
                 android:clickable="false"
-                android:focusable="false"
-                android:minWidth="48dp" />
+                android:focusable="false" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

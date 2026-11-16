@@ -19,15 +19,15 @@ class TabFoldersTest {
         DrawerGroup(name, members.toSet(), type = DrawerGroupType.TAB)
 
     @Test
-    fun keyNamesItsFolderBackWhateverTheName() {
-        listOf("Google", "Maps, travel", "100%", "%2C", "a%25,b", "", "folder:x").forEach { name ->
-            assertEquals(name, TabFolders.nameOf(TabFolders.keyOf(name)))
+    fun keyGivesItsFolderIdBackWhateverTheId() {
+        listOf("Google", "Maps, travel", "100%", "%2C", "a%25,b", "", "folder:x", "#0a1b2c").forEach { id ->
+            assertEquals(id, TabFolders.idOf(TabFolders.keyOf(id)))
         }
     }
 
     @Test
     fun appKeyIsNoFolder() {
-        assertNull(TabFolders.nameOf(app))
+        assertNull(TabFolders.idOf(app))
     }
 
     @Test
@@ -55,19 +55,12 @@ class TabFoldersTest {
     }
 
     @Test
-    fun renameMovesTheKeyInEveryTab() {
-        val groups = listOf(
-            tab("Social", app, TabFolders.keyOf("Tools")),
-            tab("Work", TabFolders.keyOf("Tools")),
-            tab("Games", app),
-            folder("Tools", app)
-        )
-        val renamed = TabFolders.renamed(groups, "Tools", "Utilities, misc")
-        val key = TabFolders.keyOf("Utilities, misc")
-        assertEquals(setOf(app, key), renamed[0].members)
-        assertEquals(setOf(key), renamed[1].members)
-        assertEquals(groups[2], renamed[2])
-        assertEquals(groups[3], renamed[3])
+    fun aTabHoldsAFolderByIdNotName() {
+        val first = folder("Tools", app)
+        val second = DrawerGroup("Tools", setOf(app), type = DrawerGroupType.FOLDER, id = "#t2")
+        val renamed = DrawerGroup("Utilities", setOf(app), type = DrawerGroupType.FOLDER, id = "#t3")
+        val social = tab("Social", TabFolders.keyOf("#t2"), TabFolders.keyOf("#t3"))
+        assertEquals(listOf(second, renamed), TabFolders.inTab(social, listOf(first, second, renamed)))
     }
 
     @Test

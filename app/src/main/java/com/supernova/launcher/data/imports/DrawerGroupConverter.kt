@@ -26,26 +26,28 @@ internal object DrawerGroupConverter {
         val apps = groups.associate { group -> group.id to group.apps.mapNotNull { key(it, phone) }.distinct() }
         val folders = ordered(groups.filter { it.folder && apps[it.id].orEmpty().isNotEmpty() })
         val tabs = ordered(groups.filterNot { it.folder })
-        val names = Names()
-        val folderNames = folders.associate { it.id to names.take(it.title, FOLDER) }
+        // Each group under an id of its own: names may repeat, as there.
+        val folderIds = folders.associate { it.id to DrawerGroup.newId() }
         val madeFolders = folders.mapIndexed { order, folder ->
             DrawerGroup(
-                name = folderNames.getValue(folder.id),
+                name = name(folder.title, FOLDER),
                 members = apps[folder.id].orEmpty().toSet(),
                 order = order,
                 type = DrawerGroupType.FOLDER,
                 keepInMain = folder.keepInMain,
-                iconBase64 = folder.icon?.let(phone.encodeIcon)
+                iconBase64 = folder.icon?.let(phone.encodeIcon),
+                id = folderIds.getValue(folder.id)
             )
         }
         val madeTabs = tabs.mapIndexed { order, tab ->
-            val held = tab.folders.mapNotNull { folderNames[it] }.map(TabFolders::keyOf)
+            val held = tab.folders.mapNotNull { folderIds[it] }.map(TabFolders::keyOf)
             DrawerGroup(
-                name = names.take(tab.title, TAB),
+                name = name(tab.title, TAB),
                 members = (apps[tab.id].orEmpty() + held).toSet(),
                 order = order,
                 type = DrawerGroupType.TAB,
-                keepInMain = tab.keepInMain
+                keepInMain = tab.keepInMain,
+                id = DrawerGroup.newId()
             )
         }
         return madeFolders + madeTabs
@@ -64,19 +66,8 @@ internal object DrawerGroupConverter {
         return key?.takeIf { k -> k.none { it == ',' || it == '|' } }
     }
 
-    // Group names, unique as Supernova keeps them: no '|', never blank, a
-    // second of a name numbered.
-    private class Names {
-        private val taken = HashSet<String>()
-
-        fun take(title: String, fallback: String): String {
-            val base = title.replace('|', '/').trim().ifEmpty { fallback }
-            val name = generateSequence(1) { it + 1 }.map { if (it == 1) base else "$base $it" }
-                .first { it.lowercase() !in taken }
-            taken += name.lowercase()
-            return name
-        }
-    }
+    // A group's name: no '|' (the storage separator), never blank.
+    private fun name(title: String, fallback: String): String = title.replace('|', '/').trim().ifEmpty { fallback }
 
     private const val FOLDER = "Folder"
     private const val TAB = "Tab"

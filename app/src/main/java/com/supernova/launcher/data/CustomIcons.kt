@@ -1,5 +1,7 @@
 package com.supernova.launcher.data
 
+import com.supernova.launcher.data.AppItemEdits.hasIcon
+import com.supernova.launcher.data.AppItemEdits.withoutIcon
 import com.supernova.launcher.gesture.ActionShortcut
 
 // "Reset custom icons": every icon the user changed one app, folder or
@@ -12,25 +14,30 @@ import com.supernova.launcher.gesture.ActionShortcut
 // custom one, so it stays too.
 object CustomIcons {
 
-    // The dialog's ticks. FOLDERS covers placed folders here and drawer
-    // folders and tabs in the view model; SHORTCUTS covers launcher actions
-    // and pinned shortcuts (contacts among them).
-    enum class Kind { APPS, FOLDERS, SHORTCUTS }
+    // The dialog's ticks. APPS is the drawer's app icons, which placed
+    // copies with no icon of their own draw too; PLACED_APPS is the icons
+    // given to app copies on the home screen, the dock and in folders.
+    // FOLDERS covers placed folders here and drawer folders and tabs in the
+    // view model; SHORTCUTS covers launcher actions and pinned shortcuts
+    // (contacts among them).
+    enum class Kind { APPS, PLACED_APPS, FOLDERS, SHORTCUTS }
 
-    data class Count(val apps: Int, val folders: Int, val shortcuts: Int = 0) {
-        val total: Int get() = apps + folders + shortcuts
+    data class Count(val apps: Int, val folders: Int, val shortcuts: Int = 0, val placedApps: Int = 0) {
+        val total: Int get() = apps + placedApps + folders + shortcuts
 
         fun of(kind: Kind): Int = when (kind) {
             Kind.APPS -> apps
+            Kind.PLACED_APPS -> placedApps
             Kind.FOLDERS -> folders
             Kind.SHORTCUTS -> shortcuts
         }
     }
 
     fun count(model: LauncherModel): Count = Count(
-        apps = model.appOverrides.values.count { it.hasCustomIcon() },
+        apps = model.appOverrides.values.count { it.hasIcon() },
         folders = model.items.count { it.itemType == ItemType.FOLDER && it.hasOwnIcon() },
-        shortcuts = model.items.count { it.isAction() && it.hasOwnIcon() || it.shortcutEdit?.hasCustomIcon() == true }
+        shortcuts = model.items.count { it.isAction() && it.hasOwnIcon() || it.shortcutEdit?.hasIcon() == true },
+        placedApps = model.items.count { it.itemType == ItemType.APP && it.appEdit?.hasIcon() == true }
     )
 
     fun reset(model: LauncherModel, kinds: Set<Kind> = Kind.entries.toSet()): LauncherModel = model.copy(
@@ -45,20 +52,13 @@ object CustomIcons {
             when {
                 item.itemType == ItemType.FOLDER && item.hasOwnIcon() && Kind.FOLDERS in kinds -> item.withoutOwnIcon()
                 item.isAction() && item.hasOwnIcon() && Kind.SHORTCUTS in kinds -> item.withoutOwnIcon()
-                item.shortcutEdit?.hasCustomIcon() == true && Kind.SHORTCUTS in kinds ->
+                item.shortcutEdit?.hasIcon() == true && Kind.SHORTCUTS in kinds ->
                     item.copy(shortcutEdit = item.shortcutEdit.withoutIcon().takeUnless { it.isEmpty() })
+                item.appEdit?.hasIcon() == true && Kind.PLACED_APPS in kinds ->
+                    item.copy(appEdit = item.appEdit.withoutIcon().takeUnless { it.isEmpty() })
                 else -> item
             }
         }
-    )
-
-    private fun AppOverride.hasCustomIcon(): Boolean =
-        iconPackPackage != null || iconDrawableName != null || iconBase64 != null ||
-            iconShape != null || iconVariant != null
-
-    private fun AppOverride.withoutIcon(): AppOverride = copy(
-        iconPackPackage = null, iconDrawableName = null, iconBase64 = null,
-        iconShape = null, iconVariant = null
     )
 
     private fun LauncherItem.isAction(): Boolean = ActionShortcut.decode(intentUri) != null

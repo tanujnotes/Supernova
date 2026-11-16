@@ -33,6 +33,7 @@ class LauncherPreferences(private val context: Context) {
     companion object {
         // Enough to put most of a phone's apps in Recently used order.
         private const val RECENT_LAUNCHES_MAX = 100
+        private const val SMART_ID_PREFIX = "smart:"
         const val MAX_RECENT_SEARCHES = 8
 
         // Every LauncherPrefs field to its key (see Pref), so a setting that
@@ -57,7 +58,9 @@ class LauncherPreferences(private val context: Context) {
         // the user's own groups as they were, plus the generated folders.
         fun withSmartGroups(stored: Set<String>, generated: List<DrawerGroup>, dismissed: Set<String>): Set<String> {
             val userGroups = stored.filterNot { DrawerGroup.decode(it)?.smart == true }.toSet()
-            val userNames = userGroups.mapNotNull { DrawerGroup.decode(it)?.name }.toSet()
+            val userDecoded = userGroups.mapNotNull { DrawerGroup.decode(it) }
+            val userNames = userDecoded.map { it.name }.toSet()
+            val userIds = userDecoded.map { it.id }.toSet()
             // A smart folder moved in the list keeps its place when it's
             // generated again.
             val smartOrder = stored.mapNotNull { DrawerGroup.decode(it) }
@@ -67,7 +70,12 @@ class LauncherPreferences(private val context: Context) {
                 // Never shadow a user-created group of the same name, or bring
                 // back a dismissed one.
                 .filterNot { it.name in userNames || it.name in dismissed }
-                .map { it.copy(smart = true, order = smartOrder[it.name] ?: it.order).encode() }
+                // A generated folder's id is its name, unless a user group
+                // holds that id (one from before ids, renamed since).
+                .map {
+                    val id = if (it.id in userIds) SMART_ID_PREFIX + it.name else it.id
+                    it.copy(smart = true, order = smartOrder[it.name] ?: it.order, id = id).encode()
+                }
         }
     }
 
@@ -91,7 +99,7 @@ class LauncherPreferences(private val context: Context) {
     suspend fun saveDrawerGroup(group: DrawerGroup) {
         context.supernovaStore.edit { prefs ->
             val others = prefs[Pref.drawerGroups.key].orEmpty()
-                .filterNot { DrawerGroup.decode(it)?.name == group.name }
+                .filterNot { DrawerGroup.decode(it)?.id == group.id }
                 .toSet()
             // Empty groups are kept: a group is created before its apps are
             // picked, and only explicit deletion removes one.

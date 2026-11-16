@@ -48,8 +48,8 @@ class GroupListAdapter(
     }
 
     // One type's groups, in the order the list shows them now.
-    fun names(type: DrawerGroupType): List<String> =
-        rows.filterIsInstance<GroupListRow.Group>().filter { it.group.type == type }.map { it.group.name }
+    fun ids(type: DrawerGroupType): List<String> =
+        rows.filterIsInstance<GroupListRow.Group>().filter { it.group.type == type }.map { it.group.id }
 
     // A dragged row passing another: they trade places, and the preview's
     // tabs follow.
@@ -60,9 +60,11 @@ class GroupListAdapter(
         val preview = moved.getOrNull(at) as? GroupListRow.Preview
         rows = moved
         notifyItemMoved(from, to)
-        val tabs = names(DrawerGroupType.TAB)
-        if (preview != null && preview.tabs != tabs) {
-            rows = moved.also { it[at] = preview.copy(tabs = tabs) }
+        val tabs = moved.filterIsInstance<GroupListRow.Group>().map { it.group }
+            .filter { it.type == DrawerGroupType.TAB }
+        val ids = tabs.map { it.id }
+        if (preview != null && preview.tabIds != ids) {
+            rows = moved.also { it[at] = preview.copy(tabs = tabs.map { tab -> tab.name }, tabIds = ids) }
             notifyItemChanged(at)
         }
     }

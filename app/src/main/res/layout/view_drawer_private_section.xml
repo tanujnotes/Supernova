@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The private space's section header at the end of the drawer's list,
+     shown while the drawer has no tab bar (DrawerController). The space's
+     apps follow it in the list. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="48dp"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/space_ml"
+    android:paddingTop="@dimen/space_ml"
+    android:paddingEnd="@dimen/space_sm">
+
+    <TextView
+        android:id="@+id/privateSectionTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="@string/action_private_space"
+        android:textAppearance="@style/TextAppearance.Supernova.DrawerTab"
+        android:textColor="@color/textPrimary" />
+
+    <TextView
+        android:id="@+id/privateSectionInstall"
+        style="@style/DrawerPrivateButton"
+        android:text="@string/private_space_install" />
+
+    <TextView
+        android:id="@+id/privateSectionSettings"
+        style="@style/DrawerPrivateButton"
+        android:text="@string/private_space_settings" />
+
+    <TextView
+        android:id="@+id/privateSectionLock"
+        style="@style/DrawerPrivateButton"
+        android:text="@string/private_space_lock" />
+</LinearLayout>

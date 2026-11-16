@@ -10,6 +10,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
+import androidx.core.view.isVisible
 import com.supernova.launcher.R
 import com.supernova.launcher.data.Pref
 import com.supernova.launcher.databinding.SheetStylePickerBinding
@@ -29,7 +30,7 @@ import com.supernova.launcher.ui.theme.ThemeEngine
 import com.supernova.launcher.ui.theme.ToneRamp
 
 // Per-surface style editor: Surface/Text/Accent color slots picked from the
-// active tonal palette or fixed swatches, plus opacity.
+// active tonal palette, fixed swatches or any color, plus opacity.
 // Every change persists through prefs.styleConfig immediately; the strip at
 // the top re-resolves from a prefs copy so it always shows the real result.
 object StylePickerSheet {
@@ -87,6 +88,16 @@ object StylePickerSheet {
             viewModel.set(Pref.styleConfig, config.encode())
         }
 
+        // A slider drag saves once it settles, not on every step.
+        val persistLater = Runnable { persist() }
+        fun persistSoon() {
+            binding.root.removeCallbacks(persistLater)
+            binding.root.postDelayed(persistLater, CUSTOM_SAVE_DELAY_MS)
+        }
+        dialog.setOnDismissListener {
+            if (binding.root.removeCallbacks(persistLater)) persist()
+        }
+
         fun activeSpec(): ColorSpec = when (slot) {
             Slot.SURFACE -> style.surface
             Slot.TEXT -> style.text
@@ -101,19 +112,23 @@ object StylePickerSheet {
             }
         }
 
-        fun renderStrip() {
-            // Styles memoizes on the config string, so resolving a candidate
-            // copy is how the strip previews the edit end to end.
-            // The Dock's and drawer's opacity is a pref, not the style: the
-            // bar's position stands in for the write still on its way.
+        // Styles memoizes on the config string, so resolving a candidate
+        // copy is how the strip previews the edit end to end.
+        // The Dock's and drawer's opacity is a pref, not the style: the
+        // bar's position stands in for the write still on its way.
+        fun resolvedNow(): com.supernova.launcher.ui.theme.ResolvedSurface {
             val base = if (SurfaceOpacity.handles(surfaceId)) {
                 SurfaceOpacity.preview(prefs, surfaceId, binding.opacitySeek.progress)
             } else {
                 prefs
             }
-            val resolved = Styles.resolve(
+            return Styles.resolve(
                 context, base.copy(styleConfig = config.with(surfaceId, style).encode())
             ).of(surfaceId)
+        }
+
+        fun renderStrip() {
+            val resolved = resolvedNow()
             binding.stripSurface.background = SurfaceShapes.background(
                 resolved.surface,
                 resolved.cornerRadiiDp?.let { dpArr -> FloatArray(4) { dpArr[it] * density } },
@@ -124,10 +139,29 @@ object StylePickerSheet {
         }
 
         lateinit var renderSwatches: () -> Unit
+        lateinit var custom: CustomColorRows
 
-        fun onPick(spec: ColorSpec) {
+        // The any-color rows start from the slot's color as drawn.
+        fun showCustom() {
+            val resolved = resolvedNow()
+            val color = when (slot) {
+                Slot.SURFACE -> resolved.surface
+                Slot.TEXT -> resolved.text
+                Slot.ACCENT -> resolved.accent
+            }
+            custom.show(color or OPAQUE)
+        }
+
+        fun onPick(spec: ColorSpec, fromCustom: Boolean = false) {
             setActiveSpec(spec)
-            persist()
+            if (fromCustom) {
+                // The strip resolves the copy, so it can run ahead of the save.
+                config = config.with(surfaceId, style)
+                persistSoon()
+            } else {
+                binding.root.removeCallbacks(persistLater)
+                persist()
+            }
             renderStrip()
             renderSwatches()
             // The home background is transparent by default and the drawer's
@@ -143,6 +177,7 @@ object StylePickerSheet {
                 binding.opacitySeek.progress = shown
                 binding.opacityValue.text = context.getString(R.string.opacity_percent, shown)
             }
+            if (!fromCustom) showCustom()
         }
 
         renderSwatches = {
@@ -154,7 +189,7 @@ object StylePickerSheet {
                     spec.fixed == null && spec.role == candidate.role &&
                         spec.tone != null && ToneRamp.indexOfTone(spec.tone) == ToneRamp.indexOfTone(candidate.tone!!)
                 }
-            }, ::onPick)
+            }, { onPick(it) })
         }
 
         fun slotButtonId(target: Slot): Int = when (target) {
@@ -198,6 +233,7 @@ object StylePickerSheet {
             renderSlotButtons()
             renderSwatches()
             renderContrast()
+            showCustom()
         }
 
         binding.slotGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
@@ -206,6 +242,31 @@ object StylePickerSheet {
             if (target != slot) selectSlot(target)
         }
         binding.styleDefault.setOnClickListener { onPick(ColorSpec()) }
+
+        fun applyOpacity(percent: Int) {
+            if (SurfaceOpacity.handles(surfaceId)) {
+                // The page's own slider holds it; one stored here
+                // before goes, or it would override that for good.
+                SurfaceOpacity.setPref(viewModel, surfaceId, percent)
+                style = style.copy(alpha = null)
+            } else {
+                style = style.copy(alpha = percent / 100f)
+            }
+            persist()
+            renderStrip()
+        }
+
+        // A color from the sliders or the hex field goes in as a fixed one;
+        // an AARRGGBB hex sets the surface's opacity as well.
+        custom = CustomColorRows(context, binding.customRows) { rgb, alpha ->
+            onPick(ColorSpec(fixed = String.format(java.util.Locale.ROOT, "#%08X", rgb or OPAQUE)), fromCustom = true)
+            if (alpha != null && slot == Slot.SURFACE && binding.opacityRow.isVisible) {
+                val percent = (alpha * 100 / 255).coerceAtLeast(binding.opacitySeek.min)
+                binding.opacitySeek.progress = percent
+                binding.opacityValue.text = context.getString(R.string.opacity_percent, percent)
+                applyOpacity(percent)
+            }
+        }
 
         if (surfaceId in OPACITY_SURFACES) {
             // The resolved surface's alpha channel already folds style.alpha
@@ -226,18 +287,7 @@ object StylePickerSheet {
 
                 override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
 
-                override fun onStopTrackingTouch(seekBar: SeekBar) {
-                    if (shared) {
-                        // The page's own slider holds it; one stored here
-                        // before goes, or it would override that for good.
-                        SurfaceOpacity.setPref(viewModel, surfaceId, seekBar.progress)
-                        style = style.copy(alpha = null)
-                    } else {
-                        style = style.copy(alpha = seekBar.progress / 100f)
-                    }
-                    persist()
-                    renderStrip()
-                }
+                override fun onStopTrackingTouch(seekBar: SeekBar) = applyOpacity(seekBar.progress)
             })
         } else {
             binding.opacityRow.visibility = android.view.View.GONE
@@ -260,6 +310,7 @@ object StylePickerSheet {
         renderSwatches()
         renderContrast()
         renderStrip()
+        showCustom()
         dialog.show()
     }
 
@@ -362,6 +413,8 @@ object StylePickerSheet {
         textSizeOf(R.dimen.text_secondary)
     }
 
+    private const val OPAQUE = 0xFF000000.toInt()
+    private const val CUSTOM_SAVE_DELAY_MS = 300L
     private const val CONTRAST_STEP = 5
     private const val FULL_OPACITY = 100
     private const val DRAWER_FIELD_OPACITY = 14

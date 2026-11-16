@@ -49,6 +49,9 @@ class WidgetPickerAdapter(
     // opened (or searched), by group key; and the keys being worked out now.
     private val contents = mutableMapOf<String, WidgetPickerContents>()
     private val loading = mutableSetOf<String>()
+    // Keys whose contents came over from the previous list: shown as they
+    // were while they are worked out again.
+    private val stale = mutableSetOf<String>()
     // Bumped by every submit, so loads for an older list are dropped.
     private var generation = 0
     private val rebuildSoon = Runnable { rebuild() }
@@ -56,14 +59,17 @@ class WidgetPickerAdapter(
     fun submit(list: List<WidgetPickerGroup>, expandAll: Boolean) {
         // A row handed over again as the very same group (the launcher's
         // own, shown first while the rest load) keeps what it has loaded.
-        val kept = list.filter { group -> groups.any { it === group } }.mapNotNull { group ->
-            contents[group.key]?.let { group.key to it }
-        }
+        // An app back in a new list (the edit-mode sheet opened again) keeps
+        // its rows until they load again, so an open app shows its widgets
+        // at once and the list keeps its place.
+        val kept = list.mapNotNull { group -> contents[group.key]?.let { group to it } }
+        stale.clear()
+        kept.forEach { (group, _) -> if (groups.none { it === group }) stale.add(group.key) }
         groups = list
         generation++
         contents.clear()
         loading.clear()
-        contents.putAll(kept)
+        kept.forEach { (group, loaded) -> contents[group.key] = loaded }
         startExpanded = expandAll
         if (expandAll) list.forEach { expanded.add(it.key) }
         rebuild()
@@ -79,13 +85,14 @@ class WidgetPickerAdapter(
     // Works a group's contents out in the background; the list redraws
     // when it lands. Results that land together redraw once.
     private fun ensureLoaded(group: WidgetPickerGroup) {
-        if (group.key in contents || !loading.add(group.key)) return
+        if ((group.key in contents && group.key !in stale) || !loading.add(group.key)) return
         val ticket = generation
         groupLoader.execute {
             val loaded = runCatching { group.load() }.getOrElse { WidgetPickerContents(emptyList(), emptyList()) }
             mainHandler.post {
                 if (ticket != generation) return@post
                 loading.remove(group.key)
+                stale.remove(group.key)
                 contents[group.key] = loaded
                 mainHandler.removeCallbacks(rebuildSoon)
                 mainHandler.post(rebuildSoon)

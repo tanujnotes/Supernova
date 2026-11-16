@@ -134,14 +134,10 @@ object FolderEditSheet {
         binding.cancelButton.setOnClickListener { dialog.dismiss() }
         binding.saveButton.setOnClickListener {
             val typed = binding.editLabel.text?.toString().orEmpty().trim()
-            val name = if (typed.isEmpty()) group.name else viewModel.renameGroup(group, typed)
-            if (name == null) {
-                Toast.makeText(context, R.string.group_name_taken, Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
+            if (typed.isNotEmpty()) viewModel.renameGroup(group, typed)
             if (icon.copy(raw = icon.savedRaw) != original) {
                 viewModel.setGroupIcon(
-                    name,
+                    group.id,
                     group.copy(
                         iconPack = icon.pack, iconName = icon.name, iconBase64 = icon.photo, iconRaw = icon.savedRaw
                     )

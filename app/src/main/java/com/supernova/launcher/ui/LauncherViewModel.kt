@@ -10,7 +10,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.supernova.launcher.AppGraph
+import com.supernova.launcher.R
 import com.supernova.launcher.data.AppCatalog
+import com.supernova.launcher.data.AppItemEdits
 import com.supernova.launcher.data.AppChange
 import com.supernova.launcher.data.AppOverride
 import com.supernova.launcher.data.ContainerType
@@ -432,7 +434,7 @@ class LauncherViewModel(
     }
 
     // Auto-add: a newly installed primary-profile app lands on the first page
-    // with a free cell when the pref is on.
+    // with a free cell, or a new last page, when the pref is on.
     private fun maybeAutoAddToHome(packageName: String, userSerial: Long) {
         if (userSerial != 0L) return
         viewModelScope.launch(Dispatchers.Default) {
@@ -717,7 +719,7 @@ class LauncherViewModel(
     }
 
     fun addFolderToWorkspace(
-        label: String,
+        group: DrawerGroup,
         apps: List<LaunchableApp>,
         page: Int,
         cellX: Int,
@@ -729,15 +731,15 @@ class LauncherViewModel(
         val prefs = state.value.prefs
         viewModelScope.launch {
             repository.addFolderToWorkspace(
-                label, apps, page, cellX, cellY, prefs.gridCols, prefs.gridRows, workspaceX, workspaceY, displace
+                group, apps, page, cellX, cellY, prefs.gridCols, prefs.gridRows, workspaceX, workspaceY, displace
             )
         }
     }
 
-    fun addFolderToDock(label: String, apps: List<LaunchableApp>, rank: Int, preferredPage: Int = 0) {
+    fun addFolderToDock(group: DrawerGroup, apps: List<LaunchableApp>, rank: Int, preferredPage: Int = 0) {
         val prefs = state.value.prefs
         viewModelScope.launch {
-            repository.addFolderToDock(label, apps, rank, prefs.gridCols, prefs.gridRows, preferredPage)
+            repository.addFolderToDock(group, apps, rank, prefs.gridCols, prefs.gridRows, preferredPage)
         }
     }
 
@@ -938,13 +940,10 @@ class LauncherViewModel(
         val members = folderMembers(folder.id)
         val movable = FolderToDrawer.movable(members)
         if (movable.isEmpty()) return null
-        val move = FolderMove(listOf(folder) + members, members.size - movable.size)
+        val move = FolderMove(listOf(folder) + members, members.size - movable.size, DrawerGroup.newId())
         viewModelScope.launch {
-            // Named inside the edit, against what is stored.
             preferences.updateDrawerGroups { groups ->
-                val name = FolderToDrawer.uniqueName(folder.label, groups.map { it.name })
-                move.groupName = name
-                FolderToDrawer.withGroupAdded(groups, folder, members, name, target)
+                FolderToDrawer.withGroupAdded(groups, folder, members, move.groupId, target)
             }
             repository.removeMovedFolder(folder.id)
         }
@@ -956,11 +955,8 @@ class LauncherViewModel(
     fun undoFolderMove(move: FolderMove) {
         val prefs = state.value.prefs
         viewModelScope.launch {
-            move.groupName?.let { name ->
-                preferences.updateDrawerGroups { groups ->
-                    TabFolders.forgotten(groups.filterNot { it.name == name }, name)
-                }
-            }
+            val id = move.groupId
+            preferences.updateDrawerGroups { groups -> TabFolders.forgotten(groups.filterNot { it.id == id }, id) }
             repository.replaceItems(
                 move.items, prefs.gridCols, prefs.gridRows, prefs.dockCount * prefs.dockPages.coerceAtLeast(1)
             )
@@ -1039,15 +1035,21 @@ class LauncherViewModel(
         }
     }
 
+    // What a placed item shows: a shortcut's own edit, or an app copy's own
+    // name and hidden label with its own icon or else the drawer's
+    // (AppItemEdits).
     fun overrideFor(item: LauncherItem): AppOverride? {
-        // An app's rename and hidden label are the app icon's. A pinned
-        // shortcut carries the same package and class, and took the app's
-        // new name with them; its hidden label and icon are its own.
         if (item.itemType == ItemType.SHORTCUT) return item.shortcutEdit
-        if (item.itemType != ItemType.APP) return null
-        val pkg = item.packageName ?: return null
-        val cls = item.className ?: return null
-        return state.value.model.appOverrides["${item.userSerial}/$pkg/$cls"]
+        return AppItemEdits.effective(item, state.value.model.appOverrides)
+    }
+
+    // An app copy's Edit: saved on the item, the drawer's icon left out
+    // when it is unchanged so the copy keeps following it. Reset (null)
+    // gives the copy back the app's own name and the drawer's icon.
+    fun setItemAppEdit(item: LauncherItem, app: LaunchableApp, edit: AppOverride?) {
+        val drawer = state.value.model.appOverrides[hiddenKey(app)]
+        val stored = edit?.let { AppItemEdits.stored(it, drawer) }
+        persist { repository.setItemAppEdit(item.id, rawLabelOf(app), stored) }
     }
 
     fun overrideFor(app: LaunchableApp): AppOverride =
@@ -1068,19 +1070,10 @@ class LauncherViewModel(
     fun setAppOverride(app: LaunchableApp, transform: (AppOverride) -> AppOverride) {
         val key = hiddenKey(app)
         viewModelScope.launch {
-            val before = state.value.model.appOverrides[key] ?: AppOverride()
-            val after = transform(before)
+            // The drawer entry's edit. Placed copies keep their own names
+            // and hidden labels; those with no icon of their own draw its icon.
+            val after = transform(state.value.model.appOverrides[key] ?: AppOverride())
             repository.setAppOverride(key) { after }
-            // A cleared rename restores the catalog label on pinned copies.
-            if (before.customLabel != null && after.customLabel == null) {
-                val raw = state.value.apps.firstOrNull {
-                    it.packageName == app.packageName && it.className == app.className &&
-                        it.userSerial == app.userSerial
-                }?.label
-                if (raw != null) {
-                    repository.relabelItems(app.packageName, app.className, app.userSerial, raw)
-                }
-            }
         }
     }
 
@@ -1112,10 +1105,10 @@ class LauncherViewModel(
 
     // As a rename does, a custom icon makes a smart folder the user's, or the
     // next regeneration would drop it.
-    fun setGroupIcon(name: String, icon: DrawerGroup) = persist {
+    fun setGroupIcon(id: String, icon: DrawerGroup) = persist {
         preferences.updateDrawerGroups { groups ->
             groups.map {
-                if (it.name == name) {
+                if (it.id == id) {
                     it.copy(
                         smart = false, iconPack = icon.iconPack, iconName = icon.iconName,
                         iconBase64 = icon.iconBase64, iconRaw = icon.iconRaw
@@ -1145,13 +1138,13 @@ class LauncherViewModel(
 
     fun noteLaunch(app: LaunchableApp) = persist { preferences.recordLaunch(hiddenKey(app)) }
 
-    fun personalApps(): List<LaunchableApp> = visibleApps().filter { it.userSerial == 0L }
+    fun personalApps(): List<LaunchableApp> = visibleApps().filterNot { it.work }
 
-    fun workApps(): List<LaunchableApp> = visibleApps().filter { it.userSerial != 0L }
+    fun workApps(): List<LaunchableApp> = visibleApps().filter { it.work }
 
     // A paused work profile counts too, so its tab stays to turn it back on.
     fun hasWorkApps(): Boolean =
-        workPaused() || state.value.apps.any { it.userSerial != 0L && !it.privateSpace }
+        workPaused() || state.value.apps.any { it.work }
 
     fun drawerGroups(): List<DrawerGroup> =
         state.value.prefs.drawerGroups.mapNotNull(DrawerGroup::decode)
@@ -1190,7 +1183,7 @@ class LauncherViewModel(
     // Like any edit, it makes a smart folder the user's: regenerating the
     // smart ones would otherwise put the folder back without the choice.
     fun setGroupKeepInMain(group: DrawerGroup, keep: Boolean) {
-        editGroup(group.name) { it.copy(keepInMain = keep, smart = false) }
+        editGroup(group.id) { it.copy(keepInMain = keep, smart = false) }
     }
 
     fun setGroupType(group: DrawerGroup, type: DrawerGroupType) {
@@ -1198,51 +1191,36 @@ class LauncherViewModel(
         // toggle can no longer silently delete their customization. A group
         // that never chose whether its apps stay in the main list keeps what
         // it did before, which its old type decided.
-        editGroup(group.name) {
+        editGroup(group.id) {
             it.copy(type = type, smart = false, keepInMain = it.keepInMain ?: !leavesMainList(it))
         }
     }
 
     // One group changed against what is stored, not against the caller's
     // copy of it; see LauncherPreferences.updateDrawerGroups.
-    private fun editGroup(name: String, change: (DrawerGroup) -> DrawerGroup) {
+    private fun editGroup(id: String, change: (DrawerGroup) -> DrawerGroup) {
         viewModelScope.launch {
-            preferences.updateDrawerGroups { groups -> groups.map { if (it.name == name) change(it) else it } }
+            preferences.updateDrawerGroups { groups -> groups.map { if (it.id == id) change(it) else it } }
         }
     }
 
-    // A group's name is its identity in storage, where '|' separates its
-    // fields; a name holding one would lose the group's apps.
+    // Storage separates a group's fields with '|'; a name holding one would
+    // lose the group's apps.
     private fun groupName(raw: String): String = raw.trim().replace('|', '/')
 
-    // The name the group goes by afterwards (unchanged for an empty or
-    // same name), or null, and nothing renamed, when another group has the
-    // name: saving it would replace that group. keepInMain, when given, is
-    // the group's Keep apps in main app tab choice, saved with the name (a
-    // tab's Edit dialog).
-    fun renameGroup(group: DrawerGroup, newName: String, keepInMain: Boolean? = null): String? {
+    // The name the group goes by afterwards (unchanged for an empty or same
+    // name). Another group may have it too: groups are found by id.
+    // keepInMain, when given, is the group's Keep apps in main app tab
+    // choice, saved with the name (a tab's Edit dialog).
+    fun renameGroup(group: DrawerGroup, newName: String, keepInMain: Boolean? = null): String {
         val name = groupName(newName).ifEmpty { group.name }
         val keptNow = !leavesMainList(group)
         val keep = keepInMain?.takeIf { it != keptNow }
-        val renamed = name != group.name
-        if (renamed && drawerGroups().any { it.name == name }) return null
-        if (renamed || keep != null) {
+        if (name != group.name || keep != null) {
             viewModelScope.launch {
                 // One edit, so the group is never briefly missing (the
-                // drawer's tabs would rebuild without it), and checked again
-                // inside it for a group that took the name meanwhile. The
-                // tabs holding a renamed folder follow the new name.
-                preferences.updateDrawerGroups { groups ->
-                    val edited = DrawerGroupEdit.apply(groups, group.name, name, keep)
-                    when {
-                        edited == null -> groups
-                        renamed -> TabFolders.renamed(edited, group.name, name)
-                        else -> edited
-                    }
-                }
-                if (renamed && state.value.prefs.drawerDefaultTab == group.name) {
-                    preferences.set(Pref.drawerDefaultTab, name)
-                }
+                // drawer's tabs would rebuild without it).
+                preferences.updateDrawerGroups { groups -> DrawerGroupEdit.apply(groups, group.id, name, keep) }
             }
         }
         return name
@@ -1252,12 +1230,12 @@ class LauncherViewModel(
     // then reassigns sequential orders: tabs and folders are separate lists
     // (the tab bar, the drawer's folders, the Drawer groups page), and a move
     // across one of the other type changed nothing anyone could see.
-    fun moveGroup(name: String, delta: Int) {
+    fun moveGroup(id: String, delta: Int) {
         viewModelScope.launch {
             preferences.updateDrawerGroups { stored ->
                 val groups = stored.sortedWith(compareBy<DrawerGroup> { it.order }.then(LabelOrder.by { it.name }))
                     .toMutableList()
-                val index = groups.indexOfFirst { it.name == name }
+                val index = groups.indexOfFirst { it.id == id }
                 val target = if (index < 0) null else generateSequence(index + delta) { it + delta }
                     .takeWhile { it in groups.indices }
                     .firstOrNull { groups[it].type == groups[index].type }
@@ -1268,18 +1246,19 @@ class LauncherViewModel(
         }
     }
 
-    // A drag on the Drawer groups page: one type's groups in a new order.
-    fun setGroupOrder(type: DrawerGroupType, names: List<String>) {
+    // A drag on the Drawer groups page: one type's groups (their ids) in a
+    // new order.
+    fun setGroupOrder(type: DrawerGroupType, ids: List<String>) {
         viewModelScope.launch {
-            preferences.updateDrawerGroups { DrawerGroupOrder.reordered(it, type, names) }
+            preferences.updateDrawerGroups { DrawerGroupOrder.reordered(it, type, ids) }
         }
     }
 
     // Undo of a delete on the Drawer groups page: the group back out of
     // before, the list as it stood when it was deleted.
-    fun restoreGroup(before: List<DrawerGroup>, name: String) {
+    fun restoreGroup(before: List<DrawerGroup>, id: String) {
         viewModelScope.launch {
-            preferences.updateDrawerGroups { DrawerGroupOrder.restored(it, before, name) }
+            preferences.updateDrawerGroups { DrawerGroupOrder.restored(it, before, id) }
         }
     }
 
@@ -1305,7 +1284,7 @@ class LauncherViewModel(
 
     private fun memberKey(pick: GroupPick): String = when (pick) {
         is GroupPick.App -> hiddenKey(pick.app)
-        is GroupPick.Folder -> TabFolders.keyOf(pick.group.name)
+        is GroupPick.Folder -> TabFolders.keyOf(pick.group.id)
     }
 
     fun workTabActive(): Boolean = state.value.prefs.drawerWorkTab && hasWorkApps()
@@ -1314,37 +1293,39 @@ class LauncherViewModel(
     // on, a work app stays in that tab, out of the personal folders.
     fun drawerFolderApps(group: DrawerGroup): List<LaunchableApp> {
         val apps = appsInGroup(group)
-        return if (workTabActive()) apps.filter { it.userSerial == 0L } else apps
+        return if (workTabActive()) apps.filterNot { it.work } else apps
     }
 
     // A checklist's Save: every changed tick in one write. Picking a smart
     // folder's apps makes it the user's, as a retype does.
-    fun setGroupMembership(groupName: String, changes: Map<GroupPick, Boolean>) {
+    fun setGroupMembership(groupId: String, changes: Map<GroupPick, Boolean>) {
         val add = changes.filterValues { it }.keys.map(::memberKey).toSet()
         val remove = changes.filterValues { !it }.keys.map(::memberKey).toSet()
-        editGroup(groupName) { it.copy(members = it.members - remove + add, smart = false) }
+        editGroup(groupId) { it.copy(members = it.members - remove + add, smart = false) }
     }
 
-    // The name the group was stored under ('|' can't be in one), or null,
-    // and nothing created, when the name is empty or already taken.
-    fun createGroup(name: String, type: DrawerGroupType = DrawerGroupType.TAB, keepInMain: Boolean = false): String? {
+    // The new group ('|' can't be in its name), or null, and nothing
+    // created, when the name is empty. Another group may have the name.
+    fun createGroup(
+        name: String,
+        type: DrawerGroupType = DrawerGroupType.TAB,
+        keepInMain: Boolean = false
+    ): DrawerGroup? {
         val clean = groupName(name)
-        if (clean.isEmpty() || drawerGroups().any { it.name == clean }) return null
-        viewModelScope.launch {
-            preferences.saveDrawerGroup(DrawerGroup(clean, emptySet(), type = type, keepInMain = keepInMain))
-        }
-        return clean
+        if (clean.isEmpty()) return null
+        val group = DrawerGroup(clean, emptySet(), type = type, keepInMain = keepInMain, id = DrawerGroup.newId())
+        viewModelScope.launch { preferences.saveDrawerGroup(group) }
+        return group
     }
 
-    fun removeGroup(name: String) {
-        val smart = drawerGroups().firstOrNull { it.name == name }?.smart == true
+    fun removeGroup(group: DrawerGroup) {
+        val id = group.id
         viewModelScope.launch {
             // One edit: the group goes, and so does its place in any tab.
-            preferences.updateDrawerGroups { groups ->
-                TabFolders.forgotten(groups.filterNot { it.name == name }, name)
-            }
-            // A smart folder the user deleted stays deleted as apps install.
-            if (smart) preferences.dismissSmartGroup(name)
+            preferences.updateDrawerGroups { groups -> TabFolders.forgotten(groups.filterNot { it.id == id }, id) }
+            // A smart folder the user deleted stays deleted as apps install
+            // (smart folders are generated, and dismissed, by name).
+            if (group.smart) preferences.dismissSmartGroup(group.name)
         }
     }
 
@@ -1377,7 +1358,7 @@ class LauncherViewModel(
             val apps = catalog.listLaunchableApps().filterNot { it.privateSpace || hiddenKey(it) in hidden }
                 // With the Work tab on, work apps live there and stay out of
                 // the folders on the personal list.
-                .filter { !state.value.prefs.drawerWorkTab || it.userSerial == 0L }
+                .filter { !state.value.prefs.drawerWorkTab || !it.work }
             // Apps the user already placed in a folder group stay theirs.
             val claimed = drawerGroups()
                 .filter { it.type == DrawerGroupType.FOLDER && !it.smart }

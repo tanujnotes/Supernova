@@ -136,6 +136,8 @@ class WorkspaceCanvas @JvmOverloads constructor(
     // draw. Nothing while the canvas has no size yet.
     private fun fitIcons(width: Int, height: Int) {
         if (width <= 0 || height <= 0) return
+        IconFitRoom.desktopWidthPx = width
+        IconFitRoom.desktopHeightPx = height
         for (i in 0 until childCount) {
             val params = getChildAt(i).layoutParams as? IconParams ?: continue
             val fit = params.fit ?: continue

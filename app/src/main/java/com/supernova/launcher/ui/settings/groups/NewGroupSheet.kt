@@ -6,6 +6,7 @@ import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import androidx.core.widget.doAfterTextChanged
 import com.supernova.launcher.R
+import com.supernova.launcher.data.DrawerGroup
 import com.supernova.launcher.data.DrawerGroupType
 import com.supernova.launcher.databinding.SheetNewGroupBinding
 import com.supernova.launcher.ui.LauncherViewModel
@@ -18,7 +19,7 @@ import com.supernova.launcher.ui.Sheets
 // the field and keeps the sheet up.
 object NewGroupSheet {
 
-    fun show(context: Context, viewModel: LauncherViewModel, type: DrawerGroupType, onCreated: (String) -> Unit) {
+    fun show(context: Context, viewModel: LauncherViewModel, type: DrawerGroupType, onCreated: (DrawerGroup) -> Unit) {
         val binding = SheetNewGroupBinding.inflate(LayoutInflater.from(context))
         val dialog = Sheets.open(context)
         dialog.setContentView(binding.root)
@@ -39,9 +40,7 @@ object NewGroupSheet {
             val keep = binding.newGroupKeep.isChecked
             val created = if (name.isEmpty()) null else viewModel.createGroup(name, picked(), keep)
             if (created == null) {
-                binding.newGroupNameLayout.error = context.getString(
-                    if (name.isEmpty()) R.string.group_name_required else R.string.group_name_taken
-                )
+                binding.newGroupNameLayout.error = context.getString(R.string.group_name_required)
             } else {
                 dialog.dismiss()
                 onCreated(created)

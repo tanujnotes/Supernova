@@ -345,6 +345,9 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
                 binding.settingSeek.progress = current - item.min
             }
             binding.settingValue.text = item.display(current)
+            val note = item.note?.invoke(prefs)
+            binding.settingNote.text = note
+            binding.settingNote.visibility = if (note == null) View.GONE else View.VISIBLE
             // Named, and its value read as the row shows it (not a percent).
             val title = binding.root.context.getString(item.title)
             binding.settingSeek.contentDescription = title
@@ -560,7 +563,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
                 R.string.label_group_summary, item.sizeDisplay(item.size(prefs)), item.font(prefs)
             )
             // With labels off there is nothing to set: no summary, no band,
-            // and the row's tap is the checkbox's.
+            // and the row's tap is the switch's.
             val shown = item.shown(prefs)
             binding.labelSummary.visibility = if (shown) View.VISIBLE else View.GONE
             binding.labelChevron.visibility = if (shown) View.VISIBLE else View.INVISIBLE

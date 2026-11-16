@@ -8,7 +8,7 @@ class FolderSearchProvider(
     private val icon: (Hit) -> android.graphics.drawable.Drawable?
 ) : SearchProvider {
 
-    data class Hit(val itemId: String?, val groupName: String?, val label: String)
+    data class Hit(val itemId: String?, val groupId: String?, val label: String)
 
     override val id: String = ID
 
@@ -20,7 +20,7 @@ class FolderSearchProvider(
                     it.label.contains(query, ignoreCase = true)
             }
         return matched.take(MAX_RESULTS).map { hit ->
-            SearchResult.Folder(hit.itemId, hit.groupName, hit.label, icon(hit))
+            SearchResult.Folder(hit.itemId, hit.groupId, hit.label, icon(hit))
         }
     }
 

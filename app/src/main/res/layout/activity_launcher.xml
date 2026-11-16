@@ -184,7 +184,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:background="@null"
-                        android:hint="@string/search_apps"
+                        android:hint="@string/drawer_search_hint"
                         android:imeOptions="actionSearch|flagNoExtractUi|flagNoFullscreen"
                         android:importantForAutofill="no"
                         android:inputType="text"
@@ -302,7 +302,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:paddingBottom="@dimen/space_ml"
-                android:scrollbars="vertical" />
+                android:scrollbars="none" />
 
             <!-- Paged drawer style only: real page views, so the page effect
                  and the wrap-around work the way the workspace pager's do. -->

@@ -114,7 +114,9 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
                 val icon = member.takeIf { it.itemType == ItemType.SHORTCUT }?.let(::intentItemIcon)
                     ?: member.packageName?.let { pkg ->
                         member.className?.let { cls ->
-                            viewModel.appCatalog().iconFor(LaunchableApp(pkg, cls, member.label, member.userSerial))
+                            viewModel.appCatalog().iconFor(
+                                LaunchableApp(pkg, cls, member.label, member.userSerial), member.appEdit
+                            )
                         }
                     }
                 PausedIcon.of(icon, viewModel.state.value, member.userSerial)

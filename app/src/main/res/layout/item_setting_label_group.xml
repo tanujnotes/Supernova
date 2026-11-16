@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The Label group, a row in its card. Its checkbox shows or hides the
+<!-- The Label group, a row in its card. Its switch shows or hides the
      labels; the rest of the row opens the group, whose own options (size,
      font, shadow, single line) sit on a faint band across the card, in the
      same rows and control column as everything around them. -->
@@ -71,13 +71,13 @@
             android:layout_height="32dp"
             android:background="@color/settingsDivider" />
 
-        <com.google.android.material.checkbox.MaterialCheckBox
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/labelSwitch"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/space_sm"
-            android:contentDescription="@string/show_labels"
-            android:minWidth="48dp" />
+            android:layout_marginEnd="@dimen/space_ms"
+            android:contentDescription="@string/show_labels" />
     </LinearLayout>
 
     <LinearLayout
@@ -232,14 +232,14 @@
                 android:textColor="@color/textPrimary"
                 android:textSize="@dimen/text_body" />
 
-            <com.google.android.material.checkbox.MaterialCheckBox
+            <androidx.appcompat.widget.SwitchCompat
                 android:id="@+id/labelShadowCheck"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/space_md"
+                android:layout_marginEnd="@dimen/space_ms"
                 android:clickable="false"
-                android:focusable="false"
-                android:minWidth="48dp" />
+                android:focusable="false" />
         </LinearLayout>
 
         <View
@@ -268,14 +268,14 @@
                 android:textColor="@color/textPrimary"
                 android:textSize="@dimen/text_body" />
 
-            <com.google.android.material.checkbox.MaterialCheckBox
+            <androidx.appcompat.widget.SwitchCompat
                 android:id="@+id/labelSingleLineCheck"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/space_md"
+                android:layout_marginEnd="@dimen/space_ms"
                 android:clickable="false"
-                android:focusable="false"
-                android:minWidth="48dp" />
+                android:focusable="false" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

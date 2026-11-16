@@ -17,6 +17,7 @@ import com.supernova.launcher.ui.BadgeLook
 import com.supernova.launcher.ui.DockBgStyle
 import com.supernova.launcher.ui.FolderIconDrawable
 import com.supernova.launcher.ui.FolderPreviewStyle
+import com.supernova.launcher.ui.IconFitRoom
 import com.supernova.launcher.ui.LabelContext
 import com.supernova.launcher.ui.LabelStyler
 import com.supernova.launcher.ui.LauncherViewModel
@@ -24,6 +25,7 @@ import com.supernova.launcher.ui.SearchBarButtons
 import com.supernova.launcher.ui.SearchBarChip
 import com.supernova.launcher.ui.SearchBarConfig
 import com.supernova.launcher.ui.SearchBarView
+import com.supernova.launcher.ui.cellSize
 import com.supernova.launcher.ui.dp
 import com.supernova.launcher.ui.settings.PreviewKind
 import com.supernova.launcher.ui.textSizeOf
@@ -120,8 +122,8 @@ class SettingsPreviewView @JvmOverloads constructor(
                 styleLabels(prefs, visible = prefs.showLabels)
             }
             PreviewKind.HOME -> {
-                sizeIcons(prefs.iconScale)
                 styleLabels(prefs, visible = prefs.showLabels, onWallpaper = true)
+                fitHomeIcons(prefs)
             }
             PreviewKind.DOCK -> {
                 com.supernova.launcher.ui.theme.SurfaceShapes.setColor(surfaceBg, withAlpha(styleAlpha ?: prefs.dockBgOpacity))
@@ -173,6 +175,49 @@ class SettingsPreviewView @JvmOverloads constructor(
             }
             PreviewKind.DRAWER_SEARCH_BAR -> styleDrawerField(prefs)
             null -> Unit
+        }
+    }
+
+    // The prefs the Home strip was last fitted for, refitted once the strip
+    // has its width.
+    private var homePrefs: LauncherPrefs? = null
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        val prefs = homePrefs ?: return
+        if (kind != PreviewKind.HOME || w == oldw) return
+        // Not mid-layout: the fit resizes the icons.
+        post {
+            styleLabels(prefs, visible = prefs.showLabels, onWallpaper = true)
+            fitHomeIcons(prefs)
+        }
+    }
+
+    // The desktop shrinks an icon that needs more room than its cell into
+    // it (WorkspaceCanvas.IconFit): icon and label by the same scale, the
+    // label on one line. The strip does the same against the desktop's cell
+    // (IconFitRoom), so it shows the size the home screen will draw rather
+    // than big icons running into each other. Before the home screen has
+    // been laid out, the cell is the display's width shared by the columns.
+    private fun fitHomeIcons(prefs: LauncherPrefs) {
+        homePrefs = prefs
+        val box = (dp(ICON_BASE_DP) * prefs.iconScale).toInt()
+        val cell = IconFitRoom.desktopCell(prefs.gridCols, prefs.gridRows)
+            ?: (cellSize(resources.displayMetrics.widthPixels, prefs.gridCols) to Int.MAX_VALUE)
+        // The strip's slots, a little narrower than the cells (the card is
+        // inset from the screen's edges), hold the icons too, or neighbours
+        // touch.
+        val strip = width - paddingLeft - paddingRight
+        val slot = strip.takeIf { it > 0 }?.let { cellSize(it, homeColumns(prefs)) } ?: cell.first
+        val line = labelViews.firstOrNull()?.takeIf { prefs.showLabels }?.lineHeight ?: 0
+        val fit = IconFitRoom.desktopFitScale(
+            minOf(cell.first, slot), cell.second, box, dp(HOME_ITEM_PADDING_DP), line
+        )
+        sizeIcons(prefs.iconScale * fit)
+        if (fit >= 1f) return
+        for (label in labelViews) {
+            label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, label.textSize * fit)
+            label.maxLines = 1
         }
     }
 
@@ -288,7 +333,7 @@ class SettingsPreviewView @JvmOverloads constructor(
             marginEnd = dp(DRAWER_ICON_GAP_DP)
         })
         field.addView(TextView(context).apply {
-            setText(R.string.search_apps)
+            if (SearchBarConfig.decode(prefs.searchBarConfig).drawer.hint) setText(R.string.drawer_search_hint)
             textSize = DRAWER_HINT_SP
             setTextColor((DRAWER_HINT_ALPHA shl 24) or (surface.text and 0xFFFFFF))
         }, LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
@@ -346,18 +391,19 @@ class SettingsPreviewView @JvmOverloads constructor(
 
     private fun buildHome(prefs: LauncherPrefs, viewModel: LauncherViewModel) {
         val row = newRow()
-        homeSampleApps(viewModel, prefs.gridCols.coerceIn(HOME_MIN_COLS, HOME_MAX_COLS)).forEach { (app, icon) ->
+        homeSampleApps(viewModel, homeColumns(prefs)).forEach { (app, icon) ->
             val column = iconColumn(icon, app.label, labelLines = 2)
-            val pad = dp(4)
+            val pad = dp(HOME_ITEM_PADDING_DP)
             column.setPadding(pad, pad, pad, pad)
-            // A big icon's box can be wider than its slot inside that
-            // padding, as it can be wider than its cell on the desktop;
-            // show all of it.
+            // An icon's shadow falls outside its box (fitHomeIcons keeps
+            // the box inside the slot); show all of it.
             column.clipToPadding = false
             row.addView(column, slotParams())
         }
         addView(row, LayoutParams(LayoutParams.MATCH_PARENT, dp(HOME_HEIGHT_DP)))
     }
+
+    private fun homeColumns(prefs: LauncherPrefs): Int = prefs.gridCols.coerceIn(HOME_MIN_COLS, HOME_MAX_COLS)
 
     // Resolved once per view: how to recognise the app the phone uses for
     // each everyday role below.
@@ -782,7 +828,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         sheet.background = surfaceDrawable(resolved, dp(18).toFloat())
 
         val pill = TextView(context)
-        pill.text = context.getString(R.string.search_apps)
+        pill.text = context.getString(R.string.drawer_search_hint)
         pill.setTextColor((0x99 shl 24) or (resolved.text and 0xFFFFFF))
         pill.textSizeOf(R.dimen.text_secondary)
         pill.setPadding(dp(14), dp(7), dp(14), dp(7))
@@ -949,6 +995,8 @@ class SettingsPreviewView @JvmOverloads constructor(
         const val HOME_HEIGHT_DP = 144
         const val HOME_MIN_COLS = 3
         const val HOME_MAX_COLS = 7
+        // A desktop icon's padding (item_icon.xml).
+        const val HOME_ITEM_PADDING_DP = 4
         const val SEARCH_DEMO_QUERY = "cal"
     }
 }

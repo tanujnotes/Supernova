@@ -80,7 +80,7 @@ class BackupRoundTripTest {
         pageIndicatorColor = "#FF1E88E5",
         showScrims = true,
         wallpaperZoom = false,
-        autoAddApps = true,
+        autoAddApps = false,
         labelFont = LabelFont.SERIF,
         labelConfig = """{"dock":{"size":10},"folder":{"shadow":true}}""",
         labelSingleLine = false,

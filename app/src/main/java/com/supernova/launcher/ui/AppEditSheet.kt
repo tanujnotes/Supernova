@@ -18,9 +18,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-// The per-app Edit sheet: rename, hide label, per-app shape, custom icon from
-// any installed pack or a gallery photo. Saves one AppOverride keyed by app
-// identity.
+// The Edit sheet for an app: rename, hide label, shape, style and a custom
+// icon from any installed pack or a gallery photo. From the drawer it saves
+// the app's AppOverride, keyed by app identity; for an app placed on the home
+// screen, the dock or in a folder it saves that copy's own (AppItemEdits).
 object AppEditSheet {
 
     // A placed shortcut - a pinned app shortcut, a picked activity - edits
@@ -56,7 +57,9 @@ object AppEditSheet {
         shortcut: ShortcutEdit? = null,
         // Opened from the drawer: the sheet also lists the drawer tabs and
         // folders to put the app in.
-        fromDrawer: Boolean = false
+        fromDrawer: Boolean = false,
+        // A placed copy of `app`: the edit is that copy's own.
+        placed: com.supernova.launcher.data.LauncherItem? = null
     ) {
         if (app == null && shortcut == null) return
         val binding = SheetAppEditBinding.inflate(LayoutInflater.from(context))
@@ -64,7 +67,7 @@ object AppEditSheet {
         dialog.setContentView(binding.root)
 
         val rawLabel = shortcut?.label ?: app?.let(viewModel::rawLabelOf).orEmpty()
-        val current = shortcut?.edit ?: app?.let(viewModel::overrideFor) ?: AppOverride()
+        val current = shortcut?.edit ?: openingEdit(viewModel, app, placed, rawLabel)
 
         dressForPreview(context, dialog, binding)
         if (viewModel.state.value.prefs.labsShowComponent && app != null && shortcut == null) {
@@ -130,12 +133,12 @@ object AppEditSheet {
         // Reset undoes the icon and name edits, not the groups: those are
         // where the app lives, as Select apps sets them.
         binding.resetButton.setOnClickListener {
-            viewModel.setAppOverride(app) { AppOverride() }
+            save(viewModel, app, placed, null)
             dialog.dismiss()
         }
 
         binding.saveButton.setOnClickListener {
-            viewModel.setAppOverride(app) { draft.edit() }
+            save(viewModel, app, placed, draft.edit())
             groups?.save()
             dialog.dismiss()
         }
@@ -172,6 +175,34 @@ object AppEditSheet {
     }
 
     private const val HOME_FADE_MS = 150L
+
+    // A placed copy's edit is its own; the drawer's is the app's. Null resets.
+    private fun save(
+        viewModel: LauncherViewModel,
+        app: LaunchableApp,
+        placed: com.supernova.launcher.data.LauncherItem?,
+        edit: AppOverride?
+    ) {
+        if (placed != null) {
+            viewModel.setItemAppEdit(placed, app, edit)
+        } else {
+            viewModel.setAppOverride(app) { edit ?: AppOverride() }
+        }
+    }
+
+    // An app's edit as its Edit opens. A placed copy's: its own name (the
+    // one it was placed with, when that isn't the app's), its hidden label,
+    // and its own icon or the drawer's. Else the drawer's.
+    private fun openingEdit(
+        viewModel: LauncherViewModel,
+        app: LaunchableApp?,
+        item: com.supernova.launcher.data.LauncherItem?,
+        rawLabel: String
+    ): AppOverride {
+        if (item == null) return app?.let(viewModel::overrideFor) ?: AppOverride()
+        val shown = viewModel.overrideFor(item) ?: AppOverride()
+        return shown.copy(customLabel = shown.customLabel ?: item.label.takeIf { it.isNotEmpty() && it != rawLabel })
+    }
 
     // One row for the icon, wherever it comes from: Default, another app's
     // icon, a photo or an icon pack. A pick lands in the draft, and the

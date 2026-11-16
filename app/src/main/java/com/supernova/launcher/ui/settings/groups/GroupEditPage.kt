@@ -6,7 +6,6 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.GridLayout
-import android.widget.Toast
 import androidx.core.view.isVisible
 import com.supernova.launcher.R
 import com.supernova.launcher.data.DrawerGroup
@@ -97,18 +96,18 @@ class GroupEditPage(
             named()?.let { viewModel.setGroupKeepInMain(it, on) }
         }
         wireToggle(binding.groupDefault, R.string.drawer_default_tab, R.string.group_default_tab_summary) { on ->
-            named()?.let { viewModel.set(Pref.drawerDefaultTab, if (on) it.name else "") }
+            named()?.let { viewModel.set(Pref.drawerDefaultTab, if (on) it.id else "") }
         }
     }
 
     // The group for a control to act on, a name still in the field saved
-    // first: the name is how the edit after it finds the group.
+    // first.
     private fun named(): DrawerGroup? {
         commitName()
         return group
     }
 
-    // A settings checkbox row, as the list pages bind theirs.
+    // A settings switch row, as the list pages bind theirs.
     private fun wireToggle(row: ItemSettingToggleBinding, title: Int, summary: Int, set: (Boolean) -> Unit) {
         row.settingTitle.setText(title)
         row.settingSubtitle.setText(summary)
@@ -120,7 +119,7 @@ class GroupEditPage(
     // A tab turned into a folder is no tab to open the drawer on.
     private fun setType(current: DrawerGroup, type: DrawerGroupType) {
         viewModel.setGroupType(current, type)
-        val opensOnIt = viewModel.state.value.prefs.drawerDefaultTab == current.name
+        val opensOnIt = viewModel.state.value.prefs.drawerDefaultTab == current.id
         if (type == DrawerGroupType.FOLDER && opensOnIt) viewModel.set(Pref.drawerDefaultTab, "")
     }
 
@@ -129,19 +128,25 @@ class GroupEditPage(
         val field = binding.groupNameField
         // A name being typed is left alone; another group's, or one saved
         // elsewhere, replaces what the field shows.
-        val another = group?.name != next.name
+        val another = group?.id != next.id
         if ((another || !field.hasFocus()) && field.text?.toString() != next.name) field.setText(next.name)
         group = next
         val tab = next.type == DrawerGroupType.TAB
         binding.groupType.check(if (tab) R.id.groupTypeTab else R.id.groupTypeFolder)
         binding.groupTypeHint.setText(if (tab) R.string.group_type_tab_hint else R.string.group_type_folder_hint)
-        binding.groupIconRow.isVisible = !tab
-        if (!tab) binding.groupIconPreview.setImageDrawable(icons.folder(next))
+        // A tab's icon shows in the bar when Tab content has icons.
+        binding.groupIconLabel.setText(if (tab) R.string.group_tab_icon else R.string.group_folder_icon)
+        binding.groupIconPreview.imageTintList = if (tab) {
+            ColorStateList.valueOf(binding.groupIconLabel.currentTextColor)
+        } else {
+            null
+        }
+        binding.groupIconPreview.setImageDrawable(if (tab) icons.tabIcon(next) else icons.folder(next))
         bindApps(next)
         binding.groupKeep.settingSwitch.isChecked = !viewModel.leavesMainList(next)
         binding.groupDefault.root.isVisible = tab
         binding.groupDefaultDivider.isVisible = tab
-        binding.groupDefault.settingSwitch.isChecked = viewModel.state.value.prefs.drawerDefaultTab == next.name
+        binding.groupDefault.settingSwitch.isChecked = viewModel.state.value.prefs.drawerDefaultTab == next.id
         binding.groupDelete.setText(if (tab) R.string.delete_tab else R.string.delete_folder_group)
         syncing = false
     }
@@ -195,20 +200,18 @@ class GroupEditPage(
         }
     }
 
-    // The typed name stored. An empty one, or one another group has, puts the
-    // old name back in the field.
+    // Whether the name field has focus: what is typed there is not saved yet.
+    fun typing(): Boolean = binding.groupNameField.hasFocus()
+
+    // The typed name stored. An empty one puts the old name back in the field.
     fun commitName() {
         val current = group ?: return
         val typed = binding.groupNameField.text?.toString().orEmpty().trim()
         val name = if (typed.isEmpty()) current.name else viewModel.renameGroup(current, typed)
-        if (name == null) {
-            Toast.makeText(binding.root.context, R.string.group_name_taken, Toast.LENGTH_SHORT).show()
-        }
-        val kept = name ?: current.name
-        if (binding.groupNameField.text?.toString() != kept) binding.groupNameField.setText(kept)
-        if (kept != current.name) {
-            group = current.copy(name = kept)
-            actions.renamed(kept)
+        if (binding.groupNameField.text?.toString() != name) binding.groupNameField.setText(name)
+        if (name != current.name) {
+            group = current.copy(name = name)
+            actions.renamed(name)
         }
     }
 

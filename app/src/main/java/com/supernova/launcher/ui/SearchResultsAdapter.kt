@@ -157,7 +157,7 @@ class SearchResultsAdapter(
         is Row.Result -> when (val result = row.result) {
             is SearchResult.Calculation -> "calc"
             is SearchResult.Card -> "card/${result.card.id}"
-            is SearchResult.Folder -> "folder/${result.itemId}/${result.groupName}"
+            is SearchResult.Folder -> "folder/${result.itemId}/${result.groupId}"
             is SearchResult.Shortcut -> "shortcut/${result.userSerial}/${result.packageName}/${result.shortcutId}"
             is SearchResult.Contact -> "contact/${result.contactId}"
             is SearchResult.App -> "app/${result.app.userSerial}/${result.app.packageName}/${result.app.className}"
@@ -617,12 +617,15 @@ class SearchResultsAdapter(
                 tintIcon()
             }
             binding.resultLabel.text = folder.label
-            binding.root.contentDescription =
+            binding.root.contentDescription = if (folder.privateSpace) {
+                folder.label
+            } else {
                 binding.root.context.getString(R.string.folder_desc, folder.label)
+            }
             binding.root.setOnClickListener { callbacks.onFolder(folder) }
             // A drawer folder is a drawer icon: its menu, and a drag home.
             // A home-screen folder is already on the home screen.
-            if (folder.groupName != null) {
+            if (folder.groupId != null) {
                 binding.root.setOnLongClickListener {
                     callbacks.onFolderLongPress(it, folder)
                     true

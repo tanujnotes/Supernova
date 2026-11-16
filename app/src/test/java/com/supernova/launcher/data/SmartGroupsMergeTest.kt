@@ -74,4 +74,16 @@ class SmartGroupsMergeTest {
         assertEquals(2, merged.getValue("Games").order)
         assertEquals(setOf("a", "b", "c", "n"), merged.getValue("Games").members)
     }
+
+    @Test
+    fun aGeneratedFolderNeverTakesTheIdOfAUserGroup() {
+        // A group from before ids, renamed since, still goes by its old name.
+        val renamed = folder("Arcade", "y").copy(id = "Games")
+        val stored = setOf(renamed.encode())
+        val merged = LauncherPreferences.withSmartGroups(stored, listOf(games), emptySet())
+            .mapNotNull(DrawerGroup::decode)
+        assertEquals(2, merged.map { it.id }.toSet().size)
+        assertEquals(renamed, merged.single { it.name == "Arcade" })
+        assertTrue(merged.single { it.name == "Games" }.smart)
+    }
 }

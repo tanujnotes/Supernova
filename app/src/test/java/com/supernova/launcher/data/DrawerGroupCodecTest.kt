@@ -135,4 +135,39 @@ class DrawerGroupCodecTest {
         assertEquals("A|k|1|FOLDER|", group.encode())
         assertEquals("A|k|1|FOLDER||keep", group.copy(keepInMain = true).encode())
     }
+
+    @Test
+    fun anEntryFromBeforeIdsHasItsNameAsItsId() {
+        assertEquals("Games", DrawerGroup.decode("Games|k|1|FOLDER|")!!.id)
+        assertEquals("Games", DrawerGroup.decode("Games|k|1|FOLDER||keep||star||")!!.id)
+    }
+
+    @Test
+    fun anIdOtherThanTheNameComesLastAndRoundTrips() {
+        val group = DrawerGroup("A", setOf("k"), 1, DrawerGroupType.FOLDER, id = "#0a1b2c3d4e5f")
+        assertEquals("A|k|1|FOLDER|||||||#0a1b2c3d4e5f", group.encode())
+        assertEquals(group, DrawerGroup.decode(group.encode()))
+        val icon = group.copy(keepInMain = false, iconBase64 = "aGk+/w==", iconRaw = true)
+        assertEquals(icon, DrawerGroup.decode(icon.encode()))
+        // Old builds read the name and members where they always were.
+        val parts = icon.encode().split('|')
+        assertEquals("A", parts[0])
+        assertEquals("k", parts[1])
+    }
+
+    @Test
+    fun twoGroupsMayShareANameUnderTheirIds() {
+        val one = DrawerGroup("Google", setOf("a"), type = DrawerGroupType.TAB)
+        val two = DrawerGroup("Google", setOf("b"), type = DrawerGroupType.FOLDER, id = DrawerGroup.newId())
+        val stored = setOf(one.encode(), two.encode())
+        assertEquals(2, stored.size)
+        assertEquals(setOf(one, two), stored.mapNotNull(DrawerGroup::decode).toSet())
+    }
+
+    @Test
+    fun newIdsAreDistinctAndStoreSafely() {
+        val ids = List(100) { DrawerGroup.newId() }
+        assertEquals(100, ids.toSet().size)
+        ids.forEach { id -> assertTrue(id.startsWith("#") && id.none { it == '|' || it == ',' || it == '%' }) }
+    }
 }

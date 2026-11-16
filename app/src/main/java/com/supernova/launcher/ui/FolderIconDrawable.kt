@@ -357,7 +357,7 @@ class FolderIconDrawable(
         // launcher action's picked icon, a shortcut's picture and its Edit.
         fun customIconKey(folder: com.supernova.launcher.data.LauncherItem): String =
             "${folder.customIconPack}/${folder.customIconName}/${folder.iconBase64?.hashCode()}/${folder.iconRaw}" +
-                "/${folder.shortcutEdit?.hashCode()}"
+                "/${folder.shortcutEdit?.hashCode()}/${folder.appEdit?.hashCode()}"
 
         // The plate's shape: the folder's own pick, else the icons' -
         // "" (Default) follows the icon shape.

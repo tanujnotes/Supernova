@@ -179,7 +179,7 @@ class WorkspaceDrops(
                         )
                     }
                     is DragPayload.DrawerFolder -> viewModel.addFolderToWorkspace(
-                        payload.name, payload.apps, page, cellX, cellY, workspaceX, workspaceY, displace
+                        payload.group, payload.apps, page, cellX, cellY, workspaceX, workspaceY, displace
                     )
                     else -> Unit
                 }

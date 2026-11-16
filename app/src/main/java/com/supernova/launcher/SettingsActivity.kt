@@ -168,7 +168,7 @@ class SettingsActivity : AppCompatActivity() {
         val granted = permission.granted(this)
         when (permission) {
             com.supernova.launcher.ui.settings.LabsPermission.NOTIFICATIONS ->
-                com.supernova.launcher.ui.PermissionPrompts.openNotificationAccess(this)
+                com.supernova.launcher.ui.PermissionPrompts.openNotificationAccessWithHelp(this)
             com.supernova.launcher.ui.settings.LabsPermission.ACCESSIBILITY ->
                 runLogged("open accessibility settings") {
                     startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
@@ -505,7 +505,9 @@ class SettingsActivity : AppCompatActivity() {
                 com.supernova.launcher.ui.CustomCardEditorSheet
                     .show(this, viewModel, card, undoAnchor = binding.settingsTabs)
             },
-            openNotificationAccess = { com.supernova.launcher.ui.PermissionPrompts.openNotificationAccess(this) },
+            openNotificationAccess = {
+                com.supernova.launcher.ui.PermissionPrompts.openNotificationAccessWithHelp(this)
+            },
             // Add card: the add sheet. A widget is bound by the launcher, so
             // that choice goes back to the feed and picks one there.
             addCard = {
@@ -724,8 +726,12 @@ class SettingsActivity : AppCompatActivity() {
             this, binding.groupsPane, viewModel, itemIcons,
             onTitleChanged = ::applyGroupsTitle,
             editFolderIcon = { group ->
-                com.supernova.launcher.ui.FolderEditSheet
-                    .showDrawerFolder(this, lifecycleScope, viewModel, group, ::pickPhoto)
+                if (group.type == com.supernova.launcher.data.DrawerGroupType.TAB) {
+                    com.supernova.launcher.ui.TabIconPicker.show(this, lifecycleScope, viewModel, group, ::pickPhoto)
+                } else {
+                    com.supernova.launcher.ui.FolderEditSheet
+                        .showDrawerFolder(this, lifecycleScope, viewModel, group, ::pickPhoto)
+                }
             }
         ).also {
             groupsPane = it
@@ -737,7 +743,7 @@ class SettingsActivity : AppCompatActivity() {
 
     // A group's own page goes by the group's name.
     private fun applyGroupsTitle() {
-        if (onGroupsPage()) binding.settingsTitle.text = groupsPane?.editing ?: getString(R.string.drawer_groups)
+        if (onGroupsPage()) binding.settingsTitle.text = groupsPane?.title ?: getString(R.string.drawer_groups)
     }
 
     private fun pickPhoto(fromFiles: Boolean, onPicked: (android.net.Uri?) -> Unit) {
@@ -1030,6 +1036,13 @@ class SettingsActivity : AppCompatActivity() {
     private fun handleDeepLink(intent: Intent) {
         if (intent.getBooleanExtra(EXTRA_OPEN_SEARCH_BAR, false)) {
             navigateTo(R.string.desktop_search_bar, 0)
+            return
+        }
+        // A drawer tab's or folder's menu: the Drawer groups page, on that
+        // group's own page when it gives one's id ("" is the list).
+        intent.getStringExtra(EXTRA_DRAWER_GROUP)?.let { group ->
+            navigateTo(R.string.drawer_groups, 0, flash = false)
+            groupsPane?.show(true, group.ifEmpty { null })
             return
         }
         val section = intent.getIntExtra(EXTRA_SECTION_TITLE_RES, 0)
@@ -1334,7 +1347,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     // The drawer twin of the desktop grid dialog, on the same layout: rows
-    // and columns step down to 0 = Auto (both apply to the two grid styles); the subgrid checkbox has no drawer meaning
+    // and columns step down to 0 = Auto (both apply to the two grid styles); the subgrid switch has no drawer meaning
     // and hides. Only OK commits.
     private fun showDrawerGridDialog() {
         val dialogBinding = DialogDesktopGridBinding.inflate(layoutInflater)
@@ -1650,9 +1663,10 @@ class SettingsActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.reset_custom_icons_none_toast, Toast.LENGTH_SHORT).show()
             return
         }
-        // A tick per kind that has custom icons, with its count; only apps
-        // start ticked, so folder, tab, shortcut and contact icons stay
-        // unless picked (#168).
+        // A tick per kind that has custom icons, with its count; only the
+        // drawer's apps start ticked, so icons given to apps on the home
+        // screen and folder, tab, shortcut and contact icons stay unless
+        // picked (#168, #211).
         val kinds = CustomIcons.Kind.entries.filter { count.of(it) > 0 }
         val ticked = kinds.filterTo(mutableSetOf()) { it == CustomIcons.Kind.APPS }
         val density = resources.displayMetrics.density
@@ -1703,6 +1717,7 @@ class SettingsActivity : AppCompatActivity() {
         val name = getString(
             when (kind) {
                 CustomIcons.Kind.APPS -> R.string.reset_custom_icons_apps
+                CustomIcons.Kind.PLACED_APPS -> R.string.reset_custom_icons_placed_apps
                 CustomIcons.Kind.FOLDERS -> R.string.reset_custom_icons_folders
                 CustomIcons.Kind.SHORTCUTS -> R.string.reset_custom_icons_shortcuts
             }
@@ -2253,6 +2268,7 @@ class SettingsActivity : AppCompatActivity() {
         const val EXTRA_OPEN_SEARCH_BAR = "extra_open_search_bar"
         const val EXTRA_SECTION_TITLE_RES = "extra_section_title_res"
         const val EXTRA_HIGHLIGHT_TITLE_RES = "extra_highlight_title_res"
+        const val EXTRA_DRAWER_GROUP = "extra_drawer_group"
 
         // Widest the settings content column grows in landscape, as a
         // multiple of the display's short edge - the width it has in

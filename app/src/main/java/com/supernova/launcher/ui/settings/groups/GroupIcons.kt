@@ -28,6 +28,13 @@ class GroupIcons(
 
     fun folder(group: DrawerGroup): Drawable = itemIcons.drawerFolderIcon(group, viewModel.drawerFolderApps(group))
 
+    // A tab's own icon as its tab shows it: the picked one, else its glyph
+    // or letter (tinted by the view showing it).
+    fun tabIcon(group: DrawerGroup): Drawable =
+        itemIcons.customFolderIcon(group.iconBase64, group.iconPack, group.iconName, group.iconRaw)
+            ?.let { com.supernova.launcher.ui.TabIcons.Untinted(it) }
+            ?: com.supernova.launcher.ui.TabIcons.groupGlyph(context, group.name)
+
     // A tab's row picture: its first apps' icons, each over the one before
     // with a gap cut round it, so they read apart on any card. An empty
     // tab's is a blank tile. Drawn into a bitmap: the catalog's drawables

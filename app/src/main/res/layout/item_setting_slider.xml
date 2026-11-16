@@ -70,4 +70,15 @@
             android:scaleType="fitCenter"
             android:src="@drawable/ic_step_plus" />
     </LinearLayout>
+
+    <!-- A note on the setting (SettingItem.Slider.note), under the bar. -->
+    <TextView
+        android:id="@+id/settingNote"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_xs"
+        android:paddingHorizontal="@dimen/space_sm"
+        android:textColor="@color/textSecondary"
+        android:textSize="@dimen/text_secondary"
+        android:visibility="gone" />
 </LinearLayout>

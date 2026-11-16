@@ -63,7 +63,7 @@ class DrawerGroupsPick(
 
     fun save() {
         groups.indices.filter { ticks[it] != saved[it] }.forEach { i ->
-            viewModel.setGroupMembership(groups[i].name, mapOf(GroupPick.App(app) to ticks[i]))
+            viewModel.setGroupMembership(groups[i].id, mapOf(GroupPick.App(app) to ticks[i]))
         }
     }
 

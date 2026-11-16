@@ -12,6 +12,7 @@
     <string name="move_page_right">Move page right</string>
     <string name="settings_title">Launcher settings</string>
     <string name="search_apps">Search apps</string>
+    <string name="drawer_search_hint">Search</string>
     <string name="add_to_home">Add to Home</string>
     <string name="app_info">App info</string>
     <string name="uninstall">Uninstall</string>
@@ -96,13 +97,14 @@
     <string name="notification_access_title">Allow notification access</string>
     <string name="notification_access_badges">Badges are counted from your notifications, so Supernova needs notification access. They are read on this phone only.</string>
     <string name="notification_access_popup">The long-press menu lists an app\'s notifications, so Supernova needs notification access. They are read on this phone only.</string>
+    <string name="notification_access_restricted">If the notification access switch is greyed out, Android is blocking it because Supernova was not installed from the Play Store. Open App info, tap the \u22ee menu at the top right, choose Allow restricted settings, then open the notification access screen again.</string>
     <string name="open_settings">Open settings</string>
     <string name="not_now">Not now</string>
     <string name="continue_label">Continue</string>
     <string name="accessibility_needed_title">Turn on the accessibility service</string>
     <string name="accessibility_needed_message">Lock screen, Recent apps and Quick settings need Supernova\'s accessibility service. Supernova uses it only for these actions.</string>
     <string name="gestures_need_accessibility">Needs the accessibility service</string>
-    <string name="gestures_need_accessibility_summary">Some of these gestures do nothing until it is on. Tap to turn it on</string>
+    <string name="gestures_need_accessibility_summary">Some gestures need this on. Tap to turn it on</string>
     <string name="device_admin_confirm_title">Lock with device admin?</string>
     <string name="device_admin_inactive">Device admin is off</string>
     <string name="device_admin_inactive_summary">Lock screen does nothing until it is on. Tap to turn it on</string>
@@ -113,7 +115,8 @@
     <string name="reset_custom_icons_none">None set</string>
     <string name="reset_custom_icons_none_toast">No app, folder or shortcut has a custom icon</string>
     <string name="reset_custom_icons_message">Icons you changed in the ticked groups go back to the default, with any shape or style picked for them. Names, hidden labels, swipe actions and icon sizes stay.</string>
-    <string name="reset_custom_icons_apps">Apps</string>
+    <string name="reset_custom_icons_apps">Drawer apps</string>
+    <string name="reset_custom_icons_placed_apps">Apps on the home screen</string>
     <string name="reset_custom_icons_folders">Folders and tabs</string>
     <string name="reset_custom_icons_shortcuts">Shortcuts and contacts</string>
     <string name="reset_hidden_labels">Reset hidden labels</string>
@@ -149,6 +152,7 @@
     <string name="drawer_swipe_indicator_summary">Place a small arrow above the dock</string>
     <string name="drawer_swipe_haptic">Haptic feedback</string>
     <string name="drawer_swipe_haptic_summary">Vibrate when a swipe up starts opening the drawer</string>
+    <string name="drawer_search_bar_position">Search bar position</string>
     <string name="drawer_tab_bar">Tab bar position</string>
     <string name="tab_bar_top">Top</string>
     <string name="tab_bar_bottom">Bottom</string>
@@ -187,8 +191,6 @@
     <string name="drawer_default_tab">Default tab</string>
     <string name="drawer_hide_all_tab">Hide the All tab</string>
     <string name="edit">Edit</string>
-    <!-- The app and shortcut menu row that opens the Edit sheet. -->
-    <string name="edit_icon">Edit icon</string>
     <string name="hide_label">Hide label</string>
     <string name="change_icon">Change icon</string>
     <string name="select_apps">Select apps</string>
@@ -292,7 +294,7 @@
     <string name="badge_position">Badge position</string>
     <string name="badge_size">Badge size</string>
     <string name="badge_test">Test notification badge</string>
-    <string name="badge_test_summary">Post a notification that will create a badge on the Supernova Settings icon</string>
+    <string name="badge_test_summary">Post a notification to badge the Settings icon</string>
     <string name="badge_test_channel">Test notifications</string>
     <string name="badge_test_title">Test notification</string>
     <string name="badge_test_text">Supernova Settings has a badge now. Tap to clear it.</string>
@@ -428,8 +430,8 @@
     <string name="popup_card_bg">Group shortcuts in a card</string>
     <string name="popup_group_shortcuts">Visually group shortcuts</string>
     <string name="popup_action_icons">Actions as icons</string>
-    <string name="popup_action_icons_summary">Remove, Widgets, App info and the rest in one row of icons; hold one for its name</string>
-    <string name="popup_group_shortcuts_summary">Shortcuts and notifications sit apart from the menu, one tile each</string>
+    <string name="popup_action_icons_summary">Menu actions as one row of icons</string>
+    <string name="popup_group_shortcuts_summary">Shortcuts and notifications in their own tiles</string>
     <string name="popup_style">Long-press menu style</string>
     <string name="popup_style_block">Block</string>
     <string name="popup_style_pills">Pills</string>
@@ -485,6 +487,7 @@
     <string name="group_type_tab_hint">Sits in the drawer\'s tab bar.</string>
     <string name="group_type_folder_hint">Sits in the app list as one tile.</string>
     <string name="group_folder_icon">Folder icon</string>
+    <string name="group_tab_icon">Tab icon</string>
     <string name="group_folder_icon_change">Change</string>
     <string name="group_more_apps">+%d</string>
     <string name="group_default_tab_summary">The drawer opens on this tab</string>
@@ -494,6 +497,7 @@
     <string name="group_name_required">Enter a name</string>
     <string name="new_tab">New tab</string>
     <string name="edit_tab">Edit tab</string>
+    <string name="tab_settings">Tab settings</string>
     <string name="show_hidden_apps">Show hidden apps</string>
     <string name="hide_hidden_apps">Hide hidden apps again</string>
     <string name="app_hidden">%1$s hidden from the drawer</string>
@@ -677,6 +681,8 @@
          names its controls briefly because they sit under its "Label"
          header; search lists them by the longer names above. -->
     <string name="icon_size">Icon size</string>
+    <!-- Under an Icon size bar when icons are drawn smaller to fit the grid. -->
+    <string name="icon_size_fitted">Icons are at the largest this grid fits. Use fewer rows or columns, or turn labels off, for larger icons.</string>
     <string name="label_group">Label</string>
     <string name="label_card_size">Size</string>
     <string name="label_card_font">Font</string>
@@ -719,22 +725,21 @@
     <string name="style_role_neutral">Neutral</string>
     <string name="style_role_neutral_variant">Neutral variant</string>
     <string name="style_opacity">Opacity</string>
-    <string name="group_name_taken">A group with that name already exists</string>
     <string name="labs">Labs</string>
     <string name="group_home_button">Home button</string>
     <string name="section_labs_subtitle">Experiments and icon theme tools</string>
     <string name="labs_show_component">Show component in edit dialog</string>
-    <string name="labs_show_component_summary">For icon theme makers: an app\'s edit sheet shows its component name</string>
+    <string name="labs_show_component_summary">Show the component name in the app edit sheet</string>
     <string name="labs_big_grid">Big grid size options</string>
-    <string name="labs_big_grid_summary">Lift the limits on grid sizes, for heavily customized setups: up to 24 by 24 on the home screen, 12 dock icons, 12 drawer columns and 10 folder columns</string>
+    <string name="labs_big_grid_summary">Grids up to 24×24, with more dock, drawer and folder columns</string>
     <string name="labs_export_png">Show Export PNG in long-press menu</string>
-    <string name="labs_export_png_summary">Save a transparent image of a widget, folder or icon from its menu on the home screen</string>
+    <string name="labs_export_png_summary">Adds Export PNG to home screen item menus</string>
     <string name="export_png">Export PNG</string>
     <string name="export_png_saved">PNG saved</string>
     <string name="export_png_failed">Couldn\'t save the PNG: %1$s</string>
     <string name="export_png_lost">Couldn\'t save the PNG: Supernova restarted while the file picker was open</string>
     <string name="labs_export_icons">Export icons</string>
-    <string name="labs_export_icons_summary">Save every app\'s own icon to a zip, with an appfilter.xml of their component names to start an icon pack from</string>
+    <string name="labs_export_icons_summary">Save all app icons and an appfilter.xml to a zip</string>
     <string name="labs_export_icons_failed">Couldn\'t export icons: %1$s</string>
     <plurals name="labs_icons_exported">
         <item quantity="one">Exported %d icon</item>
@@ -794,6 +799,7 @@
     <string name="search_bar_wireframe_summary">Only an outline, with no fill</string>
     <string name="search_bar_shadow">Shadow</string>
     <string name="search_bar_hint_text">Show “Search” text</string>
+    <string name="drawer_bar_hint_text">Show “Search” text</string>
     <string name="search_bar_chips">Buttons</string>
     <string name="search_bar_chip_voice">Voice search</string>
     <string name="search_bar_chip_assistant">Assistant</string>
@@ -823,7 +829,7 @@
     <string name="needs_dock">Needs the dock, in Dock</string>
     <string name="needs_badges">Needs notification badges, in Icons &amp; labels</string>
     <string name="needs_animations">Animations are off, in Home screen</string>
-    <string name="infinite_scroll_summary">Swipe past the last page to reach the first. Swipe left and right gestures do nothing while it\'s on</string>
+    <string name="infinite_scroll_summary">Swipe past the last page to reach the first; turns off left/right swipe gestures</string>
     <string name="settings_search_no_matches">No settings match “%1$s”</string>
     <!-- A settings search hit its page hides: what brings it back (#133). -->
     <string name="settings_search_needs_on">Needs %1$s on</string>
@@ -839,7 +845,7 @@
     <string name="gesture_swipe_left">Swipe left</string>
     <string name="gesture_swipe_right">Swipe right</string>
     <string name="gesture_left_right_conflict">Swipe left/right</string>
-    <string name="gesture_left_right_conflict_summary">These gestures don\'t work with infinite scroll on the home screen</string>
+    <string name="gesture_left_right_conflict_summary">Don\'t work while infinite scroll is on</string>
     <string name="gesture_double_tap_swipe_up">Double tap &amp; swipe up</string>
     <string name="gesture_double_tap_swipe_down">Double tap &amp; swipe down</string>
     <string name="gesture_rotate_cw">Two-finger rotate clockwise</string>
@@ -903,6 +909,7 @@
     <string name="hide_status_bar">Hide status bar</string>
     <string name="status_bar_icons">Status bar icon color</string>
     <string name="status_icons_auto">Follow theme</string>
+    <string name="status_icons_wallpaper">Based on wallpaper</string>
     <string name="status_icons_dark">Dark icons</string>
     <string name="status_icons_light">Light icons</string>
     <string name="transparent_nav">Transparent navigation bar</string>

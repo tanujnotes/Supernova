@@ -337,6 +337,26 @@ object SettingsCatalogue {
         actions: Actions
     ): List<SettingsSection> {
         val rows = Rows(context, viewModel, actions)
+        // The drawer field's Top/Bottom/Hidden, on its own page and on the
+        // App drawer page next to the tab bar's.
+        val drawerBarPlacement = { title: Int ->
+            rows.choice(
+                title, DrawerBarPlacement.entries,
+                { DrawerBarPlacement.fromConfig(SearchBarPrefs.drawerBar(it)) },
+                {
+                    when (it) {
+                        DrawerBarPlacement.TOP -> R.string.tab_bar_top
+                        DrawerBarPlacement.BOTTOM -> R.string.tab_bar_bottom
+                        DrawerBarPlacement.HIDDEN -> R.string.placement_hidden
+                    }
+                }
+            ) { placement ->
+                rows.editDrawerBar {
+                    it.copy(placement = placement.name, enabled = placement != DrawerBarPlacement.HIDDEN)
+                }
+            }
+        }
+        val fitHint = IconFitHint(context)
         return listOf(
         SettingsSection(
             R.string.settings_section_home,
@@ -353,7 +373,8 @@ object SettingsCatalogue {
                     get = { (it.iconScale * 100f).roundToInt() },
                     set = { viewModel.set(Pref.iconScale, it / 100f) },
                     display = { context.getString(R.string.opacity_percent, it) },
-                    preview = { p, v -> p.copy(iconScale = v / 100f) }
+                    preview = { p, v -> p.copy(iconScale = v / 100f) },
+                    note = { fitHint.desktop(it) }
                 ),
                 SettingItem.LabelGroup(
                     R.string.label_group,
@@ -793,7 +814,8 @@ object SettingsCatalogue {
                     get = { (it.drawerIconScale * 100f).roundToInt() },
                     set = { viewModel.set(Pref.drawerIconScale, it / 100f) },
                     display = { context.getString(R.string.opacity_percent, it) },
-                    preview = { p, v -> p.copy(drawerIconScale = v / 100f) }
+                    preview = { p, v -> p.copy(drawerIconScale = v / 100f) },
+                    note = { fitHint.drawer(it) }
                 ).hiddenWhen { needsOff(R.string.dock_match_desktop, it.drawerMatchDesktop) },
                 SettingItem.Slider(
                     R.string.drawer_padding_h,
@@ -833,11 +855,6 @@ object SettingsCatalogue {
                     get = { it.drawerFastScroller },
                     set = { viewModel.set(Pref.drawerFastScroller, it) }
                 ).hiddenWhen { dependsOn(R.string.drawer_style, it.drawerStyle == DrawerStyle.PAGED_GRID) },
-                SettingItem.Toggle(
-                    R.string.drawer_pull_to_search,
-                    get = { it.drawerPullToSearch },
-                    set = { viewModel.set(Pref.drawerPullToSearch, it) }
-                ),
                 rows.color(
                     R.string.drawer_scrubber_color, { it.drawerScrubberColor },
                     // As the scroller's own switch, none in the paged style.
@@ -845,6 +862,12 @@ object SettingsCatalogue {
                     dependsOn(R.string.drawer_style, it.drawerStyle == DrawerStyle.PAGED_GRID)
                         ?: needsOn(R.string.drawer_fast_scroller, !it.drawerFastScroller)
                 },
+                SettingItem.Toggle(
+                    R.string.drawer_pull_to_search,
+                    get = { it.drawerPullToSearch },
+                    set = { viewModel.set(Pref.drawerPullToSearch, it) }
+                ),
+                drawerBarPlacement(R.string.drawer_search_bar_position),
                 SettingItem.Header(R.string.group_tabs),
                 rows.choice(
                     R.string.drawer_tab_bar, DrawerTabBar.entries,
@@ -888,20 +911,26 @@ object SettingsCatalogue {
                     R.string.drawer_work_tab,
                     get = { it.drawerWorkTab },
                     set = { viewModel.set(Pref.drawerWorkTab, it) },
-                    visibleIf = { viewModel.hasWorkApps() || it.drawerWorkTab }
+                    // Only the work profile decides: a pref clause here showed the switch
+                    // on phones without one, where turning it off hid it for good.
+                    visibleIf = { viewModel.hasWorkApps() }
                 ),
                 SettingItem.Row(
                     R.string.drawer_default_tab,
+                    // Stored by the tab's group id; shown by its name.
                     subtitle = { prefs ->
-                        prefs.drawerDefaultTab.ifEmpty { context.getString(R.string.drawer_all) }
+                        viewModel.drawerTabGroups().firstOrNull { it.id == prefs.drawerDefaultTab }?.name
+                            ?: context.getString(R.string.drawer_all)
                     },
                     onClick = {
                         // FOLDER-type groups have no tab to default to.
-                        val names = listOf("") + viewModel.drawerTabGroups().map { it.name }
+                        val tabs = viewModel.drawerTabGroups()
+                        val ids = listOf("") + tabs.map { it.id }
+                        val names = tabs.associate { it.id to it.name }
                         rows.pick(
-                            R.string.drawer_default_tab, names,
-                            names.indexOf(viewModel.state.value.prefs.drawerDefaultTab).coerceAtLeast(0),
-                            { it.ifEmpty { context.getString(R.string.drawer_all) } }
+                            R.string.drawer_default_tab, ids,
+                            ids.indexOf(viewModel.state.value.prefs.drawerDefaultTab).coerceAtLeast(0),
+                            { names[it] ?: context.getString(R.string.drawer_all) }
                         ) { viewModel.set(Pref.drawerDefaultTab, it) }
                     },
                     visibleIf = { viewModel.drawerTabGroups().isNotEmpty() }
@@ -1124,21 +1153,7 @@ object SettingsCatalogue {
             R.string.drawer_search_bar,
             listOf(
                 SettingItem.Preview(PreviewKind.DRAWER_SEARCH_BAR),
-                rows.choice(
-                    R.string.search_bar_placement, DrawerBarPlacement.entries,
-                    { DrawerBarPlacement.fromConfig(SearchBarPrefs.drawerBar(it)) },
-                    {
-                        when (it) {
-                            DrawerBarPlacement.TOP -> R.string.tab_bar_top
-                            DrawerBarPlacement.BOTTOM -> R.string.tab_bar_bottom
-                            DrawerBarPlacement.HIDDEN -> R.string.placement_hidden
-                        }
-                    }
-                ) { placement ->
-                    rows.editDrawerBar {
-                        it.copy(placement = placement.name, enabled = placement != DrawerBarPlacement.HIDDEN)
-                    }
-                },
+                drawerBarPlacement(R.string.search_bar_placement),
                 SettingItem.Toggle(
                     R.string.drawer_search_global,
                     get = { SearchBarPrefs.drawerBar(it).globalOnTap },
@@ -1166,6 +1181,11 @@ object SettingsCatalogue {
                     set = { v -> rows.editDrawerBar { it.copy(radius = v) } },
                     display = { context.getString(R.string.padding_dp_value, it) },
                     preview = { p, v -> SearchBarPrefs.withDrawerBar(p) { it.copy(radius = v) } }
+                ),
+                SettingItem.Toggle(
+                    R.string.drawer_bar_hint_text,
+                    get = { SearchBarPrefs.drawerBar(it).hint },
+                    set = { on -> rows.editDrawerBar { it.copy(hint = on) } }
                 ),
                 // The buttons inside the field, at its right end; gone with it.
                 SettingItem.Header(R.string.search_bar_chips, visibleIf = { SearchBarPrefs.drawerFieldShown(it) }),
@@ -1442,7 +1462,8 @@ object SettingsCatalogue {
                             context.getString(R.string.reset_custom_icons_none)
                         } else {
                             listOfNotNull(
-                                count.apps.takeIf { it > 0 }?.let {
+                                // The drawer's and those given to home screen copies.
+                                (count.apps + count.placedApps).takeIf { it > 0 }?.let {
                                     context.resources.getQuantityString(R.plurals.custom_icon_apps, it, it)
                                 },
                                 count.folders.takeIf { it > 0 }?.let {
