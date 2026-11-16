@@ -17,6 +17,7 @@ import com.supernova.launcher.ui.BadgeLook
 import com.supernova.launcher.ui.DockBgStyle
 import com.supernova.launcher.ui.FolderIconDrawable
 import com.supernova.launcher.ui.FolderPreviewStyle
+import com.supernova.launcher.ui.IconFitRoom
 import com.supernova.launcher.ui.LabelContext
 import com.supernova.launcher.ui.LabelStyler
 import com.supernova.launcher.ui.LauncherViewModel
@@ -24,6 +25,7 @@ import com.supernova.launcher.ui.SearchBarButtons
 import com.supernova.launcher.ui.SearchBarChip
 import com.supernova.launcher.ui.SearchBarConfig
 import com.supernova.launcher.ui.SearchBarView
+import com.supernova.launcher.ui.cellSize
 import com.supernova.launcher.ui.dp
 import com.supernova.launcher.ui.settings.PreviewKind
 import com.supernova.launcher.ui.textSizeOf
@@ -51,6 +53,26 @@ class SettingsPreviewView @JvmOverloads constructor(
     private var kind: PreviewKind? = null
 
     private val iconViews = mutableListOf<PreviewIcon>()
+    // The desktop shrinks an icon that needs more room than its cell into
+    // it (WorkspaceCanvas.IconFit): icon and label by the same scale, the
+    // label on one line. The strip does the same against the desktop's cell
+    // (IconFitRoom), so it shows the size the home screen will draw rather
+    // than big icons running into each other. Before the home screen has
+    // been laid out, the cell is the display's width shared by the columns.
+    private fun fitHomeIcons(prefs: LauncherPrefs) {
+        val box = (dp(ICON_BASE_DP) * prefs.iconScale).toInt()
+        val cell = IconFitRoom.desktopCell(prefs.gridCols, prefs.gridRows)
+            ?: (cellSize(resources.displayMetrics.widthPixels, prefs.gridCols) to Int.MAX_VALUE)
+        val line = labelViews.firstOrNull()?.takeIf { prefs.showLabels }?.lineHeight ?: 0
+        val fit = IconFitRoom.desktopFitScale(cell.first, cell.second, box, dp(HOME_ITEM_PADDING_DP), line)
+        sizeIcons(prefs.iconScale * fit)
+        if (fit >= 1f) return
+        for (label in labelViews) {
+            label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, label.textSize * fit)
+            label.maxLines = 1
+        }
+    }
+
     // The drawer's and the dock's icon size bars tick this view as they move
     // (see onMeasure).
     private var keepsLargestIconRoom = false
@@ -120,8 +142,8 @@ class SettingsPreviewView @JvmOverloads constructor(
                 styleLabels(prefs, visible = prefs.showLabels)
             }
             PreviewKind.HOME -> {
-                sizeIcons(prefs.iconScale)
                 styleLabels(prefs, visible = prefs.showLabels, onWallpaper = true)
+                fitHomeIcons(prefs)
             }
             PreviewKind.DOCK -> {
                 com.supernova.launcher.ui.theme.SurfaceShapes.setColor(surfaceBg, withAlpha(styleAlpha ?: prefs.dockBgOpacity))
@@ -348,11 +370,11 @@ class SettingsPreviewView @JvmOverloads constructor(
         val row = newRow()
         homeSampleApps(viewModel, prefs.gridCols.coerceIn(HOME_MIN_COLS, HOME_MAX_COLS)).forEach { (app, icon) ->
             val column = iconColumn(icon, app.label, labelLines = 2)
-            val pad = dp(4)
+            val pad = dp(HOME_ITEM_PADDING_DP)
             column.setPadding(pad, pad, pad, pad)
-            // A big icon's box can be wider than its slot inside that
-            // padding, as it can be wider than its cell on the desktop;
-            // show all of it.
+            // The strip's slots are narrower than the desktop's cells, so an
+            // icon fitted to its cell (fitHomeIcons) can still be wider than
+            // its slot; show all of it.
             column.clipToPadding = false
             row.addView(column, slotParams())
         }
@@ -949,6 +971,8 @@ class SettingsPreviewView @JvmOverloads constructor(
         const val HOME_HEIGHT_DP = 144
         const val HOME_MIN_COLS = 3
         const val HOME_MAX_COLS = 7
+        // A desktop icon's padding (item_icon.xml).
+        const val HOME_ITEM_PADDING_DP = 4
         const val SEARCH_DEMO_QUERY = "cal"
     }
 }

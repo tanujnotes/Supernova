@@ -13,12 +13,24 @@ object IconFitRoom {
     // The drawer grid's list height, px, without its padding.
     @Volatile var drawerHeightPx = 0
 
-    // Whether a desktop icon `boxPx` square, padded by `paddingPx` all round
-    // over a `labelPx` label line (0 with labels off), is shrunk into a
-    // `cellW` x `cellH` cell (cellSize); false for a cell not measured yet.
-    fun desktopFitted(cellW: Int, cellH: Int, boxPx: Int, paddingPx: Int, labelPx: Int): Boolean {
+    // How far a desktop icon `boxPx` square, padded by `paddingPx` all round
+    // over a `labelPx` label line (0 with labels off), shrinks into a
+    // `cellW` x `cellH` cell (cellSize): 1 where it fits.
+    fun desktopFitScale(cellW: Int, cellH: Int, boxPx: Int, paddingPx: Int, labelPx: Int): Float {
         val needW = boxPx + paddingPx * 2
-        return iconFitScale(cellW, cellH, needW, needW + labelPx) < 1f
+        return iconFitScale(cellW, cellH, needW, needW + labelPx)
+    }
+
+    fun desktopFitted(cellW: Int, cellH: Int, boxPx: Int, paddingPx: Int, labelPx: Int): Boolean =
+        desktopFitScale(cellW, cellH, boxPx, paddingPx, labelPx) < 1f
+
+    // A desktop cell of a `cols` x `rows` grid as the launcher last laid its
+    // pages out, or null before it has.
+    fun desktopCell(cols: Int, rows: Int): Pair<Int, Int>? {
+        val width = desktopWidthPx
+        val height = desktopHeightPx
+        if (width <= 0 || height <= 0) return null
+        return cellSize(width, cols) to cellSize(height, rows)
     }
 
     // Whether a drawer icon `iconPx` square is held below its size: by a

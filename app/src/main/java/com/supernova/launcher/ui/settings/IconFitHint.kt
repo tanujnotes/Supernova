@@ -10,7 +10,6 @@ import com.supernova.launcher.ui.DrawerTileFit
 import com.supernova.launcher.ui.IconFitRoom
 import com.supernova.launcher.ui.LabelContext
 import com.supernova.launcher.ui.LabelStyler
-import com.supernova.launcher.ui.cellSize
 
 // The note under an Icon size row when icons at that size don't fit their
 // grid cells and are drawn smaller (IconFitRoom), so a larger size seemingly
@@ -25,11 +24,9 @@ class IconFitHint(private val context: Context) {
     // The desktop's icons, and the drawer's while it follows the desktop.
     fun desktop(prefs: LauncherPrefs): CharSequence? {
         val label = if (prefs.showLabels) labelLine(prefs, LabelContext.DESKTOP, onWallpaper = true) else 0
-        val width = IconFitRoom.desktopWidthPx
-        val height = IconFitRoom.desktopHeightPx
-        val fitted = width > 0 && height > 0 && IconFitRoom.desktopFitted(
-            cellSize(width, prefs.gridCols), cellSize(height, prefs.gridRows),
-            (dp(ICON_BASE_DP) * prefs.iconScale).toInt(), dp(ICON_PADDING_DP), label
+        val cell = IconFitRoom.desktopCell(prefs.gridCols, prefs.gridRows)
+        val fitted = cell != null && IconFitRoom.desktopFitted(
+            cell.first, cell.second, (dp(ICON_BASE_DP) * prefs.iconScale).toInt(), dp(ICON_PADDING_DP), label
         )
         return note(fitted || (prefs.drawerMatchDesktop && drawerFitted(prefs, prefs.iconScale)))
     }

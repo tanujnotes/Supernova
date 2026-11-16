@@ -1,5 +1,6 @@
 package com.supernova.launcher.ui
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -29,6 +30,13 @@ class IconFitRoomTest {
     @Test
     fun manyColumnsHoldTheIconBack() {
         assertTrue(IconFitRoom.desktopFitted(120, 420, 135, pad, label))
+    }
+
+    @Test
+    fun theFitScaleIsTheCellOverTheNeed() {
+        // 202px needed in a 168px row.
+        assertEquals(168f / 202f, IconFitRoom.desktopFitScale(180, 168, 135, pad, label), 0.0001f)
+        assertEquals(1f, IconFitRoom.desktopFitScale(216, 280, 135, pad, label), 0f)
     }
 
     @Test
