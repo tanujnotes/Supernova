@@ -96,7 +96,7 @@
                 android:textColor="@color/textSecondary"
                 android:textSize="@dimen/text_secondary" />
 
-            <!-- A folder's own icon, under a hairline from the text line. -->
+            <!-- The group's own icon, under a hairline from the text line. -->
             <LinearLayout
                 android:id="@+id/groupIconRow"
                 android:layout_width="match_parent"
@@ -126,6 +126,7 @@
                         android:importantForAccessibility="no" />
 
                     <TextView
+                        android:id="@+id/groupIconLabel"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="@dimen/space_md"

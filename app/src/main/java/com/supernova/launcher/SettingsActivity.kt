@@ -726,8 +726,12 @@ class SettingsActivity : AppCompatActivity() {
             this, binding.groupsPane, viewModel, itemIcons,
             onTitleChanged = ::applyGroupsTitle,
             editFolderIcon = { group ->
-                com.supernova.launcher.ui.FolderEditSheet
-                    .showDrawerFolder(this, lifecycleScope, viewModel, group, ::pickPhoto)
+                if (group.type == com.supernova.launcher.data.DrawerGroupType.TAB) {
+                    com.supernova.launcher.ui.TabIconPicker.show(this, lifecycleScope, viewModel, group, ::pickPhoto)
+                } else {
+                    com.supernova.launcher.ui.FolderEditSheet
+                        .showDrawerFolder(this, lifecycleScope, viewModel, group, ::pickPhoto)
+                }
             }
         ).also {
             groupsPane = it
@@ -1032,6 +1036,13 @@ class SettingsActivity : AppCompatActivity() {
     private fun handleDeepLink(intent: Intent) {
         if (intent.getBooleanExtra(EXTRA_OPEN_SEARCH_BAR, false)) {
             navigateTo(R.string.desktop_search_bar, 0)
+            return
+        }
+        // A drawer tab's or folder's menu: the Drawer groups page, on that
+        // group's own page when it names one ("" is the list).
+        intent.getStringExtra(EXTRA_DRAWER_GROUP)?.let { group ->
+            navigateTo(R.string.drawer_groups, 0, flash = false)
+            groupsPane?.show(true, group.ifEmpty { null })
             return
         }
         val section = intent.getIntExtra(EXTRA_SECTION_TITLE_RES, 0)
@@ -2255,6 +2266,7 @@ class SettingsActivity : AppCompatActivity() {
         const val EXTRA_OPEN_SEARCH_BAR = "extra_open_search_bar"
         const val EXTRA_SECTION_TITLE_RES = "extra_section_title_res"
         const val EXTRA_HIGHLIGHT_TITLE_RES = "extra_highlight_title_res"
+        const val EXTRA_DRAWER_GROUP = "extra_drawer_group"
 
         // Widest the settings content column grows in landscape, as a
         // multiple of the display's short edge - the width it has in

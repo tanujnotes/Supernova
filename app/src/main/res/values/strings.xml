@@ -484,6 +484,7 @@
     <string name="group_type_tab_hint">Sits in the drawer\'s tab bar.</string>
     <string name="group_type_folder_hint">Sits in the app list as one tile.</string>
     <string name="group_folder_icon">Folder icon</string>
+    <string name="group_tab_icon">Tab icon</string>
     <string name="group_folder_icon_change">Change</string>
     <string name="group_more_apps">+%d</string>
     <string name="group_default_tab_summary">The drawer opens on this tab</string>
@@ -493,6 +494,7 @@
     <string name="group_name_required">Enter a name</string>
     <string name="new_tab">New tab</string>
     <string name="edit_tab">Edit tab</string>
+    <string name="tab_settings">Tab settings</string>
     <string name="show_hidden_apps">Show hidden apps</string>
     <string name="hide_hidden_apps">Hide hidden apps again</string>
     <string name="app_hidden">%1$s hidden from the drawer</string>

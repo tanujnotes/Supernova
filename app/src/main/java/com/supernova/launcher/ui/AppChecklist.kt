@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.inputmethod.EditorInfo
 import android.widget.BaseAdapter
 import android.widget.CheckedTextView
 import android.widget.EditText
@@ -77,19 +78,55 @@ class AppChecklist<T>(
 
     // In a dialog with a Save button. Ticks are kept until Save, which hands
     // them over; a tap outside or back drops them.
-    fun show(title: CharSequence, onSave: (BooleanArray) -> Unit): AlertDialog? {
+    fun show(title: CharSequence, onSave: (BooleanArray) -> Unit): AlertDialog? =
+        open(title, renamable = false) { ticks, _ -> onSave(ticks) }
+
+    // The same, with the title a field: a drawer group's name, typed over
+    // in place and handed to Save with the ticks (trimmed, maybe empty).
+    fun showRenamable(title: String, onSave: (BooleanArray, String) -> Unit): AlertDialog? =
+        open(title, renamable = true, onSave)
+
+    private fun open(title: CharSequence, renamable: Boolean, onSave: (BooleanArray, String) -> Unit): AlertDialog? {
         if (apps.isEmpty()) return null
-        val dialog = MaterialAlertDialogBuilder(context)
-            .setTitle(title)
+        val builder = MaterialAlertDialogBuilder(context)
+        val titleField = if (renamable) titleField(builder.context, title) else null
+        if (titleField != null) {
+            builder.setCustomTitle(titleField.parent as View)
+        } else {
+            builder.setTitle(title)
+        }
+        val dialog = builder
             .setView(view)
             .setBackgroundInsetTop(context.dp(INSET_V_DP))
             .setBackgroundInsetBottom(context.dp(INSET_V_DP))
-            .setPositiveButton(R.string.save) { _, _ -> onSave(checked) }
+            .setPositiveButton(R.string.save) { _, _ ->
+                onSave(checked, titleField?.text?.toString()?.trim() ?: title.toString())
+            }
             .create()
         dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         dialog.show()
         OpenDialogs.track(dialog)
         return dialog
+    }
+
+    // The title as a one-line field in the title's own type, on the line it
+    // would sit on; its underline is what says it can be typed over. The
+    // keyboard waits for a tap: the search field is what most opens are for.
+    private fun titleField(themed: Context, title: CharSequence): EditText {
+        val field = EditText(themed).apply {
+            setTextAppearance(R.style.TextAppearance_Supernova_DialogTitle)
+            setText(title)
+            hint = themed.getString(R.string.group_name)
+            isSingleLine = true
+            imeOptions = EditorInfo.IME_ACTION_DONE
+            LabelLimit.apply(this)
+            setPadding(0, context.dp(TITLE_FIELD_PAD_V_DP), 0, context.dp(TITLE_FIELD_PAD_V_DP))
+        }
+        LinearLayout(themed).apply {
+            setPadding(context.dp(TITLE_PAD_H_DP), context.dp(TITLE_PAD_TOP_DP), context.dp(TITLE_PAD_H_DP), 0)
+            addView(field, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+        return field
     }
 
     // Matched across all apps at once, so a typo match in one group drops
@@ -140,7 +177,15 @@ class AppChecklist<T>(
             } else {
                 minOf(maxHeight, size)
             }
-            super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY))
+            // Its full width, always: the dialog measures it "at most" on a
+            // keyboard's resize, which the rows kept (each label shrank to
+            // its text, the box beside it instead of at the end).
+            val width = if (MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.AT_MOST) {
+                MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY)
+            } else {
+                widthMeasureSpec
+            }
+            super.onMeasure(width, MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY))
         }
     }
 
@@ -153,5 +198,10 @@ class AppChecklist<T>(
         // The dialog's own 80dp leaves a band above and below the card
         // once the keyboard shrinks the window.
         const val INSET_V_DP = 24
+        // The editable title's place: the dialog title's 24dp sides, a
+        // little less on top for the field's own room under the text.
+        const val TITLE_PAD_H_DP = 24
+        const val TITLE_PAD_TOP_DP = 16
+        const val TITLE_FIELD_PAD_V_DP = 8
     }
 }

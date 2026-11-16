@@ -3212,10 +3212,9 @@ class LauncherActivity :
         // A drawer folder lists its apps in the drawer's order, so it has no
         // order of its own to Sort.
         menu.addRow(getString(R.string.select_apps), R.drawable.ic_menu_select_apps) { showDrawerGroupChecklist(group) }
-        menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) {
-            com.supernova.launcher.ui.FolderEditSheet
-                .showDrawerFolder(this, lifecycleScope, viewModel, group, ::pickPhoto)
-        }
+        // Its page in Settings > Drawer groups: name, icon, tab or folder,
+        // apps, and Delete.
+        menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) { openDrawerGroupSettings(group.name) }
         menu.show(anchor, menuTouchX)
         return menu
     }
@@ -4178,11 +4177,12 @@ class LauncherActivity :
         if (fullScreen && !(::feed.isInitialized && feed.isOpen)) drawer.holdHomeForSearch(true)
     }
 
-    // A drawer tab held, or tapped while it shows: a group tab's name and
-    // Keep apps in main app tab (Edit tab) and its apps (Select apps); the
-    // All tab's hidden apps, shown in its list for a moment (Show hidden
-    // apps) or picked (Hide apps).
-    private fun showDrawerTabMenu(anchor: View, group: DrawerGroup?) {
+    // A drawer tab held, or tapped while it shows. A group tab: Edit tab (its
+    // page in Settings > Drawer groups), Select apps, and Tab settings (the
+    // Drawer groups list). The All tab: its hidden apps, shown in its list for
+    // a moment (Show hidden apps) or picked (Hide apps), and Tab settings.
+    // Handed back so a drag of the tab can close it.
+    private fun showDrawerTabMenu(anchor: View, group: DrawerGroup?): SupernovaPopupMenu {
         drawer.hideKeyboardIfShowing()
         val menu = newItemPopup()
         if (group == null) {
@@ -4194,95 +4194,24 @@ class LauncherActivity :
             }
             menu.addRow(getString(R.string.hide_apps), R.drawable.ic_menu_hide) { showHiddenAppsChecklist() }
         } else {
-            menu.addRow(getString(R.string.edit_tab), R.drawable.ic_menu_edit) { promptEditTab(group) }
+            menu.addRow(getString(R.string.edit_tab), R.drawable.ic_menu_edit) { openDrawerGroupSettings(group.name) }
             menu.addRow(getString(R.string.select_apps), R.drawable.ic_menu_select_apps) {
                 showDrawerGroupChecklist(group)
             }
         }
+        menu.addRow(getString(R.string.tab_settings), R.drawable.ic_tab_settings) { openDrawerGroupSettings(null) }
         // Tracked as the item menus are, so back and home close it.
         drag.activeItemPopup = menu
         menu.show(anchor)
+        return menu
     }
 
-    // The tab's name and whether its apps stay in the All list too, the two
-    // things the Add drawer tab dialog asks, saved together.
-    private fun promptEditTab(group: DrawerGroup) {
-        val input = EditText(this).apply {
-            hint = getString(R.string.group_name)
-            com.supernova.launcher.ui.LabelLimit.apply(this)
-            setText(group.name)
-            isSingleLine = true
-            setPadding(dp(FIELD_PAD_H_DP), dp(FIELD_PAD_V_DP), dp(FIELD_PAD_H_DP), dp(FIELD_PAD_V_DP))
-        }
-        val content = com.supernova.launcher.databinding.DialogNewGroupBinding.inflate(layoutInflater)
-        content.newGroupField.addView(com.supernova.launcher.ui.DialogField.wrap(input))
-        content.newGroupKeep.isChecked = !viewModel.leavesMainList(group)
-        // The tab's icon, for the Icon and Label and icon tab contents:
-        // Default (its glyph or letter), an app's icon, a photo or a pack icon.
-        val icon = TabIconChoice(group.iconPack, group.iconName, group.iconBase64)
-        fun renderIcon() {
-            content.newGroupIconValue.text = icon.photo?.let { getString(R.string.icon_photo) }
-                ?: icon.name?.let { com.supernova.launcher.ui.IconPickerSheet.pickLabel(viewModel, icon.pack, it) }
-                ?: getString(R.string.option_default)
-        }
-        renderIcon()
-        content.newGroupIconRow.visibility = View.VISIBLE
-        content.newGroupIconRow.setOnClickListener {
-            pickTabIcon { pack, name, photo ->
-                icon.pack = pack
-                icon.name = name
-                icon.photo = photo
-                renderIcon()
-            }
-        }
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.edit_tab)
-            .setView(content.root)
-            .setPositiveButton(R.string.save) { _, _ ->
-                val typed = input.text?.toString().orEmpty()
-                val renamed = viewModel.renameGroup(group, typed, content.newGroupKeep.isChecked)
-                if (renamed == null) {
-                    Toast.makeText(this, viewModel.nameTakenMessage(typed), Toast.LENGTH_LONG).show()
-                } else {
-                    drawer.followTabRename(group.name, renamed)
-                    if (icon != TabIconChoice(group.iconPack, group.iconName, group.iconBase64)) {
-                        viewModel.setGroupIcon(
-                            renamed,
-                            group.copy(
-                                iconPack = icon.pack, iconName = icon.name, iconBase64 = icon.photo, iconRaw = false
-                            )
-                        )
-                    }
-                }
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .showTracked()
-    }
-
-    // What Edit tab's icon row holds until Save.
-    private data class TabIconChoice(var pack: String?, var name: String?, var photo: String?)
-
-    // The icon picker for a tab: Default, an app's icon, a pack icon or a
-    // photo (gallery or files), handed back as pack, name or photo.
-    private fun pickTabIcon(onPicked: (pack: String?, name: String?, photo: String?) -> Unit) {
-        val onPhoto = { fromFiles: Boolean ->
-            pickPhoto(fromFiles) { uri ->
-                if (uri == null) return@pickPhoto
-                lifecycleScope.launch {
-                    val encoded = withContext(Dispatchers.IO) {
-                        com.supernova.launcher.data.GalleryIconCodec.encode(applicationContext, uri)
-                    }
-                    if (encoded == null) {
-                        Toast.makeText(this@LauncherActivity, R.string.photo_load_failed, Toast.LENGTH_SHORT).show()
-                    } else {
-                        onPicked(null, null, encoded)
-                    }
-                }
-            }
-        }
-        com.supernova.launcher.ui.IconPickerSheet.show(
-            this, lifecycleScope, viewModel, allowDefault = true, onPickPhoto = onPhoto
-        ) { pack, name -> onPicked(pack, name, null) }
+    // Settings > Drawer groups, on the named group's own page, or the list.
+    private fun openDrawerGroupSettings(group: String?) {
+        startActivity(
+            Intent(this, SettingsActivity::class.java)
+                .putExtra(SettingsActivity.EXTRA_DRAWER_GROUP, group.orEmpty())
+        )
     }
 
     // Settings' Hidden apps picker, from the All tab's menu.
@@ -4303,7 +4232,9 @@ class LauncherActivity :
         val personalOnly = group.type == com.supernova.launcher.data.DrawerGroupType.FOLDER && viewModel.workTabActive()
         val apps = if (personalOnly) viewModel.personalApps() else viewModel.visibleApps()
         // By the name it is stored under, which a rename just changed.
-        com.supernova.launcher.ui.GroupChecklist(this, viewModel, itemIcons).show(group, apps, name)
+        com.supernova.launcher.ui.GroupChecklist(this, viewModel, itemIcons).show(group, apps, name) { renamed ->
+            drawer.followTabRename(name, renamed)
+        }
     }
 
     private fun shortcutsFor(packageName: String, userSerial: Long): List<ShortcutInfo> {
@@ -4942,10 +4873,6 @@ class LauncherActivity :
         private const val DOCK_SLOT_TIGHT_DP = 56
         private const val DOCK_SLOT_TIGHT_EXTRA_DP = 8
 
-        // The space inside a dialog's outlined name field, as the app
-        // checklist's search field has: the box draws none of its own.
-        private const val FIELD_PAD_H_DP = 16
-        private const val FIELD_PAD_V_DP = 14
         private const val WALLPAPER_ZOOM_MS = 250L
     }
 }

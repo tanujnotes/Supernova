@@ -31,9 +31,9 @@ class DrawerGroupsPane(
     private val itemIcons: ItemIcons,
     // The toolbar's title follows the page: a group's name on its own page.
     private val onTitleChanged: () -> Unit,
-    // A drawer folder's Edit sheet, for its icon. The sheet can rename the
-    // folder too; the page then finds its group gone and shows the list,
-    // with the folder under its new name.
+    // A group's icon: a drawer folder's Edit sheet, or a tab's icon picker.
+    // The folder sheet can rename the folder too; the page then finds its
+    // group gone and shows the list, with the folder under its new name.
     private val editFolderIcon: (DrawerGroup) -> Unit
 ) : GroupListAdapter.Listener {
 
@@ -122,7 +122,7 @@ class DrawerGroupsPane(
         onTitleChanged()
         if (pickAppsFor == group.name) {
             pickAppsFor = null
-            GroupChecklist(activity, viewModel, itemIcons).show(group, viewModel.visibleApps())
+            selectApps(group)
         }
     }
 
@@ -158,15 +158,23 @@ class DrawerGroupsPane(
     override fun step(group: DrawerGroup, delta: Int) = viewModel.moveGroup(group.name, delta)
 
     private fun editActions() = GroupEditPage.Actions(
-        renamed = { name ->
-            editing = name
-            awaiting = name
-            onTitleChanged()
-        },
-        selectApps = { group -> GroupChecklist(activity, viewModel, itemIcons).show(group, viewModel.visibleApps()) },
+        renamed = ::followRename,
+        selectApps = ::selectApps,
         editIcon = editFolderIcon,
         delete = ::delete
     )
+
+    // The open group goes by a new name, which the state has yet to show.
+    private fun followRename(name: String) {
+        if (editing == null) return
+        editing = name
+        awaiting = name
+        onTitleChanged()
+    }
+
+    // Its name can be typed over in the checklist's title, too.
+    private fun selectApps(group: DrawerGroup) =
+        GroupChecklist(activity, viewModel, itemIcons).show(group, viewModel.visibleApps(), onRenamed = ::followRename)
 
     // Deleted at once, with Undo: the list as it stood goes with the
     // snackbar, to bring the group and its place in its tabs back.

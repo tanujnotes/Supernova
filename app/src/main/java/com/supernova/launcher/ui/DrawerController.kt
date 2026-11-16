@@ -53,8 +53,9 @@ class DrawerController(
     // A folder long-pressed: its menu, and a drag to the home screen.
     private val onFolderLongPress: (View, DrawerGroup, List<LaunchableApp>) -> Unit,
     // A tab's menu, anchored to the tab: a group tab's (its group as
-    // stored), or the All tab's (null).
-    private val onTabMenu: (View, DrawerGroup?) -> Unit = { _, _ -> },
+    // stored), or the All tab's (null). Handed back, so a drag of the tab
+    // can close it.
+    private val onTabMenu: (View, DrawerGroup?) -> SupernovaPopupMenu? = { _, _ -> null },
     // An empty group tab's "Select apps": the picker for that group.
     private val onSelectTabApps: (DrawerGroup) -> Unit = {},
     // A group tab's picked icon (pack, app icon or photo), null for none.
@@ -69,6 +70,13 @@ class DrawerController(
     private object PrivateTab
 
     val adapter = newCellAdapter()
+
+    // A group tab held and moved along the bar: the group tabs in a new order.
+    // The selected tab's indicator colour, which a tab drag hides meanwhile.
+    private var tabIndicatorColor = 0
+    private val tabReorder = TabReorder(binding.drawerTabs, indicatorColor = { tabIndicatorColor }) { names ->
+        viewModel.setGroupOrder(com.supernova.launcher.data.DrawerGroupType.TAB, names)
+    }
 
     private fun newCellAdapter(): AppDrawerAdapter = AppDrawerAdapter(
         appCatalog = viewModel.appCatalog(),
@@ -1574,7 +1582,9 @@ class DrawerController(
         val group = (tag as? DrawerGroup)?.let { held ->
             viewModel.drawerTabGroups().firstOrNull { it.name == held.name } ?: held
         }
-        onTabMenu(tab.view, group)
+        val menu = onTabMenu(tab.view, group)
+        // Moved while still held, a group tab leaves its menu to be dragged.
+        if (menu != null && group != null) tabReorder.arm(tab.view) { menu.dismiss() }
         return true
     }
 
@@ -1669,6 +1679,9 @@ class DrawerController(
             "$workTab|$privateTab|$hideAll|${prefs.drawerDefaultTab}|${prefs.drawerTabContent.name}"
         if (key == renderedTabsKey) return
         renderedTabsKey = key
+        // A dragged tab and the ones it moved stay offset until here, where
+        // the bar comes back in the order they show.
+        tabReorder.reset()
         // Read before the tabs go: selecting one below overwrites it.
         val previous = selectedTab
         // A newly picked default tab shows straight away; any other rebuild
@@ -1704,6 +1717,7 @@ class DrawerController(
         for (i in 0 until tabs.tabCount) {
             val tab = tabs.getTabAt(i) ?: continue
             tab.view.setOnLongClickListener { openTabMenu(tab) }
+            tabReorder.watch(tab.view)
         }
 
         // The tab the user was on, else the default tab pref, else the first.
@@ -1864,12 +1878,14 @@ class DrawerController(
             tabs.setSelectedTabIndicator(android.graphics.drawable.InsetDrawable(pill, 0, inset, 0, inset))
             tabs.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_STRETCH)
             tabs.isTabIndicatorFullWidth = true
-            tabs.setSelectedTabIndicatorColor(withAlpha(resolvedForBar.accent, TAB_BUBBLE_ALPHA))
+            tabIndicatorColor = withAlpha(resolvedForBar.accent, TAB_BUBBLE_ALPHA)
+            tabs.setSelectedTabIndicatorColor(tabIndicatorColor)
         } else {
             tabs.setSelectedTabIndicator(R.drawable.tab_indicator_drawer)
             tabs.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
             tabs.isTabIndicatorFullWidth = false
-            tabs.setSelectedTabIndicatorColor(resolvedForBar.accent)
+            tabIndicatorColor = resolvedForBar.accent
+            tabs.setSelectedTabIndicatorColor(tabIndicatorColor)
         }
 
         // Header action buttons (C10): inside the field, at its right end,

@@ -135,8 +135,14 @@ class GroupEditPage(
         val tab = next.type == DrawerGroupType.TAB
         binding.groupType.check(if (tab) R.id.groupTypeTab else R.id.groupTypeFolder)
         binding.groupTypeHint.setText(if (tab) R.string.group_type_tab_hint else R.string.group_type_folder_hint)
-        binding.groupIconRow.isVisible = !tab
-        if (!tab) binding.groupIconPreview.setImageDrawable(icons.folder(next))
+        // A tab's icon shows in the bar when Tab content has icons.
+        binding.groupIconLabel.setText(if (tab) R.string.group_tab_icon else R.string.group_folder_icon)
+        binding.groupIconPreview.imageTintList = if (tab) {
+            ColorStateList.valueOf(binding.groupIconLabel.currentTextColor)
+        } else {
+            null
+        }
+        binding.groupIconPreview.setImageDrawable(if (tab) icons.tabIcon(next) else icons.folder(next))
         bindApps(next)
         binding.groupKeep.settingSwitch.isChecked = !viewModel.leavesMainList(next)
         binding.groupDefault.root.isVisible = tab
