@@ -71,7 +71,11 @@ class SearchController(
     // screen.
     private val onAppLongPress: (View, LaunchableApp) -> Unit = { _, _ -> },
     private val onShortcutLongPress: (View, SearchResult.Shortcut) -> Unit = { _, _ -> },
-    private val onFolderLongPress: (View, SearchResult.Folder) -> Unit = { _, _ -> }
+    private val onFolderLongPress: (View, SearchResult.Folder) -> Unit = { _, _ -> },
+    // The private space's row: its name while the phone has one, and its
+    // icon. onOpenFolder opens it.
+    private val privateSpaceLabel: () -> String? = { null },
+    private val privateSpaceIcon: () -> android.graphics.drawable.Drawable? = { null }
 ) {
 
     private var overlay: ViewSearchOverlayBinding? = null
@@ -378,6 +382,7 @@ class SearchController(
             MathSearchProvider(),
             appProvider,
             com.supernova.launcher.search.FolderSearchProvider(folderHits, folderIcon),
+            com.supernova.launcher.search.PrivateSpaceSearchProvider(privateSpaceLabel, privateSpaceIcon),
             com.supernova.launcher.search.CardSearchProvider { viewModel.feedCards() },
             WebSearchProvider(
                 provider = { viewModel.state.value.prefs.searchWebProvider },

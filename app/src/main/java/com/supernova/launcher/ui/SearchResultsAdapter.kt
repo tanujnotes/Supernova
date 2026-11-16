@@ -617,8 +617,11 @@ class SearchResultsAdapter(
                 tintIcon()
             }
             binding.resultLabel.text = folder.label
-            binding.root.contentDescription =
+            binding.root.contentDescription = if (folder.privateSpace) {
+                folder.label
+            } else {
                 binding.root.context.getString(R.string.folder_desc, folder.label)
+            }
             binding.root.setOnClickListener { callbacks.onFolder(folder) }
             // A drawer folder is a drawer icon: its menu, and a drag home.
             // A home-screen folder is already on the home screen.

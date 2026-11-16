@@ -429,6 +429,24 @@ class DrawerController(
         addView(sortBars.listBar)
     }
 
+    // The private space's header at the end of the list while the tab bar
+    // is off (privateSectionActive); the list holds it, as it does the
+    // header above.
+    // Inflated without a parent: the recycler has no layout manager yet to
+    // make its layout params.
+    private val privateSection =
+        com.supernova.launcher.databinding.ViewDrawerPrivateSectionBinding.inflate(
+            android.view.LayoutInflater.from(context)
+        ).apply {
+            root.layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+    // Unlocked from the section: the list goes down to the space's apps
+    // once they arrive.
+    private var revealPrivateSection = false
+
     init {
         binding.drawerSearchField.background = searchPill
         binding.drawerRecycler.clipToPadding = false
@@ -631,6 +649,18 @@ class DrawerController(
             startSender(viewModel.appCatalog().privateSpaceSettings())
         }
         binding.drawerPrivateInstall.setOnClickListener {
+            startSender(viewModel.appCatalog().privateSpaceInstall())
+        }
+        privateSection.privateSectionLock.setOnClickListener {
+            viewModel.privateSpace()?.let { space ->
+                revealPrivateSection = space.locked
+                viewModel.setPrivateSpaceLocked(!space.locked)
+            }
+        }
+        privateSection.privateSectionSettings.setOnClickListener {
+            startSender(viewModel.appCatalog().privateSpaceSettings())
+        }
+        privateSection.privateSectionInstall.setOnClickListener {
             startSender(viewModel.appCatalog().privateSpaceInstall())
         }
         binding.drawerWorkTurnOff.setOnClickListener { viewModel.setWorkPaused(true) }
@@ -1268,6 +1298,44 @@ class DrawerController(
         return !(space.locked && space.hiddenWhenLocked)
     }
 
+    // With no other tabs to show (the bar off, or no group or work tabs),
+    // the private space is a section at the end of the list rather than a
+    // tab of its own. The paged style cuts its pages from a flat list with
+    // no room for a header, so it keeps the tab.
+    private fun privateSectionActive(prefs: LauncherPrefs): Boolean {
+        val noOtherTabs = prefs.drawerTabBar == DrawerTabBar.NONE ||
+            (viewModel.drawerTabGroups().isEmpty() && !workTabActive())
+        return noOtherTabs && currentStyle != DrawerStyle.PAGED_GRID && privateTabActive()
+    }
+
+    private fun updatePrivateSection() {
+        val space = viewModel.privateSpace() ?: return
+        privateSection.privateSectionInstall.visibility = if (space.locked) View.GONE else View.VISIBLE
+        privateSection.privateSectionSettings.visibility =
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.BAKLAVA) View.VISIBLE else View.GONE
+        privateSection.privateSectionLock.setText(
+            if (space.locked) R.string.private_space_unlock else R.string.private_space_lock
+        )
+    }
+
+    // After an unlock from the section: its header to the top of the list,
+    // with the apps under it, once they are in the list.
+    private fun revealPrivateSectionIfDue() {
+        if (!revealPrivateSection) return
+        val space = viewModel.privateSpace()
+        val shown = space != null && privateSectionActive(viewModel.state.value.prefs)
+        // Still locked, or the apps not listed yet: wait for the next submit.
+        val waiting = shown && (space?.locked != false || viewModel.privateApps().isEmpty())
+        if (waiting) return
+        revealPrivateSection = false
+        val position = adapter.privateSectionPosition()
+        if (shown && position >= 0) {
+            binding.drawerRecycler.post {
+                (binding.drawerRecycler.layoutManager as? GridLayoutManager)?.scrollToPositionWithOffset(position, 0)
+            }
+        }
+    }
+
     private fun updatePrivateBar() {
         val bar = binding.drawerPrivateBar
         val space = viewModel.privateSpace()
@@ -1374,7 +1442,14 @@ class DrawerController(
                 binding.root.context.getString(R.string.select_apps)
             ) { onSelectTabApps(storedTab(group)) }
         }
+        val section = tab == null && privateSectionActive(prefs)
+        if (section) updatePrivateSection()
+        adapter.setPrivateSection(
+            if (section) privateSection.root else null,
+            if (section) viewModel.privateApps() else emptyList()
+        )
         adapter.submit(apps, folders, prefs.drawerFoldersFirst, listOrder(prefs))
+        revealPrivateSectionIfDue()
         // The first apps make a tile measurable.
         if (adapter.tileHeightPx == 0) refreshGridRows(prefs)
         updatePrivateBar()
@@ -1584,9 +1659,10 @@ class DrawerController(
         val tabBarMode = prefs.drawerTabBar
         val groups = viewModel.drawerTabGroups()
         val workTab = workTabActive()
-        val privateTab = privateTabActive()
-        // Private space apps need their own container, so their tab keeps
-        // the bar up even when it is set to None - with All beside it only.
+        // Private space apps need their own container: with no other tabs
+        // they get a section at the end of the list, except in the paged
+        // style, where their tab keeps the bar up with All beside it.
+        val privateTab = privateTabActive() && !privateSectionActive(prefs)
         val tabsOff = tabBarMode == DrawerTabBar.NONE
         val hideAll = prefs.drawerHideAllTab && groups.isNotEmpty() && !tabsOff
         val key = "${tabBarMode.name}|${groups.joinToString { "${it.name}:${it.order}:${iconKey(it)}" }}|" +
@@ -1775,6 +1851,10 @@ class DrawerController(
         binding.drawerWorkPausedTitle.setTextColor(resolvedForBar.text)
         binding.drawerWorkPausedBody.setTextColor(withAlpha(resolvedForBar.text, TAB_TEXT_ALPHA))
         binding.drawerWorkTurnOff.setTextColor(resolvedForBar.text)
+        privateSection.privateSectionTitle.setTextColor(resolvedForBar.text)
+        privateSection.privateSectionInstall.setTextColor(resolvedForBar.text)
+        privateSection.privateSectionSettings.setTextColor(resolvedForBar.text)
+        privateSection.privateSectionLock.setTextColor(resolvedForBar.text)
         if (prefs.drawerTabStyle == DrawerTabStyle.BUBBLE) {
             val pill = GradientDrawable().apply {
                 cornerRadius = TAB_BUBBLE_RADIUS_DP * density

@@ -1391,6 +1391,15 @@ class LauncherActivity :
         }
     }
 
+    // Search's private space row (PrivateSpaceSearchProvider): offered
+    // while the phone has a private space, with the action's own tile.
+    private fun privateSpaceSearchLabel(): String? =
+        viewModel.privateSpace()?.let { getString(R.string.action_private_space) }
+
+    private fun privateSpaceSearchIcon(): android.graphics.drawable.Drawable? =
+        androidx.appcompat.content.res.AppCompatResources.getDrawable(this, R.drawable.ic_action_private_space)
+            ?.let { viewModel.appCatalog().renderActionTile(it) }
+
     private fun setupSearch() {
         search = SearchController(
             binding = binding,
@@ -1429,7 +1438,9 @@ class LauncherActivity :
                 }
             },
             onOpenFolder = { folder ->
-                if (folder.itemId != null) {
+                if (folder.privateSpace) {
+                    privateSpaceCard.open(null)
+                } else if (folder.itemId != null) {
                     viewModel.state.value.model.items.firstOrNull { it.id == folder.itemId }
                         ?.let { showFolderPopup(binding.workspacePager, it) }
                 } else {
@@ -1465,7 +1476,9 @@ class LauncherActivity :
                 viewModel.drawerFolderGroups().firstOrNull { it.name == folder.groupName }?.let { group ->
                     longPressDrawerFolder(view, group, viewModel.drawerFolderApps(group))
                 }
-            }
+            },
+            privateSpaceLabel = ::privateSpaceSearchLabel,
+            privateSpaceIcon = ::privateSpaceSearchIcon
         )
         // The drawer search is the search window: the drawer's field feeds
         // the same results (top hit, bold tiles, "Search with") and completes
