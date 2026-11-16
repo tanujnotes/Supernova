@@ -53,26 +53,6 @@ class SettingsPreviewView @JvmOverloads constructor(
     private var kind: PreviewKind? = null
 
     private val iconViews = mutableListOf<PreviewIcon>()
-    // The desktop shrinks an icon that needs more room than its cell into
-    // it (WorkspaceCanvas.IconFit): icon and label by the same scale, the
-    // label on one line. The strip does the same against the desktop's cell
-    // (IconFitRoom), so it shows the size the home screen will draw rather
-    // than big icons running into each other. Before the home screen has
-    // been laid out, the cell is the display's width shared by the columns.
-    private fun fitHomeIcons(prefs: LauncherPrefs) {
-        val box = (dp(ICON_BASE_DP) * prefs.iconScale).toInt()
-        val cell = IconFitRoom.desktopCell(prefs.gridCols, prefs.gridRows)
-            ?: (cellSize(resources.displayMetrics.widthPixels, prefs.gridCols) to Int.MAX_VALUE)
-        val line = labelViews.firstOrNull()?.takeIf { prefs.showLabels }?.lineHeight ?: 0
-        val fit = IconFitRoom.desktopFitScale(cell.first, cell.second, box, dp(HOME_ITEM_PADDING_DP), line)
-        sizeIcons(prefs.iconScale * fit)
-        if (fit >= 1f) return
-        for (label in labelViews) {
-            label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, label.textSize * fit)
-            label.maxLines = 1
-        }
-    }
-
     // The drawer's and the dock's icon size bars tick this view as they move
     // (see onMeasure).
     private var keepsLargestIconRoom = false
@@ -195,6 +175,49 @@ class SettingsPreviewView @JvmOverloads constructor(
             }
             PreviewKind.DRAWER_SEARCH_BAR -> styleDrawerField(prefs)
             null -> Unit
+        }
+    }
+
+    // The prefs the Home strip was last fitted for, refitted once the strip
+    // has its width.
+    private var homePrefs: LauncherPrefs? = null
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        val prefs = homePrefs ?: return
+        if (kind != PreviewKind.HOME || w == oldw) return
+        // Not mid-layout: the fit resizes the icons.
+        post {
+            styleLabels(prefs, visible = prefs.showLabels, onWallpaper = true)
+            fitHomeIcons(prefs)
+        }
+    }
+
+    // The desktop shrinks an icon that needs more room than its cell into
+    // it (WorkspaceCanvas.IconFit): icon and label by the same scale, the
+    // label on one line. The strip does the same against the desktop's cell
+    // (IconFitRoom), so it shows the size the home screen will draw rather
+    // than big icons running into each other. Before the home screen has
+    // been laid out, the cell is the display's width shared by the columns.
+    private fun fitHomeIcons(prefs: LauncherPrefs) {
+        homePrefs = prefs
+        val box = (dp(ICON_BASE_DP) * prefs.iconScale).toInt()
+        val cell = IconFitRoom.desktopCell(prefs.gridCols, prefs.gridRows)
+            ?: (cellSize(resources.displayMetrics.widthPixels, prefs.gridCols) to Int.MAX_VALUE)
+        // The strip's slots, a little narrower than the cells (the card is
+        // inset from the screen's edges), hold the icons too, or neighbours
+        // touch.
+        val strip = width - paddingLeft - paddingRight
+        val slot = strip.takeIf { it > 0 }?.let { cellSize(it, homeColumns(prefs)) } ?: cell.first
+        val line = labelViews.firstOrNull()?.takeIf { prefs.showLabels }?.lineHeight ?: 0
+        val fit = IconFitRoom.desktopFitScale(
+            minOf(cell.first, slot), cell.second, box, dp(HOME_ITEM_PADDING_DP), line
+        )
+        sizeIcons(prefs.iconScale * fit)
+        if (fit >= 1f) return
+        for (label in labelViews) {
+            label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, label.textSize * fit)
+            label.maxLines = 1
         }
     }
 
@@ -368,18 +391,19 @@ class SettingsPreviewView @JvmOverloads constructor(
 
     private fun buildHome(prefs: LauncherPrefs, viewModel: LauncherViewModel) {
         val row = newRow()
-        homeSampleApps(viewModel, prefs.gridCols.coerceIn(HOME_MIN_COLS, HOME_MAX_COLS)).forEach { (app, icon) ->
+        homeSampleApps(viewModel, homeColumns(prefs)).forEach { (app, icon) ->
             val column = iconColumn(icon, app.label, labelLines = 2)
             val pad = dp(HOME_ITEM_PADDING_DP)
             column.setPadding(pad, pad, pad, pad)
-            // The strip's slots are narrower than the desktop's cells, so an
-            // icon fitted to its cell (fitHomeIcons) can still be wider than
-            // its slot; show all of it.
+            // An icon's shadow falls outside its box (fitHomeIcons keeps
+            // the box inside the slot); show all of it.
             column.clipToPadding = false
             row.addView(column, slotParams())
         }
         addView(row, LayoutParams(LayoutParams.MATCH_PARENT, dp(HOME_HEIGHT_DP)))
     }
+
+    private fun homeColumns(prefs: LauncherPrefs): Int = prefs.gridCols.coerceIn(HOME_MIN_COLS, HOME_MAX_COLS)
 
     // Resolved once per view: how to recognise the app the phone uses for
     // each everyday role below.
