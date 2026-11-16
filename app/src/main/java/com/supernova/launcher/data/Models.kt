@@ -393,7 +393,8 @@ data class LauncherPrefs(
     val widgetCornerRadius: Int = 16,
     val showScrims: Boolean = false,
     val wallpaperZoom: Boolean = true,
-    val autoAddApps: Boolean = false,
+    // New installs go on the home screen. On by default.
+    val autoAddApps: Boolean = true,
     val labelFont: LabelFont = LabelFont.DEFAULT,
     // One line everywhere by default: a wrapped name reads as a
     // broken word ("OpenWeathe" over "r"). Per-surface overrides in
