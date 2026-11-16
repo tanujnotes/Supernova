@@ -31,7 +31,7 @@ class GroupListBuilder(private val context: Context, private val viewModel: Laun
         return buildList {
             if (tabs.isNotEmpty()) add(preview(tabs, apps))
             add(GroupListRow.Header(R.string.group_tabs_header))
-            tabs.forEach { add(row(it, apps, TabFolders.inTab(it, folders).size, it.name == defaultTab)) }
+            tabs.forEach { add(row(it, apps, TabFolders.inTab(it, folders).size, it.id == defaultTab)) }
             add(GroupListRow.Add(DrawerGroupType.TAB))
             if (tabs.size > 1) add(GroupListRow.Caption(R.string.group_tab_hint))
             add(GroupListRow.Header(R.string.group_folders_header))
@@ -72,7 +72,7 @@ class GroupListBuilder(private val context: Context, private val viewModel: Laun
             if (!prefs.drawerHideAllTab) add(context.getString(R.string.drawer_all))
             if (work) add(context.getString(R.string.drawer_work))
         }
-        val opensOn = tabs.firstOrNull { it.name == prefs.drawerDefaultTab }
+        val opensOn = tabs.firstOrNull { it.id == prefs.drawerDefaultTab }
             ?: tabs.first().takeIf { builtIn.isEmpty() }
         val shown = when {
             opensOn != null -> apps.filter { viewModel.hiddenKey(it) in opensOn.members }
@@ -82,6 +82,7 @@ class GroupListBuilder(private val context: Context, private val viewModel: Laun
         return GroupListRow.Preview(
             builtIn = builtIn,
             tabs = tabs.map { it.name },
+            tabIds = tabs.map { it.id },
             defaultTab = prefs.drawerDefaultTab,
             apps = shown.take(PREVIEW_APPS),
             barHidden = prefs.drawerTabBar == DrawerTabBar.NONE

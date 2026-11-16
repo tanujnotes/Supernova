@@ -15,7 +15,7 @@ class PrivateSpaceSearchProvider(
     override fun search(query: String): List<SearchResult> {
         val name = label()?.takeIf { matches(it, query) } ?: return emptyList()
         return listOf(
-            SearchResult.Folder(itemId = null, groupName = null, label = name, icon = icon(), privateSpace = true)
+            SearchResult.Folder(itemId = null, groupId = null, label = name, icon = icon(), privateSpace = true)
         )
     }
 

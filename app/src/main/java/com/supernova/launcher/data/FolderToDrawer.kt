@@ -15,29 +15,25 @@ object FolderToDrawer {
 
     fun memberKey(item: LauncherItem): String = "${item.userSerial}/${item.packageName}/${item.className}"
 
-    // A group's name is its identity, never blank and never a '|' (the
-    // storage separator): the folder's own name, numbered past any group
-    // that has it already.
-    fun uniqueName(label: String, taken: Collection<String>): String {
-        val base = label.trim().replace('|', '/').ifEmpty { FALLBACK_NAME }
-        if (base !in taken) return base
-        return generateSequence(2) { it + 1 }.map { "$base $it" }.first { it !in taken }
-    }
+    // The group's name: the folder's own, never blank and never a '|' (the
+    // storage separator). Another group may have it too.
+    fun groupName(label: String): String = label.trim().replace('|', '/').ifEmpty { FALLBACK_NAME }
 
     // The stored groups with the moved folder added: a drawer folder keeps
-    // the folder's icon, and the tab it was put in holds it.
+    // the folder's icon, and the tab it was put in holds it. The group is
+    // stored under [id].
     fun withGroupAdded(
         groups: List<DrawerGroup>,
         folder: LauncherItem,
         members: List<LauncherItem>,
-        name: String,
+        id: String,
         target: DrawerTarget
     ): List<DrawerGroup> {
         val type = if (target == DrawerTarget.OwnTab) DrawerGroupType.TAB else DrawerGroupType.FOLDER
         val asFolder = type == DrawerGroupType.FOLDER
         val packIcon = asFolder && folder.customIconPack != null && folder.customIconName != null
         val group = DrawerGroup(
-            name = name,
+            name = groupName(folder.label),
             members = movable(members).mapTo(linkedSetOf(), ::memberKey),
             type = type,
             // As New tab and New folder start: the apps leave the main list.
@@ -45,12 +41,13 @@ object FolderToDrawer {
             iconPack = folder.customIconPack.takeIf { packIcon },
             iconName = folder.customIconName.takeIf { packIcon },
             iconBase64 = folder.iconBase64.takeIf { asFolder && !packIcon },
-            iconRaw = asFolder && folder.iconRaw
+            iconRaw = asFolder && folder.iconRaw,
+            id = id
         )
         val holder = (target as? DrawerTarget.InTab)?.tab
         val held = groups.map { other ->
-            if (other.name == holder && other.type == DrawerGroupType.TAB) {
-                other.copy(members = other.members + TabFolders.keyOf(name))
+            if (other.id == holder && other.type == DrawerGroupType.TAB) {
+                other.copy(members = other.members + TabFolders.keyOf(id))
             } else {
                 other
             }
@@ -73,19 +70,15 @@ object FolderToDrawer {
 }
 
 // Where a moved folder goes: a drawer folder on the main (All) list or held
-// by a tab, or a tab of its own.
+// by a tab (its id), or a tab of its own.
 sealed interface DrawerTarget {
     data object MainList : DrawerTarget
 
-    data class InTab(val tab: String) : DrawerTarget
+    data class InTab(val tab: String, val label: String = tab) : DrawerTarget
 
     data object OwnTab : DrawerTarget
 }
 
 // One move, for its Undo: the folder and its members as they were, how many
-// of them stayed on the home screen, and the name the group was stored
-// under (set once the drawer edit ran).
-class FolderMove(val items: List<LauncherItem>, val leftBehind: Int) {
-    @Volatile
-    var groupName: String? = null
-}
+// of them stayed on the home screen, and the id the group is stored under.
+class FolderMove(val items: List<LauncherItem>, val leftBehind: Int, val groupId: String)

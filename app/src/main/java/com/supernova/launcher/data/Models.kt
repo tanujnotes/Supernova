@@ -574,7 +574,13 @@ data class DrawerGroup(
     val iconPack: String? = null,
     val iconName: String? = null,
     val iconBase64: String? = null,
-    val iconRaw: Boolean = false
+    val iconRaw: Boolean = false,
+    // The group's identity: what tabs (folder keys), the default tab and
+    // every edit look it up by. The name is only a label, so two groups may
+    // share one. A group stored before ids existed has its name as its id,
+    // which is what tabs and the default tab already hold for it; a new
+    // group gets a fresh one (newId).
+    val id: String = name
 ) {
     val hasCustomIcon: Boolean get() = iconName != null || !iconBase64.isNullOrEmpty()
 
@@ -599,7 +605,9 @@ data class DrawerGroup(
     // older entries and decode as TAB/user-created; old builds split('|') and
     // read parts 0..2, so a FOLDER group degrades to a TAB there. The keep
     // segment is "keep", "move" or absent (null). A custom icon adds pack,
-    // name, "raw" and photo after it; none of them can hold a "|".
+    // name, "raw" and photo after it; none of them can hold a "|". An id
+    // other than the name comes last; an entry without one has its name as
+    // its id, so groups stored before ids keep the identity tabs hold them by.
     fun encode(): String {
         val base = "$name|${members.joinToString(",")}|$order|${type.name}|${if (smart) SMART_MARKER else ""}"
         val keep = when (keepInMain) {
@@ -607,10 +615,12 @@ data class DrawerGroup(
             true -> KEEP_MARKER
             false -> MOVE_MARKER
         }
+        val raw = if (iconRaw) RAW_MARKER else ""
+        val icon = "${iconPack.orEmpty()}|${iconName.orEmpty()}|$raw|${iconBase64.orEmpty()}"
         return when {
-            hasCustomIcon ->
-                "$base|$keep|${iconPack.orEmpty()}|${iconName.orEmpty()}|" +
-                    "${if (iconRaw) RAW_MARKER else ""}|${iconBase64.orEmpty()}"
+            // An id other than the name follows every other segment.
+            id != name -> "$base|$keep|$icon|$id"
+            hasCustomIcon -> "$base|$keep|$icon"
             keepInMain == null -> base
             else -> "$base|$keep"
         }
@@ -625,7 +635,16 @@ data class DrawerGroup(
         private const val ICON_NAME_FIELD = 7
         private const val ICON_RAW_FIELD = 8
         private const val ICON_PHOTO_FIELD = 9
+        private const val ID_FIELD = 10
         private const val RAW_MARKER = "raw"
+        private const val ID_PREFIX = "#"
+
+        // A fresh id: "#" and 12 random hex digits, never a ',' or
+        // '|'. A group named exactly that from before ids is not a concern.
+        fun newId(): String =
+            ID_PREFIX + java.util.UUID.randomUUID().toString().replace("-", "").take(ID_LENGTH)
+
+        private const val ID_LENGTH = 12
 
         fun decode(raw: String): DrawerGroup? {
             val parts = raw.split('|')
@@ -647,7 +666,8 @@ data class DrawerGroup(
                 iconPack = parts.getOrNull(ICON_PACK_FIELD)?.ifEmpty { null },
                 iconName = parts.getOrNull(ICON_NAME_FIELD)?.ifEmpty { null },
                 iconBase64 = parts.getOrNull(ICON_PHOTO_FIELD)?.ifEmpty { null },
-                iconRaw = parts.getOrNull(ICON_RAW_FIELD) == RAW_MARKER
+                iconRaw = parts.getOrNull(ICON_RAW_FIELD) == RAW_MARKER,
+                id = parts.getOrNull(ID_FIELD)?.takeIf { it.isNotBlank() } ?: name
             )
         }
     }

@@ -1406,7 +1406,7 @@ class DrawerController(
     // its apps doesn't rebuild the bar: read the members from what is stored,
     // or an app just added leaves All without showing up here.
     private fun storedTab(tab: DrawerGroup): DrawerGroup =
-        viewModel.drawerTabGroups().firstOrNull { it.name == tab.name } ?: tab
+        viewModel.drawerTabGroups().firstOrNull { it.id == tab.id } ?: tab
 
     private fun submit() {
         val prefs = viewModel.state.value.prefs
@@ -1580,7 +1580,7 @@ class DrawerController(
         if (!tab.isSelected) tab.select()
         // The tab holds its group as it was when the bar was built.
         val group = (tag as? DrawerGroup)?.let { held ->
-            viewModel.drawerTabGroups().firstOrNull { it.name == held.name } ?: held
+            viewModel.drawerTabGroups().firstOrNull { it.id == held.id } ?: held
         }
         val menu = onTabMenu(tab.view, group)
         // Moved while still held, a group tab leaves its menu to be dragged.
@@ -1625,13 +1625,6 @@ class DrawerController(
     private fun allTabLabel(): String =
         binding.root.context.getString(R.string.drawer_all) + if (hiddenAppsShown) "*" else ""
 
-    // A tab renamed from its menu: the bar rebuilds once the change is
-    // stored and keeps the tab the user is on by its name, the new one now.
-    fun followTabRename(from: String, to: String) {
-        val tab = selectedTab as? DrawerGroup ?: return
-        if (tab.name == from) selectedTab = tab.copy(name = to)
-    }
-
     // The bar's tabs in order: All, Work, the group tabs (none while the bar
     // is off), Private. Added unselected; see rebuildTabs.
     private fun addTabs(
@@ -1675,7 +1668,7 @@ class DrawerController(
         val privateTab = privateTabActive() && !privateSectionActive(prefs)
         val tabsOff = tabBarMode == DrawerTabBar.NONE
         val hideAll = prefs.drawerHideAllTab && groups.isNotEmpty() && !tabsOff
-        val key = "${tabBarMode.name}|${groups.joinToString { "${it.name}:${it.order}:${iconKey(it)}" }}|" +
+        val key = "${tabBarMode.name}|${groups.joinToString { "${it.id}:${it.name}:${it.order}:${iconKey(it)}" }}|" +
             "$workTab|$privateTab|$hideAll|${prefs.drawerDefaultTab}|${prefs.drawerTabContent.name}"
         if (key == renderedTabsKey) return
         renderedTabsKey = key
@@ -1724,14 +1717,16 @@ class DrawerController(
         fun indexOf(match: (Any?) -> Boolean): Int? =
             (0 until tabs.tabCount).firstOrNull { match(tabs.getTabAt(it)?.tag) }
         val kept = if (defaultChanged) null else when (previous) {
-            is DrawerGroup -> indexOf { it is DrawerGroup && it.name == previous.name }
+            is DrawerGroup -> indexOf { it is DrawerGroup && it.id == previous.id }
             WorkTab -> indexOf { it === WorkTab }
             PrivateTab -> indexOf { it === PrivateTab }
             else -> indexOf { it == null }
         }
-        val defaultName = prefs.drawerDefaultTab.takeIf { it.isNotEmpty() }
+        // The default tab is stored by the group's id (its name, for one
+        // from before ids).
+        val defaultId = prefs.drawerDefaultTab.takeIf { it.isNotEmpty() }
         val target = kept
-            ?: defaultName?.let { name -> indexOf { it is DrawerGroup && it.name == name } }
+            ?: defaultId?.let { id -> indexOf { it is DrawerGroup && it.id == id } }
             ?: 0
         tabs.getTabAt(target)?.select()
         selectedTab = tabs.getTabAt(target)?.tag

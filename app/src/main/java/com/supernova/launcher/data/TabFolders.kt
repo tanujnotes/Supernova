@@ -2,9 +2,9 @@ package com.supernova.launcher.data
 
 // Drawer folders inside drawer tabs. A tab holds a folder the way it holds
 // an app: by a key among its members. An app's key is "serial/package/class";
-// a folder's is "folder:" and its name, which is the folder's identity in
-// storage. Members are stored comma-separated, so the name's ',' (and the '%'
-// that escapes it) are escaped; a name never holds a '|'.
+// a folder's is "folder:" and its id (DrawerGroup.id: the name, for a group
+// from before ids). Members are stored comma-separated, so the id's ',' (and
+// the '%' that escapes it) are escaped; an id never holds a '|'.
 //
 // A tab shows the folders it holds. The main (All or Personal) list shows
 // every other folder, and a held one too while the tab keeps its apps in the
@@ -14,11 +14,11 @@ object TabFolders {
     private const val ESCAPED_PERCENT = "%25"
     private const val ESCAPED_COMMA = "%2C"
 
-    fun keyOf(folderName: String): String =
-        PREFIX + folderName.replace("%", ESCAPED_PERCENT).replace(",", ESCAPED_COMMA)
+    fun keyOf(id: String): String =
+        PREFIX + id.replace("%", ESCAPED_PERCENT).replace(",", ESCAPED_COMMA)
 
-    // The folder name a member key names, or null for an app's key.
-    fun nameOf(key: String): String? {
+    // The folder id a member key names, or null for an app's key.
+    fun idOf(key: String): String? {
         if (!key.startsWith(PREFIX)) return null
         val escaped = key.substring(PREFIX.length)
         return buildString {
@@ -44,29 +44,17 @@ object TabFolders {
 
     // The folders a tab shows, in the order given (the drawer's).
     fun inTab(tab: DrawerGroup, folders: List<DrawerGroup>): List<DrawerGroup> =
-        folders.filter { keyOf(it.name) in tab.members }
+        folders.filter { keyOf(it.id) in tab.members }
 
     // The folders the main list shows: all but those a tab took out of it
     // (isolated = the member keys of every tab that takes its apps out).
     fun onMainList(folders: List<DrawerGroup>, isolated: Set<String>): List<DrawerGroup> =
-        if (isolated.isEmpty()) folders else folders.filterNot { keyOf(it.name) in isolated }
+        if (isolated.isEmpty()) folders else folders.filterNot { keyOf(it.id) in isolated }
 
-    // A group renamed: every tab that held it under the old name holds it
-    // under the new one. Any group's, not only a folder's: a folder turned
-    // into a tab keeps its place in other tabs for when it turns back, and
-    // that key must follow its name too.
-    fun renamed(groups: List<DrawerGroup>, oldName: String, newName: String): List<DrawerGroup> {
-        val old = keyOf(oldName)
-        val new = keyOf(newName)
-        return groups.map { group ->
-            if (old in group.members) group.copy(members = group.members - old + new) else group
-        }
-    }
-
-    // A group deleted: no tab holds it any more, so a later folder of the
-    // same name doesn't turn up in its tabs.
-    fun forgotten(groups: List<DrawerGroup>, name: String): List<DrawerGroup> {
-        val key = keyOf(name)
+    // A group deleted: no tab holds it any more, so a later folder with the
+    // same id (a group from before ids, put back) doesn't turn up in its tabs.
+    fun forgotten(groups: List<DrawerGroup>, id: String): List<DrawerGroup> {
+        val key = keyOf(id)
         return groups.map { group -> if (key in group.members) group.copy(members = group.members - key) else group }
     }
 }

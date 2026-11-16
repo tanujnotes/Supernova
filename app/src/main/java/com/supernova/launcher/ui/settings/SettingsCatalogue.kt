@@ -894,16 +894,20 @@ object SettingsCatalogue {
                 ),
                 SettingItem.Row(
                     R.string.drawer_default_tab,
+                    // Stored by the tab's group id; shown by its name.
                     subtitle = { prefs ->
-                        prefs.drawerDefaultTab.ifEmpty { context.getString(R.string.drawer_all) }
+                        viewModel.drawerTabGroups().firstOrNull { it.id == prefs.drawerDefaultTab }?.name
+                            ?: context.getString(R.string.drawer_all)
                     },
                     onClick = {
                         // FOLDER-type groups have no tab to default to.
-                        val names = listOf("") + viewModel.drawerTabGroups().map { it.name }
+                        val tabs = viewModel.drawerTabGroups()
+                        val ids = listOf("") + tabs.map { it.id }
+                        val names = tabs.associate { it.id to it.name }
                         rows.pick(
-                            R.string.drawer_default_tab, names,
-                            names.indexOf(viewModel.state.value.prefs.drawerDefaultTab).coerceAtLeast(0),
-                            { it.ifEmpty { context.getString(R.string.drawer_all) } }
+                            R.string.drawer_default_tab, ids,
+                            ids.indexOf(viewModel.state.value.prefs.drawerDefaultTab).coerceAtLeast(0),
+                            { names[it] ?: context.getString(R.string.drawer_all) }
                         ) { viewModel.set(Pref.drawerDefaultTab, it) }
                     },
                     visibleIf = { viewModel.drawerTabGroups().isNotEmpty() }

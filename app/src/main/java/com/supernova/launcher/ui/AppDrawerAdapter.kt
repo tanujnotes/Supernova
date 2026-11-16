@@ -38,7 +38,7 @@ class AppDrawerAdapter(
         val icon: Drawable,
         val members: List<LaunchableApp>
     ) {
-        val key: String = "folder/${group.name}"
+        val key: String = "folder/${group.id}"
         val lowerLabel: String = group.name.lowercase()
         val section: String by lazy { LabelSections.of(group.name) }
     }

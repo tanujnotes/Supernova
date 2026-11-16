@@ -743,7 +743,7 @@ class SettingsActivity : AppCompatActivity() {
 
     // A group's own page goes by the group's name.
     private fun applyGroupsTitle() {
-        if (onGroupsPage()) binding.settingsTitle.text = groupsPane?.editing ?: getString(R.string.drawer_groups)
+        if (onGroupsPage()) binding.settingsTitle.text = groupsPane?.title ?: getString(R.string.drawer_groups)
     }
 
     private fun pickPhoto(fromFiles: Boolean, onPicked: (android.net.Uri?) -> Unit) {
@@ -1039,7 +1039,7 @@ class SettingsActivity : AppCompatActivity() {
             return
         }
         // A drawer tab's or folder's menu: the Drawer groups page, on that
-        // group's own page when it names one ("" is the list).
+        // group's own page when it gives one's id ("" is the list).
         intent.getStringExtra(EXTRA_DRAWER_GROUP)?.let { group ->
             navigateTo(R.string.drawer_groups, 0, flash = false)
             groupsPane?.show(true, group.ifEmpty { null })

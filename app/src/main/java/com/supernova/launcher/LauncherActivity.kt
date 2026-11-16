@@ -1424,15 +1424,15 @@ class LauncherActivity :
                     .filter { it.itemType == ItemType.FOLDER }
                     .map { com.supernova.launcher.search.FolderSearchProvider.Hit(it.id, null, it.label) }
                 val groups = viewModel.drawerFolderGroups()
-                    .map { com.supernova.launcher.search.FolderSearchProvider.Hit(null, it.name, it.name) }
+                    .map { com.supernova.launcher.search.FolderSearchProvider.Hit(null, it.id, it.name) }
                 items + groups
             },
             folderIcon = { hit ->
                 hit.itemId?.let { id ->
                     viewModel.state.value.model.items.firstOrNull { it.id == id }
                         ?.let(itemIcons::folderPreviewDrawable)
-                } ?: hit.groupName?.let { name ->
-                    viewModel.drawerFolderGroups().firstOrNull { it.name == name }?.let { group ->
+                } ?: hit.groupId?.let { id ->
+                    viewModel.drawerFolderGroups().firstOrNull { it.id == id }?.let { group ->
                         itemIcons.drawerFolderIcon(group, viewModel.drawerFolderApps(group))
                     }
                 }
@@ -1444,7 +1444,7 @@ class LauncherActivity :
                     viewModel.state.value.model.items.firstOrNull { it.id == folder.itemId }
                         ?.let { showFolderPopup(binding.workspacePager, it) }
                 } else {
-                    viewModel.drawerFolderGroups().firstOrNull { it.name == folder.groupName }
+                    viewModel.drawerFolderGroups().firstOrNull { it.id == folder.groupId }
                         ?.let { showDrawerFolderPopup(binding.workspacePager, it, viewModel.drawerFolderApps(it)) }
                 }
             },
@@ -1473,7 +1473,7 @@ class LauncherActivity :
                 )
             },
             onFolderLongPress = { view, folder ->
-                viewModel.drawerFolderGroups().firstOrNull { it.name == folder.groupName }?.let { group ->
+                viewModel.drawerFolderGroups().firstOrNull { it.id == folder.groupId }?.let { group ->
                     longPressDrawerFolder(view, group, viewModel.drawerFolderApps(group))
                 }
             },
@@ -3214,7 +3214,7 @@ class LauncherActivity :
         menu.addRow(getString(R.string.select_apps), R.drawable.ic_menu_select_apps) { showDrawerGroupChecklist(group) }
         // Its page in Settings > Drawer groups: name, icon, tab or folder,
         // apps, and Delete.
-        menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) { openDrawerGroupSettings(group.name) }
+        menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) { openDrawerGroupSettings(group.id) }
         menu.show(anchor, menuTouchX)
         return menu
     }
@@ -3575,14 +3575,12 @@ class LauncherActivity :
         val members = viewModel.folderMembers(folder.id)
         val apps = FolderToDrawer.movable(members).size
         val stays = members.size - apps
-        val name = FolderToDrawer.uniqueName(folder.label, viewModel.drawerGroups().map { it.name })
+        val name = FolderToDrawer.groupName(folder.label)
         val view = DialogMoveToDrawerBinding.inflate(layoutInflater)
         val iconSize = resources.getDimensionPixelSize(R.dimen.move_folder_icon)
         val icon = itemIcons.folderPreviewDrawable(folder).apply { setBounds(0, 0, iconSize, iconSize) }
         view.moveFolderSummary.setCompoundDrawablesRelative(icon, null, null, null)
-        // The folder as the home screen names it; the drawer may number it.
-        val shown = FolderToDrawer.uniqueName(folder.label, emptyList())
-        view.moveFolderSummary.text = resources.getQuantityString(R.plurals.move_to_drawer_summary, apps, shown, apps)
+        view.moveFolderSummary.text = resources.getQuantityString(R.plurals.move_to_drawer_summary, apps, name, apps)
         view.moveTabHint.text = getString(R.string.move_to_drawer_tab_hint, name)
         view.moveLeftBehind.isVisible = stays > 0
         view.moveLeftBehind.text = resources.getQuantityString(R.plurals.move_to_drawer_stays, stays, stays)
@@ -3612,12 +3610,12 @@ class LauncherActivity :
     // each chip's id with the place it stands for.
     private fun addMoveTabChips(group: ChipGroup): Map<Int, DrawerTarget> {
         val targets = listOf(DrawerTarget.MainList) +
-            viewModel.drawerTabGroups().map { DrawerTarget.InTab(it.name) }
+            viewModel.drawerTabGroups().map { DrawerTarget.InTab(it.id, it.name) }
         val byId = targets.associateBy { View.generateViewId() }
         byId.forEach { (id, target) ->
             val chip = layoutInflater.inflate(R.layout.chip_move_tab, group, false) as Chip
             chip.id = id
-            chip.text = if (target is DrawerTarget.InTab) target.tab else getString(R.string.drawer_all)
+            chip.text = if (target is DrawerTarget.InTab) target.label else getString(R.string.drawer_all)
             group.addView(chip)
         }
         group.check(byId.keys.first())
@@ -4130,21 +4128,13 @@ class LauncherActivity :
             shadow = prefs.folderShadow,
             animate = Animations.enabled(prefs),
             speed = Animations.factor(prefs),
-            onRename = { newName ->
-                val renamed = viewModel.renameGroup(group, newName)
-                if (renamed == null) {
-                    Toast.makeText(this, viewModel.nameTakenMessage(newName), Toast.LENGTH_LONG).show()
-                } else {
-                    groupName = renamed
-                }
-            },
+            onRename = { newName -> groupName = viewModel.renameGroup(group, newName) },
             onMenu = {
                 // The group editor rewrites the members pref; the drawer
                 // rebuilds from the emission, so close the stale popup.
                 popup?.dismiss()
-                // Under the name it has now. By the old one, after a rename
-                // in the title, each tick re-created the old group - two
-                // folders, and the renamed one never got the edits.
+                // Titled with the name it has now: a rename in the title may
+                // not be stored yet.
                 showDrawerGroupChecklist(group, groupName)
             },
             onDismiss = {
@@ -4194,7 +4184,7 @@ class LauncherActivity :
             }
             menu.addRow(getString(R.string.hide_apps), R.drawable.ic_menu_hide) { showHiddenAppsChecklist() }
         } else {
-            menu.addRow(getString(R.string.edit_tab), R.drawable.ic_menu_edit) { openDrawerGroupSettings(group.name) }
+            menu.addRow(getString(R.string.edit_tab), R.drawable.ic_menu_edit) { openDrawerGroupSettings(group.id) }
             menu.addRow(getString(R.string.select_apps), R.drawable.ic_menu_select_apps) {
                 showDrawerGroupChecklist(group)
             }
@@ -4206,7 +4196,7 @@ class LauncherActivity :
         return menu
     }
 
-    // Settings > Drawer groups, on the named group's own page, or the list.
+    // Settings > Drawer groups, on the group's own page (by its id), or the list.
     private fun openDrawerGroupSettings(group: String?) {
         startActivity(
             Intent(this, SettingsActivity::class.java)
@@ -4226,15 +4216,12 @@ class LauncherActivity :
         }
     }
 
-    private fun showDrawerGroupChecklist(group: DrawerGroup, name: String = group.name) {
+    private fun showDrawerGroupChecklist(group: DrawerGroup, name: String? = null) {
         // A folder on the personal list offers no work apps while they have
         // their own tab.
         val personalOnly = group.type == com.supernova.launcher.data.DrawerGroupType.FOLDER && viewModel.workTabActive()
         val apps = if (personalOnly) viewModel.personalApps() else viewModel.visibleApps()
-        // By the name it is stored under, which a rename just changed.
-        com.supernova.launcher.ui.GroupChecklist(this, viewModel, itemIcons).show(group, apps, name) { renamed ->
-            drawer.followTabRename(name, renamed)
-        }
+        com.supernova.launcher.ui.GroupChecklist(this, viewModel, itemIcons).show(group, apps, name)
     }
 
     private fun shortcutsFor(packageName: String, userSerial: Long): List<ShortcutInfo> {

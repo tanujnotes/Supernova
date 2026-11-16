@@ -17,6 +17,8 @@ sealed class GroupListRow {
     data class Preview(
         val builtIn: List<String>,
         val tabs: List<String>,
+        // The tabs' group ids, and the default tab's (Pref.drawerDefaultTab).
+        val tabIds: List<String>,
         val defaultTab: String,
         val apps: List<LaunchableApp>,
         val barHidden: Boolean
@@ -26,7 +28,7 @@ sealed class GroupListRow {
         val labels: List<String> get() = builtIn + tabs
 
         // The default tab, else the first, as the drawer picks.
-        val selected: Int get() = tabs.indexOf(defaultTab).let { if (it < 0) 0 else it + builtIn.size }
+        val selected: Int get() = tabIds.indexOf(defaultTab).let { if (it < 0) 0 else it + builtIn.size }
     }
 
     data class Header(@StringRes val title: Int) : GroupListRow() {
@@ -43,7 +45,7 @@ sealed class GroupListRow {
         val kept: Boolean,
         val isDefault: Boolean
     ) : GroupListRow() {
-        override val key: String get() = "group:${group.name}"
+        override val key: String get() = "group:${group.id}"
     }
 
     // New tab / New folder, the last row of its card.

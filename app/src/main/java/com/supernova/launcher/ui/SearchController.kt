@@ -619,8 +619,8 @@ class SearchController(
         val inFolders = groups.filter { viewModel.leavesMainList(it) }.flatMapTo(HashSet()) { it.members }
         val folders = groups.map { group ->
             SearchResult.Folder(
-                itemId = null, groupName = group.name, label = group.name,
-                icon = folderIcon(com.supernova.launcher.search.FolderSearchProvider.Hit(null, group.name, group.name))
+                itemId = null, groupId = group.id, label = group.name,
+                icon = folderIcon(com.supernova.launcher.search.FolderSearchProvider.Hit(null, group.id, group.name))
             )
         }
         val allApps = com.supernova.launcher.data.LabelOrder.sorted(

@@ -32,8 +32,8 @@ class DrawerGroupsPane(
     // The toolbar's title follows the page: a group's name on its own page.
     private val onTitleChanged: () -> Unit,
     // A group's icon: a drawer folder's Edit sheet, or a tab's icon picker.
-    // The folder sheet can rename the folder too; the page then finds its
-    // group gone and shows the list, with the folder under its new name.
+    // The folder sheet can rename the folder too; the page follows the
+    // name from the state.
     private val editFolderIcon: (DrawerGroup) -> Unit
 ) : GroupListAdapter.Listener {
 
@@ -49,17 +49,21 @@ class DrawerGroupsPane(
     private var dragging = false
     private val touchHelper = ItemTouchHelper(
         GroupReorder(adapter, onDragging = { dragging = it }) { type ->
-            if (type == null) refresh() else viewModel.setGroupOrder(type, adapter.names(type))
+            if (type == null) refresh() else viewModel.setGroupOrder(type, adapter.ids(type))
         }
     )
 
-    // The group whose page is open (null: the list), by its stored name.
+    // The group whose page is open (null: the list), by its id.
     var editing: String? = null
         private set
 
-    // A name just written, a new group's or a renamed one's, that the state
-    // has yet to show: the page waits for it rather than taking the group
-    // for deleted.
+    // The open group's name, for the toolbar: a rename shows at once, before
+    // the state has it.
+    var title: String? = null
+        private set
+
+    // A new group's id, that the state has yet to show: the page waits for
+    // it rather than taking the group for deleted.
     private var awaiting: String? = null
 
     // A new group opens on its Select apps, once.
@@ -82,7 +86,7 @@ class DrawerGroupsPane(
     }
 
     // On the page, or off it. A group's page restored after a recreate comes
-    // back by its name.
+    // back by its id.
     fun show(visible: Boolean, group: String? = editing) {
         container.isVisible = visible
         if (!visible) return
@@ -92,15 +96,16 @@ class DrawerGroupsPane(
 
     fun refresh() {
         if (!container.isVisible || dragging) return
-        val name = editing
-        val group = name?.let { wanted -> viewModel.drawerGroups().firstOrNull { it.name == wanted } }
+        val id = editing
+        val group = id?.let { wanted -> viewModel.drawerGroups().firstOrNull { it.id == wanted } }
         val onGroup = binding.groupEdit.root.isVisible
         when {
             group != null -> showGroup(group)
-            name != null && name == awaiting -> if (!onGroup) adapter.submit(builder.rows())
+            id != null && id == awaiting -> if (!onGroup) adapter.submit(builder.rows())
             else -> {
                 // On the list, or the open group was deleted.
                 editing = null
+                title = null
                 binding.groupEdit.root.isVisible = false
                 binding.groupsList.isVisible = true
                 adapter.submit(builder.rows())
@@ -119,8 +124,10 @@ class DrawerGroupsPane(
             binding.groupEdit.groupEditContent.requestFocus()
         }
         editPage.bind(group)
+        // A name still being typed stays the title until it is saved.
+        if (!editPage.typing()) title = group.name
         onTitleChanged()
-        if (pickAppsFor == group.name) {
+        if (pickAppsFor == group.id) {
             pickAppsFor = null
             selectApps(group)
         }
@@ -134,28 +141,31 @@ class DrawerGroupsPane(
         activity.getSystemService(InputMethodManager::class.java)
             ?.hideSoftInputFromWindow(binding.root.windowToken, 0)
         editing = null
+        title = null
         awaiting = null
         refresh()
         return true
     }
 
     override fun open(group: DrawerGroup) {
-        editing = group.name
+        editing = group.id
+        title = group.name
         refresh()
     }
 
     override fun add(type: DrawerGroupType) {
         NewGroupSheet.show(activity, viewModel, type) { created ->
-            editing = created
-            awaiting = created
-            pickAppsFor = created
+            editing = created.id
+            title = created.name
+            awaiting = created.id
+            pickAppsFor = created.id
             refresh()
         }
     }
 
     override fun startDrag(holder: RecyclerView.ViewHolder) = touchHelper.startDrag(holder)
 
-    override fun step(group: DrawerGroup, delta: Int) = viewModel.moveGroup(group.name, delta)
+    override fun step(group: DrawerGroup, delta: Int) = viewModel.moveGroup(group.id, delta)
 
     private fun editActions() = GroupEditPage.Actions(
         renamed = ::followRename,
@@ -167,25 +177,25 @@ class DrawerGroupsPane(
     // The open group goes by a new name, which the state has yet to show.
     private fun followRename(name: String) {
         if (editing == null) return
-        editing = name
-        awaiting = name
+        title = name
         onTitleChanged()
     }
 
     // Its name can be typed over in the checklist's title, too.
     private fun selectApps(group: DrawerGroup) =
-        GroupChecklist(activity, viewModel, itemIcons).show(group, viewModel.visibleApps(), onRenamed = ::followRename)
+        GroupChecklist(activity, viewModel, itemIcons).show(group, viewModel.visibleApps())
 
     // Deleted at once, with Undo: the list as it stood goes with the
     // snackbar, to bring the group and its place in its tabs back.
     private fun delete(group: DrawerGroup) {
         val before = viewModel.drawerGroups()
-        viewModel.removeGroup(group.name)
+        viewModel.removeGroup(group)
         editing = null
+        title = null
         awaiting = null
         refresh()
         Snackbar.make(container, activity.getString(R.string.group_deleted, group.name), Snackbar.LENGTH_LONG)
-            .setAction(R.string.undo) { viewModel.restoreGroup(before, group.name) }
+            .setAction(R.string.undo) { viewModel.restoreGroup(before, group.id) }
             .show()
     }
 }

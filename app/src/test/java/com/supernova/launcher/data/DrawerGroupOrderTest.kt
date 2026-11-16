@@ -79,4 +79,13 @@ class DrawerGroupOrderTest {
         assertEquals(now, DrawerGroupOrder.restored(now, all, "Social"))
         assertEquals(now, DrawerGroupOrder.restored(now, all, "Nope"))
     }
+
+    @Test
+    fun undoBringsBackTheGroupByIdBesideOneOfTheSameName() {
+        val twin = DrawerGroup("Social", setOf("x"), type = DrawerGroupType.FOLDER, id = "#twin")
+        val holder = games.copy(members = games.members + TabFolders.keyOf("#twin"))
+        val restored = DrawerGroupOrder.restored(listOf(games, social), listOf(holder, social, twin), "#twin")
+        assertEquals(listOf("Social", "Social"), restored.filter { it.type == DrawerGroupType.FOLDER }.map { it.name })
+        assertEquals(holder.members, restored.single { it.id == "Games" }.members)
+    }
 }

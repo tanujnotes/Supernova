@@ -23,7 +23,7 @@ class TabReorder(
     private val tabs: TabLayout,
     // The bar's indicator colour, put back when a drag ends.
     private val indicatorColor: () -> Int,
-    // The group tabs' names in their new order.
+    // The group tabs' ids in their new order.
     private val onMoved: (List<String>) -> Unit
 ) {
     private val slop = ViewConfiguration.get(tabs.context).scaledTouchSlop
@@ -36,7 +36,7 @@ class TabReorder(
     // The drag, once the held tab has moved.
     private var dragging: View? = null
     private var groupViews: List<View> = emptyList()
-    private var names: List<String> = emptyList()
+    private var ids: List<String> = emptyList()
     private var from = 0
     private var target = 0
     private var startScrollX = 0
@@ -128,7 +128,7 @@ class TabReorder(
         closeMenu = null
         val group = groupTabs()
         groupViews = group.map { it.view }
-        names = group.map { (it.tag as DrawerGroup).name }
+        ids = group.map { (it.tag as DrawerGroup).id }
         from = groupViews.indexOf(view)
         target = from
         startScrollX = tabs.scrollX
@@ -196,7 +196,7 @@ class TabReorder(
             reset()
             return
         }
-        val order = names.toMutableList().apply { add(target, removeAt(from)) }
+        val order = ids.toMutableList().apply { add(target, removeAt(from)) }
         onMoved(order)
         // Fallback for a store that never answers with the new order.
         tabs.postDelayed({ if (dragging == null && tabs.isAttachedToWindow) reset() }, RESET_FALLBACK_MS)

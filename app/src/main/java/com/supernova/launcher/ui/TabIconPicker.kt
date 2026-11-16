@@ -24,7 +24,7 @@ object TabIconPicker {
     ) {
         fun save(pack: String?, name: String?, photo: String?) {
             viewModel.setGroupIcon(
-                group.name,
+                group.id,
                 group.copy(iconPack = pack, iconName = name, iconBase64 = photo, iconRaw = false)
             )
         }
