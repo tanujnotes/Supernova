@@ -560,7 +560,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
                 R.string.label_group_summary, item.sizeDisplay(item.size(prefs)), item.font(prefs)
             )
             // With labels off there is nothing to set: no summary, no band,
-            // and the row's tap is the checkbox's.
+            // and the row's tap is the switch's.
             val shown = item.shown(prefs)
             binding.labelSummary.visibility = if (shown) View.VISIBLE else View.GONE
             binding.labelChevron.visibility = if (shown) View.VISIBLE else View.INVISIBLE

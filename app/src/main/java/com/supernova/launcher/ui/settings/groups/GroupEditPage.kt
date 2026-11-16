@@ -108,7 +108,7 @@ class GroupEditPage(
         return group
     }
 
-    // A settings checkbox row, as the list pages bind theirs.
+    // A settings switch row, as the list pages bind theirs.
     private fun wireToggle(row: ItemSettingToggleBinding, title: Int, summary: Int, set: (Boolean) -> Unit) {
         row.settingTitle.setText(title)
         row.settingSubtitle.setText(summary)

@@ -80,8 +80,7 @@
         android:textColor="@color/textSecondary"
         android:textSize="@dimen/text_secondary" />
 
-    <!-- The box sits in line with the field's edge; its text 12dp on. -->
-    <CheckBox
+    <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/newGroupKeep"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -89,8 +88,7 @@
         android:layout_marginTop="@dimen/space_sm"
         android:layout_marginEnd="@dimen/space_ml"
         android:minHeight="48dp"
-        android:paddingStart="@dimen/space_ms"
-        android:paddingEnd="0dp"
+        android:switchPadding="@dimen/space_md"
         android:text="@string/group_keep_in_main"
         android:textColor="@color/textPrimary"
         android:textSize="@dimen/text_body" />

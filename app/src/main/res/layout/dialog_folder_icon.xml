@@ -93,14 +93,14 @@
             android:textColor="@color/textPrimary"
             android:textSize="@dimen/text_body" />
 
-        <com.google.android.material.checkbox.MaterialCheckBox
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/outlineCheck"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/space_md"
+            android:layout_marginEnd="@dimen/space_ms"
             android:clickable="false"
-            android:focusable="false"
-            android:minWidth="48dp" />
+            android:focusable="false" />
     </LinearLayout>
 
     <View
@@ -129,14 +129,14 @@
             android:textColor="@color/textPrimary"
             android:textSize="@dimen/text_body" />
 
-        <com.google.android.material.checkbox.MaterialCheckBox
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/matchColorCheck"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/space_md"
+            android:layout_marginEnd="@dimen/space_ms"
             android:clickable="false"
-            android:focusable="false"
-            android:minWidth="48dp" />
+            android:focusable="false" />
     </LinearLayout>
 
     <!-- Shown while the plate doesn't match the window. -->

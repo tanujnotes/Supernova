@@ -142,7 +142,7 @@ sealed class SettingItem {
         override val visibleIf: (LauncherPrefs) -> Boolean = { true }
     ) : SettingItem()
 
-    // The Label group: a checkbox in its row shows or hides the labels,
+    // The Label group: a switch in its row shows or hides the labels,
     // and the rest of the row opens a band under it holding their size,
     // font, shadow and single-line options. It opens and closes like an
     // Accordion (same remembered state) but holds its controls itself, so

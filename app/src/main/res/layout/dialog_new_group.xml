@@ -12,15 +12,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 
-    <CheckBox
+    <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/newGroupKeep"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/space_ml"
         android:layout_marginTop="@dimen/space_sm"
         android:layout_marginEnd="@dimen/space_lg"
-        android:paddingStart="@dimen/space_ms"
-        android:paddingEnd="0dp"
+        android:switchPadding="@dimen/space_md"
         android:text="@string/group_keep_in_main" />
 
     <LinearLayout
