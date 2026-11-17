@@ -1,0 +1,24 @@
+name: Bug report
+description: We're only accepting bug reports right now.
+labels: ["bug"]
+body:
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Before you post
+      options:
+        - label: This is a bug, not a feature request or enhancement (those go in [Discussions](https://github.com/tanujnotes/Supernova/discussions)).
+          required: true
+        - label: I'm on the latest version and searched existing issues.
+          required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and how do we reproduce it?
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and Android version (optional)
+      placeholder: Samsung Galaxy S24, Android 17
