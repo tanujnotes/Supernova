@@ -794,8 +794,28 @@ class DrawerController(
         }
         // By default the drawer reopens at the top; the remember pref keeps the
         // previous scroll (the sheet is only hidden, never torn down).
+        // The tab too: without remember the drawer opens on the default tab.
         if (!prefs.drawerRememberPosition) {
+            showDefaultTab(prefs)
             binding.drawerRecycler.scrollToPosition(0)
+        }
+    }
+
+    // Selects the default tab (else the first) with no slide; a no-op when
+    // the bar is hidden or that tab already shows.
+    private fun showDefaultTab(prefs: LauncherPrefs) {
+        val tabs = binding.drawerTabs
+        if (tabs.visibility != View.VISIBLE || tabs.tabCount == 0) return
+        val defaultId = prefs.drawerDefaultTab.takeIf { it.isNotEmpty() }
+        val target = defaultId?.let { id ->
+            (0 until tabs.tabCount).firstOrNull { (tabs.getTabAt(it)?.tag as? DrawerGroup)?.id == id }
+        } ?: 0
+        if (target == tabs.selectedTabPosition) return
+        rebuildingTabs = true
+        try {
+            tabs.getTabAt(target)?.select()
+        } finally {
+            rebuildingTabs = false
         }
     }
 
