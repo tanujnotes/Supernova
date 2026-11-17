@@ -3932,7 +3932,7 @@ class LauncherActivity :
             // The folder closes first: as a focusable window it
             // would keep the keyboard from the sheet's name field.
             closeFolder()
-            showItemEditSheet(member, allowSwipe = false)
+            showItemEditSheet(member, allowSwipe = !locked)
         }
         if (!locked) addMoveToHomeRow(menu, folder, member, applied)
         member.toLaunchableApp()?.let { app ->
@@ -4031,6 +4031,12 @@ class LauncherActivity :
         }
         adapter.shortcutIcon = { member ->
             member.takeIf { it.itemType == ItemType.SHORTCUT }?.let(itemIcons::intentItemIcon)
+        }
+        // An app's swipes work in the open folder too, as on the home screen.
+        adapter.attachSwipe = { tile, member ->
+            attachIconSwipe(tile, member) {
+                if (viewModel.state.value.prefs.folderCloseOnLaunch) popup?.dismiss()
+            }
         }
         folderAdapter = adapter
 
@@ -4630,8 +4636,10 @@ class LauncherActivity :
 
     // Per-icon swipe: a short vertical flick on the icon runs its bound app
     // (up and down independently), while taps and long-presses keep working
-    // through the normal listeners.
-    private fun attachIconSwipe(view: View, item: LauncherItem) {
+    // through the normal listeners. `inFolder` is set for an app in an open
+    // folder (#224) and runs just before the action (the folder's close on
+    // launch).
+    private fun attachIconSwipe(view: View, item: LauncherItem, inFolder: (() -> Unit)? = null) {
         // A swipe-to-open folder's swipe up is its own: it opens the folder,
         // whatever swipe-up action it still holds.
         val opensOnSwipe = item.itemType == ItemType.FOLDER && item.swipeToOpen
@@ -4645,18 +4653,9 @@ class LauncherActivity :
                 MotionEvent.ACTION_DOWN -> {
                     startY = event.rawY
                     startX = event.rawX
-                    // Both this listener and the home detector decide on the
-                    // same lift, so the icon claims the directions it binds -
-                    // otherwise one swipe ran the icon's action AND the home
-                    // binding. dispatchTouchEvent feeds the detector before
-                    // the press reaches the icon, so this lands after the
-                    // detector has cleared the flags for this gesture.
-                    gestureDetector.suppressSwipe(up = claimsUp, down = claimsDown)
-                    // The drawer pull arms on the same down, before the press
-                    // reaches the icon, and takes the stream once the finger
-                    // rises past the slop: every icon's swipe up went to the
-                    // drawer while a swipe up opens it. The icon takes it back.
-                    if (claimsUp) drawerPullArmed = false
+                    // An open folder's window never feeds the home detector
+                    // or the drawer pull.
+                    if (inFolder == null) claimHomeSwipe(claimsUp, claimsDown)
                 }
                 MotionEvent.ACTION_UP -> {
                     val dy = startY - event.rawY
@@ -4664,24 +4663,50 @@ class LauncherActivity :
                     val up = claimsUp && dy > dp(48) && dy > dx
                     val down = claimsDown && -dy > dp(48) && -dy > dx
                     if (up || down) {
-                        // The lift never reaches the icon's own handler, so its
-                        // press state and pending long-press are cancelled by
-                        // hand; a folder opening in place would keep the ripple.
-                        val cancel = MotionEvent.obtain(event)
-                        cancel.action = MotionEvent.ACTION_CANCEL
-                        v.onTouchEvent(cancel)
-                        cancel.recycle()
-                        v.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
-                        when {
-                            up && opensOnSwipe -> showFolderPopup(v, item)
-                            up -> launchSwipeAction(item, item.swipeAction, item.swipeLabel)
-                            else -> launchSwipeAction(item, item.swipeActionDown, item.swipeLabelDown)
-                        }
+                        runIconSwipe(v, event, item, up, inFolder)
                         return@setOnTouchListener true
                     }
                 }
             }
             false
+        }
+    }
+
+    private fun claimHomeSwipe(claimsUp: Boolean, claimsDown: Boolean) {
+        // Both the icon's listener and the home detector decide on the same
+        // lift, so the icon claims the directions it binds - otherwise one
+        // swipe ran the icon's action AND the home binding. dispatchTouchEvent
+        // feeds the detector before the press reaches the icon, so this lands
+        // after the detector has cleared the flags for this gesture.
+        gestureDetector.suppressSwipe(up = claimsUp, down = claimsDown)
+        // The drawer pull arms on the same down, before the press reaches the
+        // icon, and takes the stream once the finger rises past the slop:
+        // every icon's swipe up went to the drawer while a swipe up opens it.
+        // The icon takes it back.
+        if (claimsUp) drawerPullArmed = false
+    }
+
+    private fun runIconSwipe(
+        v: View,
+        event: MotionEvent,
+        item: LauncherItem,
+        up: Boolean,
+        inFolder: (() -> Unit)?
+    ) {
+        val opensOnSwipe = item.itemType == ItemType.FOLDER && item.swipeToOpen
+        // The lift never reaches the icon's own handler, so its press state
+        // and pending long-press are cancelled by hand; a folder opening in
+        // place would keep the ripple.
+        val cancel = MotionEvent.obtain(event)
+        cancel.action = MotionEvent.ACTION_CANCEL
+        v.onTouchEvent(cancel)
+        cancel.recycle()
+        v.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+        inFolder?.invoke()
+        when {
+            up && opensOnSwipe -> showFolderPopup(v, item)
+            up -> launchSwipeAction(item, item.swipeAction, item.swipeLabel)
+            else -> launchSwipeAction(item, item.swipeActionDown, item.swipeLabelDown)
         }
     }
 

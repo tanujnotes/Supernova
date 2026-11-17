@@ -38,6 +38,11 @@ class FolderMemberAdapter(
     // `columns` tiles per page; 0 falls back to match_parent.
     var cellWidthPx: Int = 0
 
+    // A home or dock folder's member swipes (#224): the host attaches its
+    // icon-swipe listener to each tile it binds. Unset elsewhere (drawer
+    // folders, the private space), where tiles have no swipes.
+    var attachSwipe: ((View, LauncherItem) -> Unit)? = null
+
     // Rebinds the members in place (a badge moved), keeping the list.
     fun refreshIcons() = notifyItemRangeChanged(0, itemCount)
 
@@ -113,11 +118,23 @@ class FolderMemberAdapter(
                     ?.let { decorateIcon(it, item) }
                     ?: binding.root.context.getDrawable(com.supernova.launcher.R.drawable.ic_folder)
             )
+            binding.icon.foreground = swipeMark(item)
             binding.root.setOnClickListener { onClick(item) }
             binding.root.setOnLongClickListener {
                 onLongPress(it, item)
                 true
             }
+            // A recycled tile drops the last member's swipe first.
+            binding.root.setOnTouchListener(null)
+            attachSwipe?.invoke(binding.root, item)
+        }
+
+        // The same mark a home icon with a swipe shows, in the folder's
+        // label color.
+        private fun swipeMark(item: LauncherItem): Drawable? {
+            val swipes = item.swipeAction != null || item.swipeActionDown != null
+            if (!swipes || attachSwipe == null || labelPrefs?.iconSwipeIndicator == false) return null
+            return SwipeIndicatorDrawable(binding.root.resources.displayMetrics.density, binding.label.currentTextColor)
         }
     }
 }
