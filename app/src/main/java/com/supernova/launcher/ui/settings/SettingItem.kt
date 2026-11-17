@@ -40,6 +40,14 @@ sealed class SettingItem {
 
     fun shownIn(prefs: LauncherPrefs): Boolean = visibleIf(prefs) && hiddenBy(prefs) == null
 
+    // How deep the row sits under the switch it depends on, 0 for none: a
+    // Toggle followed by deeper rows opens and closes them like the Label
+    // group, and they sit on its band (#227).
+    var nestLevel: Int = 0
+        private set
+
+    fun nested(level: Int = 1): SettingItem = apply { nestLevel = level }
+
     // A row's hiding setting: its title, which way it needs to go, and its
     // page when that is not the row's own (0).
     class HiddenBy(@StringRes val setting: Int, val needs: Needs, @StringRes val page: Int = 0) {

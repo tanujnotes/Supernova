@@ -35,6 +35,10 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
     private var items: List<SettingItem> = emptyList()
     private var visible: List<SettingItem> = emptyList()
 
+    // Each Toggle with deeper rows right after it, and those rows: it opens
+    // and closes them as the Label group does its band (#227).
+    private val nests = java.util.IdentityHashMap<SettingItem, List<SettingItem>>()
+
     // Each item keeps one id for as long as it is on the page, so a prefs
     // change rebinds every row in its own view. Without them, a rebuild
     // hands the rows out to whichever views come back from the pool, and the
@@ -76,6 +80,9 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             visible[position] !is SettingItem.Preview
 
     fun isLabel(position: Int): Boolean = position in visible.indices && visible[position] is SettingItem.Header
+
+    // A row nested under a switch, on the band its switch opens.
+    fun isBand(position: Int): Boolean = position in visible.indices && visible[position].nestLevel > 0
 
     fun startsCard(position: Int): Boolean =
         isGroupCard(position) && (!isGroupCard(position - 1) || breaksBefore(position))
@@ -120,6 +127,12 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
     // accordions. It picks which accordions are open.
     fun submit(items: List<SettingItem>, prefs: LauncherPrefs, @StringRes page: Int = 0, tiled: Boolean = false) {
         this.items = items
+        nests.clear()
+        for ((index, item) in items.withIndex()) {
+            if (item !is SettingItem.Toggle) continue
+            val rows = items.drop(index + 1).takeWhile { it.nestLevel > item.nestLevel }
+            if (rows.isNotEmpty()) nests[item] = rows
+        }
         val kept = java.util.Collections.newSetFromMap(java.util.IdentityHashMap<SettingItem, Boolean>())
         kept.addAll(items)
         ids.keys.retainAll(kept)
@@ -141,7 +154,12 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
         // that covers it before computing visibility.
         if (highlightTitle != 0) {
             var scope = 0
+            // The switches the current row sits under, outermost first.
+            val under = ArrayList<SettingItem>()
             for (item in items) {
+                while (under.isNotEmpty() && under.last().nestLevel >= item.nestLevel) under.removeAt(under.lastIndex)
+                if (item.title == highlightTitle) under.forEach { openHere.add(it.title) }
+                if (item in nests) under.add(item)
                 when (item) {
                     is SettingItem.Header, is SettingItem.Preview -> scope = 0
                     is SettingItem.Accordion -> scope = item.title
@@ -157,7 +175,11 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
         val open = openHere
         val out = ArrayList<SettingItem>(items.size)
         var hidden = false
+        // The depth of a closed switch whose deeper rows are skipped, or -1.
+        var folded = -1
         for ((index, item) in items.withIndex()) {
+            if (folded >= 0 && item.nestLevel > folded) continue
+            folded = -1
             val opensGroup = item is SettingItem.Header || item is SettingItem.Accordion
             if (opensGroup || item is SettingItem.Preview) hidden = false
             // A group label or accordion whose rows are all hidden would
@@ -165,6 +187,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             val shown = item.shownIn(prefs) && (!opensGroup || groupHasRows(index))
             if (!hidden && shown) out.add(item)
             if (item is SettingItem.Accordion) hidden = item.title !in open
+            if (item in nests && item.title !in open) folded = item.nestLevel
         }
         visible = out
         notifyDataSetChanged()
@@ -197,7 +220,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         return when (viewType) {
-            TYPE_TOGGLE -> ToggleHolder(ItemSettingToggleBinding.inflate(inflater, parent, false))
+            TYPE_TOGGLE -> ToggleHolder(ItemSettingToggleBinding.inflate(inflater, parent, false), ::toggleAccordion)
             TYPE_SLIDER -> SliderHolder(ItemSettingSliderBinding.inflate(inflater, parent, false), previews)
             TYPE_PREVIEW -> PreviewHolder(ItemSettingPreviewBinding.inflate(inflater, parent, false), previews)
             TYPE_HEADER -> GroupLabelHolder(ItemSettingGroupLabelBinding.inflate(inflater, parent, false))
@@ -219,7 +242,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = visible[position]) {
-            is SettingItem.Toggle -> (holder as ToggleHolder).bind(item, prefs, tiled)
+            is SettingItem.Toggle -> (holder as ToggleHolder).bind(item, prefs, tiled, nestOf(item))
             is SettingItem.Slider -> (holder as SliderHolder).bind(item, prefs)
             is SettingItem.Row -> (holder as GroupRowHolder).bind(item, prefs, tiled)
             is SettingItem.SectionLink -> (holder as SectionHolder).bind(item, prefs)
@@ -232,15 +255,24 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
                 (holder as LabelGroupHolder).bind(item, prefs, item.title in openHere)
         }
         clipToCard(holder.itemView, position)
-        flashIfLanding(holder, visible[position])
+        val band = restingColor(holder.itemView, position)
+        if (band == null) holder.itemView.background = null else holder.itemView.setBackgroundColor(band)
+        flashIfLanding(holder, visible[position], band)
     }
 
-    private fun flashIfLanding(holder: RecyclerView.ViewHolder, item: SettingItem) {
+    private fun nestOf(item: SettingItem): Nest? =
+        nests[item]?.let { rows -> Nest(rows.any { it.shownIn(prefs) }, item.title in openHere) }
+
+    // A nested row's band, or null for none.
+    private fun restingColor(view: View, position: Int): Int? =
+        if (isBand(position)) view.context.getColor(R.color.settingsBand) else null
+
+    private fun flashIfLanding(holder: RecyclerView.ViewHolder, item: SettingItem, band: Int?) {
         if (highlightTitle == 0 || item.title != highlightTitle) return
         highlightTitle = 0
         // The Label group's band is its own background, which the flash
         // would clear; its header row has none.
-        flashHighlight((holder as? LabelGroupHolder)?.header ?: holder.itemView)
+        flashHighlight((holder as? LabelGroupHolder)?.header ?: holder.itemView, band)
     }
 
     // A card's first and last rows are clipped to its rounded corners, so a
@@ -267,9 +299,9 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
     }
 
     // Search-landing cue: a translucent accent wash that fades out. Rows keep
-    // no background of their own (the ripple is a foreground), so clearing to
-    // null on end restores the resting state exactly.
-    private fun flashHighlight(view: View) {
+    // no background of their own (the ripple is a foreground) but a nested
+    // row's band, which the end puts back.
+    private fun flashHighlight(view: View, band: Int?) {
         val accent = view.context.getColor(com.supernova.launcher.R.color.accent) and 0xFFFFFF
         android.animation.ValueAnimator.ofFloat(1f, 0f).apply {
             startDelay = 250
@@ -280,15 +312,22 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             }
             addListener(object : android.animation.AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: android.animation.Animator) {
-                    view.background = null
+                    if (band == null) view.background = null else view.setBackgroundColor(band)
                 }
             })
             start()
         }
     }
 
-    private class ToggleHolder(private val binding: ItemSettingToggleBinding) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(item: SettingItem.Toggle, prefs: LauncherPrefs, tiled: Boolean) {
+    // A switch's nested rows: whether any shows (something to open), and
+    // whether they are open.
+    private class Nest(val opens: Boolean, val expanded: Boolean)
+
+    private class ToggleHolder(
+        private val binding: ItemSettingToggleBinding,
+        private val onToggleNest: (Int) -> Unit
+    ) : RecyclerView.ViewHolder(binding.root) {
+        fun bind(item: SettingItem.Toggle, prefs: LauncherPrefs, tiled: Boolean, nest: Nest?) {
             // On a tiled page it is an option of the tiled row above (Theme's
             // Use location): its text starts where that row's text does.
             val density = binding.root.resources.displayMetrics.density
@@ -312,18 +351,61 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             binding.settingSwitch.isChecked = item.get(prefs)
             binding.settingSwitch.setOnCheckedChangeListener { _, checked -> item.set(checked) }
             val open = item.onOpen
-            binding.root.setOnClickListener { if (open != null) open() else binding.settingSwitch.toggle() }
+            val opensNest = nest?.opens == true
+            binding.root.setOnClickListener {
+                when {
+                    open != null -> open()
+                    opensNest -> onToggleNest(item.title)
+                    else -> binding.settingSwitch.toggle()
+                }
+            }
+            bindNest(nest)
             // A row that opens something leaves the switch its own taps; on
             // the rest the whole row is the switch. Set both ways: rows are
             // reused.
-            binding.settingSwitch.isClickable = open != null
-            binding.settingSwitch.isFocusable = open != null
+            val ownTaps = open != null || nest != null
+            binding.settingSwitch.isClickable = ownTaps
+            binding.settingSwitch.isFocusable = ownTaps
             // Greyed: the title and switch fade, the reason stays readable.
             val alpha = if (blocked != null) BLOCKED_ALPHA else 1f
             binding.settingTitle.alpha = alpha
             binding.settingSwitch.alpha = alpha
             binding.settingSwitch.isEnabled = blocked == null
             binding.root.isEnabled = blocked == null
+        }
+
+        // As the Label group: a chevron while there is something to open,
+        // and a divider before the switch even while there isn't.
+        private fun bindNest(nest: Nest?) {
+            val context = binding.root.context
+            binding.settingChevron.visibility = when {
+                nest == null -> View.GONE
+                nest.opens -> View.VISIBLE
+                else -> View.INVISIBLE
+            }
+            binding.settingChevron.rotation = if (nest?.expanded == true) CHEVRON_OPEN_DEGREES else 0f
+            binding.settingDivider.visibility = if (nest == null) View.GONE else View.VISIBLE
+            val params = binding.settingSwitch.layoutParams as ViewGroup.MarginLayoutParams
+            params.marginStart = context.resources.getDimensionPixelSize(
+                if (nest == null) R.dimen.space_md else R.dimen.space_sm
+            )
+            binding.settingSwitch.layoutParams = params
+            val state = if (nest?.opens == true) {
+                context.getString(if (nest.expanded) R.string.a11y_expanded else R.string.a11y_collapsed)
+            } else {
+                null
+            }
+            androidx.core.view.ViewCompat.setStateDescription(binding.root, state)
+            androidx.core.view.ViewCompat.replaceAccessibilityAction(
+                binding.root,
+                androidx.core.view.accessibility.AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_CLICK,
+                if (nest?.opens == true) {
+                    context.getString(if (nest.expanded) R.string.a11y_collapse else R.string.a11y_expand)
+                } else {
+                    null
+                },
+                null
+            )
         }
     }
 
@@ -653,6 +735,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
     }
 
     private companion object {
+        const val CHEVRON_OPEN_DEGREES = 180f
         const val TYPE_TOGGLE = 0
         const val TYPE_SLIDER = 1
         const val TYPE_ROW = 2

@@ -724,7 +724,7 @@ object SettingsCatalogue {
                     R.string.dock_auto_close,
                     get = { it.dockAutoClose },
                     set = { viewModel.set(Pref.dockAutoClose, it) }
-                ).hiddenWhen { dockHidden(it) ?: needsOn(R.string.dock_overlay, !it.dockOverlay) }
+                ).hiddenWhen { dockHidden(it) ?: needsOn(R.string.dock_overlay, !it.dockOverlay) }.nested()
             )
         ),
         SettingsSection(
@@ -883,7 +883,7 @@ object SettingsCatalogue {
                 ) { viewModel.set(Pref.drawerScrubberColor, it) }.hiddenWhen {
                     dependsOn(R.string.drawer_style, it.drawerStyle == DrawerStyle.PAGED_GRID)
                         ?: needsOn(R.string.drawer_fast_scroller, !it.drawerFastScroller)
-                },
+                }.nested(),
                 SettingItem.Toggle(
                     R.string.drawer_pull_to_search,
                     get = { it.drawerPullToSearch },
@@ -995,7 +995,7 @@ object SettingsCatalogue {
                     set = { viewModel.set(Pref.drawerFoldersFirst, it) }
                 ).hiddenWhen {
                     needsOn(R.string.smart_folders, !it.smartFolders && viewModel.drawerFolderGroups().isEmpty())
-                }
+                }.nested()
             )
         ),
         SettingsSection(
@@ -1335,7 +1335,7 @@ object SettingsCatalogue {
                     R.string.folder_show_count,
                     get = { it.folderShowCount },
                     set = { viewModel.setFolderShowCount(it) }
-                ).hiddenWhen { needsOn(R.string.folder_show_name, !it.folderShowName) },
+                ).hiddenWhen { needsOn(R.string.folder_show_name, !it.folderShowName) }.nested(),
                 SettingItem.Slider(
                     R.string.folder_window_radius,
                     min = 0, max = 32,
@@ -1413,7 +1413,7 @@ object SettingsCatalogue {
                     get = { it.themedIconsAutogen },
                     set = { viewModel.set(Pref.themedIconsAutogen, it) },
                     visibleIf = { android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU }
-                ).hiddenWhen { needsOn(R.string.themed_icons, !it.themedIcons) },
+                ).hiddenWhen { needsOn(R.string.themed_icons, !it.themedIcons) }.nested(),
                 SettingItem.Row(
                     R.string.icon_pack,
                     // The pack's own label, not the package name the pref
@@ -1910,6 +1910,7 @@ object SettingsCatalogue {
     // override fields, spliced into the Dock / App drawer / Folders sections.
     // Enabling seeds the override from the current desktop values so nothing
     // visibly changes until a field is edited; disabling goes back to inherit.
+    // It follows each page's labels switch, so it nests a level under it.
     private fun labelOverrideItems(
         context: Context,
         viewModel: LauncherViewModel,
@@ -1937,14 +1938,14 @@ object SettingsCatalogue {
                         }
                     }
                 }
-            ).hiddenWhen(sectionHidden),
+            ).hiddenWhen(sectionHidden).nested(),
             SettingItem.Slider(
                 R.string.label_size,
                 min = 9, max = 18,
                 get = { override(it).size ?: it.labelSize },
                 set = { v -> viewModel.updateLabelOverride(labelContext) { it.copy(size = v) } },
                 display = { context.getString(R.string.label_size_value, it) }
-            ).hiddenWhen { sectionHidden(it) ?: needsOn(R.string.label_customize, !customized(it)) },
+            ).hiddenWhen { sectionHidden(it) ?: needsOn(R.string.label_customize, !customized(it)) }.nested(2),
             SettingItem.Row(
                 R.string.label_font,
                 subtitle = {
@@ -1956,17 +1957,17 @@ object SettingsCatalogue {
                         viewModel.updateLabelOverride(labelContext) { it.copy(font = font.name) }
                     }
                 }
-            ).hiddenWhen { sectionHidden(it) ?: needsOn(R.string.label_customize, !customized(it)) },
+            ).hiddenWhen { sectionHidden(it) ?: needsOn(R.string.label_customize, !customized(it)) }.nested(2),
             SettingItem.Toggle(
                 R.string.label_shadow,
                 get = { override(it).shadow ?: it.labelShadow },
                 set = { v -> viewModel.updateLabelOverride(labelContext) { it.copy(shadow = v) } }
-            ).hiddenWhen { sectionHidden(it) ?: needsOn(R.string.label_customize, !customized(it)) },
+            ).hiddenWhen { sectionHidden(it) ?: needsOn(R.string.label_customize, !customized(it)) }.nested(2),
             SettingItem.Toggle(
                 R.string.label_single_line,
                 get = { LabelStyler.singleLineFor(labelContext, it) },
                 set = { v -> viewModel.updateLabelOverride(labelContext) { it.copy(singleLine = v) } }
-            ).hiddenWhen { sectionHidden(it) ?: needsOn(R.string.label_customize, !customized(it)) }
+            ).hiddenWhen { sectionHidden(it) ?: needsOn(R.string.label_customize, !customized(it)) }.nested(2)
         )
     }
 
