@@ -1,5 +1,7 @@
 package com.supernova.launcher.ui
 
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Rect
 import android.view.View
 import android.view.ViewTreeObserver
@@ -7,15 +9,14 @@ import androidx.core.view.ViewCompat
 import kotlin.math.min
 
 // With gesture navigation a swipe in from a side edge is system Back, which
-// does nothing on the home screen. Android lets an app keep up to 200dp of
-// each side edge: the home pages take a strip mid-way down each side, so an
-// edge swipe there flips the page as it does further in. Bottom swipes stay
-// the system's. The left strip also serves the feed's edge swipe
-// (FeedController), which starts in its outer 24dp: the feed once kept a
-// strip of its own near the bottom instead, so a mid-height edge swipe ran
-// Back, and with infinite scroll on (no page-0 pull) the feed was out of
-// reach. Anything over the home screen (drawer, search, edit mode, previews,
-// the feed) gives the edges back to Back, which closes it.
+// does nothing on the home screen. The home pages keep both side edges, so an
+// edge swipe flips the page as it does further in. Android caps an app at
+// 200dp per edge but lets the home app (the default launcher, opened as home)
+// keep the whole edge; anywhere else SN keeps a 200dp strip mid-way down. The
+// left edge also serves the feed's edge swipe (FeedController), which starts
+// in its outer 24dp. Bottom swipes stay the system's. Anything over the home
+// screen (drawer, search, edit mode, previews, the feed) gives the edges back
+// to Back, which closes it.
 class HomeEdgeSwipes(
     private val pager: View,
     private val homeInFront: () -> Boolean
@@ -42,12 +43,17 @@ class HomeEdgeSwipes(
         if (key == applied) return
         applied = key
         val rects = if (home && pager.height > 0) {
-            val strip = min(pager.context.dp(EDGE_LIMIT_DP), pager.height / 2)
-            val top = (pager.height - strip) / 2
+            val (top, bottom) = if (isDefaultHome()) {
+                0 to pager.height
+            } else {
+                val strip = min(pager.context.dp(EDGE_LIMIT_DP), pager.height / 2)
+                val top = (pager.height - strip) / 2
+                top to top + strip
+            }
             val width = pager.context.dp(STRIP_WIDTH_DP)
             listOf(
-                Rect(0, top, width, top + strip),
-                Rect(pager.width - width, top, pager.width, top + strip)
+                Rect(0, top, width, bottom),
+                Rect(pager.width - width, top, pager.width, bottom)
             )
         } else {
             emptyList()
@@ -55,8 +61,18 @@ class HomeEdgeSwipes(
         ViewCompat.setSystemGestureExclusionRects(pager, rects)
     }
 
+    // The system skips the 200dp cap only for an activity opened as home;
+    // asked when home comes back to the front, so a change of default
+    // launcher is picked up.
+    private fun isDefaultHome(): Boolean {
+        val context = pager.context
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        val home = context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+        return home?.activityInfo?.packageName == context.packageName
+    }
+
     private companion object {
-        // Android's per-edge allowance.
+        // Android's per-edge allowance for apps other than the home app.
         const val EDGE_LIMIT_DP = 200
         // Wider than the system's Back zone at its most sensitive.
         const val STRIP_WIDTH_DP = 48
