@@ -33,4 +33,4 @@
 <p>Export and restore your whole setup, including layout and settings, to a file, or bring your home screen over from another launcher's backup.</p>
 
 <p><b>Permissions</b></p>
-<p>Every permission is optional and only used for the feature that asks for it: contacts for search and the feed, calendar for the calendar card, notification access for badges and the media card, and the accessibility service or device admin for gestures that lock the screen or open recents and quick settings.</p>
+<p>Every permission is optional and only used for the feature that asks for it: contacts for search and the feed, calendar for the calendar card, phone for direct dial shortcuts, notification access for badges and the media card, and the accessibility service or device admin for gestures that lock the screen or open recents and quick settings.</p>
