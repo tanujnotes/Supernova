@@ -7,6 +7,7 @@ import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.LauncherApps
+import android.content.pm.PackageManager
 import android.content.pm.ShortcutInfo
 import android.content.res.Configuration
 import android.os.Build
@@ -1504,6 +1505,19 @@ class LauncherActivity :
         binding.desktopSearchBar.onLongPress = { anchor -> showSearchBarMenu(anchor) }
     }
 
+    // The Direct dial intent waiting on the phone permission. Refused, it
+    // opens the dialer with the number in instead.
+    private var pendingCall: Intent? = null
+
+    private val requestCallPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            val call = pendingCall ?: return@registerForActivityResult
+            pendingCall = null
+            val intent = if (granted) call else Intent(call).setAction(Intent.ACTION_DIAL).setComponent(null)
+            runLogged("launch direct dial") { startActivity(intent) }
+                .onFailure { Toast.makeText(this, R.string.launch_failed, Toast.LENGTH_SHORT).show() }
+        }
+
     // In-card grant buttons on the feed's calendar/contacts cards; a grant
     // refreshes the still-open feed so the card upgrades in place.
     private val requestFeedCalendarPermission =
@@ -2962,6 +2976,15 @@ class LauncherActivity :
             return
         }
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        // A Direct dial shortcut places the call itself, which needs the
+        // phone permission; ask once, then call (or dial, when refused).
+        if (intent.action == Intent.ACTION_CALL &&
+            checkSelfPermission(android.Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED
+        ) {
+            pendingCall = intent
+            requestCallPermission.launch(android.Manifest.permission.CALL_PHONE)
+            return
+        }
         launchWithAnimation(anchor) { bounds, options ->
             intent.sourceBounds = bounds
             runLogged("launch intent item") { startActivity(intent, options) }
