@@ -207,7 +207,7 @@ object FolderEditSheet {
             }
         }
         binding.iconRow.setOnClickListener {
-            IconPickerSheet.show(context, scope, viewModel, allowDefault = true, onPickPhoto = onPhoto) { pack, name ->
+            IconPickerSheet.show(context, scope, viewModel, onPickPhoto = onPhoto) { pack, name ->
                 icon.pack = pack
                 icon.name = name
                 // A pack icon (or a reset to default) replaces any photo.

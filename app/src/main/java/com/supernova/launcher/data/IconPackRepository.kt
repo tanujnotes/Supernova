@@ -204,6 +204,33 @@ class IconPackRepository(private val context: Context) {
         return names.filter { resources.getIdentifier(it, "drawable", packageName) != 0 }.sorted()
     }
 
+    // A pack's icons for one app, best first (see matchOrder), for the top
+    // of the picker's grid. Reads the pack's appfilter without touching the
+    // loaded-pack state, so it works for any pack, applied or not.
+    fun matchesFor(packPackage: String, packageName: String, className: String): List<String> {
+        val resources = runCatching { pm.getResourcesForApplication(packPackage) }.getOrNull()
+            ?: return emptyList()
+        val entries = mutableListOf<Pair<String, String>>()
+        readAppFilter(resources, packPackage) { parser ->
+            runLogged("read icon pack matches") {
+                while (parser.eventType != XmlPullParser.END_DOCUMENT) {
+                    if (parser.eventType == XmlPullParser.START_TAG && parser.name == "item") {
+                        val component = parser.getAttributeValue(null, "component")?.let(::normalizeComponent)
+                        val drawable = parser.getAttributeValue(null, "drawable")
+                        if (component != null && drawable != null &&
+                            component.substringBefore('/') == packageName
+                        ) {
+                            entries.add(component to drawable)
+                        }
+                    }
+                    parser.next()
+                }
+            }
+        }
+        return matchOrder(entries, "$packageName/$className")
+            .filter { resources.getIdentifier(it, "drawable", packPackage) != 0 }
+    }
+
     private fun <T> readAppFilter(resources: Resources, packageName: String, block: (XmlPullParser) -> T): T? =
         readPackXml(resources, packageName, "appfilter", block)
 
@@ -261,6 +288,15 @@ class IconPackRepository(private val context: Context) {
             packageName: String,
             className: String
         ): String? = byComponent["$packageName/$className"] ?: byPackage[packageName]
+
+        // One app's appfilter entries (component to drawable) as the picker
+        // offers them: the exact component's drawables, then the rest of the
+        // package's (an app's other or older launcher activities, which
+        // often carry the pack's alternates), each drawable once.
+        fun matchOrder(entries: List<Pair<String, String>>, component: String): List<String> {
+            val (exact, others) = entries.partition { it.first == component }
+            return (exact + others).map { it.second }.distinct()
+        }
 
         // Which of a pack's iconbacks an app gets. Keyed off the component so
         // the choice is the same on every launch - a plate that changed when

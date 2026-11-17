@@ -77,4 +77,27 @@ class IconPackMatchTest {
         assertNotNull(IconPackRepository.calendarDrawableName("cal_", 3))
         assertEquals("cal_3", IconPackRepository.calendarDrawableName("cal_", 3))
     }
+
+    @Test
+    fun pickerMatchesPutTheExactComponentFirstAndDropRepeats() {
+        val entries = listOf(
+            "com.whatsapp/com.whatsapp.Main" to "whatsapp_old",
+            "com.whatsapp/com.whatsapp.HomeActivity" to "whatsapp",
+            "com.whatsapp/com.whatsapp.HomeActivity" to "whatsapp_alt",
+            "com.whatsapp/com.whatsapp.Other" to "whatsapp"
+        )
+        assertEquals(
+            listOf("whatsapp", "whatsapp_alt", "whatsapp_old"),
+            IconPackRepository.matchOrder(entries, "com.whatsapp/com.whatsapp.HomeActivity")
+        )
+    }
+
+    @Test
+    fun pickerMatchesFallBackToThePackageWhenTheActivityIsUnmapped() {
+        val entries = listOf("com.android.chrome/com.google.android.apps.chrome.Main" to "chrome")
+        assertEquals(
+            listOf("chrome"),
+            IconPackRepository.matchOrder(entries, "com.android.chrome/org.chromium.chrome.NewMain")
+        )
+    }
 }
