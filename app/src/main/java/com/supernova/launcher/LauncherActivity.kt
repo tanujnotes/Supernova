@@ -3266,8 +3266,9 @@ class LauncherActivity :
     }
 
     // A drawer folder long-pressed: Add to Home puts a copy of it on the
-    // home screen (a drag does too, where it lands); Edit picks its apps and
-    // Rename names it, as its open card's edit button and title do.
+    // home screen (a drag does too, where it lands); Select apps picks its
+    // apps; Edit opens its page in Settings > Drawer groups, and Group
+    // settings that list.
     private fun showDrawerFolderMenu(anchor: View, group: DrawerGroup, apps: List<LaunchableApp>): SupernovaPopupMenu {
         val menu = newItemPopup()
         if (!desktopLocked && apps.isNotEmpty()) {
@@ -3284,6 +3285,8 @@ class LauncherActivity :
         // Its page in Settings > Drawer groups: name, icon, tab or folder,
         // apps, and Delete.
         menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) { openDrawerGroupSettings(group.id) }
+        // The Drawer groups list, as a tab's menu has it.
+        menu.addRow(getString(R.string.group_settings), R.drawable.ic_tab_settings) { openDrawerGroupSettings(null) }
         menu.show(anchor, menuTouchX)
         return menu
     }
@@ -4274,9 +4277,9 @@ class LauncherActivity :
     }
 
     // A drawer tab held, or tapped while it shows. A group tab: Edit tab (its
-    // page in Settings > Drawer groups), Select apps, and Tab settings (the
+    // page in Settings > Drawer groups), Select apps, and Group settings (the
     // Drawer groups list). The All tab: its hidden apps, shown in its list for
-    // a moment (Show hidden apps) or picked (Hide apps), and Tab settings.
+    // a moment (Show hidden apps) or picked (Hide apps), and Group settings.
     // Handed back so a drag of the tab can close it.
     private fun showDrawerTabMenu(anchor: View, group: DrawerGroup?): SupernovaPopupMenu {
         drawer.hideKeyboardIfShowing()
@@ -4295,7 +4298,7 @@ class LauncherActivity :
                 showDrawerGroupChecklist(group)
             }
         }
-        menu.addRow(getString(R.string.tab_settings), R.drawable.ic_tab_settings) { openDrawerGroupSettings(null) }
+        menu.addRow(getString(R.string.group_settings), R.drawable.ic_tab_settings) { openDrawerGroupSettings(null) }
         // Tracked as the item menus are, so back and home close it.
         drag.activeItemPopup = menu
         menu.show(anchor)
