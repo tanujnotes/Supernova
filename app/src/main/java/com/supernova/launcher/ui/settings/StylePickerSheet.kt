@@ -62,7 +62,7 @@ object StylePickerSheet {
         return com.supernova.launcher.data.IconGlass.fromName(glass) != com.supernova.launcher.data.IconGlass.OFF
     }
 
-    fun show(context: Context, viewModel: LauncherViewModel, surfaceId: SurfaceId) {
+    fun show(context: Context, viewModel: LauncherViewModel, surfaceId: SurfaceId, onDismiss: () -> Unit = {}) {
         val binding = SheetStylePickerBinding.inflate(LayoutInflater.from(context))
         val dialog = com.supernova.launcher.ui.Sheets.open(context)
         dialog.setContentView(binding.root)
@@ -96,6 +96,7 @@ object StylePickerSheet {
         }
         dialog.setOnDismissListener {
             if (binding.root.removeCallbacks(persistLater)) persist()
+            onDismiss()
         }
 
         fun activeSpec(): ColorSpec = when (slot) {

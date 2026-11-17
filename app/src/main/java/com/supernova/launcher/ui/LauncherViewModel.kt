@@ -611,7 +611,7 @@ class LauncherViewModel(
             app,
             prefs.paletteSource,
             prefs.paletteSeed,
-            fallbackSeed = app.getColor(com.supernova.launcher.R.color.accent)
+            fallbackSeed = com.supernova.launcher.ui.theme.ThemeEngine.accentColor(app, prefs.accentColor)
         )
         val night = isNightMode(prefs)
         val bg = palette.tone(

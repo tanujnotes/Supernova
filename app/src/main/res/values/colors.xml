@@ -62,6 +62,11 @@
     <!-- Text and icons on an accent-filled control (a pill button, a
          checked box). Every curated accent is dark enough for white. -->
     <color name="onAccent">#FFFFFFFF</color>
+    <!-- The custom accent's three colours (ThemeOverlay.Supernova.Custom),
+         overwritten at runtime; these values only show if that fails. -->
+    <color name="accentCustom">#2E89FF</color>
+    <color name="accentCustomText">#2E89FF</color>
+    <color name="onAccentCustom">#FFFFFFFF</color>
     <!-- A hairline around unfocused text fields; reads on both surfaces. -->
     <color name="textInputStroke">#4D808080</color>
     <!-- The app icons' background, the logo's warm paper. -->

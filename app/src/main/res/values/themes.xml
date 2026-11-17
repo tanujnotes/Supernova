@@ -159,6 +159,17 @@
         <item name="colorAccentOnRaised">@color/accentCyanText</item>
     </style>
 
+    <!-- Any colour (the Settings style's Accent): placeholders that
+         ThemeEngine.applySettingsAccent rewrites at runtime on Android 11+. -->
+    <style name="ThemeOverlay.Supernova.Custom" parent="">
+        <item name="colorPrimary">@color/accentCustom</item>
+        <item name="colorSecondary">@color/accentCustom</item>
+        <item name="colorAccent">@color/accentCustom</item>
+        <item name="colorAccentOnRaised">@color/accentCustomText</item>
+        <item name="colorOnPrimary">@color/onAccentCustom</item>
+        <item name="colorOnSecondary">@color/onAccentCustom</item>
+    </style>
+
     <!-- ============================================================ -->
     <!-- Popups, dialogs and sheets: one surface language.            -->
     <!--                                                              -->

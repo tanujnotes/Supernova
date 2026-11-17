@@ -605,7 +605,8 @@ class LauncherActivity :
             override fun currentPage(): Int = viewModel.state.value.currentPage
             override fun defaultPage(): Int = viewModel.state.value.model.defaultPage
             override fun pageViewFor(page: Int): View? = attachedPageView(page)
-            override fun accentColor(): Int = getColor(R.color.accent)
+            override fun accentColor(): Int =
+                ThemeEngine.accentColor(this@LauncherActivity, viewModel.state.value.prefs.accentColor)
             override fun jumpToPage(page: Int) {
                 binding.workspacePager.setCurrentItem(
                     workspaceAdapter.centerPosition(page), Animations.scrollPages(viewModel.state.value.prefs)

@@ -644,7 +644,7 @@ class AppDrawerAdapter(
             })
             // A text button in the accent, as dialogs' are.
             addView(android.widget.TextView(context).apply {
-                setTextColor(context.getColor(R.color.accent))
+                setTextColor(com.supernova.launcher.ui.theme.CustomAccent.of(this))
                 textSize = EMPTY_BUTTON_SP
                 typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
                 gravity = android.view.Gravity.CENTER

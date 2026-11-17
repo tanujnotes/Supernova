@@ -302,7 +302,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
     // no background of their own (the ripple is a foreground) but a nested
     // row's band, which the end puts back.
     private fun flashHighlight(view: View, band: Int?) {
-        val accent = view.context.getColor(com.supernova.launcher.R.color.accent) and 0xFFFFFF
+        val accent = com.supernova.launcher.ui.theme.CustomAccent.of(view) and 0xFFFFFF
         android.animation.ValueAnimator.ofFloat(1f, 0f).apply {
             startDelay = 250
             duration = 750

@@ -67,7 +67,6 @@ import com.supernova.launcher.ui.settings.SettingsSearchIndex
 import com.supernova.launcher.ui.settings.SettingsSection
 import com.supernova.launcher.ui.settings.StylePickerSheet
 import com.supernova.launcher.ui.textSizeOf
-import com.supernova.launcher.ui.theme.AccentColor
 import com.supernova.launcher.ui.theme.PaletteSourceMode
 import com.supernova.launcher.ui.theme.Styles
 import com.supernova.launcher.ui.theme.SurfaceId
@@ -136,7 +135,11 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var previews: PreviewController
     // The one view living in previewPane; created on first use.
     private var paneView: com.supernova.launcher.ui.settings.preview.SettingsPreviewView? = null
-    private var appliedAccent: AccentColor = AccentColor.BLUE
+    // The accent colour this activity was themed with (ThemeEngine.
+    // applySettingsAccent); a different one recreates it, but not while a
+    // style sheet is open, which the recreate would close mid-pick.
+    private var appliedAccent: Int = 0
+    private var stylePickerOpen = false
 
     // Header search over the whole catalogue; the index resolves lazily on
     // first activation so plain settings visits never build it.
@@ -338,8 +341,7 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        appliedAccent = viewModel.state.value.prefs.accentColor
-        ThemeEngine.applyAccent(this, appliedAccent)
+        appliedAccent = ThemeEngine.applySettingsAccent(this, viewModel.state.value.prefs)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
         // Edge-to-edge, like the launcher window: the toolbar takes the status
@@ -454,7 +456,13 @@ class SettingsActivity : AppCompatActivity() {
                     .show()
             },
             openPaletteDialog = ::showPaletteSourcePicker,
-            openStylePicker = { surfaceId -> StylePickerSheet.show(this, viewModel, surfaceId) },
+            openStylePicker = { surfaceId ->
+                stylePickerOpen = true
+                StylePickerSheet.show(this, viewModel, surfaceId) {
+                    stylePickerOpen = false
+                    recreateForAccent(viewModel.state.value.prefs)
+                }
+            },
             showAutoBackups = ::showAutoBackups,
             editGesture = ::showActionPicker,
             pickLockMethod = ::showLockMethodPicker,
@@ -643,12 +651,19 @@ class SettingsActivity : AppCompatActivity() {
                     // Night mode recreates activities on its own; an accent
                     // change has to ask, and only when it really changed.
                     ThemeEngine.applyMode(this@SettingsActivity, state.prefs)
-                    if (state.prefs.accentColor != appliedAccent) {
-                        appliedAccent = state.prefs.accentColor
-                        recreate()
-                    }
+                    recreateForAccent(state.prefs)
                 }
             }
+        }
+    }
+
+    private fun recreateForAccent(prefs: LauncherPrefs) {
+        if (stylePickerOpen) return
+        val accent = com.supernova.launcher.ui.theme.CustomAccent.settingsAccent(this, prefs)
+            ?: ThemeEngine.accentColor(this, prefs.accentColor)
+        if (accent != appliedAccent) {
+            appliedAccent = accent
+            recreate()
         }
     }
 
@@ -2159,7 +2174,7 @@ class SettingsActivity : AppCompatActivity() {
         fun header(titleRes: Int) {
             column.addView(android.widget.TextView(this).apply {
                 text = getString(titleRes)
-                setTextColor(getColor(R.color.accent))
+                setTextColor(com.supernova.launcher.ui.theme.CustomAccent.of(column))
                 textSizeOf(R.dimen.text_secondary)
                 setPadding(0, dpPx(12), 0, dpPx(4))
             })

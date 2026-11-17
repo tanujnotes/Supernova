@@ -2,6 +2,7 @@ package com.supernova.launcher.ui.theme
 
 import android.app.Activity
 import android.content.Context
+import android.graphics.Color
 import androidx.appcompat.app.AppCompatDelegate
 import com.supernova.launcher.R
 import com.supernova.launcher.data.SettingEnumSerializer
@@ -135,4 +136,23 @@ object ThemeEngine {
 
     fun accentColor(context: Context, accent: AccentColor): Int =
         context.getColor(accent.colorRes)
+
+    // The settings screens' accent: the Settings style's own Accent when one
+    // is picked (any colour, #233), else the curated Accent color. Returns the
+    // colour applied, which the activity compares to know when to recreate.
+    // Call before setContentView.
+    fun applySettingsAccent(activity: Activity, prefs: com.supernova.launcher.data.LauncherPrefs): Int {
+        val custom = CustomAccent.settingsAccent(activity, prefs)
+        if (custom == null) {
+            applyAccent(activity, prefs.accentColor)
+            return accentColor(activity, prefs.accentColor)
+        }
+        val overlay = if (CustomAccent.override(activity, custom)) {
+            R.style.ThemeOverlay_Supernova_Custom
+        } else {
+            CustomAccent.nearest(activity, custom).overlayRes
+        }
+        activity.theme.applyStyle(overlay, true)
+        return custom
+    }
 }
