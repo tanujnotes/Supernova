@@ -567,13 +567,17 @@ class DrawerController(
             true
         }
         // A keyboard asked for while the window had no focus (#165) goes up
-        // once focus arrives. Kept on the tree only while the field is in a
-        // window, like every tree listener here.
+        // once focus arrives. So does one the window got focus back on
+        // shortly after the ask: the window is adjustNothing, and a window
+        // that regains focus without resizing has the system take its
+        // keyboard down (#225). Kept on the tree only while the field is in
+        // a window, like every tree listener here.
         val focusWatch = ViewTreeObserver.OnWindowFocusChangeListener { hasFocus ->
             if (hasFocus && keyboardFocusDeadline > 0L) {
                 val inTime = SystemClock.uptimeMillis() <= keyboardFocusDeadline
                 keyboardFocusDeadline = 0L
                 if (inTime) {
+                    cancelKeyboardRequest()
                     keyboardTriesLeft = KEYBOARD_TRIES
                     binding.drawerSearch.post(keyboardRetry)
                 }
@@ -1162,6 +1166,7 @@ class DrawerController(
         if (!binding.drawerSearch.hasFocus()) binding.drawerSearch.requestFocus()
         cancelKeyboardRequest()
         keyboardTriesLeft = KEYBOARD_TRIES
+        keyboardFocusDeadline = SystemClock.uptimeMillis() + KEYBOARD_FOCUS_WAIT_MS
         binding.drawerSearch.post(keyboardRetry)
     }
 
@@ -1199,24 +1204,37 @@ class DrawerController(
     // insets controller - the path the system bars use, which such keyboards
     // follow - and through the input method once more. ime() insets report
     // only from API 30 on, so older phones keep the plain request.
+    //
+    // A window that already asked for the keyboard treats another ask as a
+    // no-op, even when the keyboard never came (#225). So the last ask first
+    // withdraws the window's request and makes it fresh a frame later.
     private fun verifyKeyboard() {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R) return
         val field = binding.drawerSearch
-        val ime = androidx.core.view.WindowInsetsCompat.Type.ime()
-        val up = androidx.core.view.ViewCompat.getRootWindowInsets(field)?.isVisible(ime) != false
+        val ime = android.view.WindowInsets.Type.ime()
+        val up = field.rootWindowInsets?.isVisible(ime) != false
         if (up || !keyboardStillWanted(field)) return
         keyboardChecksLeft--
-        val window = (field.context as? android.app.Activity)?.window
-        if (window != null) {
-            androidx.core.view.WindowCompat.getInsetsController(window, field).show(ime)
+        val controller = field.windowInsetsController
+        val ask = {
+            if (keyboardStillWanted(field, asking = true)) {
+                controller?.show(ime)
+                field.context.getSystemService(InputMethodManager::class.java)?.showSoftInput(field, 0)
+            }
         }
-        field.context.getSystemService(InputMethodManager::class.java)?.showSoftInput(field, 0)
-        if (keyboardChecksLeft > 0) field.postDelayed(keyboardCheck, KEYBOARD_CHECK_MS)
+        if (keyboardChecksLeft > 0) {
+            ask()
+            field.postDelayed(keyboardCheck, KEYBOARD_CHECK_MS)
+        } else {
+            controller?.hide(ime)
+            field.post(ask)
+        }
     }
 
     // The drawer is still open with the field focused in a focused window,
-    // and the check has asks left.
-    private fun keyboardStillWanted(field: View): Boolean =
-        isVisible && field.hasFocus() && field.hasWindowFocus() && keyboardChecksLeft > 0
+    // and the check has asks left (or is making its last one).
+    private fun keyboardStillWanted(field: View, asking: Boolean = false): Boolean =
+        isVisible && field.hasFocus() && field.hasWindowFocus() && (asking || keyboardChecksLeft > 0)
 
     private fun cancelKeyboardRequest() {
         keyboardTriesLeft = 0
@@ -2254,7 +2272,8 @@ class DrawerController(
 
     private companion object {
         // showKeyboard's retries: up to ten, 50ms apart (half a second in
-        // all), and how long it waits for a window without focus to get it.
+        // all), and how long after the ask a window that gets focus (back)
+        // asks again.
         const val KEYBOARD_TRIES = 10
         const val KEYBOARD_RETRY_MS = 50L
         const val KEYBOARD_FOCUS_WAIT_MS = 1500L
