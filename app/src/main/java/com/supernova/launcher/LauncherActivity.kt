@@ -1382,7 +1382,8 @@ class LauncherActivity :
             onSelectTabApps = ::showDrawerGroupChecklist,
             customTabIcon = { group ->
                 itemIcons.customFolderIcon(group.iconBase64, group.iconPack, group.iconName, group.iconRaw)
-            }
+            },
+            onSearchBarLongPress = ::showDrawerSearchBarMenu
         )
         // Covers every close path (back, close button, drag-dismiss); opening
         // is also triggered directly from openDrawer for immediacy.
@@ -2868,6 +2869,37 @@ class LauncherActivity :
             startActivity(
                 Intent(this, SettingsActivity::class.java)
                     .putExtra(SettingsActivity.EXTRA_OPEN_SEARCH_BAR, true)
+            )
+        }
+        menu.show(anchor, menuTouchX)
+        menu.makeModal()
+    }
+
+    // The drawer search bar held (#217): Paste while the clipboard has text
+    // and the field takes typing, and the bar's own settings page.
+    private fun showDrawerSearchBarMenu(anchor: View) {
+        val clipboard = getSystemService(android.content.ClipboardManager::class.java)
+        // Only the clip's type is checked here: reading it shows the system's
+        // "pasted" notice, so the text is read on the row's tap.
+        val canPaste = drawer.searchTypable && clipboard?.hasPrimaryClip() == true &&
+            clipboard.primaryClipDescription?.let {
+                it.hasMimeType(android.content.ClipDescription.MIMETYPE_TEXT_PLAIN) ||
+                    it.hasMimeType(android.content.ClipDescription.MIMETYPE_TEXT_HTML)
+            } == true
+        drawer.hideKeyboardIfShowing()
+        val menu = newItemPopup()
+        drag.activeItemPopup = menu
+        if (canPaste) {
+            menu.addRow(getString(android.R.string.paste), R.drawable.ic_menu_paste) {
+                val text = clipboard?.primaryClip?.takeIf { it.itemCount > 0 }
+                    ?.getItemAt(0)?.coerceToText(this)
+                if (!text.isNullOrBlank()) drawer.pasteIntoSearch(text)
+            }
+        }
+        menu.addRow(getString(R.string.search_bar_settings), R.drawable.ic_tab_settings) {
+            startActivity(
+                Intent(this, SettingsActivity::class.java)
+                    .putExtra(SettingsActivity.EXTRA_SECTION_TITLE_RES, R.string.drawer_search_bar)
             )
         }
         menu.show(anchor, menuTouchX)

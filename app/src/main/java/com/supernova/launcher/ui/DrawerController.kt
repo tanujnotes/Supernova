@@ -59,7 +59,10 @@ class DrawerController(
     // An empty group tab's "Select apps": the picker for that group.
     private val onSelectTabApps: (DrawerGroup) -> Unit = {},
     // A group tab's picked icon (pack, app icon or photo), null for none.
-    private val customTabIcon: (DrawerGroup) -> Drawable? = { null }
+    private val customTabIcon: (DrawerGroup) -> Drawable? = { null },
+    // The search bar held: its menu (Paste, Search bar settings), anchored
+    // to the pill.
+    private val onSearchBarLongPress: (View) -> Unit = {}
 ) {
 
     // Tab identity: null = All (or Personal when the work tab is on).
@@ -553,6 +556,15 @@ class DrawerController(
         // The pill's buttons take their own taps.
         binding.drawerSearchField.setOnClickListener {
             if (searchGlobalOnTap) onGlobalSearch() else showKeyboard()
+        }
+        // A long press on the pill, or on the field while it is empty, opens
+        // the bar's menu (#217). With text in the field the press stays the
+        // system's: word selection, copy, cut.
+        binding.drawerSearchField.setOnLongClickListener { onSearchBarLongPress(it); true }
+        binding.drawerSearch.setOnLongClickListener {
+            if (!binding.drawerSearch.text.isNullOrEmpty()) return@setOnLongClickListener false
+            onSearchBarLongPress(binding.drawerSearchField)
+            true
         }
         // A keyboard asked for while the window had no focus (#165) goes up
         // once focus arrives. Kept on the tree only while the field is in a
@@ -1212,6 +1224,19 @@ class DrawerController(
         binding.drawerSearch.removeCallbacks(keyboardRetry)
         keyboardChecksLeft = 0
         binding.drawerSearch.removeCallbacks(keyboardCheck)
+    }
+
+    // The field takes typing (not hidden, not handing taps to the global
+    // search): the bar menu offers Paste only then.
+    val searchTypable: Boolean get() = searchFieldVisible && !searchGlobalOnTap
+
+    // The bar menu's Paste: the text into the field as one line, the
+    // keyboard up to go on typing.
+    fun pasteIntoSearch(text: CharSequence) {
+        val field = binding.drawerSearch
+        field.setText(text.toString().replace(Regex("\\s+"), " ").trim())
+        field.setSelection(field.length())
+        showKeyboard()
     }
 
     // Takes the keyboard down from outside - the item menu opens over it
