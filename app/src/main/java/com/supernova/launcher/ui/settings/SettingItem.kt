@@ -54,6 +54,20 @@ sealed class SettingItem {
 
     fun searchableBy(@StringRes words: Int): SettingItem = apply { keywords = words }
 
+    // The fixed sentence under a Row's title, for the settings search to
+    // match after titles (#218); 0 for none. A Toggle's subtitle counts
+    // without this. Never a value that changes with the settings.
+    @StringRes
+    var description: Int = 0
+        private set
+
+    fun describedBy(@StringRes text: Int): SettingItem = apply { description = text }
+
+    // What the settings search reads as the row's description.
+    @get:StringRes
+    val searchDescription: Int
+        get() = (this as? Toggle)?.subtitle?.takeIf { it != 0 } ?: description
+
     class Toggle(
         @StringRes override val title: Int,
         val get: (LauncherPrefs) -> Boolean,

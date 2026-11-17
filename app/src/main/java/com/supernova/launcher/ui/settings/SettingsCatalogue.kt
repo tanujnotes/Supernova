@@ -1566,7 +1566,7 @@ object SettingsCatalogue {
                     R.string.badge_test,
                     subtitle = { context.getString(R.string.badge_test_summary) },
                     onClick = actions.postTestBadge
-                ),
+                ).describedBy(R.string.badge_test_summary),
                 // Popup menu (Part A): row configuration dialog + the
                 // notification-lines toggle. Lives here because the popup is
                 // an icon-level surface; its colors live in the Style tab.
@@ -1714,14 +1714,14 @@ object SettingsCatalogue {
                     R.string.import_backup,
                     subtitle = { context.getString(R.string.import_backup_subtitle) },
                     onClick = actions.importBackup
-                ),
+                ).describedBy(R.string.import_backup_subtitle),
                 SettingItem.Row(R.string.share_backup, onClick = actions.shareBackup),
                 SettingItem.Row(R.string.auto_backups, onClick = actions.showAutoBackups),
                 SettingItem.Row(
                     R.string.reset_to_default,
                     subtitle = { context.getString(R.string.reset_to_default_subtitle) },
                     onClick = actions.resetToDefaults
-                ),
+                ).describedBy(R.string.reset_to_default_subtitle),
                 // Maintenance rows kept in Backup rather than a one-off
                 // "Advanced" section: they're recovery/setup tools like the
                 // rows above, and a two-row section wouldn't earn its header.
@@ -1729,7 +1729,7 @@ object SettingsCatalogue {
                     R.string.quick_start,
                     subtitle = { context.getString(R.string.quick_start_subtitle) },
                     onClick = actions.quickStart
-                ),
+                ).describedBy(R.string.quick_start_subtitle),
                 SettingItem.Row(R.string.restart_supernova, onClick = actions.restartLauncher)
             )
         ),
@@ -1747,7 +1747,7 @@ object SettingsCatalogue {
                     R.string.about_whats_new,
                     subtitle = { context.getString(R.string.about_whats_new_summary) },
                     onClick = actions.showWhatsNew
-                ),
+                ).describedBy(R.string.about_whats_new_summary),
                 SettingItem.Row(
                     R.string.about_license,
                     subtitle = { context.getString(R.string.about_license_name) },
@@ -1762,7 +1762,7 @@ object SettingsCatalogue {
                     R.string.about_report_issue,
                     subtitle = { context.getString(R.string.about_report_issue_summary) },
                     onClick = { AboutLinks.open(context, AboutLinks.newIssueUrl(context)) }
-                ),
+                ).describedBy(R.string.about_report_issue_summary),
                 SettingItem.Row(
                     R.string.crash_log,
                     subtitle = {
@@ -1805,13 +1805,13 @@ object SettingsCatalogue {
                     subtitle = { context.getString(R.string.labs_export_icons_summary) },
                     onClick = actions.exportIcons,
                     look = SettingItem.RowLook(chevron = false)
-                ),
+                ).describedBy(R.string.labs_export_icons_summary),
                 SettingItem.Row(
                     R.string.labs_clear_icon_cache,
                     subtitle = { context.getString(R.string.labs_clear_icon_cache_summary) },
                     onClick = actions.clearIconCache,
                     look = SettingItem.RowLook(chevron = false)
-                )
+                ).describedBy(R.string.labs_clear_icon_cache_summary)
             )
         ),
         // Every access Supernova can ask for, each with its state; a tap
@@ -1906,7 +1906,7 @@ object SettingsCatalogue {
         onClick = onClick,
         look = SettingItem.RowLook(icon = R.drawable.ic_settings_warn, warn = true),
         visibleIf = visibleIf
-    )
+    ).apply { describedBy(summary) }
 
     private fun formatMinute(minute: Int): String =
         "%d:%02d".format(minute / 60, minute % 60)
