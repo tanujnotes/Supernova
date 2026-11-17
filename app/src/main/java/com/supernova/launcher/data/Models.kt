@@ -492,8 +492,8 @@ data class LauncherPrefs(
     val undoRemove: Boolean = true,
     // Master animation kill switch consulted via ui/Animations.enabled.
     val disableAnimations: Boolean = false,
-    // Playback speed multiplier (ui/AnimationSpeed): SLOW/DEFAULT/FAST/FASTER.
-    val animationSpeed: AnimationSpeed = AnimationSpeed.DEFAULT,
+    // Playback speed multiplier (ui/AnimationSpeed): RELAXED or FAST.
+    val animationSpeed: AnimationSpeed = AnimationSpeed.RELAXED,
     // App-launch transition style (ui/LaunchAnimation name). REVEAL is the
     // pre-phase-6 clip-reveal behavior; Adaptive icon is the default.
     val launchAnimation: LaunchAnimation = LaunchAnimation.ADAPTIVE_ICON,
@@ -502,9 +502,6 @@ data class LauncherPrefs(
     val hideStatusBar: Boolean = false,
     val darkStatusIcons: StatusBarIcons = StatusBarIcons.AUTO,
     val transparentNav: Boolean = true,
-    // Workspace icons rock back and forth while a drag is live, on out
-    // of the box. Off keeps the grid still.
-    val iconWiggle: Boolean = true,
     // The status bar's twin of transparentNav: off paints it black over the
     // wallpaper instead of letting the wallpaper through.
     val transparentStatus: Boolean = true,

@@ -196,7 +196,7 @@ class PrefRegistryTest {
         search_web_provider:GOOGLE,DUCKDUCKGO,BRAVE,BING
         search_window_mode:IMMERSIVE,WINDOW
         popup_style:BLOCK,PILLS,ANDROID12
-        animation_speed:SLOW,DEFAULT,FAST,FASTER
+        animation_speed:RELAXED,FAST
         launch_animation:SYSTEM,CIRCLE,ADAPTIVE_ICON,REVEAL,SLIDE_UP,ZOOM,BLINK,SLIDE_LEFT
         dark_status_icons:AUTO,LIGHT,DARK
 """
@@ -239,7 +239,7 @@ class PrefRegistryTest {
         home_button_on_main_page:B search_bar_config:S popup_notifications:B popup_card_bg:B
         popup_group_shortcuts:B popup_action_icons:B popup_style:S popup_items_home:S
         popup_items_drawer:S drop_targets:B undo_remove:B disable_animations:B animation_speed:S
-        launch_animation:S hide_status_bar:B dark_status_icons:S transparent_nav:B icon_wiggle:B
+        launch_animation:S hide_status_bar:B dark_status_icons:S transparent_nav:B
         transparent_status:B home_rotation:B home_orientation:S feed_enabled:B feed_edge_swipe:B
         feed_show_search:B feed_show_frequent:B feed_show_shortcuts:B feed_show_media:B
         feed_show_calendar:B feed_show_contacts:B feed_shortcut_rows:I labs_enabled:B

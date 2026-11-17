@@ -1392,11 +1392,6 @@ object SettingsCatalogue {
                     onPick = { viewModel.set(Pref.reshapeLegacy, it.name) }
                 ),
                 SettingItem.Toggle(
-                    R.string.icon_wiggle,
-                    get = { it.iconWiggle },
-                    set = { viewModel.set(Pref.iconWiggle, it) }
-                ),
-                SettingItem.Toggle(
                     R.string.icon_shadow,
                     get = { it.iconShadow },
                     set = { viewModel.set(Pref.iconShadow, it) }

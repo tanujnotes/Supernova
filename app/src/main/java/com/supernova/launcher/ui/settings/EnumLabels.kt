@@ -83,10 +83,8 @@ object EnumLabels {
 
     @StringRes
     fun of(speed: AnimationSpeed): Int = when (speed) {
-        AnimationSpeed.SLOW -> R.string.anim_speed_slow
-        AnimationSpeed.DEFAULT -> R.string.anim_speed_default
+        AnimationSpeed.RELAXED -> R.string.anim_speed_relaxed
         AnimationSpeed.FAST -> R.string.anim_speed_fast
-        AnimationSpeed.FASTER -> R.string.anim_speed_faster
     }
 
     @StringRes

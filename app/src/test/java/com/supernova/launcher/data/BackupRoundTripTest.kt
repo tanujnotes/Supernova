@@ -268,7 +268,7 @@ class BackupRoundTripTest {
         assertEquals(false, decoded.prefs.themedIcons)
         assertEquals(false, decoded.prefs.folderBadges)
         assertEquals(LockMethod.ACCESSIBILITY, decoded.prefs.lockMethod)
-        assertEquals(com.supernova.launcher.ui.AnimationSpeed.DEFAULT, decoded.prefs.animationSpeed)
+        assertEquals(com.supernova.launcher.ui.AnimationSpeed.RELAXED, decoded.prefs.animationSpeed)
         assertEquals(0, decoded.prefs.dockPaddingH)
         assertEquals(0, decoded.prefs.drawerPaddingH)
         assertEquals(0, decoded.prefs.drawerPaddingV)

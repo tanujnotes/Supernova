@@ -321,7 +321,6 @@ object Pref {
     val hideStatusBar = bool("hide_status_bar")
     val darkStatusIcons = choice("dark_status_icons", StatusBarIcons.entries)
     val transparentNav = bool("transparent_nav")
-    val iconWiggle = bool("icon_wiggle")
     val transparentStatus = bool("transparent_status")
     val homeRotation = bool("home_rotation")
     val homeOrientation = text("home_orientation")

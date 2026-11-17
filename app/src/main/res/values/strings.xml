@@ -882,10 +882,8 @@
     <string name="anim_slide_left">Slide left</string>
     <string name="disable_animations">Disable animations</string>
     <string name="animation_speed">Animation speed</string>
-    <string name="anim_speed_slow">Slow</string>
-    <string name="anim_speed_default">Default</string>
+    <string name="anim_speed_relaxed">Relaxed</string>
     <string name="anim_speed_fast">Fast</string>
-    <string name="anim_speed_faster">Faster</string>
 
     <!-- Phase 6: drag UX -->
     <string name="drop_targets">Drag drop targets</string>
@@ -916,7 +914,6 @@
     <string name="status_icons_light">Light icons</string>
     <string name="transparent_nav">Transparent navigation bar</string>
     <string name="transparent_status">Transparent status bar</string>
-    <string name="icon_wiggle">Wiggle icons while dragging</string>
     <string name="home_button_main_page_only">Only on the main page</string>
 
     <!-- Phase 7: feed page -->
@@ -1007,6 +1004,10 @@
     <string name="onboarding_restore_backup">Restore backup</string>
     <string name="onboarding_skip_setup">Skip setup</string>
     <string name="onboarding_skip_hint">To skip setting up Supernova, tap \'Skip setup\'</string>
+    <string name="onboarding_animations_title">Launcher animations</string>
+    <string name="onboarding_animations_message">Your phone\'s animations are turned off. Supernova\'s animations have their own switch. Keep them on? You can change this later in Settings.</string>
+    <string name="onboarding_animations_keep">Keep on</string>
+    <string name="onboarding_animations_off">Turn off</string>
     <string name="onboarding_previous">Previous</string>
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_look_title">Pick a starting point</string>

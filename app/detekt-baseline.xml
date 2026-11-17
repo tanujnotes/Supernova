@@ -196,9 +196,7 @@
     <ID>LoopWithTooManyJumpStatements:WorkspaceCanvas.kt$WorkspaceCanvas$for</ID>
     <ID>LoopWithTooManyJumpStatements:WorkspaceDrops.kt$WorkspaceDrops$for</ID>
     <ID>LoopWithTooManyJumpStatements:WorkspaceGeometry.kt$WorkspaceGeometry$for</ID>
-    <ID>MagicNumber:Animations.kt$AnimationSpeed.FAST$0.6f</ID>
-    <ID>MagicNumber:Animations.kt$AnimationSpeed.FASTER$0.35f</ID>
-    <ID>MagicNumber:Animations.kt$AnimationSpeed.SLOW$1.6f</ID>
+    <ID>MagicNumber:Animations.kt$AnimationSpeed.FAST$0.5f</ID>
     <ID>MagicNumber:AppCatalog.kt$AppCatalog$0.15f</ID>
     <ID>MagicNumber:AppCatalog.kt$AppCatalog$0.35f</ID>
     <ID>MagicNumber:AppCatalog.kt$AppCatalog$0xFF</ID>

@@ -7,10 +7,11 @@ import com.supernova.launcher.data.SettingEnumSerializer
 // Master animation switch. Every animation the launcher owns (launch reveal,
 // folder/popup transitions, drag fades, page effects, search fade, wallpaper
 // zoom) consults this at its site; system-driven animations are unaffected.
-// The system's "Remove animations" (animator scale 0) turns them off too:
-// an animator would only jump to its end then, but scroller-driven motion
-// (page flips, smooth scrolls, sheet settles) ignores the scale and played
-// on regardless.
+// The system's animation setting doesn't: while this switch is on,
+// AnimationScale runs the launcher's animators at 1 even with the system's
+// scale at 0. The scale check below is the fallback should the platform
+// refuse that; an animator at scale 0 only jumps to its end, while
+// scroller-driven motion (page flips, smooth scrolls) would play on.
 object Animations {
     fun enabled(prefs: LauncherPrefs): Boolean = !prefs.disableAnimations && ValueAnimator.areAnimatorsEnabled()
 
@@ -24,7 +25,7 @@ object Animations {
 
     // Whether a jump to another page (home press, page action, desktop
     // previews, a drag's edge flip) or a list's paging scrolls there or lands
-    // at once. Scrollers ignore the system animator scale; enabled() checks it.
+    // at once.
     fun scrollPages(prefs: LauncherPrefs): Boolean = enabled(prefs)
 
     // Whether home page swipes play the chosen scroll effect. Only the
@@ -34,17 +35,20 @@ object Animations {
     fun pageEffects(prefs: LauncherPrefs): Boolean = !prefs.disableAnimations
 }
 
-// Playback speed for launcher-owned animations. DEFAULT keeps the tuned
-// durations; the others scale them. "Disable animations" stays the on/off gate.
+// Playback speed for launcher-owned animations. RELAXED keeps the tuned
+// durations; FAST plays them in about half the time. "Disable animations"
+// stays the on/off gate.
 @kotlinx.serialization.Serializable(with = AnimationSpeed.Names::class)
 enum class AnimationSpeed(val factor: Float) {
-    SLOW(1.6f),
-    DEFAULT(1.0f),
-    FAST(0.6f),
-    FASTER(0.35f);
+    RELAXED(1.0f),
+    FAST(0.5f);
 
-    // Its name in the store and in a backup, read back leniently.
-    object Names : SettingEnumSerializer<AnimationSpeed>("AnimationSpeed", entries, DEFAULT)
+    // Its name in the store and in a backup, read back leniently. The four
+    // speeds before these two map to the nearer one.
+    object Names : SettingEnumSerializer<AnimationSpeed>(
+        "AnimationSpeed", entries, RELAXED,
+        aliases = mapOf("SLOW" to RELAXED, "DEFAULT" to RELAXED, "FASTER" to FAST)
+    )
 
     companion object {
         fun fromName(name: String): AnimationSpeed = Names.parse(name)
