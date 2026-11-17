@@ -153,6 +153,7 @@
     <string name="drawer_swipe_haptic">Haptic feedback</string>
     <string name="drawer_swipe_haptic_summary">Vibrate when a swipe up starts opening the drawer</string>
     <string name="drawer_search_bar_position">Search bar position</string>
+    <string name="search_bar_page_summary">Look and buttons</string>
     <string name="drawer_tab_bar">Tab bar position</string>
     <string name="tab_bar_top">Top</string>
     <string name="tab_bar_bottom">Bottom</string>
@@ -562,7 +563,7 @@
     <string name="section_home_subtitle">Grid, icons, labels and pages</string>
     <string name="section_dock_subtitle">Icons, background and pages</string>
     <string name="section_drawer_subtitle">Layout, style and groups</string>
-    <string name="section_search_subtitle">Providers, window and search bars</string>
+    <string name="section_search_subtitle">Providers and search window</string>
     <string name="section_feed_subtitle">The page before home and its cards</string>
     <string name="section_folders_subtitle">Window, icon and labels</string>
     <string name="section_icons_subtitle">Shape, packs, labels and badges</string>
@@ -576,7 +577,6 @@
     <string name="group_pages">Pages</string>
     <string name="group_tabs">Tabs &amp; groups</string>
     <string name="group_providers">Providers</string>
-    <string name="group_bars">Search bars</string>
     <string name="group_icons">Icons</string>
     <string name="group_appearance">Appearance</string>
     <string name="group_label_rows">Labels</string>

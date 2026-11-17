@@ -704,8 +704,8 @@ class SettingsActivity : AppCompatActivity() {
     // Pages opened from a row on another page rather than from the root,
     // and the page that row is on: back returns there.
     private val subPageParents = mapOf(
-        R.string.desktop_search_bar to R.string.settings_section_search,
-        R.string.drawer_search_bar to R.string.settings_section_search,
+        R.string.desktop_search_bar to R.string.settings_section_home,
+        R.string.drawer_search_bar to R.string.settings_section_drawer,
         R.string.drawer_groups to R.string.settings_section_drawer
     )
 

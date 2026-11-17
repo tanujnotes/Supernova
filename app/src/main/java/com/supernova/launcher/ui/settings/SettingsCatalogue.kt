@@ -338,7 +338,7 @@ object SettingsCatalogue {
     ): List<SettingsSection> {
         val rows = Rows(context, viewModel, actions)
         // The drawer field's Top/Bottom/Hidden, on its own page and on the
-        // App drawer page next to the tab bar's.
+        // App drawer page.
         val drawerBarPlacement = { title: Int ->
             rows.choice(
                 title, DrawerBarPlacement.entries,
@@ -355,6 +355,26 @@ object SettingsCatalogue {
                     it.copy(placement = placement.name, enabled = placement != DrawerBarPlacement.HIDDEN)
                 }
             }
+        }
+        // The desktop bar's placement, on its own page and on Home screen.
+        val desktopBarPlacement = { title: Int ->
+            rows.choice(
+                title,
+                listOf(
+                    SearchBarPlacement.NONE, SearchBarPlacement.DOCK_ABOVE,
+                    SearchBarPlacement.DOCK_BELOW, SearchBarPlacement.PERSISTENT,
+                    SearchBarPlacement.TOP
+                ),
+                { SearchBarPlacement.fromName(SearchBarPrefs.desktopBar(it).placement) }, { EnumLabels.of(it) }
+            ) { placement -> rows.editDesktopBar { it.copy(placement = placement.name) } }
+        }
+        // A bar's own page, opened from the Home screen or App drawer page.
+        val barPageLink = { page: Int ->
+            SettingItem.Row(
+                page,
+                subtitle = { context.getString(R.string.search_bar_page_summary) },
+                onClick = { actions.openSection(page) }
+            )
         }
         val fitHint = IconFitHint(context)
         return listOf(
@@ -405,6 +425,8 @@ object SettingsCatalogue {
                     subtitle = { context.getString(R.string.grid_value, it.gridRows, it.gridCols) },
                     onClick = actions.pickDesktopGrid
                 ),
+                desktopBarPlacement(R.string.drawer_search_bar_position),
+                barPageLink(R.string.desktop_search_bar),
                 rows.choice(
                     R.string.wallpaper_scroll, com.supernova.launcher.ui.WallpaperScrollMode.entries,
                     { com.supernova.launcher.ui.WallpaperScrollMode.fromPrefs(it) }, { EnumLabels.of(it) }
@@ -868,6 +890,7 @@ object SettingsCatalogue {
                     set = { viewModel.set(Pref.drawerPullToSearch, it) }
                 ),
                 drawerBarPlacement(R.string.drawer_search_bar_position),
+                barPageLink(R.string.drawer_search_bar),
                 SettingItem.Header(R.string.group_tabs),
                 rows.choice(
                     R.string.drawer_tab_bar, DrawerTabBar.entries,
@@ -1057,34 +1080,6 @@ object SettingsCatalogue {
                     get = { it.searchPrivateKeyboard },
                     set = { viewModel.set(Pref.searchPrivateKeyboard, it) },
                     subtitle = R.string.search_private_keyboard_summary
-                ),
-                SettingItem.Header(R.string.group_bars),
-                SettingItem.Row(
-                    R.string.desktop_search_bar,
-                    subtitle = {
-                        context.getString(
-                            EnumLabels.of(
-                                SearchBarPlacement.fromName(
-                                    SearchBarConfig.decode(it.searchBarConfig).desktop.placement
-                                )
-                            )
-                        )
-                    },
-                    onClick = { actions.openSection(R.string.desktop_search_bar) }
-                ),
-                SettingItem.Row(
-                    R.string.drawer_search_bar,
-                    subtitle = {
-                        val config = SearchBarConfig.decode(it.searchBarConfig).drawer
-                        context.getString(
-                            when (com.supernova.launcher.ui.DrawerBarPlacement.fromConfig(config)) {
-                                com.supernova.launcher.ui.DrawerBarPlacement.TOP -> R.string.tab_bar_top
-                                com.supernova.launcher.ui.DrawerBarPlacement.BOTTOM -> R.string.tab_bar_bottom
-                                com.supernova.launcher.ui.DrawerBarPlacement.HIDDEN -> R.string.placement_hidden
-                            }
-                        )
-                    },
-                    onClick = { actions.openSection(R.string.drawer_search_bar) }
                 )
             )
         ),
@@ -1092,21 +1087,13 @@ object SettingsCatalogue {
         // back returns there. It has no rows of its own: SettingsActivity
         // shows DrawerGroupsPane in the list's place.
         SettingsSection(R.string.drawer_groups, emptyList()),
-        // The Desktop search bar's own page, opened from the Search page's
-        // Search bars group (and the bar's long-press menu); back returns there.
+        // The Desktop search bar's own page, opened from the Home screen
+        // page (and the bar's long-press menu); back returns there.
         SettingsSection(
             R.string.desktop_search_bar,
             listOf(
                 SettingItem.Preview(PreviewKind.SEARCH_BAR),
-                rows.choice(
-                    R.string.search_bar_placement,
-                    listOf(
-                        SearchBarPlacement.NONE, SearchBarPlacement.DOCK_ABOVE,
-                        SearchBarPlacement.DOCK_BELOW, SearchBarPlacement.PERSISTENT,
-                        SearchBarPlacement.TOP
-                    ),
-                    { SearchBarPlacement.fromName(SearchBarPrefs.desktopBar(it).placement) }, { EnumLabels.of(it) }
-                ) { placement -> rows.editDesktopBar { it.copy(placement = placement.name) } },
+                desktopBarPlacement(R.string.search_bar_placement),
                 SettingItem.Header(R.string.group_appearance),
                 SettingItem.Slider(
                     R.string.style_corner_radius, min = 0, max = DesktopSearchBarConfig.MAX_RADIUS, step = 2,
@@ -1149,7 +1136,7 @@ object SettingsCatalogue {
                 // The same buttons as the drawer field's, in the same order.
             ) + SearchBarButtons.ROWS.map(rows::barChip)
         ),
-        // The drawer field's own page, opened from the same Search bars group.
+        // The drawer field's own page, opened from the App drawer page.
         SettingsSection(
             R.string.drawer_search_bar,
             listOf(
