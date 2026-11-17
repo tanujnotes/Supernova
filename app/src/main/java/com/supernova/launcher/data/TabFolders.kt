@@ -8,7 +8,8 @@ package com.supernova.launcher.data
 //
 // A tab shows the folders it holds. The main (All or Personal) list shows
 // every other folder, and a held one too while the tab keeps its apps in the
-// main tab: the folder's key leaves the main list as an app's does.
+// main tab: the folder's key leaves the main list as an app's does. A drawer
+// folder holds folders the same way (#229), shown in its card instead.
 object TabFolders {
     private const val PREFIX = "folder:"
     private const val ESCAPED_PERCENT = "%25"
@@ -51,6 +52,41 @@ object TabFolders {
     fun onMainList(folders: List<DrawerGroup>, isolated: Set<String>): List<DrawerGroup> =
         if (isolated.isEmpty()) folders else folders.filterNot { keyOf(it.id) in isolated }
 
+    // The drawer folders a drawer folder holds (#229), in the order given;
+    // never the folder itself.
+    fun heldBy(folder: DrawerGroup, folders: List<DrawerGroup>): List<DrawerGroup> =
+        folders.filter { it.id != folder.id && keyOf(it.id) in folder.members }
+
+    // Every folder id inside a folder, however deep. Stops at one already
+    // seen, so a loop a backup brought in can't run forever.
+    fun nestedIds(folder: DrawerGroup, folders: List<DrawerGroup>): Set<String> {
+        val seen = mutableSetOf<String>()
+        val pending = ArrayDeque(heldBy(folder, folders))
+        while (pending.isNotEmpty()) {
+            val next = pending.removeFirst()
+            if (next.id == folder.id || !seen.add(next.id)) continue
+            pending.addAll(heldBy(next, folders))
+        }
+        return seen
+    }
+
+    // Whether a folder can go inside another: not into itself, and not into
+    // one it already holds somewhere down, which would make a loop.
+    fun canHold(parent: DrawerGroup, child: DrawerGroup, folders: List<DrawerGroup>): Boolean =
+        parent.id != child.id && parent.id !in nestedIds(child, folders)
+
+    // Whether a folder has something to show: an app (hasApps), or a folder
+    // inside it that has one.
+    fun hasContent(folder: DrawerGroup, folders: List<DrawerGroup>, hasApps: (DrawerGroup) -> Boolean): Boolean =
+        hasApps(folder) || nestedIds(folder, folders).any { id -> folders.any { it.id == id && hasApps(it) } }
+
+    // The keys of the folders that folders taking their contents out of the
+    // main list hold: those folders show inside them, not on the list.
+    fun nestedKeys(folders: List<DrawerGroup>, leavesMainList: (DrawerGroup) -> Boolean): Set<String> =
+        folders.filter(leavesMainList).flatMapTo(mutableSetOf()) { parent ->
+            heldBy(parent, folders).map { keyOf(it.id) }
+        }
+
     // A group deleted: no tab holds it any more, so a later folder with the
     // same id (a group from before ids, put back) doesn't turn up in its tabs.
     fun forgotten(groups: List<DrawerGroup>, id: String): List<DrawerGroup> {
@@ -60,7 +96,7 @@ object TabFolders {
 }
 
 // A row in a drawer group's Select apps: an app, or a drawer folder a tab
-// can hold.
+// or another folder can hold. Also a drawer folder's contents, in its card.
 sealed interface GroupPick {
     val label: String
 

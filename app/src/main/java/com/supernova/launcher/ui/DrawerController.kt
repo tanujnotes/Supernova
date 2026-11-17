@@ -1464,7 +1464,8 @@ class DrawerController(
         }
         val folders = shownFolders.mapNotNull { group ->
             val members = viewModel.drawerFolderApps(group)
-            if (members.isEmpty()) {
+            // Shown while it has an app, or a folder inside it that has one.
+            if (!viewModel.drawerFolderHasContent(group)) {
                 null
             } else {
                 AppDrawerAdapter.FolderEntry(group, buildFolderIcon(group, members), members)

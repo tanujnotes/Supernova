@@ -8,6 +8,7 @@ import androidx.core.graphics.drawable.toDrawable
 import com.supernova.launcher.data.CustomShapeSpec
 import com.supernova.launcher.data.DrawerGroup
 import com.supernova.launcher.data.GalleryIconCodec
+import com.supernova.launcher.data.GroupPick
 import com.supernova.launcher.data.ItemType
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.data.LauncherItem
@@ -124,13 +125,23 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
         return composedFolderIcon(memberIcons)
     }
 
-    fun drawerFolderIcon(group: DrawerGroup, members: List<LaunchableApp>): Drawable =
+    // A folder inside it (#229) takes its place in the preview as its own
+    // icon, drawn from its apps alone (nested false): a preview never goes
+    // deeper.
+    fun drawerFolderIcon(group: DrawerGroup, members: List<LaunchableApp>, nested: Boolean = true): Drawable =
         customFolderIcon(group.iconBase64, group.iconPack, group.iconName, group.iconRaw, isFolder = true)
             ?: composedFolderIcon(
-                previewMembers(members)
-                    .mapNotNull { app ->
-                        PausedIcon.of(viewModel.appCatalog().iconFor(app), viewModel.state.value, app.userSerial)
+                previewMembers(
+                    if (nested) viewModel.drawerFolderContents(group, members) else members.map(GroupPick::App)
+                ).mapNotNull { pick ->
+                    when (pick) {
+                        is GroupPick.App -> PausedIcon.of(
+                            viewModel.appCatalog().iconFor(pick.app), viewModel.state.value, pick.app.userSerial
+                        )
+                        is GroupPick.Folder ->
+                            drawerFolderIcon(pick.group, viewModel.drawerFolderApps(pick.group), nested = false)
                     }
+                }
             )
 
     // The members a folder's preview draws: the window's own order, picked

@@ -4180,20 +4180,39 @@ class LauncherActivity :
         return page.coerceIn(0, lastPage)
     }
 
+    // A drawer folder card's tiles: its apps as transient APP items, and the
+    // folders inside it as FOLDER items, each put in held by its item id.
+    private fun drawerFolderItems(
+        group: DrawerGroup,
+        members: List<LaunchableApp>,
+        held: MutableMap<String, DrawerGroup>
+    ): List<LauncherItem> = viewModel.drawerFolderContents(group, members).map { pick ->
+        when (pick) {
+            is com.supernova.launcher.data.GroupPick.App -> pick.app.let { app ->
+                LauncherItem(
+                    id = "drawer-folder/${app.userSerial}/${app.packageName}/${app.className}",
+                    itemType = ItemType.APP,
+                    label = app.label,
+                    packageName = app.packageName,
+                    className = app.className,
+                    userSerial = app.userSerial
+                )
+            }
+            is com.supernova.launcher.data.GroupPick.Folder -> {
+                val id = "drawer-folder/folder/${pick.group.id}"
+                held[id] = pick.group
+                LauncherItem(id = id, itemType = ItemType.FOLDER, label = pick.group.name)
+            }
+        }
+    }
+
     // Drawer folders (FOLDER-type groups): the same popup chrome fed from
     // LaunchableApps via transient items - nothing here touches the model.
     private fun showDrawerFolderPopup(anchor: View, group: DrawerGroup, members: List<LaunchableApp>) {
         val prefs = viewModel.state.value.prefs
-        val items = members.map { app ->
-            LauncherItem(
-                id = "drawer-folder/${app.userSerial}/${app.packageName}/${app.className}",
-                itemType = ItemType.APP,
-                label = app.label,
-                packageName = app.packageName,
-                className = app.className,
-                userSerial = app.userSerial
-            )
-        }
+        // Its apps, and the drawer folders inside it (#229) as folder tiles.
+        val held = HashMap<String, DrawerGroup>()
+        val items = drawerFolderItems(group, members, held)
         var popup: android.widget.PopupWindow? = null
         // An app's menu open over the card, if any: it closes with the card.
         var memberMenu: SupernovaPopupMenu? = null
@@ -4206,7 +4225,11 @@ class LauncherActivity :
             labelPrefs = prefs,
             iconScale = if (prefs.folderMatchDesktop) prefs.iconScale else prefs.folderIconScale,
             onClick = { item ->
-                if (viewModel.state.value.prefs.folderCloseOnLaunch) popup?.dismiss()
+                // A folder inside opens in this card's place; Back then
+                // closes it, not back to this one.
+                val child = held[item.id]
+                if (child != null || viewModel.state.value.prefs.folderCloseOnLaunch) popup?.dismiss()
+                child?.let { showDrawerFolderPopup(anchor, it, viewModel.drawerFolderApps(it)) }
                 item.toLaunchableApp()?.let { launchApp(it) }
             },
             // An app in a drawer folder is a drawer icon like any other: its
@@ -4214,6 +4237,15 @@ class LauncherActivity :
             // card is its own window, so the gesture's touches come in
             // through its interceptor (below), not dispatchTouchEvent.
             onLongPress = { memberView, item ->
+                // A folder inside: the drawer folder's menu, and a drag of
+                // its apps to the home screen.
+                held[item.id]?.let { child ->
+                    val apps = viewModel.drawerFolderApps(child)
+                    val payload = DragPayload.DrawerFolder(child, apps)
+                    drag.arm(memberView, payload, window = popup, draggable = apps.isNotEmpty()) {
+                        showDrawerFolderMenu(memberView, child, apps).also { memberMenu = it }
+                    }
+                }
                 item.toLaunchableApp()?.let { app ->
                     drag.arm(memberView, DragPayload.DrawerApp(app), window = popup) {
                         showDrawerItemMenu(memberView, app, source = popup).also { memberMenu = it }
@@ -4223,6 +4255,14 @@ class LauncherActivity :
         )
         adapter.decorateIcon = { icon, member ->
             itemIcons.withBadge(icon, member.packageName, member.className, member.userSerial)
+        }
+        val heldIcons = HashMap<String, android.graphics.drawable.Drawable>()
+        adapter.shortcutIcon = { member ->
+            held[member.id]?.let { child ->
+                heldIcons.getOrPut(member.id) {
+                    itemIcons.drawerFolderIcon(child, viewModel.drawerFolderApps(child), nested = false)
+                }
+            }
         }
         popup = folderPopup.show(
             anchor = anchor,
