@@ -1102,7 +1102,8 @@ object SettingsCatalogue {
                     R.string.search_bar_placement,
                     listOf(
                         SearchBarPlacement.NONE, SearchBarPlacement.DOCK_ABOVE,
-                        SearchBarPlacement.DOCK_BELOW, SearchBarPlacement.PERSISTENT
+                        SearchBarPlacement.DOCK_BELOW, SearchBarPlacement.PERSISTENT,
+                        SearchBarPlacement.TOP
                     ),
                     { SearchBarPlacement.fromName(SearchBarPrefs.desktopBar(it).placement) }, { EnumLabels.of(it) }
                 ) { placement -> rows.editDesktopBar { it.copy(placement = placement.name) } },

@@ -378,6 +378,7 @@ object EnumLabels {
         SearchBarPlacement.DOCK_ABOVE -> R.string.search_bar_above_dock
         SearchBarPlacement.DOCK_BELOW -> R.string.search_bar_below_dock
         SearchBarPlacement.PERSISTENT -> R.string.search_bar_persistent
+        SearchBarPlacement.TOP -> R.string.search_bar_top
         SearchBarPlacement.WIDGET -> R.string.search_bar_widget
     }
 

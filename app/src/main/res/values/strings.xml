@@ -794,6 +794,7 @@
     <string name="search_bar_above_dock">Above dock</string>
     <string name="search_bar_below_dock">Below dock</string>
     <string name="search_bar_persistent">Always show at bottom</string>
+    <string name="search_bar_top">Always show at top</string>
     <string name="search_bar_widget">Workspace widget</string>
     <string name="search_bar_wireframe">Wireframe style</string>
     <string name="search_bar_wireframe_summary">Only an outline, with no fill</string>

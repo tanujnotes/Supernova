@@ -4,11 +4,13 @@ import com.supernova.launcher.runLogged
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// Where the desktop search bar sits. WIDGET is declared ahead of its consumer
-// (the workspace-widget placement arrives in a later phase) so configs written
-// then decode now; settings never offers it yet.
+// Where the desktop search bar sits. PERSISTENT is the bottom bar that stays
+// when the dock is off; TOP is pinned under the status bar on every page.
+// WIDGET is declared ahead of its consumer (the workspace-widget placement
+// arrives in a later phase) so configs written then decode now; settings
+// never offers it yet.
 enum class SearchBarPlacement {
-    NONE, DOCK_ABOVE, DOCK_BELOW, PERSISTENT, WIDGET;
+    NONE, DOCK_ABOVE, DOCK_BELOW, PERSISTENT, TOP, WIDGET;
 
     companion object {
         fun fromName(name: String): SearchBarPlacement =

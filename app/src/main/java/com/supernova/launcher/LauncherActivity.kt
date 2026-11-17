@@ -2157,7 +2157,7 @@ class LauncherActivity :
             systemInsets.left + systemInsets.right
         val prefsBar = SearchBarConfig.decode(prefs.searchBarConfig).desktop
         val barShown = SearchBarPlacement.fromName(prefsBar.placement).let {
-            it != SearchBarPlacement.NONE && it != SearchBarPlacement.WIDGET
+            it != SearchBarPlacement.NONE && it != SearchBarPlacement.WIDGET && it != SearchBarPlacement.TOP
         }
         val shared = if (barShown && phoneSideBySide(prefs)) sharedRowPx(prefs) else null
         val content = if (shared != null) {
@@ -2290,7 +2290,8 @@ class LauncherActivity :
         binding.scrimBottom.visibility = if (prefs.showScrims) View.VISIBLE else View.GONE
         // Desktop search bar placement. DOCK_ABOVE/DOCK_BELOW only exist
         // relative to a visible dock; PERSISTENT degrades to the bare bottom
-        // when the dock is off. WIDGET is a later phase and renders nothing.
+        // when the dock is off. TOP is pinned under the status bar whatever
+        // the dock does. WIDGET is a later phase and renders nothing.
         val barConfig = SearchBarConfig.decode(prefs.searchBarConfig).desktop
         val slot = when (SearchBarPlacement.fromName(barConfig.placement)) {
             SearchBarPlacement.NONE, SearchBarPlacement.WIDGET -> null
@@ -2298,6 +2299,12 @@ class LauncherActivity :
             SearchBarPlacement.DOCK_BELOW -> if (prefs.dockEnabled) BarSlot.BELOW_DOCK else null
             SearchBarPlacement.PERSISTENT ->
                 if (prefs.dockEnabled) BarSlot.BELOW_DOCK else BarSlot.BOTTOM
+            SearchBarPlacement.TOP -> BarSlot.TOP
+        }
+        val topBar = if (slot == BarSlot.TOP) {
+            BottomChrome.topBar(resources.displayMetrics.density, systemInsets.top)
+        } else {
+            null
         }
         // A Replace widget takes the bar's slot; the built-in bar steps aside
         // but keeps driving the slot's geometry below.
@@ -2316,7 +2323,7 @@ class LauncherActivity :
         // A phone on its side shares one row between the bar (left) and the
         // dock (right): stacked, the two took a third of the short window
         // and the grid's icons shrank to half size to fit what was left.
-        val shared = if (slot != null && phoneSideBySide(prefs)) sharedRowPx(prefs) else null
+        val shared = if (slot != null && topBar == null && phoneSideBySide(prefs)) sharedRowPx(prefs) else null
         val sideBySide = shared != null
         // Behind-nav mode drops the side and bottom margins so the background
         // slab runs flush to the window's bottom edge. Neither edge-to-edge
@@ -2401,7 +2408,8 @@ class LauncherActivity :
         binding.dockBar.layoutParams = dockParams
 
         val barParams = binding.desktopSearchBar.layoutParams as ViewGroup.MarginLayoutParams
-        barParams.bottomMargin = chrome.barBottom
+        barParams.bottomMargin = if (topBar != null) 0 else chrome.barBottom
+        barParams.topMargin = topBar?.barTop ?: 0
         barParams.leftMargin = dp(16) + systemInsets.left
         barParams.rightMargin = dp(16) + systemInsets.right
         // Same landscape cap the dock takes: a search field running the full
@@ -2412,10 +2420,11 @@ class LauncherActivity :
             dockCap > 0 -> dockCap
             else -> ViewGroup.LayoutParams.MATCH_PARENT
         }
+        val barEdge = if (topBar != null) Gravity.TOP else Gravity.BOTTOM
         val barGravity = when {
-            shared != null -> Gravity.BOTTOM or Gravity.START
-            dockCap > 0 -> Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-            else -> Gravity.BOTTOM
+            shared != null -> barEdge or Gravity.START
+            dockCap > 0 -> barEdge or Gravity.CENTER_HORIZONTAL
+            else -> barEdge
         }
         barParams.width = barWidth
         (barParams as? androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams)
@@ -2424,6 +2433,7 @@ class LauncherActivity :
         binding.desktopSearchWidget.layoutParams =
             (binding.desktopSearchWidget.layoutParams as ViewGroup.MarginLayoutParams).apply {
                 bottomMargin = barParams.bottomMargin
+                topMargin = barParams.topMargin
                 leftMargin = barParams.leftMargin
                 rightMargin = barParams.rightMargin
                 width = barWidth
@@ -2439,7 +2449,7 @@ class LauncherActivity :
         }
         val pagerParams = binding.workspacePager.layoutParams as ViewGroup.MarginLayoutParams
         pagerParams.bottomMargin = chrome.pagerBottom
-        pagerParams.topMargin = systemInsets.top
+        pagerParams.topMargin = topBar?.pagerTop ?: systemInsets.top
         pagerParams.leftMargin = systemInsets.left
         pagerParams.rightMargin = systemInsets.right
         binding.workspacePager.layoutParams = pagerParams
