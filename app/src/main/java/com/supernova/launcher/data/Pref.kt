@@ -204,6 +204,7 @@ object Pref {
     val drawerTabContent = choice("drawer_tab_content", DrawerTabContent.entries)
     val drawerTabAlign = choice("drawer_tab_align", DrawerTabAlign.entries)
     val drawerTabsNoSwipe = bool("drawer_tabs_no_swipe")
+    val drawerTabsLoop = bool("drawer_tabs_loop")
     val drawerFrequentRow = bool("drawer_frequent_row")
     val drawerRememberPosition = bool("drawer_remember_position")
     val drawerAutoClose = bool("drawer_auto_close")

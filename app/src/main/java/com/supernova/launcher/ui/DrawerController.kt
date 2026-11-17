@@ -151,6 +151,13 @@ class DrawerController(
     // as the drawer opening.
     private var suppressExpandCallback = false
     private var selectedTab: Any? = null
+    // The tab showing, by position, so a newly picked one knows which side
+    // it slides in from; -1 before the bar has one.
+    private var shownTabIndex = -1
+    // +1 or -1 while a swipe's tab change is being applied, else 0 (a tap).
+    private var swipeDirection = 0
+    // Set while rebuildTabs picks the tab: no change the user made, no slide.
+    private var rebuildingTabs = false
     private var renderedTabsKey: String? = null
     private var renderedDefaultTab: String? = null
     private var appliedStyle: List<Any?>? = null
@@ -236,9 +243,42 @@ class DrawerController(
 
     private fun selectAdjacentTab(delta: Int) {
         val tabs = binding.drawerTabs
-        val current = (0 until tabs.tabCount).firstOrNull { tabs.getTabAt(it)?.isSelected == true } ?: return
-        val next = (current + delta).coerceIn(0, tabs.tabCount - 1)
-        if (next != current) tabs.getTabAt(next)?.select()
+        val count = tabs.tabCount
+        val current = (0 until count).firstOrNull { tabs.getTabAt(it)?.isSelected == true } ?: return
+        // Loop tabs: past the last tab is the first, before the first the last.
+        val next = if (viewModel.state.value.prefs.drawerTabsLoop) {
+            Math.floorMod(current + delta, count)
+        } else {
+            (current + delta).coerceIn(0, count - 1)
+        }
+        if (next == current) return
+        // The swipe's own way, so a wrap still slides in from the side the
+        // finger came from rather than from the far end.
+        swipeDirection = delta
+        tabs.getTabAt(next)?.select()
+    }
+
+    // A tab the user switches to slides in from its side and fades up:
+    // from the right for a later tab (or a swipe left), from the left for
+    // an earlier one. Not while the drawer is still opening, a query
+    // filters the list, or Supernova's animations are off.
+    private fun slideInTab(direction: Int) {
+        val prefs = viewModel.state.value.prefs
+        val list = binding.drawerListContainer
+        list.animate().cancel()
+        val filtering = searchingExternally || binding.drawerSearch.text?.isNotEmpty() == true
+        val still = !Animations.enabled(prefs) || progress < 1f || list.width == 0
+        if (still || filtering) {
+            list.translationX = 0f
+            list.alpha = 1f
+            return
+        }
+        list.translationX = direction * list.width * TAB_SLIDE_FRACTION
+        list.alpha = 0f
+        list.animate().translationX(0f).alpha(1f)
+            .setDuration(Animations.duration(prefs, TAB_SLIDE_MS))
+            .setInterpolator(android.view.animation.DecelerateInterpolator())
+            .start()
     }
 
     // drawerPullToSearch pref: dragging on past the end of the list opens the
@@ -653,10 +693,16 @@ class DrawerController(
         }
         binding.drawerTabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
+                val direction = swipeDirection.takeIf { it != 0 }
+                    ?: Integer.signum(tab.position - shownTabIndex)
+                val slide = !rebuildingTabs && shownTabIndex >= 0 && direction != 0
+                swipeDirection = 0
+                shownTabIndex = tab.position
                 selectedTab = tab.tag
                 submit()
                 adapter.filter(binding.drawerSearch.text?.toString().orEmpty())
                 syncPages()
+                if (slide) slideInTab(direction)
             }
 
             override fun onTabUnselected(tab: TabLayout.Tab) = Unit
@@ -1735,6 +1781,7 @@ class DrawerController(
         val nothingToTab = tabsOff || (groups.isEmpty() && !workTab)
         if (nothingToTab && !privateTab) {
             tabs.visibility = View.GONE
+            shownTabIndex = -1
             if (selectedTab != null) {
                 selectedTab = null
                 if (populated) submit()
@@ -1773,7 +1820,13 @@ class DrawerController(
         val target = kept
             ?: defaultId?.let { id -> indexOf { it is DrawerGroup && it.id == id } }
             ?: 0
-        tabs.getTabAt(target)?.select()
+        rebuildingTabs = true
+        try {
+            tabs.getTabAt(target)?.select()
+        } finally {
+            rebuildingTabs = false
+        }
+        shownTabIndex = target
         selectedTab = tabs.getTabAt(target)?.tag
     }
 
@@ -2309,6 +2362,10 @@ class DrawerController(
         const val TILE_SIDE_PADDING_DP = 8
         const val MAX_COLUMNS = 12
         const val TAB_FLING_MIN_VELOCITY = 900f
+        // A switched-to tab's list starts a quarter of its width aside and
+        // settles in this long (before the animation speed pref).
+        const val TAB_SLIDE_FRACTION = 0.25f
+        const val TAB_SLIDE_MS = 220L
         // The Bubble tab type's pill: fully round, 6dp inside the bar's
         // height at top and bottom.
         const val TAB_BUBBLE_RADIUS_DP = 100f

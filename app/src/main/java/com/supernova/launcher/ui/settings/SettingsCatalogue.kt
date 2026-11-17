@@ -983,6 +983,18 @@ object SettingsCatalogue {
                     visibleIf = { viewModel.drawerTabGroups().isNotEmpty() || viewModel.hasWorkApps() },
                     subtitle = R.string.drawer_isolate_tabs_summary
                 ),
+                // Swiping past the last tab lands on the first (#234). Tab
+                // swipes are off with Isolate tabs and in the paged style.
+                SettingItem.Toggle(
+                    R.string.drawer_tabs_loop,
+                    get = { it.drawerTabsLoop },
+                    set = { viewModel.set(Pref.drawerTabsLoop, it) },
+                    visibleIf = { viewModel.drawerTabGroups().isNotEmpty() || viewModel.hasWorkApps() },
+                    subtitle = R.string.drawer_tabs_loop_summary
+                ).hiddenWhen {
+                    needsOff(R.string.drawer_isolate_tabs, it.drawerTabsNoSwipe)
+                        ?: dependsOn(R.string.drawer_style, it.drawerStyle == DrawerStyle.PAGED_GRID)
+                },
                 SettingItem.Toggle(
                     R.string.smart_folders,
                     get = { it.smartFolders },
