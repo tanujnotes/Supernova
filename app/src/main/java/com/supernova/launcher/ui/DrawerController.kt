@@ -479,10 +479,11 @@ class DrawerController(
             insets
         }
         binding.drawerRecycler.adapter = adapter
-        // Full-list rebinds shouldn't cross-fade every tile, and a deeper
-        // view cache keeps flings from re-inflating rows.
+        // Full-list rebinds shouldn't cross-fade every tile. The view cache
+        // stays at its default: a cached tile serves only its own position
+        // again, so a deep one (24) held the tiles a fling scrolled away
+        // back from the pool, and the rows coming in inflated new ones.
         binding.drawerRecycler.itemAnimator = null
-        binding.drawerRecycler.setItemViewCacheSize(24)
         binding.drawerRecycler.addOnScrollListener(newScrollKeyboardHider())
         // Pages are cut to the pager's height (syncPages), which can change
         // after the cut; posted, so the re-cut isn't made inside a layout.
@@ -1969,6 +1970,7 @@ class DrawerController(
                 val columns = columnCount(prefs)
                 adapter.tileWidthPx = gridWidthPx() / columns
                 adapter.sizePool(recycler.recycledViewPool, columns)
+                adapter.prefillPool(recycler, columns)
                 refreshGridRows(prefs)
                 // Before the first layout there is no height to share out.
                 if (prefs.drawerRows > 0 && recycler.height == 0) {

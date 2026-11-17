@@ -1,6 +1,7 @@
 package com.supernova.launcher.ui
 
 import androidx.core.content.withStyledAttributes
+import androidx.core.view.doOnAttach
 import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
@@ -192,11 +193,28 @@ class AppDrawerAdapter(
     // A grid's spare tiles: RecyclerView keeps five of a kind by default, and
     // a fling through a grid of `columns` brings a whole row of them in at
     // once, so every row past the fifth tile inflated new ones mid-fling.
-    // Enough here for a few rows.
+    // Enough here for a screenful, so a new list (a tab, a search) takes
+    // the old one's tiles instead of inflating its own.
     fun sizePool(pool: RecyclerView.RecycledViewPool, columns: Int) {
         val spare = (columns * POOL_ROWS).coerceAtLeast(DEFAULT_POOL)
         pool.setMaxRecycledViews(TYPE_TILE, spare)
         pool.setMaxRecycledViews(TYPE_FOLDER_TILE, columns.coerceAtLeast(DEFAULT_POOL))
+    }
+
+    // Inflates a couple of rows of spare tiles into the pool while the main
+    // thread is idle, one tile at a time. The list's first fling otherwise
+    // inflated every row it brought in, five tiles at 2-4ms each, and
+    // dropped frames all the way down.
+    fun prefillPool(list: RecyclerView, columns: Int) {
+        val pool = list.recycledViewPool
+        val target = columns * PREFILL_ROWS
+        list.doOnAttach {
+            android.os.Looper.myQueue().addIdleHandler {
+                val more = list.isAttachedToWindow && pool.getRecycledViewCount(TYPE_TILE) < target
+                if (more) pool.putRecycledView(createViewHolder(list, TYPE_TILE))
+                more && pool.getRecycledViewCount(TYPE_TILE) < target
+            }
+        }
     }
 
     // True when something a tile draws changed.
@@ -714,7 +732,8 @@ class AppDrawerAdapter(
         private const val HEADER_KEY = "list-header"
         private const val PRIVATE_HEADER_KEY = "private-header"
         // Rows of spare tiles a grid keeps, and RecyclerView's own count.
-        private const val POOL_ROWS = 3
+        private const val POOL_ROWS = 8
+        private const val PREFILL_ROWS = 2
         private const val DEFAULT_POOL = 5
         private const val WEB_ROW_ID = -2L
         private const val EMPTY_ROW_ID = -1L

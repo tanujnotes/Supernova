@@ -171,13 +171,19 @@ class FastScrollerView @JvmOverloads constructor(
         invalidate()
         val recycler = list ?: return
         val progress = if (span() > 0f) offset / span() else 0f
-        // The list follows the thumb pixel for pixel. Snapped to the start
-        // of the letter under it, the list stood still while the thumb
-        // moved and then leapt a row or more: a slow drag stuttered.
-        val scrollable = recycler.computeVerticalScrollRange() - recycler.computeVerticalScrollExtent()
-        val target = (progress * scrollable.coerceAtLeast(0)).roundToInt()
-        val delta = target - recycler.computeVerticalScrollOffset()
+        // Each letter gets the same share of the track, and the list moves
+        // through a letter's rows as the thumb moves through its share.
+        // Snapped to the start of the letter under it, the list stood still
+        // while the thumb moved and then leapt a row or more: a slow drag
+        // stuttered.
+        val scrollable = (recycler.computeVerticalScrollRange() - recycler.computeVerticalScrollExtent())
+            .coerceAtLeast(0)
         val layout = recycler.layoutManager as? DrawerLayoutManager
+        val starts = if (layout == null) IntArray(0) else IntArray(dragSections.size) {
+            layout.offsetOf(dragSections[it].position)
+        }
+        val (section, target) = FastScrollMath.sectionTarget(progress, starts, scrollable)
+        val delta = target - recycler.computeVerticalScrollOffset()
         // A short way is scrolled, row by row; a long one, a quick drag down
         // the track, is jumped to rather than binding every row between.
         if (layout == null || abs(delta) <= recycler.height) {
@@ -185,9 +191,15 @@ class FastScrollerView @JvmOverloads constructor(
         } else {
             layout.scrollToOffset(target)
         }
-        val count = recycler.adapter?.itemCount ?: 0
-        val position = layout?.positionAt(target) ?: (progress * (count - 1)).roundToInt()
-        showBubble(FastScrollMath.label(position, dragSections), offset)
+        // Another list (the activities picker's) has no rows to share out:
+        // its letter is the item at the thumb's place.
+        val label = if (layout != null) {
+            dragSections.getOrNull(section)?.label
+        } else {
+            val count = recycler.adapter?.itemCount ?: 0
+            FastScrollMath.label((progress * (count - 1)).roundToInt(), dragSections)
+        }
+        showBubble(label, offset)
     }
 
     private fun endDrag() {
