@@ -1,0 +1,11 @@
+Nested drawer folders, swipes in home folders, and a search bar at the top.
+
+- Drawer folders can hold other drawer folders
+- Swipe up/down actions on apps in home folders
+- Home search bar can sit at the top
+- Drawer tabs can loop and slide in when switched
+- Remove a page with its content, with Undo
+- Any accent colour for the settings screens
+- Icon pack picker shows the app's own icons first
+- Smoother drawer fast scrolling
+- Direct dial shortcuts ask for the phone permission
