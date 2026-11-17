@@ -53,10 +53,11 @@ class DrawerLayoutManager(context: Context, spanCount: Int) : GridLayoutManager(
         scrollToPositionWithOffset(rows.firstPosition(row), rows.top(row) - offset)
     }
 
-    // The item `offset` down the list.
-    fun positionAt(offset: Int): Int {
+    // How far down the list the row holding `position` starts.
+    fun offsetOf(position: Int): Int {
         syncRows()
-        return rows.positionAt(offset)
+        if (rows.rowCount == 0) return 0
+        return rows.top(rows.rowOf(position))
     }
 
     // Brings the rows up to date with the items and measures the ones laid

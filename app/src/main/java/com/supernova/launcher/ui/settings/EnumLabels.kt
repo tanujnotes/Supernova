@@ -83,10 +83,8 @@ object EnumLabels {
 
     @StringRes
     fun of(speed: AnimationSpeed): Int = when (speed) {
-        AnimationSpeed.SLOW -> R.string.anim_speed_slow
-        AnimationSpeed.DEFAULT -> R.string.anim_speed_default
+        AnimationSpeed.RELAXED -> R.string.anim_speed_relaxed
         AnimationSpeed.FAST -> R.string.anim_speed_fast
-        AnimationSpeed.FASTER -> R.string.anim_speed_faster
     }
 
     @StringRes
@@ -378,6 +376,7 @@ object EnumLabels {
         SearchBarPlacement.DOCK_ABOVE -> R.string.search_bar_above_dock
         SearchBarPlacement.DOCK_BELOW -> R.string.search_bar_below_dock
         SearchBarPlacement.PERSISTENT -> R.string.search_bar_persistent
+        SearchBarPlacement.TOP -> R.string.search_bar_top
         SearchBarPlacement.WIDGET -> R.string.search_bar_widget
     }
 

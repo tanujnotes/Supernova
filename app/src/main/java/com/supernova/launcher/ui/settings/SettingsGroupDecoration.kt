@@ -98,13 +98,27 @@ class SettingsGroupDecoration(context: Context, private val adapter: SettingsAda
             path.reset()
             path.addRoundRect(slice, radii, Path.Direction.CW)
             canvas.drawPath(path, cardPaint)
-            if (!last) {
-                canvas.drawRect(
-                    child.left.toFloat() + dividerStart, bottom - dividerHeight,
-                    child.right.toFloat(), bottom, dividerPaint
-                )
-            }
+            if (!last && !adapter.isBand(position)) drawDivider(canvas, child, dividerStart)
         }
+    }
+
+    // A nested row's band is its own background, which would cover its
+    // hairline, so those go on top.
+    override fun onDrawOver(canvas: Canvas, parent: RecyclerView, state: RecyclerView.State) {
+        val dividerStart = if (adapter.tiled) tiledDividerStart else dividerStart
+        for (i in 0 until parent.childCount) {
+            val child = parent.getChildAt(i)
+            val position = parent.getChildAdapterPosition(child)
+            if (position == RecyclerView.NO_POSITION || !adapter.isBand(position)) continue
+            if (!adapter.endsCard(position)) drawDivider(canvas, child, dividerStart)
+        }
+    }
+
+    private fun drawDivider(canvas: Canvas, child: View, start: Int) {
+        val bottom = child.bottom + child.translationY
+        canvas.drawRect(
+            child.left.toFloat() + start, bottom - dividerHeight, child.right.toFloat(), bottom, dividerPaint
+        )
     }
 
     private companion object {

@@ -1,7 +1,9 @@
 package com.supernova.launcher.data
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 // Drawer folders held by drawer tabs: the member key survives the group
@@ -69,5 +71,56 @@ class TabFoldersTest {
         val left = TabFolders.forgotten(groups, "Tools")
         assertEquals(setOf(app), left[0].members)
         assertEquals(groups[1], left[1])
+    }
+
+    // --- Folders inside folders (#229)
+
+    @Test
+    fun aFolderHoldsFoldersButNeverItself() {
+        val social = folder("Social", app)
+        val travel = folder("Travel", app, TabFolders.keyOf("Social"), TabFolders.keyOf("Travel"))
+        assertEquals(listOf(social), TabFolders.heldBy(travel, listOf(social, travel)))
+    }
+
+    @Test
+    fun noFolderGoesIntoOneItSitsIn() {
+        val maps = folder("Maps", app)
+        val social = folder("Social", app, TabFolders.keyOf("Maps"))
+        val travel = folder("Travel", TabFolders.keyOf("Social"))
+        val all = listOf(maps, social, travel)
+        assertTrue(TabFolders.canHold(travel, maps, all))
+        assertFalse(TabFolders.canHold(maps, travel, all))
+        assertFalse(TabFolders.canHold(social, travel, all))
+        assertFalse(TabFolders.canHold(travel, travel, all))
+        assertEquals(setOf("Social", "Maps"), TabFolders.nestedIds(travel, all))
+    }
+
+    @Test
+    fun aLoopEndsWhereItComesRound() {
+        val a = folder("A", TabFolders.keyOf("B"))
+        val b = folder("B", TabFolders.keyOf("A"))
+        assertEquals(setOf("B"), TabFolders.nestedIds(a, listOf(a, b)))
+        assertFalse(TabFolders.hasContent(a, listOf(a, b)) { it.members.contains(app) })
+    }
+
+    @Test
+    fun aFolderOfFoldersShowsWhileOneHasApps() {
+        val empty = folder("Empty")
+        val social = folder("Social", app)
+        val holder = folder("Holder", TabFolders.keyOf("Empty"))
+        val all = listOf(empty, social, holder)
+        val hasApps: (DrawerGroup) -> Boolean = { app in it.members }
+        assertFalse(TabFolders.hasContent(holder, all, hasApps))
+        val filled = holder.copy(members = holder.members + TabFolders.keyOf("Social"))
+        assertTrue(TabFolders.hasContent(filled, listOf(empty, social, filled), hasApps))
+    }
+
+    @Test
+    fun aHeldFolderLeavesTheMainListWithItsHolder() {
+        val social = folder("Social", app)
+        val travel = folder("Travel", TabFolders.keyOf("Social"))
+        val all = listOf(social, travel)
+        assertEquals(setOf(TabFolders.keyOf("Social")), TabFolders.nestedKeys(all) { true })
+        assertEquals(emptySet<String>(), TabFolders.nestedKeys(all) { false })
     }
 }

@@ -68,7 +68,7 @@ class ActionPickerSheet private constructor(
             tabGravity = TabLayout.GRAVITY_FILL
             setBackgroundColor(android.graphics.Color.TRANSPARENT)
             setTabTextColors(context.getColor(R.color.textSecondary), context.getColor(R.color.textPrimary))
-            setSelectedTabIndicatorColor(context.getColor(R.color.accent))
+            setSelectedTabIndicatorColor(com.supernova.launcher.ui.theme.CustomAccent.of(this))
             addTab(newTab().setText(R.string.app_name))
             addTab(newTab().setText(R.string.picker_tab_apps))
             addTab(newTab().setText(R.string.picker_tab_shortcuts))

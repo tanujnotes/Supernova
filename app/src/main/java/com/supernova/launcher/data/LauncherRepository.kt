@@ -629,6 +629,22 @@ class LauncherRepository(private val context: Context) {
         return removed
     }
 
+    // The page and everything on it (#215); null when nothing went (the only
+    // page). Widget host ids are the caller's to release.
+    suspend fun removePageWithItems(page: Int): RemovedPage? {
+        var removed: RemovedPage? = null
+        mutate { current ->
+            val result = PageRemoval.removed(current, page) ?: return@mutate current
+            removed = result.second
+            result.first
+        }
+        return removed
+    }
+
+    suspend fun restorePage(removed: RemovedPage) {
+        mutate { current -> PageRemoval.restored(current, removed) }
+    }
+
     // Every page with nothing on it goes, but the home page, the pages in
     // keep and always one page. The pages after each one move down. Returns
     // the pages removed, by their old numbers, in order.

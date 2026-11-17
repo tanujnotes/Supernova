@@ -57,7 +57,8 @@ class HomePreviewView @JvmOverloads constructor(
         removeAllViews()
         if (homeWidth <= 0 || homeHeight <= 0) return
         val chrome = chromeFor(prefs)
-        val gridTop = topInset + dp(GRID_TOP_DP)
+        // A bar pinned at the top pushes the grid down under it.
+        val gridTop = (chrome.gridTop ?: topInset) + dp(GRID_TOP_DP)
         val gridBottom = chrome.top - dp(GRID_GAP_DP)
         val sidePad = dp(SIDE_PAD_DP)
         val cols = prefs.gridCols.coerceAtLeast(1)
@@ -87,8 +88,14 @@ class HomePreviewView @JvmOverloads constructor(
     }
 
     // Where the dock and the search bar sit, from the bottom up, as the home
-    // screen stacks them.
-    private class Chrome(val top: Int, val dockTop: Int?, val dockHeight: Int, val barTop: Int?)
+    // screen stacks them. gridTop is set when the bar sits at the top instead.
+    private class Chrome(
+        val top: Int,
+        val dockTop: Int?,
+        val dockHeight: Int,
+        val barTop: Int?,
+        val gridTop: Int? = null
+    )
 
     private fun chromeFor(prefs: LauncherPrefs): Chrome {
         val bottom = homeHeight - bottomInset - dp(BOTTOM_GAP_DP)
@@ -98,6 +105,11 @@ class HomePreviewView @JvmOverloads constructor(
         val gap = dp(BAR_GAP_DP)
         val placement = SearchBarPlacement.fromName(SearchBarConfig.decode(prefs.searchBarConfig).desktop.placement)
         val dock = prefs.dockEnabled
+        if (placement == SearchBarPlacement.TOP) {
+            val barTop = topInset + dp(BAR_GAP_DP)
+            val dockTop = if (dock) bottom - dockHeight else null
+            return Chrome(dockTop ?: bottom, dockTop, if (dock) dockHeight else 0, barTop, barTop + barHeight)
+        }
         return when {
             dock && (placement == SearchBarPlacement.DOCK_BELOW || placement == SearchBarPlacement.PERSISTENT) -> {
                 val barTop = bottom - barHeight

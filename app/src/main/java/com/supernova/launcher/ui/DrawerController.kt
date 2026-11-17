@@ -59,7 +59,10 @@ class DrawerController(
     // An empty group tab's "Select apps": the picker for that group.
     private val onSelectTabApps: (DrawerGroup) -> Unit = {},
     // A group tab's picked icon (pack, app icon or photo), null for none.
-    private val customTabIcon: (DrawerGroup) -> Drawable? = { null }
+    private val customTabIcon: (DrawerGroup) -> Drawable? = { null },
+    // The search bar held: its menu (Paste, Search bar settings), anchored
+    // to the pill.
+    private val onSearchBarLongPress: (View) -> Unit = {}
 ) {
 
     // Tab identity: null = All (or Personal when the work tab is on).
@@ -148,6 +151,13 @@ class DrawerController(
     // as the drawer opening.
     private var suppressExpandCallback = false
     private var selectedTab: Any? = null
+    // The tab showing, by position, so a newly picked one knows which side
+    // it slides in from; -1 before the bar has one.
+    private var shownTabIndex = -1
+    // +1 or -1 while a swipe's tab change is being applied, else 0 (a tap).
+    private var swipeDirection = 0
+    // Set while rebuildTabs picks the tab: no change the user made, no slide.
+    private var rebuildingTabs = false
     private var renderedTabsKey: String? = null
     private var renderedDefaultTab: String? = null
     private var appliedStyle: List<Any?>? = null
@@ -233,9 +243,42 @@ class DrawerController(
 
     private fun selectAdjacentTab(delta: Int) {
         val tabs = binding.drawerTabs
-        val current = (0 until tabs.tabCount).firstOrNull { tabs.getTabAt(it)?.isSelected == true } ?: return
-        val next = (current + delta).coerceIn(0, tabs.tabCount - 1)
-        if (next != current) tabs.getTabAt(next)?.select()
+        val count = tabs.tabCount
+        val current = (0 until count).firstOrNull { tabs.getTabAt(it)?.isSelected == true } ?: return
+        // Loop tabs: past the last tab is the first, before the first the last.
+        val next = if (viewModel.state.value.prefs.drawerTabsLoop) {
+            Math.floorMod(current + delta, count)
+        } else {
+            (current + delta).coerceIn(0, count - 1)
+        }
+        if (next == current) return
+        // The swipe's own way, so a wrap still slides in from the side the
+        // finger came from rather than from the far end.
+        swipeDirection = delta
+        tabs.getTabAt(next)?.select()
+    }
+
+    // A tab the user switches to slides in from its side and fades up:
+    // from the right for a later tab (or a swipe left), from the left for
+    // an earlier one. Not while the drawer is still opening, a query
+    // filters the list, or Supernova's animations are off.
+    private fun slideInTab(direction: Int) {
+        val prefs = viewModel.state.value.prefs
+        val list = binding.drawerListContainer
+        list.animate().cancel()
+        val filtering = searchingExternally || binding.drawerSearch.text?.isNotEmpty() == true
+        val still = !Animations.enabled(prefs) || progress < 1f || list.width == 0
+        if (still || filtering) {
+            list.translationX = 0f
+            list.alpha = 1f
+            return
+        }
+        list.translationX = direction * list.width * TAB_SLIDE_FRACTION
+        list.alpha = 0f
+        list.animate().translationX(0f).alpha(1f)
+            .setDuration(Animations.duration(prefs, TAB_SLIDE_MS))
+            .setInterpolator(android.view.animation.DecelerateInterpolator())
+            .start()
     }
 
     // drawerPullToSearch pref: dragging on past the end of the list opens the
@@ -476,10 +519,11 @@ class DrawerController(
             insets
         }
         binding.drawerRecycler.adapter = adapter
-        // Full-list rebinds shouldn't cross-fade every tile, and a deeper
-        // view cache keeps flings from re-inflating rows.
+        // Full-list rebinds shouldn't cross-fade every tile. The view cache
+        // stays at its default: a cached tile serves only its own position
+        // again, so a deep one (24) held the tiles a fling scrolled away
+        // back from the pool, and the rows coming in inflated new ones.
         binding.drawerRecycler.itemAnimator = null
-        binding.drawerRecycler.setItemViewCacheSize(24)
         binding.drawerRecycler.addOnScrollListener(newScrollKeyboardHider())
         // Pages are cut to the pager's height (syncPages), which can change
         // after the cut; posted, so the re-cut isn't made inside a layout.
@@ -554,14 +598,27 @@ class DrawerController(
         binding.drawerSearchField.setOnClickListener {
             if (searchGlobalOnTap) onGlobalSearch() else showKeyboard()
         }
+        // A long press on the pill, or on the field while it is empty, opens
+        // the bar's menu (#217). With text in the field the press stays the
+        // system's: word selection, copy, cut.
+        binding.drawerSearchField.setOnLongClickListener { onSearchBarLongPress(it); true }
+        binding.drawerSearch.setOnLongClickListener {
+            if (!binding.drawerSearch.text.isNullOrEmpty()) return@setOnLongClickListener false
+            onSearchBarLongPress(binding.drawerSearchField)
+            true
+        }
         // A keyboard asked for while the window had no focus (#165) goes up
-        // once focus arrives. Kept on the tree only while the field is in a
-        // window, like every tree listener here.
+        // once focus arrives. So does one the window got focus back on
+        // shortly after the ask: the window is adjustNothing, and a window
+        // that regains focus without resizing has the system take its
+        // keyboard down (#225). Kept on the tree only while the field is in
+        // a window, like every tree listener here.
         val focusWatch = ViewTreeObserver.OnWindowFocusChangeListener { hasFocus ->
             if (hasFocus && keyboardFocusDeadline > 0L) {
                 val inTime = SystemClock.uptimeMillis() <= keyboardFocusDeadline
                 keyboardFocusDeadline = 0L
                 if (inTime) {
+                    cancelKeyboardRequest()
                     keyboardTriesLeft = KEYBOARD_TRIES
                     binding.drawerSearch.post(keyboardRetry)
                 }
@@ -636,10 +693,16 @@ class DrawerController(
         }
         binding.drawerTabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
+                val direction = swipeDirection.takeIf { it != 0 }
+                    ?: Integer.signum(tab.position - shownTabIndex)
+                val slide = !rebuildingTabs && shownTabIndex >= 0 && direction != 0
+                swipeDirection = 0
+                shownTabIndex = tab.position
                 selectedTab = tab.tag
                 submit()
                 adapter.filter(binding.drawerSearch.text?.toString().orEmpty())
                 syncPages()
+                if (slide) slideInTab(direction)
             }
 
             override fun onTabUnselected(tab: TabLayout.Tab) = Unit
@@ -731,8 +794,28 @@ class DrawerController(
         }
         // By default the drawer reopens at the top; the remember pref keeps the
         // previous scroll (the sheet is only hidden, never torn down).
+        // The tab too: without remember the drawer opens on the default tab.
         if (!prefs.drawerRememberPosition) {
+            showDefaultTab(prefs)
             binding.drawerRecycler.scrollToPosition(0)
+        }
+    }
+
+    // Selects the default tab (else the first) with no slide; a no-op when
+    // the bar is hidden or that tab already shows.
+    private fun showDefaultTab(prefs: LauncherPrefs) {
+        val tabs = binding.drawerTabs
+        if (tabs.visibility != View.VISIBLE || tabs.tabCount == 0) return
+        val defaultId = prefs.drawerDefaultTab.takeIf { it.isNotEmpty() }
+        val target = defaultId?.let { id ->
+            (0 until tabs.tabCount).firstOrNull { (tabs.getTabAt(it)?.tag as? DrawerGroup)?.id == id }
+        } ?: 0
+        if (target == tabs.selectedTabPosition) return
+        rebuildingTabs = true
+        try {
+            tabs.getTabAt(target)?.select()
+        } finally {
+            rebuildingTabs = false
         }
     }
 
@@ -1150,6 +1233,7 @@ class DrawerController(
         if (!binding.drawerSearch.hasFocus()) binding.drawerSearch.requestFocus()
         cancelKeyboardRequest()
         keyboardTriesLeft = KEYBOARD_TRIES
+        keyboardFocusDeadline = SystemClock.uptimeMillis() + KEYBOARD_FOCUS_WAIT_MS
         binding.drawerSearch.post(keyboardRetry)
     }
 
@@ -1187,24 +1271,37 @@ class DrawerController(
     // insets controller - the path the system bars use, which such keyboards
     // follow - and through the input method once more. ime() insets report
     // only from API 30 on, so older phones keep the plain request.
+    //
+    // A window that already asked for the keyboard treats another ask as a
+    // no-op, even when the keyboard never came (#225). So the last ask first
+    // withdraws the window's request and makes it fresh a frame later.
     private fun verifyKeyboard() {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R) return
         val field = binding.drawerSearch
-        val ime = androidx.core.view.WindowInsetsCompat.Type.ime()
-        val up = androidx.core.view.ViewCompat.getRootWindowInsets(field)?.isVisible(ime) != false
+        val ime = android.view.WindowInsets.Type.ime()
+        val up = field.rootWindowInsets?.isVisible(ime) != false
         if (up || !keyboardStillWanted(field)) return
         keyboardChecksLeft--
-        val window = (field.context as? android.app.Activity)?.window
-        if (window != null) {
-            androidx.core.view.WindowCompat.getInsetsController(window, field).show(ime)
+        val controller = field.windowInsetsController
+        val ask = {
+            if (keyboardStillWanted(field, asking = true)) {
+                controller?.show(ime)
+                field.context.getSystemService(InputMethodManager::class.java)?.showSoftInput(field, 0)
+            }
         }
-        field.context.getSystemService(InputMethodManager::class.java)?.showSoftInput(field, 0)
-        if (keyboardChecksLeft > 0) field.postDelayed(keyboardCheck, KEYBOARD_CHECK_MS)
+        if (keyboardChecksLeft > 0) {
+            ask()
+            field.postDelayed(keyboardCheck, KEYBOARD_CHECK_MS)
+        } else {
+            controller?.hide(ime)
+            field.post(ask)
+        }
     }
 
     // The drawer is still open with the field focused in a focused window,
-    // and the check has asks left.
-    private fun keyboardStillWanted(field: View): Boolean =
-        isVisible && field.hasFocus() && field.hasWindowFocus() && keyboardChecksLeft > 0
+    // and the check has asks left (or is making its last one).
+    private fun keyboardStillWanted(field: View, asking: Boolean = false): Boolean =
+        isVisible && field.hasFocus() && field.hasWindowFocus() && (asking || keyboardChecksLeft > 0)
 
     private fun cancelKeyboardRequest() {
         keyboardTriesLeft = 0
@@ -1212,6 +1309,19 @@ class DrawerController(
         binding.drawerSearch.removeCallbacks(keyboardRetry)
         keyboardChecksLeft = 0
         binding.drawerSearch.removeCallbacks(keyboardCheck)
+    }
+
+    // The field takes typing (not hidden, not handing taps to the global
+    // search): the bar menu offers Paste only then.
+    val searchTypable: Boolean get() = searchFieldVisible && !searchGlobalOnTap
+
+    // The bar menu's Paste: the text into the field as one line, the
+    // keyboard up to go on typing.
+    fun pasteIntoSearch(text: CharSequence) {
+        val field = binding.drawerSearch
+        field.setText(text.toString().replace(Regex("\\s+"), " ").trim())
+        field.setSelection(field.length())
+        showKeyboard()
     }
 
     // Takes the keyboard down from outside - the item menu opens over it
@@ -1421,7 +1531,8 @@ class DrawerController(
         }
         val folders = shownFolders.mapNotNull { group ->
             val members = viewModel.drawerFolderApps(group)
-            if (members.isEmpty()) {
+            // Shown while it has an app, or a folder inside it that has one.
+            if (!viewModel.drawerFolderHasContent(group)) {
                 null
             } else {
                 AppDrawerAdapter.FolderEntry(group, buildFolderIcon(group, members), members)
@@ -1690,6 +1801,7 @@ class DrawerController(
         val nothingToTab = tabsOff || (groups.isEmpty() && !workTab)
         if (nothingToTab && !privateTab) {
             tabs.visibility = View.GONE
+            shownTabIndex = -1
             if (selectedTab != null) {
                 selectedTab = null
                 if (populated) submit()
@@ -1728,7 +1840,13 @@ class DrawerController(
         val target = kept
             ?: defaultId?.let { id -> indexOf { it is DrawerGroup && it.id == id } }
             ?: 0
-        tabs.getTabAt(target)?.select()
+        rebuildingTabs = true
+        try {
+            tabs.getTabAt(target)?.select()
+        } finally {
+            rebuildingTabs = false
+        }
+        shownTabIndex = target
         selectedTab = tabs.getTabAt(target)?.tag
     }
 
@@ -1925,6 +2043,7 @@ class DrawerController(
                 val columns = columnCount(prefs)
                 adapter.tileWidthPx = gridWidthPx() / columns
                 adapter.sizePool(recycler.recycledViewPool, columns)
+                adapter.prefillPool(recycler, columns)
                 refreshGridRows(prefs)
                 // Before the first layout there is no height to share out.
                 if (prefs.drawerRows > 0 && recycler.height == 0) {
@@ -2229,7 +2348,8 @@ class DrawerController(
 
     private companion object {
         // showKeyboard's retries: up to ten, 50ms apart (half a second in
-        // all), and how long it waits for a window without focus to get it.
+        // all), and how long after the ask a window that gets focus (back)
+        // asks again.
         const val KEYBOARD_TRIES = 10
         const val KEYBOARD_RETRY_MS = 50L
         const val KEYBOARD_FOCUS_WAIT_MS = 1500L
@@ -2262,6 +2382,10 @@ class DrawerController(
         const val TILE_SIDE_PADDING_DP = 8
         const val MAX_COLUMNS = 12
         const val TAB_FLING_MIN_VELOCITY = 900f
+        // A switched-to tab's list starts a quarter of its width aside and
+        // settles in this long (before the animation speed pref).
+        const val TAB_SLIDE_FRACTION = 0.25f
+        const val TAB_SLIDE_MS = 220L
         // The Bubble tab type's pill: fully round, 6dp inside the bar's
         // height at top and bottom.
         const val TAB_BUBBLE_RADIUS_DP = 100f

@@ -40,6 +40,14 @@ sealed class SettingItem {
 
     fun shownIn(prefs: LauncherPrefs): Boolean = visibleIf(prefs) && hiddenBy(prefs) == null
 
+    // How deep the row sits under the switch it depends on, 0 for none: a
+    // Toggle followed by deeper rows opens and closes them like the Label
+    // group, and they sit on its band (#227).
+    var nestLevel: Int = 0
+        private set
+
+    fun nested(level: Int = 1): SettingItem = apply { nestLevel = level }
+
     // A row's hiding setting: its title, which way it needs to go, and its
     // page when that is not the row's own (0).
     class HiddenBy(@StringRes val setting: Int, val needs: Needs, @StringRes val page: Int = 0) {
@@ -53,6 +61,20 @@ sealed class SettingItem {
         private set
 
     fun searchableBy(@StringRes words: Int): SettingItem = apply { keywords = words }
+
+    // The fixed sentence under a Row's title, for the settings search to
+    // match after titles (#218); 0 for none. A Toggle's subtitle counts
+    // without this. Never a value that changes with the settings.
+    @StringRes
+    var description: Int = 0
+        private set
+
+    fun describedBy(@StringRes text: Int): SettingItem = apply { description = text }
+
+    // What the settings search reads as the row's description.
+    @get:StringRes
+    val searchDescription: Int
+        get() = (this as? Toggle)?.subtitle?.takeIf { it != 0 } ?: description
 
     class Toggle(
         @StringRes override val title: Int,

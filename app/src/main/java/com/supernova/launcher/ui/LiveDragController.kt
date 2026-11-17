@@ -1497,13 +1497,14 @@ class LiveDragController(
     }
 
     // Adaptive icon animations: the workspace rocks gently while a drag
-    // is live, so the grid reads as editable. Each icon is offset a little so
+    // is live, so the grid reads as editable. Always, while the launcher's
+    // animations are on; there is no switch of its own. Each icon is offset a little so
     // the page doesn't sway as one block.
     private val wiggleAnimators = mutableListOf<android.animation.Animator>()
 
     private fun startIconWiggle() {
         val prefs = viewModel.state.value.prefs
-        if (!prefs.iconWiggle || !Animations.enabled(prefs)) return
+        if (!Animations.enabled(prefs)) return
         stopIconWiggle()
         val duration = Animations.duration(prefs, WIGGLE_MS)
         if (duration == 0L) return

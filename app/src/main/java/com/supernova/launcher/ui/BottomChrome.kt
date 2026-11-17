@@ -11,7 +11,7 @@ internal object BottomChrome {
 
     // Where the desktop search bar landed after resolving its placement
     // against the current dock state.
-    enum class BarSlot { ABOVE_DOCK, BELOW_DOCK, BOTTOM }
+    enum class BarSlot { ABOVE_DOCK, BELOW_DOCK, BOTTOM, TOP }
 
     class Spec(
         val density: Float,
@@ -54,6 +54,8 @@ internal object BottomChrome {
 
     fun layout(s: Spec): Result {
         fun dp(value: Int): Int = (value * s.density).toInt()
+        // A bar pinned at the top (topBar) leaves the bottom as if it were off.
+        val slot = s.slot.takeUnless { it == BarSlot.TOP }
 
         val dockReservesSpace = s.dockEnabled && !s.dockOverlay
         // A bar at the bottom sits in the middle of a band over the
@@ -69,10 +71,10 @@ internal object BottomChrome {
         // Behind-nav mode is the one place the bottom inset becomes padding
         // instead of margin: the slab runs to the window edge, the icons stay
         // above the bar.
-        val sharedRow = s.sideBySide && s.slot != null
+        val sharedRow = s.sideBySide && slot != null
         val dockBottom = when {
             sharedRow -> dp(10) + s.navInset
-            s.slot == BarSlot.BELOW_DOCK -> barMargin + dp(SEARCH_BAR_HEIGHT_DP) + barToDock + s.navInset
+            slot == BarSlot.BELOW_DOCK -> barMargin + dp(SEARCH_BAR_HEIGHT_DP) + barToDock + s.navInset
             s.dockBehindNav -> 0
             s.dockFullBleed -> s.navInset
             else -> dp(10) + s.navInset
@@ -87,14 +89,14 @@ internal object BottomChrome {
         val barBottom = if (sharedRow) {
             // Beside the dock, centred on its row.
             dockBottom + (s.dockHeight - dp(SEARCH_BAR_HEIGHT_DP)) / 2
-        } else when (s.slot) {
+        } else when (slot) {
             // Over the dock, the band sits on the dock as the dock sits on it
             // below: the layout is the same two rows in either order.
             BarSlot.ABOVE_DOCK ->
                 dockTop + if (s.landscape) dp(DOCK_SEARCH_BAR_GAP_DP) else dp(BAR_BAND_TO_DOCK_DP) + barMargin
             BarSlot.BELOW_DOCK -> barMargin + s.navInset
             BarSlot.BOTTOM -> (if (s.landscape) dp(16) else barMargin) + s.navInset
-            null -> dp(16) + s.navInset
+            BarSlot.TOP, null -> dp(16) + s.navInset
         }
         val barEdge = barBottom + dp(SEARCH_BAR_HEIGHT_DP)
 
@@ -105,7 +107,7 @@ internal object BottomChrome {
         // content-underneath philosophy, so it reserves nothing, and neither
         // does its bar. A bar on top clears the grid by its band, not its
         // edge.
-        val barReservesSpace = s.slot != null && (dockReservesSpace || !s.dockEnabled)
+        val barReservesSpace = slot != null && (dockReservesSpace || !s.dockEnabled)
         val bandAbove = if (s.landscape) 0 else barMargin
         val barTop = if (barReservesSpace) barEdge + bandAbove else 0
         val chromeTop = maxOf(if (dockReservesSpace) dockTop else 0, barTop)
@@ -115,7 +117,7 @@ internal object BottomChrome {
         val overlayDock = s.dockEnabled && !dockReservesSpace
         val visibleTop = when {
             chromeTop > 0 -> chromeTop
-            overlayDock -> maxOf(dockTop, if (s.slot == BarSlot.ABOVE_DOCK) barEdge else 0)
+            overlayDock -> maxOf(dockTop, if (slot == BarSlot.ABOVE_DOCK) barEdge else 0)
             else -> 0
         }
 
@@ -174,6 +176,16 @@ internal object BottomChrome {
         return Result(dockBottom, barBottom, arrowBottom, indicatorBottom, pagerBottom)
     }
 
+    // A bar pinned at the top: its top margin, just under the status bar,
+    // and the workspace's top margin, just under the bar.
+    class Top(val barTop: Int, val pagerTop: Int)
+
+    fun topBar(density: Float, statusInset: Int): Top {
+        fun dp(value: Int): Int = (value * density).toInt()
+        val barTop = statusInset + dp(TOP_BAR_GAP_DP)
+        return Top(barTop, barTop + dp(SEARCH_BAR_HEIGHT_DP) + dp(TOP_BAR_TO_GRID_DP))
+    }
+
     // The desktop search bar's own height, matching activity_launcher.xml.
     const val SEARCH_BAR_HEIGHT_DP = 48
 
@@ -183,6 +195,9 @@ internal object BottomChrome {
     private const val BAR_BAND_TO_DOCK_DP = 6
     // The gap between the dock and an above-dock search bar in landscape.
     private const val DOCK_SEARCH_BAR_GAP_DP = 4
+    // A top bar's gap under the status bar, and the workspace's under it.
+    private const val TOP_BAR_GAP_DP = 6
+    private const val TOP_BAR_TO_GRID_DP = 6
     // The strip the swipe arrow adds above the dock.
     private const val SWIPE_ARROW_STRIP_DP = 16
     private const val SWIPE_ARROW_STRIP_LAND_DP = 10

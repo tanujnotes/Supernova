@@ -7,7 +7,7 @@ import com.supernova.launcher.data.GroupPick
 import com.supernova.launcher.data.LaunchableApp
 
 // A drawer group's Select apps, from the Drawer groups page and from a
-// drawer folder's menu: the given apps and, for a tab, the drawer folders it
+// drawer folder's menu: the given apps and the drawer folders it
 // can hold, first and with their folder icons. Its title is the group's name,
 // which can be typed over. Save renames the group and writes only the ticks
 // that changed, both to the group by its id.

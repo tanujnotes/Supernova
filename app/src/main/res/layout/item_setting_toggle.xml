@@ -2,6 +2,7 @@
 <!-- A switch row in its card: the text 16dp in, the switch ending 16dp
      in from the card. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:foreground="?attr/selectableItemBackground"
@@ -36,6 +37,26 @@
             android:textSize="@dimen/text_secondary"
             android:visibility="gone" />
     </LinearLayout>
+
+    <!-- A switch with rows nested under it: the Label group's chevron and
+         divider, set by the adapter (#227). -->
+    <ImageView
+        android:id="@+id/settingChevron"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_marginStart="@dimen/space_sm"
+        android:layout_marginEnd="@dimen/space_sm"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_chevron_down"
+        android:visibility="gone"
+        app:tint="@color/textSecondary" />
+
+    <View
+        android:id="@+id/settingDivider"
+        android:layout_width="1dp"
+        android:layout_height="32dp"
+        android:background="@color/settingsDivider"
+        android:visibility="gone" />
 
     <!-- The id stays so the adapter's CompoundButton handling is untouched. -->
     <androidx.appcompat.widget.SwitchCompat

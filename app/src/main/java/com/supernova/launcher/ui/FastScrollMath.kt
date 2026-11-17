@@ -1,5 +1,7 @@
 package com.supernova.launcher.ui
 
+import kotlin.math.roundToInt
+
 // The fast scrollbar's arithmetic, apart from the view: the list's letter
 // sections, and where the thumb sits for the list.
 internal object FastScrollMath {
@@ -31,6 +33,23 @@ internal object FastScrollMath {
     // the first letter; a list not sorted by name has none.
     fun label(position: Int, sections: List<Section>): String? =
         (sections.lastOrNull { it.position <= position } ?: sections.firstOrNull())?.label
+
+    // Where a thumb dragged `progress` (0 to 1) down the track takes the
+    // list when every letter gets the same length of track: the letter's
+    // index, and the offset between the letter's start and the next one's,
+    // as far as the drag is into its share. `starts` are the letters'
+    // offsets down the list, in order; the first counts from the top and
+    // the last runs to the end. By rows instead, a letter of one app had a
+    // few pixels of track, and a quick drag passed it without showing it.
+    fun sectionTarget(progress: Float, starts: IntArray, scrollable: Int): IntArray {
+        val count = starts.size
+        if (count == 0) return intArrayOf(-1, (progress * scrollable).roundToInt())
+        val along = progress.coerceIn(0f, 1f) * count
+        val index = along.toInt().coerceAtMost(count - 1)
+        val from = if (index == 0) 0 else starts[index].coerceIn(0, scrollable)
+        val to = if (index + 1 < count) starts[index + 1].coerceIn(from, scrollable) else scrollable
+        return intArrayOf(index, from + ((along - index).coerceIn(0f, 1f) * (to - from)).roundToInt())
+    }
 
     // The thumb's top on a track `span` long (its length less the thumb's),
     // for a list scrolled `offset` of the `scrollable` it can scroll; null

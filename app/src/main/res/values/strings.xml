@@ -7,6 +7,7 @@
     <string name="set_default_launcher">Set as default launcher</string>
     <string name="add_page">Add page</string>
     <string name="remove_page">Remove this page</string>
+    <string name="page_removed">Page removed</string>
     <string name="set_default_page">Set as default page</string>
     <string name="move_page_left">Move page left</string>
     <string name="move_page_right">Move page right</string>
@@ -153,6 +154,7 @@
     <string name="drawer_swipe_haptic">Haptic feedback</string>
     <string name="drawer_swipe_haptic_summary">Vibrate when a swipe up starts opening the drawer</string>
     <string name="drawer_search_bar_position">Search bar position</string>
+    <string name="search_bar_page_summary">Look and buttons</string>
     <string name="drawer_tab_bar">Tab bar position</string>
     <string name="tab_bar_top">Top</string>
     <string name="tab_bar_bottom">Bottom</string>
@@ -445,6 +447,8 @@
     <string name="drawer_scrubber_color">Fast scroller color</string>
     <string name="drawer_isolate_tabs">Isolate tabs</string>
     <string name="drawer_isolate_tabs_summary">Prevent changing tabs when swiping sideways</string>
+    <string name="drawer_tabs_loop">Loop tabs</string>
+    <string name="drawer_tabs_loop_summary">Swipe from the last tab to the first</string>
     <string name="drawer_tab_style">Tab type</string>
     <string name="tab_style_classic">Classic</string>
     <string name="tab_style_bubble">Bubble</string>
@@ -453,7 +457,7 @@
     <string name="tab_content_icon">Icon</string>
     <string name="tab_content_both">Label and icon</string>
     <string name="drawer_tab_align">Tab alignment</string>
-    <string name="tab_align_start">Start</string>
+    <string name="tab_align_start">Left</string>
     <string name="tab_align_center">Center</string>
     <string name="group_keep_in_main">Keep apps in main app tab</string>
     <string name="group_keep_in_main_summary">Its apps also stay in the main tab</string>
@@ -497,7 +501,7 @@
     <string name="group_name_required">Enter a name</string>
     <string name="new_tab">New tab</string>
     <string name="edit_tab">Edit tab</string>
-    <string name="tab_settings">Tab settings</string>
+    <string name="group_settings">Group settings</string>
     <string name="show_hidden_apps">Show hidden apps</string>
     <string name="hide_hidden_apps">Hide hidden apps again</string>
     <string name="app_hidden">%1$s hidden from the drawer</string>
@@ -562,7 +566,7 @@
     <string name="section_home_subtitle">Grid, icons, labels and pages</string>
     <string name="section_dock_subtitle">Icons, background and pages</string>
     <string name="section_drawer_subtitle">Layout, style and groups</string>
-    <string name="section_search_subtitle">Providers, window and search bars</string>
+    <string name="section_search_subtitle">Providers and search window</string>
     <string name="section_feed_subtitle">The page before home and its cards</string>
     <string name="section_folders_subtitle">Window, icon and labels</string>
     <string name="section_icons_subtitle">Shape, packs, labels and badges</string>
@@ -576,7 +580,6 @@
     <string name="group_pages">Pages</string>
     <string name="group_tabs">Tabs &amp; groups</string>
     <string name="group_providers">Providers</string>
-    <string name="group_bars">Search bars</string>
     <string name="group_icons">Icons</string>
     <string name="group_appearance">Appearance</string>
     <string name="group_label_rows">Labels</string>
@@ -794,6 +797,7 @@
     <string name="search_bar_above_dock">Above dock</string>
     <string name="search_bar_below_dock">Below dock</string>
     <string name="search_bar_persistent">Always show at bottom</string>
+    <string name="search_bar_top">Always show at top</string>
     <string name="search_bar_widget">Workspace widget</string>
     <string name="search_bar_wireframe">Wireframe style</string>
     <string name="search_bar_wireframe_summary">Only an outline, with no fill</string>
@@ -880,10 +884,8 @@
     <string name="anim_slide_left">Slide left</string>
     <string name="disable_animations">Disable animations</string>
     <string name="animation_speed">Animation speed</string>
-    <string name="anim_speed_slow">Slow</string>
-    <string name="anim_speed_default">Default</string>
+    <string name="anim_speed_relaxed">Relaxed</string>
     <string name="anim_speed_fast">Fast</string>
-    <string name="anim_speed_faster">Faster</string>
 
     <!-- Phase 6: drag UX -->
     <string name="drop_targets">Drag drop targets</string>
@@ -914,7 +916,6 @@
     <string name="status_icons_light">Light icons</string>
     <string name="transparent_nav">Transparent navigation bar</string>
     <string name="transparent_status">Transparent status bar</string>
-    <string name="icon_wiggle">Wiggle icons while dragging</string>
     <string name="home_button_main_page_only">Only on the main page</string>
 
     <!-- Phase 7: feed page -->
@@ -1005,6 +1006,10 @@
     <string name="onboarding_restore_backup">Restore backup</string>
     <string name="onboarding_skip_setup">Skip setup</string>
     <string name="onboarding_skip_hint">To skip setting up Supernova, tap \'Skip setup\'</string>
+    <string name="onboarding_animations_title">Launcher animations</string>
+    <string name="onboarding_animations_message">Your phone\'s animations are turned off. Supernova\'s animations have their own switch. Keep them on? You can change this later in Settings.</string>
+    <string name="onboarding_animations_keep">Keep on</string>
+    <string name="onboarding_animations_off">Turn off</string>
     <string name="onboarding_previous">Previous</string>
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_look_title">Pick a starting point</string>

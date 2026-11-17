@@ -205,7 +205,7 @@
             android:visibility="gone"
             app:tabGravity="start"
             app:tabIndicator="@drawable/tab_indicator_drawer"
-            app:tabIndicatorColor="@color/accent"
+            app:tabIndicatorColor="?attr/colorAccent"
             app:tabIndicatorFullWidth="false"
             app:tabIndicatorHeight="3dp"
             app:tabMinWidth="48dp"

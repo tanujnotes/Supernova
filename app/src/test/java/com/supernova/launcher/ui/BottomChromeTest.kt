@@ -123,6 +123,24 @@ class BottomChromeTest {
     }
 
     @Test
+    fun aTopBarLeavesTheBottomAsIfThereWereNoBar() {
+        val top = layout(slot = BarSlot.TOP, indicatorOn = true)
+        val none = layout(slot = null, indicatorOn = true)
+        assertEquals(none.dockBottom, top.dockBottom)
+        assertEquals(none.pagerBottom, top.pagerBottom)
+        assertEquals(none.indicatorBottom, top.indicatorBottom)
+        val bare = layout(dockEnabled = false, slot = BarSlot.TOP)
+        assertEquals(10 + NAV, bare.pagerBottom)
+    }
+
+    @Test
+    fun aTopBarSitsUnderTheStatusBarAndTheGridUnderIt() {
+        val top = BottomChrome.topBar(density = 1f, statusInset = 30)
+        assertEquals(36, top.barTop)
+        assertEquals(36 + 48 + 6, top.pagerTop)
+    }
+
+    @Test
     fun withNothingAtTheBottomTheGridKeepsClearOfTheNavigationBar() {
         val chrome = layout(dockEnabled = false, slot = null)
         assertEquals(10 + NAV, chrome.pagerBottom)

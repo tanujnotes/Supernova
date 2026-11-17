@@ -541,6 +541,9 @@ class AppCatalog(
 
     fun listPackDrawables(packPackage: String): List<String> = iconPacks.listDrawables(packPackage)
 
+    fun packMatches(packPackage: String, packageName: String, className: String): List<String> =
+        iconPacks.matchesFor(packPackage, packageName, className)
+
     // A pack drawable pushed through the normal pipeline so it matches the
     // global shape; used for custom folder icons.
     fun renderPackDrawable(packPackage: String, drawableName: String): Drawable? {

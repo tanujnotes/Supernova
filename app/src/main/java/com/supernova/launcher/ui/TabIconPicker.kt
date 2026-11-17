@@ -44,7 +44,7 @@ object TabIconPicker {
                 }
             }
         }
-        IconPickerSheet.show(context, scope, viewModel, allowDefault = true, onPickPhoto = onPhoto) { pack, name ->
+        IconPickerSheet.show(context, scope, viewModel, onPickPhoto = onPhoto) { pack, name ->
             save(pack, name, null)
         }
     }

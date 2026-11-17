@@ -207,6 +207,22 @@ class DrawerGroupsImportTest {
     }
 
     @Test
+    fun foldersKeepTheFoldersTheyHold() {
+        val made = DrawerGroupConverter.convert(
+            listOf(
+                group(1, "Social", folder = true, "com.a"),
+                ForeignGroup(2, "Travel", true, 1, folders = listOf(1, 2)),
+                ForeignGroup(3, "Holds gone", true, 2, folders = listOf(4)),
+                group(4, "Gone", folder = true, "com.gone")
+            ),
+            phone
+        )
+        assertEquals(listOf("Social", "Travel"), made.map { it.name })
+        val social = made.single { it.name == "Social" }
+        assertEquals(setOf(TabFolders.keyOf(social.id)), made.single { it.name == "Travel" }.members)
+    }
+
+    @Test
     fun namesMayRepeatAndStayStorable() {
         val made = DrawerGroupConverter.convert(
             listOf(
