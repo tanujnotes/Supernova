@@ -20,7 +20,7 @@ import com.supernova.launcher.runLogged
 
 // Full-screen desktop-previews overlay (the DESKTOP_PREVIEWS action): page
 // thumbnails in a horizontal row over a dim scrim, with jump / set-default /
-// remove-empty / reorder / add-page controls. Thumbnails are live renders of
+// remove / reorder / add-page controls. Thumbnails are live renders of
 // the attached page views captured ONCE per (re)build at 1/4 scale; pages the
 // pager has recycled (beyond its offscreen window) draw as a numbered
 // placeholder instead - capturing them would mean re-parenting live widget
@@ -35,7 +35,6 @@ class DesktopPreviewsOverlay(
         fun pageCount(): Int
         fun currentPage(): Int
         fun defaultPage(): Int
-        fun isPageEmpty(page: Int): Boolean
         // The live view rendering this page, when the pager still has one.
         fun pageViewFor(page: Int): View?
         fun accentColor(): Int
@@ -200,7 +199,7 @@ class DesktopPreviewsOverlay(
                 if (page == default) setTextColor(accent)
             }
         )
-        if (pages > 1 && host.isPageEmpty(page)) {
+        if (pages > 1) {
             actions.addView(glyphButton("✕", R.string.remove_page) {
                 host.removePage(page)
             })

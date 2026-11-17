@@ -603,7 +603,6 @@ class LauncherActivity :
             override fun pageCount(): Int = workspaceAdapter.realPageCount
             override fun currentPage(): Int = viewModel.state.value.currentPage
             override fun defaultPage(): Int = viewModel.state.value.model.defaultPage
-            override fun isPageEmpty(page: Int): Boolean = viewModel.workspaceItems(page).isEmpty()
             override fun pageViewFor(page: Int): View? = attachedPageView(page)
             override fun accentColor(): Int = getColor(R.color.accent)
             override fun jumpToPage(page: Int) {
@@ -616,7 +615,11 @@ class LauncherActivity :
                 refreshPreviewsSoon()
             }
             override fun removePage(page: Int) {
-                viewModel.removePage(page)
+                if (viewModel.workspaceItems(page).isEmpty()) {
+                    viewModel.removePage(page)
+                } else {
+                    removePageWithUndo(page, onUndo = ::refreshPreviewsSoon)
+                }
                 refreshPreviewsSoon()
             }
             override fun movePage(from: Int, to: Int) {
@@ -3667,6 +3670,41 @@ class LauncherActivity :
         return byId
     }
 
+    // A page goes with everything on it (#215). Its widgets keep their host
+    // ids while the Undo bar shows, so Undo brings the same widgets back;
+    // they go once the bar ends without one. `onRemoved` runs once the page
+    // has gone, `onUndo` once Undo is tapped.
+    private fun removePageWithUndo(page: Int, onUndo: () -> Unit = {}, onRemoved: () -> Unit = {}) {
+        val count = workspaceAdapter.realPageCount
+        viewModel.removePageWithItems(page) { removed ->
+            onRemoved()
+            removed.widgets.forEach(widgets::onWidgetItemRemoved)
+            if (!viewModel.state.value.prefs.undoRemove) {
+                removed.widgets.forEach(widgets::releaseWidget)
+                return@removePageWithItems
+            }
+            val snackbar = Snackbar.make(binding.root, R.string.page_removed, UNDO_DURATION_MS)
+                .setAction(R.string.undo) {
+                    viewModel.restorePage(removed)
+                    followRemovedPages(count, removed.page)
+                    onUndo()
+                }
+            // In edit mode, over the peeking Widgets sheet rather than under it.
+            when {
+                ::editMode.isInitialized && editMode.isOpen -> snackbar.anchorView = binding.editWidgetSheet
+                binding.dockBar.isVisible -> snackbar.anchorView = binding.dockBar
+            }
+            snackbar.addCallback(object : Snackbar.Callback() {
+                override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+                    if (event != DISMISS_EVENT_ACTION) removed.widgets.forEach(widgets::releaseWidget)
+                    if (undoSnackbar === transientBottomBar) undoSnackbar = null
+                }
+            })
+            undoSnackbar = snackbar
+            snackbar.show()
+        }
+    }
+
     // Says what stayed on the home screen, and offers the move back.
     private fun showFolderMovedBar(move: com.supernova.launcher.data.FolderMove) {
         val text = if (move.leftBehind == 0) {
@@ -4796,14 +4834,19 @@ class LauncherActivity :
                 override fun onAddPage(): Boolean =
                     workspaceAdapter.isAddPage(binding.workspacePager.currentItem)
                 override fun addPageFromSlot(then: (() -> Unit)?) = requestEditAddPage(then)
-                override fun canRemoveCurrentPage(): Boolean =
-                    workspaceAdapter.realPageCount > 1 && viewModel.workspaceItems(currentPage()).isEmpty()
+                override fun canRemoveCurrentPage(): Boolean = workspaceAdapter.realPageCount > 1
                 // The page before it takes its place in view, the first page
-                // the page after.
+                // the page after. A page with something on it goes with an
+                // Undo bar (#215).
                 override fun removeCurrentPage() {
                     val page = currentPage()
                     val count = workspaceAdapter.realPageCount
-                    viewModel.removePage(page) { followRemovedPages(count - 1, (page - 1).coerceAtLeast(0)) }
+                    val follow = { followRemovedPages(count - 1, (page - 1).coerceAtLeast(0)) }
+                    if (viewModel.workspaceItems(page).isEmpty()) {
+                        viewModel.removePage(page, follow)
+                    } else {
+                        removePageWithUndo(page) { follow() }
+                    }
                 }
             }
         )

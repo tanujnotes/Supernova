@@ -1401,6 +1401,14 @@ class LauncherViewModel(
         viewModelScope.launch { if (repository.removePage(page)) onRemoved?.invoke() }
     }
 
+    // A page with its content (#215); onRemoved hears what went, for Undo.
+    fun removePageWithItems(page: Int, onRemoved: (com.supernova.launcher.data.RemovedPage) -> Unit) {
+        viewModelScope.launch { repository.removePageWithItems(page)?.let(onRemoved) }
+    }
+
+    fun restorePage(removed: com.supernova.launcher.data.RemovedPage) =
+        persist { repository.restorePage(removed) }
+
     // onRemoved hears the pages that went (old numbers), when any did.
     fun removeEmptyPages(keep: Set<Int>, onRemoved: (List<Int>) -> Unit) {
         viewModelScope.launch {

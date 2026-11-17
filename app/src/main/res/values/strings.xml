@@ -7,6 +7,7 @@
     <string name="set_default_launcher">Set as default launcher</string>
     <string name="add_page">Add page</string>
     <string name="remove_page">Remove this page</string>
+    <string name="page_removed">Page removed</string>
     <string name="set_default_page">Set as default page</string>
     <string name="move_page_left">Move page left</string>
     <string name="move_page_right">Move page right</string>
