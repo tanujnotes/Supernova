@@ -1,5 +1,6 @@
 package com.supernova.launcher.ui
 
+import android.annotation.SuppressLint
 import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
@@ -90,6 +91,9 @@ class FolderMemberAdapter(
         // The box item_icon declares, before a bind has sized it.
         private val baseIconPx = binding.icon.layoutParams.width
 
+        // Only clears a recycled tile's touch listener; the swipe listener
+        // attachSwipe sets leaves clicks to the click listener.
+        @SuppressLint("ClickableViewAccessibility")
         fun bind(item: LauncherItem) {
             binding.root.alpha = if (item.id == hiddenItemId) 0f else 1f
             // An app's own name and hidden label, from its Edit here.

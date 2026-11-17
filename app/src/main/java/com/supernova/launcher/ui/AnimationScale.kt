@@ -1,6 +1,7 @@
 package com.supernova.launcher.ui
 
 import android.animation.ValueAnimator
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Application
 import android.content.Context
@@ -41,12 +42,14 @@ object AnimationScale {
 
     private var installed = false
 
-    private val setter by lazy {
-        runCatching {
-            ValueAnimator::class.java.getDeclaredMethod("setDurationScale", Float::class.javaPrimitiveType)
-                .apply { isAccessible = true }
-        }.onFailure { Log.w(TAG, "No setDurationScale", it) }.getOrNull()
-    }
+    private val setter by lazy { findSetter() }
+
+    // Hidden API on purpose (see above); a refusal leaves setter null.
+    @SuppressLint("DiscouragedPrivateApi")
+    private fun findSetter() = runCatching {
+        ValueAnimator::class.java.getDeclaredMethod("setDurationScale", Float::class.javaPrimitiveType)
+            .apply { isAccessible = true }
+    }.onFailure { Log.w(TAG, "No setDurationScale", it) }.getOrNull()
 
     // Whether the system's animations are off: what the first run asks about.
     fun systemAnimationsOff(context: Context): Boolean =
