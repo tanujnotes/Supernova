@@ -3,6 +3,7 @@ package com.supernova.launcher.ui
 import android.content.Context
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -192,8 +193,15 @@ class FolderPopup(private val context: Context) {
             // animations are disabled.
             animationStyle = if (animate) com.supernova.launcher.R.style.FolderPopupAnimation else 0
             // Below Android 11 a resizing window is what reports the keyboard
-            // at all; the card is lifted clear of it below either way.
-            softInputMode = android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+            // at all; the card is lifted clear of it below either way. From
+            // 11 the keyboard arrives as an inset, so the window keeps its
+            // size: resized, it squeezed a long full-screen card into the
+            // space above the keyboard, centred on the middle of its grid.
+            softInputMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING
+            } else {
+                android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+            }
         }
 
         // The root always fills the window so the card can expand from the
