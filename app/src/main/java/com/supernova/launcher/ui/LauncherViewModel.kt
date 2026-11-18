@@ -33,7 +33,6 @@ import com.supernova.launcher.data.IconShape
 import com.supernova.launcher.data.ItemType
 import com.supernova.launcher.data.LabelOrder
 import com.supernova.launcher.data.LaunchableApp
-import com.supernova.launcher.data.LARGE_ICON_SPAN
 import com.supernova.launcher.data.LauncherItem
 import com.supernova.launcher.data.LauncherPreferences
 import com.supernova.launcher.data.LauncherPrefs
@@ -551,12 +550,13 @@ class LauncherViewModel(
     // size slider's drag re-renders at a few steps rather than every tick.
     private fun iconResolution(prefs: com.supernova.launcher.data.LauncherPrefs, largeIcons: Boolean): Float {
         val scales = listOf(
-            if (largeIcons) prefs.iconScale * LARGE_ICON_SPAN else prefs.iconScale,
+            if (largeIcons) prefs.iconScale * LARGE_ICON_RESOLUTION else prefs.iconScale,
             if (prefs.dockMatchDesktop) prefs.iconScale else prefs.dockIconScale,
             if (prefs.drawerMatchDesktop) prefs.iconScale else prefs.drawerIconScale,
             if (prefs.folderMatchDesktop) prefs.iconScale else prefs.folderIconScale
         )
-        val largest = scales.maxOrNull()?.coerceIn(1f, MAX_ICON_RESOLUTION) ?: 1f
+        val cap = if (largeIcons) LARGE_ICON_RESOLUTION else MAX_ICON_RESOLUTION
+        val largest = scales.maxOrNull()?.coerceIn(1f, cap) ?: 1f
         return kotlin.math.ceil(largest * 5f - 0.001f) / 5f
     }
 
@@ -1633,6 +1633,10 @@ class LauncherViewModel(
     private companion object {
         // The icon size settings' top.
         const val MAX_ICON_RESOLUTION = 2f
+        // A large icon fills its 2x2 block (largeIconBoxPx), about two and a
+        // half to three times the desktop size: rendered at 2.5, it stays
+        // sharp without every icon in the cache growing past that.
+        const val LARGE_ICON_RESOLUTION = 2.5f
         // How long a package-callback rescan waits for its burst to settle.
         const val REFRESH_COALESCE_MS = 300L
         // How long the first frame may wait for the startup warm before the

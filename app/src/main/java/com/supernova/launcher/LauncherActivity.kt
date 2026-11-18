@@ -2210,14 +2210,6 @@ class LauncherActivity :
     // desktop size its icon is drawn: 2 for a large icon.
     private fun iconSpan(item: LauncherItem): Int = if (item.isLargeIcon) LARGE_ICON_SPAN else 1
 
-    // The room a large icon takes: its box `span` times the size, the
-    // padding and label as they are.
-    override fun desktopIconNeedPx(prefs: LauncherPrefs, span: Int): android.util.Size {
-        val need = desktopIconNeedPx(prefs)
-        val grow = desktopIconBoxPx(prefs) * (span - 1)
-        return android.util.Size(need.width + grow, need.height + grow)
-    }
-
     // The room a desktop icon takes at its own size: its box inside the
     // item's padding, over a line of label when labels show. A cell smaller
     // than that shrinks the icon into it (WorkspaceCanvas.IconFit).
@@ -4576,7 +4568,7 @@ class LauncherActivity :
             else com.supernova.launcher.ui.LabelContext.DESKTOP
         )
         iconBinding.label.visibility = if (labelVisible) View.VISIBLE else View.GONE
-        if (!inDock) iconBinding.root.setTag(R.id.tag_icon_fit, desktopIconFit(iconBinding, prefs, iconSpan(item)))
+        if (!inDock) iconBinding.root.setTag(R.id.tag_icon_fit, desktopIconFit(iconBinding, prefs))
         // Announce what the icon actually is; the label may be hidden.
         iconBinding.root.contentDescription = when (item.itemType) {
             ItemType.FOLDER -> getString(R.string.folder_desc, displayLabel)
@@ -4626,14 +4618,12 @@ class LauncherActivity :
     // page's canvas decides: icon, label and padding by the same scale, and
     // the label on one line, so icons in a dense grid stay clear of their
     // neighbours. Scale 1 puts it back as bound.
-    private fun desktopIconFit(iconBinding: ItemIconBinding, prefs: LauncherPrefs, span: Int): WorkspaceCanvas.IconFit {
-        val box = desktopIconBoxPx(prefs) * span
+    private fun desktopIconFit(iconBinding: ItemIconBinding, prefs: LauncherPrefs): WorkspaceCanvas.IconFit {
         val textPx = iconBinding.label.textSize
         val lines = iconBinding.label.maxLines
         val pad = iconBinding.root.paddingTop
-        val need = desktopIconNeedPx(prefs, span)
-        return WorkspaceCanvas.IconFit(need.width, need.height) { scale ->
-            val size = (box * scale).roundToInt()
+        val need = desktopIconNeedPx(prefs)
+        return WorkspaceCanvas.IconFit(need.width, need.height, desktopIconBoxPx(prefs), pad) { scale, size ->
             iconBinding.icon.updateLayoutParams { width = size; height = size }
             iconBinding.label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, textPx * scale)
             iconBinding.label.maxLines = if (scale < 1f) 1 else lines

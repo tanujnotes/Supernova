@@ -130,8 +130,6 @@ class LiveDragController(
         // The room a desktop icon needs at its own size, which a smaller
         // cell shrinks it to fit (WorkspaceCanvas.IconFit).
         fun desktopIconNeedPx(prefs: LauncherPrefs): android.util.Size
-        // The same for an icon `span` cells a side (a large icon).
-        fun desktopIconNeedPx(prefs: LauncherPrefs, span: Int): android.util.Size
         fun dockIconBoxPx(prefs: LauncherPrefs): Int
         fun dockIconTopInsetPx(): Int
         fun desktopIconBasePx(): Int
@@ -1404,12 +1402,14 @@ class LiveDragController(
         // A large icon lands on the 2x2 cells the hover outlined, at its
         // own size: it brings its own view.
         val (span, cells) = largeIconCells(payload, p)
-        val need = host.desktopIconNeedPx(prefs, span)
-        val fit = iconFitScale(
-            cellSize(canvas.width, prefs.gridCols) * span, cellSize(canvas.height, prefs.gridRows) * span,
-            need.width, need.height
+        val need = host.desktopIconNeedPx(prefs)
+        val iconCellW = cellSize(canvas.width, prefs.gridCols)
+        val iconCellH = cellSize(canvas.height, prefs.gridRows)
+        val fit = iconFitScale(iconCellW, iconCellH, need.width, need.height)
+        val box = largeIconBoxPx(
+            span, iconCellW, iconCellH, (host.desktopIconBoxPx(prefs) * fit).roundToInt(),
+            (context.dp(ICON_ITEM_PADDING_DP) * fit).roundToInt()
         )
-        val box = (host.desktopIconBoxPx(prefs) * span * fit).roundToInt()
         val item = desktopItemFrame(prefs, box, fit)
         val centerX = cells?.let { (it.left + it.right) / 2f / prefs.gridCols } ?: p[2]
         val centerY = cells?.let { (it.top + it.bottom) / 2f / prefs.gridRows } ?: p[3]

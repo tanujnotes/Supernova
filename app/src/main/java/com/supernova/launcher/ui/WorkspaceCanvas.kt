@@ -37,6 +37,19 @@ internal fun iconFitScale(cellW: Int, cellH: Int, needW: Int, needH: Int): Float
     return minOf(1f, cellW / needW.toFloat(), cellH / needH.toFloat())
 }
 
+// A large icon's box, `span` cells a side: it fills its block rather than
+// doubling, its top on the top row's icon line and its label on the bottom
+// row's label line, so it reads as part of the grid. Laid out centred on the
+// block, a box `span - 1` cell heights bigger than a one-cell icon's
+// (`boxPx`, at the grid's fit scale like `padPx`) lands on both lines. No
+// wider than the block, less the item's padding.
+internal fun largeIconBoxPx(span: Int, cellW: Int, cellH: Int, boxPx: Int, padPx: Int): Int {
+    if (span <= 1) return boxPx
+    val fill = (span - 1) * cellH + boxPx
+    val room = span * cellW - 2 * padPx
+    return max(boxPx, min(fill, room))
+}
+
 // A workspace page's canvas. Items are placed against the canvas's size at
 // every layout rather than the one it had at bind. The canvas can change size
 // after the page binds - on a cold start the page binds before the canvas has
@@ -62,9 +75,18 @@ class WorkspaceCanvas @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : FrameLayout(context, attrs) {
 
-    // An icon's room at its own size, `needW` x `needH`, and how it shrinks
-    // its parts (icon, label, padding) to a scale of that.
-    class IconFit(val needW: Int, val needH: Int, val apply: (scale: Float) -> Unit)
+    // A one-cell icon's room at its own size, `needW` x `needH`, its icon
+    // box and padding, and how it sets its parts: the icon to `iconPx`, the
+    // label and padding to `scale` of their own. A large icon shrinks as the
+    // grid's one-cell icons do and grows its icon to fill its block
+    // (largeIconBoxPx).
+    class IconFit(
+        val needW: Int,
+        val needH: Int,
+        val boxPx: Int,
+        val padPx: Int,
+        val apply: (scale: Float, iconPx: Int) -> Unit
+    )
 
     // `cols` x `rows` is the grid, which sets the cell an icon widens to and,
     // with a `fit`, shrinks into; 0 leaves it at its own size. A large
@@ -77,8 +99,9 @@ class WorkspaceCanvas @JvmOverloads constructor(
         val fit: IconFit? = null,
         val span: Int = 1
     ) : FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT) {
-        // The scale the icon was last shrunk to.
+        // The scale the icon was last shrunk to, and its icon's size then.
         var fitScale = 1f
+        var fitIconPx = -1
     }
 
     // `spanX` x `spanY` cells of the `cols` x `rows` grid from (`cellX`,
@@ -142,13 +165,16 @@ class WorkspaceCanvas @JvmOverloads constructor(
             val params = getChildAt(i).layoutParams as? IconParams ?: continue
             val fit = params.fit ?: continue
             if (params.cols <= 0 || params.rows <= 0) continue
-            val scale = iconFitScale(
-                cellSize(width, params.cols) * params.span, cellSize(height, params.rows) * params.span,
-                fit.needW, fit.needH
+            val cellW = cellSize(width, params.cols)
+            val cellH = cellSize(height, params.rows)
+            val scale = iconFitScale(cellW, cellH, fit.needW, fit.needH)
+            val iconPx = largeIconBoxPx(
+                params.span, cellW, cellH, (fit.boxPx * scale).roundToInt(), (fit.padPx * scale).roundToInt()
             )
-            if (scale == params.fitScale) continue
+            if (scale == params.fitScale && iconPx == params.fitIconPx) continue
             params.fitScale = scale
-            fit.apply(scale)
+            params.fitIconPx = iconPx
+            fit.apply(scale, iconPx)
         }
     }
 
