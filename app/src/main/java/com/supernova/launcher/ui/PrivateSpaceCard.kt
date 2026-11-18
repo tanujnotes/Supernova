@@ -41,6 +41,10 @@ class PrivateSpaceCard(
         // Where a card with no icon of its own grows from (a gesture's).
         val homeAnchor: View
 
+        // The dock's top on screen, which the card stays above; null
+        // where there is none to keep clear (the drawer over it).
+        fun dockTopOnScreen(): Int?
+
         // Nothing else is open over the home screen: a card waiting on an
         // unlock gives way to whatever the user opened meanwhile.
         fun homeIsClear(): Boolean
@@ -164,6 +168,7 @@ class PrivateSpaceCard(
             animate = Animations.enabled(prefs),
             speed = Animations.factor(prefs),
             titleEditable = false,
+            keepAboveScreenY = host.dockTopOnScreen(),
             actionLabel = activity.getString(R.string.private_space_lock),
             onAction = {
                 viewModel.setPrivateSpaceLocked(true)

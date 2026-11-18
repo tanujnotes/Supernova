@@ -69,7 +69,11 @@ class FolderPopup(private val context: Context) {
         onRename: (String) -> Unit,
         // The title row's overflow button, handed over to anchor a menu on.
         onMenu: ((View) -> Unit)? = null,
-        onDismiss: (() -> Unit)? = null
+        onDismiss: (() -> Unit)? = null,
+        // The screen y the card stays above: the dock's top, so a folder
+        // opened from the dock or the home grid never covers the dock's
+        // icons. Null leaves the whole screen to it.
+        keepAboveScreenY: Int? = null
     ): PopupWindow {
         // A drawer folder can be opened with the drawer's search keyboard up;
         // the card takes focus and would drop it a step late otherwise.
@@ -122,8 +126,23 @@ class FolderPopup(private val context: Context) {
         val gridWidth = min(columns * cellWidth, metrics.widthPixels - context.dp(48))
         val rowsNeeded = ceil(members.size / columns.toFloat()).toInt().coerceAtLeast(1)
         // Window folders cap at ~60% of the screen so long folders scroll;
-        // immersive gets most of the height.
-        val maxGridHeight = (metrics.heightPixels * if (immersive) 0.72f else 0.6f).toInt()
+        // immersive gets most of the height. Over the dock, no more than
+        // the room above it (less the title row and the card's padding,
+        // estimated: the card isn't measured yet).
+        val screenTop = IntArray(2).also(anchor.rootView::getLocationOnScreen)[1]
+        val roomAboveDock = keepAboveScreenY?.let { y ->
+            y - screenTop - context.dp(STATUS_ROOM_DP) - context.dp(DOCK_GAP_DP) - 2 * context.dp(CARD_MARGIN_DP) -
+                context.dp(if (showTitle) CARD_CHROME_DP else CARD_PADDING_DP)
+        }
+        val maxGridHeight = minOf(
+            (metrics.heightPixels * if (immersive) 0.72f else 0.6f).toInt(),
+            roomAboveDock ?: Int.MAX_VALUE
+        ).coerceAtLeast(context.dp(MIN_GRID_DP))
+        // A full-screen card centres between the bars and, over the dock,
+        // above it.
+        val dockClearance = keepAboveScreenY?.let { y ->
+            screenTop + anchor.rootView.height - y + context.dp(DOCK_GAP_DP)
+        } ?: 0
         adapter.cellWidthPx = gridWidth / columns
 
         when (scroll) {
@@ -270,7 +289,7 @@ class FolderPopup(private val context: Context) {
                 val bars = insets.getInsets(
                     WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
                 )
-                root.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+                root.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, dockClearance))
             }
             clearKeyboard()
             insets
@@ -333,11 +352,14 @@ class FolderPopup(private val context: Context) {
                 // Wide enough for the card's own shadow to fade out inside
                 // the window rather than being cut off against its edge; a
                 // material shadow reaches about twice the card's elevation.
-                val margin = context.dp(20)
+                val margin = context.dp(CARD_MARGIN_DP)
                 val left = (anchorAt[0] - rootAt[0] + (anchor.width - card.width) / 2)
                     .coerceIn(margin, (binding.root.width - card.width - margin).coerceAtLeast(margin))
+                // Its bottom stays above the dock, when there is one.
+                val bottom = keepAboveScreenY?.let { y -> y - rootAt[1] - context.dp(DOCK_GAP_DP) }
+                    ?.coerceAtMost(binding.root.height - margin) ?: (binding.root.height - margin)
                 val top = (anchorAt[1] - rootAt[1] + (anchor.height - card.height) / 2)
-                    .coerceIn(margin, (binding.root.height - card.height - margin).coerceAtLeast(margin))
+                    .coerceIn(margin, (bottom - card.height).coerceAtLeast(margin))
                 card.translationX = left.toFloat()
                 restingY = top.toFloat()
                 card.translationY = restingY
@@ -491,6 +513,18 @@ class FolderPopup(private val context: Context) {
 
         // Room left between the card's title row and the keyboard's top.
         private const val KEYBOARD_GAP_DP = 12
+        // A window card's distance from the screen's edges, wide enough for
+        // its shadow to fade out inside the window.
+        private const val CARD_MARGIN_DP = 20
+        // Between a card and the dock it stays above.
+        private const val DOCK_GAP_DP = 8
+        // Estimates for sizing the grid above the dock before the card is
+        // measured: the status bar, the title row with the card's padding,
+        // the padding alone, and the least grid left to scroll in.
+        private const val STATUS_ROOM_DP = 48
+        private const val CARD_CHROME_DP = 88
+        private const val CARD_PADDING_DP = 32
+        private const val MIN_GRID_DP = 96
 
         // Material fast-out-slow-in out, and its accelerating counterpart
         // for collapsing back into the icon.

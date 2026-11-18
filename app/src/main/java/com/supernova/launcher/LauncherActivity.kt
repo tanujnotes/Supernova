@@ -225,6 +225,8 @@ class LauncherActivity :
             object : com.supernova.launcher.ui.PrivateSpaceCard.Host {
                 override val homeAnchor: View get() = binding.workspacePager
 
+                override fun dockTopOnScreen(): Int? = this@LauncherActivity.dockTopOnScreen()
+
                 override fun homeIsClear(): Boolean =
                     !drawer.isVisible && !search.isOpen && !feed.isOpen && !desktopPreviews.isShowing &&
                         activeFolderPopup == null && drag.activeItemPopup == null && homeMenuDialog == null &&
@@ -4055,6 +4057,7 @@ class LauncherActivity :
             shadow = prefs.folderShadow,
             animate = Animations.enabled(prefs),
             speed = Animations.factor(prefs),
+            keepAboveScreenY = dockTopOnScreen(),
             onRename = { viewModel.renameFolder(folder.id, it) },
             // The title row's overflow: Select apps and Sort, as the folder's
             // long-press has them. Opened by a tap, so modal at once, and the
@@ -4398,6 +4401,14 @@ class LauncherActivity :
 
     override val drawerExpanded: Boolean
         get() = ::drawer.isInitialized && drawer.isExpanded
+
+    // The dock's top on screen, which a folder card opened over the home
+    // screen stays above: none with the dock hidden or the drawer over it.
+    private fun dockTopOnScreen(): Int? {
+        val dock = binding.dockBar
+        if (!dock.isShown || dock.height == 0 || drawerExpanded) return null
+        return IntArray(2).also(dock::getLocationOnScreen)[1]
+    }
 
     override fun onGestureDown(ev: MotionEvent) {
         menuTouchX = ev.x
