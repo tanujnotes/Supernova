@@ -44,6 +44,13 @@ class HomePreviewView @JvmOverloads constructor(
     var topInset = 0
     var bottomInset = 0
 
+    init {
+        // Icons' shadows fall outside them (ShadowedIconDrawable), below
+        // a dock icon past its column.
+        clipChildren = false
+        clipToPadding = false
+    }
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(
             MeasureSpec.makeMeasureSpec(homeWidth, MeasureSpec.EXACTLY),
@@ -190,6 +197,7 @@ class HomePreviewView @JvmOverloads constructor(
         val column = LinearLayout(context)
         column.orientation = LinearLayout.VERTICAL
         column.gravity = Gravity.CENTER
+        column.clipChildren = false
         val labelRoom = if (labels) dp(LABEL_ROOM_DP) else 0
         val scale = if (labelContext == LabelContext.DOCK) prefs.dockIconScale else prefs.iconScale
         val size = minOf(dp(ICON_DP) * scale, cellW - dp(ICON_INSET_DP), cellH - labelRoom - dp(ICON_INSET_DP))

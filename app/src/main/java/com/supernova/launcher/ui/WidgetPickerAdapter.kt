@@ -13,7 +13,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.drawable.toDrawable
 import androidx.recyclerview.widget.RecyclerView
 import com.supernova.launcher.R
@@ -305,7 +304,10 @@ class WidgetPickerAdapter(
                             )?.let { icon ->
                             val size = appContext.resources.getDimensionPixelSize(R.dimen.widget_preview_icon)
                             runCatching {
-                                icon.toBitmap(size, size).toDrawable(appContext.resources)
+                                // With room for an app icon's shadow, which
+                                // a copy at its own size cut off.
+                                val inner = (size / (1f + 2 * ICON_PICTURE_ROOM_FRACTION)).toInt()
+                                iconPictureWithRoom(icon, inner, inner).first.toDrawable(appContext.resources)
                             }.getOrNull()
                         }
                     mainHandler.post {

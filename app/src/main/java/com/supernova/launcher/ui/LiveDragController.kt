@@ -725,7 +725,8 @@ class LiveDragController(
 
     private val dragLayer: DragLayer get() = binding.dragLayer
 
-    private class DragPicture(val bitmap: Bitmap, val source: Rect?)
+    // `outset`: room round an icon's picture for its shadow (iconPictureWithRoom).
+    private class DragPicture(val bitmap: Bitmap, val source: Rect?, val outset: Int = 0)
 
     // Runs inside the still-active long-press touch stream, of this window or
     // of the window the item was pressed in (routeItemGesture). False when
@@ -781,7 +782,8 @@ class LiveDragController(
         dragLayer.begin(
             picture.bitmap, grabX, grabY, lifted?.let(::roundedRect) ?: picture.source,
             if (isWidgetPayload(payload)) 1f else DRAG_PICKUP_SCALE,
-            Animations.duration(prefs, DRAG_PICKUP_MS)
+            Animations.duration(prefs, DRAG_PICKUP_MS),
+            picture.outset
         )
         // The picture is what is seen now; the source can vanish.
         anchor.alpha = 0f
@@ -838,7 +840,10 @@ class LiveDragController(
                 ?: (payload as? DragPayload.DrawerShortcut)
                     ?.let { host.installedApp(it.packageName, it.userSerial) }
                     ?.let { viewModel.appCatalog().iconFor(it) }
-                    ?.let { DragPicture(it.toBitmap(minSize, minSize), null) }
+                    ?.let { icon ->
+                        val (bitmap, outset) = iconPictureWithRoom(icon, minSize, minSize)
+                        DragPicture(bitmap, null, outset)
+                    }
         }
         is DragPayload.ExistingItem -> {
             val item = itemById(payload.itemId)
@@ -916,7 +921,8 @@ class LiveDragController(
         val w = rect.width().coerceAtLeast(1)
         val h = rect.height().coerceAtLeast(1)
         val grow = (minSize.toFloat() / max(w, h)).coerceAtLeast(1f)
-        return DragPicture(drawable.toBitmap((w * grow).toInt(), (h * grow).toInt()), rect)
+        val (bitmap, outset) = iconPictureWithRoom(drawable, (w * grow).toInt(), (h * grow).toInt())
+        return DragPicture(bitmap, rect, outset)
     }
 
     // The page can move under a finger that holds still: the desktop drifts

@@ -8,7 +8,6 @@ import android.graphics.PorterDuffXfermode
 import android.graphics.drawable.Drawable
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.createBitmap
-import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.drawable.toDrawable
 import com.supernova.launcher.R
 import com.supernova.launcher.data.DrawerGroup
@@ -56,7 +55,11 @@ class GroupIcons(
                 val corner = size * CUT_CORNER + gap
                 canvas.drawRoundRect(left - gap, top - gap, left + size + gap, top + size + gap, corner, corner, clear)
             }
-            canvas.drawBitmap(icon.toBitmap(size, size), left, top, null)
+            // Drawn, not copied with toBitmap(): an icon's shadow falls past
+            // its bounds, and a copy at its size cut it off.
+            val copy = icon.constantState?.newDrawable()?.mutate() ?: icon
+            copy.setBounds(left.toInt(), top.toInt(), left.toInt() + size, top.toInt() + size)
+            copy.draw(canvas)
         }
         return bitmap.toDrawable(context.resources)
     }

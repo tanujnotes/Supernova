@@ -172,6 +172,8 @@ class CardViewBinder(
                         orientation = LinearLayout.HORIZONTAL
                         gravity = Gravity.CENTER_VERTICAL
                         foreground = context.getDrawable(R.drawable.ripple_icon)
+                        // The icon's shadow falls below it, past the tile.
+                        clipChildren = false
                         setOnClickListener { callbacks.onLaunchTarget(type, target, it) }
                         contentDescription = featuredLabel ?: card.name
                     }
@@ -193,6 +195,7 @@ class CardViewBinder(
                         label,
                         LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
                     )
+                    container.clipChildren = false
                     container.addView(
                         tile,
                         FrameLayout.LayoutParams(
@@ -282,6 +285,9 @@ class CardViewBinder(
                 val pad = context.dp(if (tall) 8 else 6)
                 setPadding(if (icon != null) context.dp(8) else context.dp(14), pad, context.dp(14), pad)
                 if (tall) minimumHeight = context.dp(44)
+                // An app icon's shadow falls outside it, into the padding.
+                clipChildren = false
+                clipToPadding = false
                 contentDescription = label
                 setOnClickListener { onTap(it) }
                 onLongPress?.let { longPress ->

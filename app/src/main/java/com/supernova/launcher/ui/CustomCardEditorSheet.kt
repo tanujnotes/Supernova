@@ -293,6 +293,8 @@ object CustomCardEditorSheet {
         foreground = AppCompatResources.getDrawable(context, R.drawable.ripple_icon)
         minimumHeight = context.dp(44)
         setPaddingRelative(context.dp(if (icon != null) 8 else 14), 0, 0, 0)
+        // An app icon's shadow falls outside it.
+        clipChildren = false
         contentDescription = label
         setOnClickListener(onTap)
         if (icon != null) {
