@@ -1,6 +1,7 @@
 package com.supernova.launcher.ui
 
 import android.content.Context
+import androidx.core.content.edit
 import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
@@ -29,10 +30,16 @@ class AppChecklist<T>(
     private val apps: List<T>,
     private val checked: BooleanArray,
     private val iconFor: (T) -> Drawable?,
-    private val labelOf: (T) -> String
+    private val labelOf: (T) -> String,
+    // A drawer group's list: whether an unticked row already sits in another
+    // group. A switch over the list hides those (#257); null for no switch.
+    private val placedElsewhere: ((T) -> Boolean)? = null
 ) {
     private val inFolder = apps.indices.filter { checked[it] }
     private val others = apps.indices.filterNot { checked[it] }
+    private val placed: Set<Int> = placedElsewhere?.let { test -> others.filter { test(apps[it]) }.toSet() }.orEmpty()
+    private var hidePlaced = placed.isNotEmpty() && readHidePlaced()
+    private var query: String? = null
     // Indices into apps; DIVIDER between the two groups.
     private var rows: List<Int> = arrange(null)
     private val adapter = RowAdapter()
@@ -48,7 +55,8 @@ class AppChecklist<T>(
             val padV = context.dp(FIELD_PAD_V_DP)
             setPadding(padH, padV, padH, padV)
             doAfterTextChanged { text ->
-                rows = arrange(text?.toString()?.takeIf { it.isNotBlank() })
+                query = text?.toString()?.takeIf { it.isNotBlank() }
+                rows = arrange(query)
                 adapter.notifyDataSetChanged()
             }
         }
@@ -59,6 +67,7 @@ class AppChecklist<T>(
                 bottomMargin = context.dp(BELOW_FIELD_DP)
             }
         )
+        if (placed.isNotEmpty()) addView(placedSwitch())
         val maxHeight = (context.resources.displayMetrics.heightPixels * LIST_SHARE).toInt()
         val list = BoundedListView(context, maxHeight).apply {
             adapter = this@AppChecklist.adapter
@@ -129,12 +138,36 @@ class AppChecklist<T>(
         return field
     }
 
+    // "Hide apps in other groups", on by default and remembered.
+    private fun placedSwitch(): View = androidx.appcompat.widget.SwitchCompat(context).apply {
+        text = context.getString(R.string.checklist_hide_placed)
+        isChecked = hidePlaced
+        val padH = context.dp(SWITCH_PAD_H_DP)
+        setPadding(padH, 0, padH, context.dp(BELOW_FIELD_DP))
+        setOnCheckedChangeListener { _, on ->
+            hidePlaced = on
+            writeHidePlaced(on)
+            rows = arrange(query)
+            adapter.notifyDataSetChanged()
+        }
+    }
+
+    private fun prefs() = context.getSharedPreferences(UI_PREFS, Context.MODE_PRIVATE)
+
+    private fun readHidePlaced(): Boolean =
+        runCatching { prefs().getBoolean(KEY_HIDE_PLACED, true) }.getOrDefault(true)
+
+    private fun writeHidePlaced(on: Boolean) {
+        runCatching { prefs().edit { putBoolean(KEY_HIDE_PLACED, on) } }
+    }
+
     // Matched across all apps at once, so a typo match in one group drops
     // out when the other has a real one.
     private fun arrange(query: String?): List<Int> {
         val matched = query?.let { AppMatcher.filter(apps.indices.toList(), it) { i -> labelOf(apps[i]) }.toHashSet() }
         val first = if (matched == null) inFolder else inFolder.filter { it in matched }
-        val rest = if (matched == null) others else others.filter { it in matched }
+        val shown = if (hidePlaced) others.filterNot { it in placed } else others
+        val rest = if (matched == null) shown else shown.filter { it in matched }
         return if (first.isNotEmpty() && rest.isNotEmpty()) first + DIVIDER + rest else first + rest
     }
 
@@ -191,6 +224,9 @@ class AppChecklist<T>(
 
     private companion object {
         const val DIVIDER = -1
+        const val SWITCH_PAD_H_DP = 24
+        const val UI_PREFS = "checklist_ui_state"
+        const val KEY_HIDE_PLACED = "hide_placed"
         const val LIST_SHARE = 0.55f
         const val BELOW_FIELD_DP = 8
         const val FIELD_PAD_H_DP = 16

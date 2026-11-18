@@ -4341,10 +4341,11 @@ class LauncherActivity :
             }
             menu.addRow(getString(R.string.hide_apps), R.drawable.ic_menu_hide) { showHiddenAppsChecklist() }
         } else {
-            menu.addRow(getString(R.string.edit_tab), R.drawable.ic_menu_edit) { openDrawerGroupSettings(group.id) }
+            // Same rows, same order as a drawer folder's menu (#241).
             menu.addRow(getString(R.string.select_apps), R.drawable.ic_menu_select_apps) {
                 showDrawerGroupChecklist(group)
             }
+            menu.addRow(getString(R.string.edit), R.drawable.ic_menu_edit) { openDrawerGroupSettings(group.id) }
         }
         menu.addRow(getString(R.string.group_settings), R.drawable.ic_tab_settings) { openDrawerGroupSettings(null) }
         // Tracked as the item menus are, so back and home close it.

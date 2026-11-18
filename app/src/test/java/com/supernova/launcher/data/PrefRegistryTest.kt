@@ -193,7 +193,7 @@ class PrefRegistryTest {
         accent_color:BLUE,INDIGO,PURPLE,PINK,RED,ORANGE,AMBER,GREEN,TEAL,CYAN
         palette_source:SYSTEM,WALLPAPER,CUSTOM
         label_font:DEFAULT,CONDENSED,SERIF,MONOSPACE
-        search_web_provider:GOOGLE,DUCKDUCKGO,BRAVE,BING
+        search_web_provider:GOOGLE,DUCKDUCKGO,BRAVE,BING,ECOSIA,STARTPAGE
         search_window_mode:IMMERSIVE,WINDOW
         popup_style:BLOCK,PILLS,ANDROID12
         animation_speed:RELAXED,FAST

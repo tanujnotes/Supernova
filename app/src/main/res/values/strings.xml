@@ -153,8 +153,6 @@
     <string name="drawer_swipe_indicator_summary">Place a small arrow above the dock</string>
     <string name="drawer_swipe_haptic">Haptic feedback</string>
     <string name="drawer_swipe_haptic_summary">Vibrate when a swipe up starts opening the drawer</string>
-    <string name="drawer_search_bar_position">Search bar position</string>
-    <string name="search_bar_page_summary">Look and buttons</string>
     <string name="drawer_tab_bar">Tab bar position</string>
     <string name="tab_bar_top">Top</string>
     <string name="tab_bar_bottom">Bottom</string>
@@ -196,6 +194,7 @@
     <string name="hide_label">Hide label</string>
     <string name="change_icon">Change icon</string>
     <string name="select_apps">Select apps</string>
+    <string name="checklist_hide_placed">Hide apps in other groups</string>
     <string name="drawer_tab_empty">No apps in this tab yet</string>
     <string name="sort">Sort</string>
     <string name="move_to_drawer">Move to drawer</string>
@@ -500,7 +499,6 @@
     <string name="group_deleted">%1$s deleted</string>
     <string name="group_name_required">Enter a name</string>
     <string name="new_tab">New tab</string>
-    <string name="edit_tab">Edit tab</string>
     <string name="group_settings">Group settings</string>
     <string name="show_hidden_apps">Show hidden apps</string>
     <string name="hide_hidden_apps">Hide hidden apps again</string>

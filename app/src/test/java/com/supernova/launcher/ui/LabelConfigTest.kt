@@ -44,6 +44,17 @@ class LabelConfigTest {
     }
 
     @Test
+    fun switchedOffKeepsValuesButDrawsLikeTheDesktop() {
+        val config = LabelConfig()
+            .with(LabelContext.DOCK, LabelOverride(size = 12, shadow = true, off = true))
+        val back = LabelConfig.decode(config.encode())
+        assertTrue(back.of(LabelContext.DOCK).isEmpty())
+        assertEquals(12, back.stored(LabelContext.DOCK).size)
+        val on = back.with(LabelContext.DOCK, back.stored(LabelContext.DOCK).copy(off = false))
+        assertEquals(12, on.of(LabelContext.DOCK).size)
+    }
+
+    @Test
     fun garbageAndUnknownKeysDecodeSafely() {
         assertEquals(LabelConfig.EMPTY, LabelConfig.decode("not json"))
         val decoded = LabelConfig.decode("""{"dock":{"size":11,"future":"x"},"future":{}}""")

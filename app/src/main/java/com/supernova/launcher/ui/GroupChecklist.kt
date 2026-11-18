@@ -33,11 +33,17 @@ class GroupChecklist(
         // As stored now: a rename elsewhere may have come after the copy this
         // was opened with.
         val title = name ?: viewModel.drawerGroups().firstOrNull { it.id == group.id }?.name ?: group.name
-        AppChecklist(context, picks, checked.copyOf(), iconOf, GroupPick::label).showRenamable(title) { ticks, typed ->
-            val stored = viewModel.drawerGroups().firstOrNull { it.id == group.id } ?: group
-            viewModel.renameGroup(stored, typed)
-            val changes = picks.indices.filter { ticks[it] != checked[it] }.associate { picks[it] to ticks[it] }
-            if (changes.isNotEmpty()) viewModel.setGroupMembership(group.id, changes)
+        // Apps already in another group (tab or folder) can be hidden (#257).
+        val others = viewModel.drawerGroups().filter { it.id != group.id }
+        val placedElsewhere: (GroupPick) -> Boolean = { pick ->
+            pick is GroupPick.App && others.any { viewModel.isPicked(pick, it) }
         }
+        AppChecklist(context, picks, checked.copyOf(), iconOf, GroupPick::label, placedElsewhere)
+            .showRenamable(title) { ticks, typed ->
+                val stored = viewModel.drawerGroups().firstOrNull { it.id == group.id } ?: group
+                viewModel.renameGroup(stored, typed)
+                val changes = picks.indices.filter { ticks[it] != checked[it] }.associate { picks[it] to ticks[it] }
+                if (changes.isNotEmpty()) viewModel.setGroupMembership(group.id, changes)
+            }
     }
 }

@@ -1,5 +1,6 @@
 package com.supernova.launcher
 
+import androidx.core.content.edit
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
@@ -306,11 +307,22 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
+    // The group page (or null, the groups list) a drawer menu opened, while
+    // the activity came from one; unset for any other way in.
+    private var drawerLanding: String? = null
+    private var cameFromDrawer = false
+
+    private fun landedFromDrawer(): Boolean =
+        cameFromDrawer && onGroupsPage() && groupsPane?.editing == drawerLanding
+
     private val backCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
             val parent = currentSection?.title?.let(subPageParents::get)
             when {
                 searchActive -> setSearchActive(false)
+                // Opened from a drawer tab's or folder's menu: back from the
+                // page it landed on goes back to the drawer (#247).
+                landedFromDrawer() -> finish()
                 // The Style tab opened from its row in the list: back to that
                 // row, as from any section.
                 styleFromList && currentTab == Tab.STYLE && currentSection == null -> {
@@ -556,6 +568,8 @@ class SettingsActivity : AppCompatActivity() {
             // opened again before the first render lays the rows out.
             state.getIntArray(STATE_OPEN_ACCORDIONS)?.let { adapter.openAccordions = it }
         }
+        // A fresh open brings back the sections left open last time (#254).
+        if (savedInstanceState == null) adapter.openAccordions = loadOpenAccordions()
 
         binding.settingsRecycler.layoutManager = LinearLayoutManager(this)
         binding.settingsRecycler.adapter = adapter
@@ -699,6 +713,46 @@ class SettingsActivity : AppCompatActivity() {
         groupsPane?.editing?.let { outState.putString(STATE_GROUP, it) }
         outState.putIntArray(STATE_OPEN_ACCORDIONS, adapter.openAccordions)
     }
+
+    override fun onStop() {
+        super.onStop()
+        saveOpenAccordions()
+    }
+
+    // The open Advanced sections and nested switches, kept across launches.
+    // Stored by resource name: the ids can change from one build to the next.
+    private fun saveOpenAccordions() {
+        val pairs = adapter.openAccordions
+        val names = (0 until pairs.size / 2).mapNotNull { i ->
+            val page = if (pairs[2 * i] == 0) "" else resourceName(pairs[2 * i]) ?: return@mapNotNull null
+            val title = resourceName(pairs[2 * i + 1]) ?: return@mapNotNull null
+            "$page/$title"
+        }
+        runCatching {
+            getSharedPreferences(UI_STATE_PREFS, MODE_PRIVATE).edit {
+                putStringSet(KEY_OPEN_ACCORDIONS, names.toSet())
+            }
+        }
+    }
+
+    private fun loadOpenAccordions(): IntArray {
+        val names = runCatching {
+            getSharedPreferences(UI_STATE_PREFS, MODE_PRIVATE).getStringSet(KEY_OPEN_ACCORDIONS, null)
+        }.getOrNull().orEmpty()
+        return names.flatMap { entry ->
+            val page = entry.substringBefore('/')
+            val pageId = if (page.isEmpty()) 0 else stringId(page)
+            val titleId = stringId(entry.substringAfter('/'))
+            if (pageId == null || titleId == null) emptyList() else listOf(pageId, titleId)
+        }.toIntArray()
+    }
+
+    private fun resourceName(id: Int): String? = runCatching { resources.getResourceEntryName(id) }.getOrNull()
+
+    @android.annotation.SuppressLint("DiscouragedApi")
+    private fun stringId(name: String): Int? =
+        resources.getIdentifier(name, "string", resources.getResourcePackageName(R.string.advanced))
+            .takeIf { it != 0 }
 
     private fun requestFeedCalendarIfNeeded() {
         if (checkSelfPermission(android.Manifest.permission.READ_CALENDAR) !=
@@ -1063,8 +1117,11 @@ class SettingsActivity : AppCompatActivity() {
         intent.getStringExtra(EXTRA_DRAWER_GROUP)?.let { group ->
             navigateTo(R.string.drawer_groups, 0, flash = false)
             groupsPane?.show(true, group.ifEmpty { null })
+            drawerLanding = group.ifEmpty { null }
+            cameFromDrawer = true
             return
         }
+        cameFromDrawer = false
         val section = intent.getIntExtra(EXTRA_SECTION_TITLE_RES, 0)
         if (section != 0) navigateTo(section, intent.getIntExtra(EXTRA_HIGHLIGHT_TITLE_RES, 0))
     }
@@ -2267,6 +2324,8 @@ class SettingsActivity : AppCompatActivity() {
         private const val STATE_SECTION = "settings_section"
         private const val STATE_GROUP = "settings_group"
         private const val STATE_OPEN_ACCORDIONS = "settings_open_accordions"
+        private const val UI_STATE_PREFS = "settings_ui_state"
+        private const val KEY_OPEN_ACCORDIONS = "open_accordions"
 
         // How many of a pack's drawables the icon pack picker samples per row.
         // Enough to read the pack's style, few enough that the strip fits a

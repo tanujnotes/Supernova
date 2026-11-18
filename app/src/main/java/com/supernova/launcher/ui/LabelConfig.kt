@@ -17,9 +17,16 @@ data class LabelOverride(
     // LabelFont name; null inherits labelFont.
     val font: String? = null,
     val shadow: Boolean? = null,
-    val singleLine: Boolean? = null
+    val singleLine: Boolean? = null,
+    // Customize labels switched off: the values stay for the next time it
+    // goes on, but the labels inherit the desktop's meanwhile (#254).
+    val off: Boolean = false
 ) {
+    // No values kept, whether or not it is switched on.
     fun isEmpty(): Boolean = size == null && font == null && shadow == null && singleLine == null
+
+    // Whether it changes how labels draw.
+    fun active(): Boolean = !off && !isEmpty()
 }
 
 // The whole per-context label document behind the labelConfig pref. ""
@@ -31,7 +38,11 @@ data class LabelConfig(
     val folder: LabelOverride = LabelOverride()
 ) {
 
-    fun of(context: LabelContext): LabelOverride = when (context) {
+    // The override labels draw with: an empty one while switched off.
+    fun of(context: LabelContext): LabelOverride = stored(context).takeIf { it.active() } ?: EMPTY_OVERRIDE
+
+    // The override as kept, values and off flag both: for the settings rows.
+    fun stored(context: LabelContext): LabelOverride = when (context) {
         LabelContext.DESKTOP -> EMPTY_OVERRIDE
         LabelContext.DOCK -> dock
         LabelContext.DRAWER -> drawer

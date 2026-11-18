@@ -10,13 +10,17 @@ enum class WebProvider(val displayName: String) {
     GOOGLE("Google"),
     DUCKDUCKGO("DuckDuckGo"),
     BRAVE("Brave"),
-    BING("Bing");
+    BING("Bing"),
+    ECOSIA("Ecosia"),
+    STARTPAGE("Startpage");
 
     fun searchUrl(query: String): String = when (this) {
         GOOGLE -> "https://www.google.com/search?q=${encodeQuery(query)}"
         DUCKDUCKGO -> "https://duckduckgo.com/?q=${encodeQuery(query)}"
         BRAVE -> "https://search.brave.com/search?q=${encodeQuery(query)}"
         BING -> "https://www.bing.com/search?q=${encodeQuery(query)}"
+        ECOSIA -> "https://www.ecosia.org/search?q=${encodeQuery(query)}"
+        STARTPAGE -> "https://www.startpage.com/do/search?q=${encodeQuery(query)}"
     }
 
     // Its name in the store and in a backup, read back leniently.

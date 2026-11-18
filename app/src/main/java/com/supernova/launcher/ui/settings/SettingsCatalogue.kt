@@ -339,17 +339,18 @@ object SettingsCatalogue {
         val rows = Rows(context, viewModel, actions)
         // The drawer field's Top/Bottom/Hidden, on its own page and on the
         // App drawer page.
+        val drawerBarLabel = { placement: DrawerBarPlacement ->
+            when (placement) {
+                DrawerBarPlacement.TOP -> R.string.tab_bar_top
+                DrawerBarPlacement.BOTTOM -> R.string.tab_bar_bottom
+                DrawerBarPlacement.HIDDEN -> R.string.placement_hidden
+            }
+        }
         val drawerBarPlacement = { title: Int ->
             rows.choice(
                 title, DrawerBarPlacement.entries,
                 { DrawerBarPlacement.fromConfig(SearchBarPrefs.drawerBar(it)) },
-                {
-                    when (it) {
-                        DrawerBarPlacement.TOP -> R.string.tab_bar_top
-                        DrawerBarPlacement.BOTTOM -> R.string.tab_bar_bottom
-                        DrawerBarPlacement.HIDDEN -> R.string.placement_hidden
-                    }
-                }
+                drawerBarLabel
             ) { placement ->
                 rows.editDrawerBar {
                     it.copy(placement = placement.name, enabled = placement != DrawerBarPlacement.HIDDEN)
@@ -369,10 +370,11 @@ object SettingsCatalogue {
             ) { placement -> rows.editDesktopBar { it.copy(placement = placement.name) } }
         }
         // A bar's own page, opened from the Home screen or App drawer page.
-        val barPageLink = { page: Int ->
+        // Its summary is the bar's placement, set on that page (#242).
+        val barPageLink = { page: Int, placement: (LauncherPrefs) -> Int ->
             SettingItem.Row(
                 page,
-                subtitle = { context.getString(R.string.search_bar_page_summary) },
+                subtitle = { context.getString(placement(it)) },
                 onClick = { actions.openSection(page) }
             )
         }
@@ -425,8 +427,9 @@ object SettingsCatalogue {
                     subtitle = { context.getString(R.string.grid_value, it.gridRows, it.gridCols) },
                     onClick = actions.pickDesktopGrid
                 ),
-                desktopBarPlacement(R.string.drawer_search_bar_position),
-                barPageLink(R.string.desktop_search_bar),
+                barPageLink(R.string.desktop_search_bar) {
+                    EnumLabels.of(SearchBarPlacement.fromName(SearchBarPrefs.desktopBar(it).placement))
+                },
                 rows.choice(
                     R.string.wallpaper_scroll, com.supernova.launcher.ui.WallpaperScrollMode.entries,
                     { com.supernova.launcher.ui.WallpaperScrollMode.fromPrefs(it) }, { EnumLabels.of(it) }
@@ -632,7 +635,7 @@ object SettingsCatalogue {
                     set = { SurfaceOpacity.set(viewModel, SurfaceId.DOCK, it) },
                     display = { context.getString(R.string.opacity_percent, it) },
                     preview = { p, v -> SurfaceOpacity.preview(p, SurfaceId.DOCK, v) }
-                ).hiddenWhen(dockBgHidden),
+                ).hiddenWhen(dockBgHidden).nested(),
                 SettingItem.Slider(
                     R.string.dock_bg_radius,
                     min = 0, max = 24,
@@ -649,19 +652,19 @@ object SettingsCatalogue {
                     },
                     display = { context.getString(R.string.padding_dp_value, it) },
                     preview = { p, v -> p.copy(dockBgRadius = v, dockBgStyle = DockBgStyle.ROUNDED) }
-                ).hiddenWhen(dockBgHidden),
+                ).hiddenWhen(dockBgHidden).nested(),
                 SettingItem.Toggle(
                     R.string.dock_bg_behind_nav,
                     get = { it.dockBgBehindNav },
                     set = { viewModel.set(Pref.dockBgBehindNav, it) }
-                ).hiddenWhen(dockBgHidden),
+                ).hiddenWhen(dockBgHidden).nested(),
                 SettingItem.Toggle(
                     R.string.dock_bg_padding,
                     get = { it.dockBgPadding },
                     set = { viewModel.set(Pref.dockBgPadding, it) },
                     // Behind-nav already forces the slab full-bleed, so the
                     // inset choice only means something without it.
-                ).hiddenWhen { dockBgHidden(it) ?: needsOff(R.string.dock_bg_behind_nav, it.dockBgBehindNav) },
+                ).hiddenWhen { dockBgHidden(it) ?: needsOff(R.string.dock_bg_behind_nav, it.dockBgBehindNav) }.nested(),
                 SettingItem.Toggle(
                     R.string.dock_labels,
                     get = { it.dockLabels },
@@ -686,7 +689,7 @@ object SettingsCatalogue {
                     set = { viewModel.set(Pref.dockIconScale, it / 100f) },
                     display = { context.getString(R.string.opacity_percent, it) },
                     preview = { p, v -> p.copy(dockIconScale = v / 100f) }
-                ).hiddenWhen { dockHidden(it) ?: needsOff(R.string.dock_match_desktop, it.dockMatchDesktop) },
+                ).hiddenWhen { dockHidden(it) ?: needsOff(R.string.dock_match_desktop, it.dockMatchDesktop) }.nested(),
                 SettingItem.Slider(
                     R.string.dock_padding_h,
                     min = 0, max = 48,
@@ -838,7 +841,7 @@ object SettingsCatalogue {
                     display = { context.getString(R.string.opacity_percent, it) },
                     preview = { p, v -> p.copy(drawerIconScale = v / 100f) },
                     note = { fitHint.drawer(it) }
-                ).hiddenWhen { needsOff(R.string.dock_match_desktop, it.drawerMatchDesktop) },
+                ).hiddenWhen { needsOff(R.string.dock_match_desktop, it.drawerMatchDesktop) }.nested(),
                 SettingItem.Slider(
                     R.string.drawer_padding_h,
                     min = 0, max = 48,
@@ -889,8 +892,9 @@ object SettingsCatalogue {
                     get = { it.drawerPullToSearch },
                     set = { viewModel.set(Pref.drawerPullToSearch, it) }
                 ),
-                drawerBarPlacement(R.string.drawer_search_bar_position),
-                barPageLink(R.string.drawer_search_bar),
+                barPageLink(R.string.drawer_search_bar) {
+                    drawerBarLabel(DrawerBarPlacement.fromConfig(SearchBarPrefs.drawerBar(it)))
+                },
                 SettingItem.Header(R.string.group_tabs),
                 rows.choice(
                     R.string.drawer_tab_bar, DrawerTabBar.entries,
@@ -1007,7 +1011,7 @@ object SettingsCatalogue {
                     set = { viewModel.set(Pref.drawerFoldersFirst, it) }
                 ).hiddenWhen {
                     needsOn(R.string.smart_folders, !it.smartFolders && viewModel.drawerFolderGroups().isEmpty())
-                }.nested()
+                }
             )
         ),
         SettingsSection(
@@ -1318,7 +1322,7 @@ object SettingsCatalogue {
                     get = { (it.folderIconScale * 100f).roundToInt() },
                     set = { viewModel.set(Pref.folderIconScale, it / 100f) },
                     display = { context.getString(R.string.opacity_percent, it) }
-                ).hiddenWhen { needsOff(R.string.dock_match_desktop, it.folderMatchDesktop) },
+                ).hiddenWhen { needsOff(R.string.dock_match_desktop, it.folderMatchDesktop) }.nested(),
                 SettingItem.Toggle(
                     R.string.folder_labels,
                     get = { it.folderLabels },
@@ -1921,7 +1925,8 @@ object SettingsCatalogue {
     // The per-context label block (B3/B4): a customize toggle plus the four
     // override fields, spliced into the Dock / App drawer / Folders sections.
     // Enabling seeds the override from the current desktop values so nothing
-    // visibly changes until a field is edited; disabling goes back to inherit.
+    // visibly changes until a field is edited; disabling goes back to inherit
+    // but keeps the values, which the next enable brings back.
     // It follows each page's labels switch, so it nests a level under it.
     private fun labelOverrideItems(
         context: Context,
@@ -1931,9 +1936,9 @@ object SettingsCatalogue {
         sectionHidden: (LauncherPrefs) -> SettingItem.HiddenBy?
     ): List<SettingItem> {
         fun override(prefs: LauncherPrefs): LabelOverride =
-            LabelConfig.decode(prefs.labelConfig).of(labelContext)
+            LabelConfig.decode(prefs.labelConfig).stored(labelContext)
 
-        fun customized(prefs: LauncherPrefs): Boolean = !override(prefs).isEmpty()
+        fun customized(prefs: LauncherPrefs): Boolean = override(prefs).active()
         val rows = Rows(context, viewModel, actions)
 
         return listOf(
@@ -1941,12 +1946,15 @@ object SettingsCatalogue {
                 R.string.label_customize,
                 get = ::customized,
                 set = { on ->
+                    // Off keeps the values for the next time it goes on (#254).
                     viewModel.updateLabelOverride(labelContext) {
-                        if (on) {
-                            val p = viewModel.state.value.prefs
-                            LabelOverride(p.labelSize, p.labelFont.name, p.labelShadow, p.labelSingleLine)
-                        } else {
-                            LabelOverride()
+                        when {
+                            !on -> it.copy(off = true)
+                            !it.isEmpty() -> it.copy(off = false)
+                            else -> {
+                                val p = viewModel.state.value.prefs
+                                LabelOverride(p.labelSize, p.labelFont.name, p.labelShadow, p.labelSingleLine)
+                            }
                         }
                     }
                 }

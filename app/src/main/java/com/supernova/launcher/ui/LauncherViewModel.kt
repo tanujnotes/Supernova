@@ -873,12 +873,12 @@ class LauncherViewModel(
     fun setSearchBarWidget(id: Int, provider: String) = persist { preferences.setSearchBarWidget(id, provider) }
 
     // Rewrites one context's slice of the labelConfig document. The transform
-    // sees the current override; returning an all-null override goes back to
-    // inheriting the desktop labels.
+    // sees the stored override (values kept while switched off); an all-null
+    // or switched-off one inherits the desktop labels.
     fun updateLabelOverride(context: LabelContext, transform: (LabelOverride) -> LabelOverride) {
         val prefs = state.value.prefs
         val config = LabelConfig.decode(prefs.labelConfig)
-        val updated = config.with(context, transform(config.of(context)))
+        val updated = config.with(context, transform(config.stored(context)))
         viewModelScope.launch { preferences.set(Pref.labelConfig, updated.encode()) }
     }
 
