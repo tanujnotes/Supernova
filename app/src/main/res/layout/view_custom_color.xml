@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Custom color, under the Fixed colors row of the style and color sheets:
-     a Color (hue) slider, a Shade slider, a hex field and the last few
+     a hue slider under the section's label, a Shade slider, a hex field and the last few
      custom colors. Every change applies as it is made. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -14,15 +14,6 @@
         android:text="@string/custom_color_title"
         android:textColor="@color/textSecondary"
         android:textSize="@dimen/text_secondary" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_sm"
-        android:labelFor="@id/customHueSeek"
-        android:text="@string/color_hue"
-        android:textColor="@color/textPrimary"
-        android:textSize="@dimen/text_body" />
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -40,6 +31,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@null"
+            android:contentDescription="@string/color_hue"
             android:max="359"
             android:paddingHorizontal="14dp" />
     </FrameLayout>
@@ -50,8 +42,8 @@
         android:layout_marginTop="@dimen/space_xs"
         android:labelFor="@id/customShadeSeek"
         android:text="@string/color_shade"
-        android:textColor="@color/textPrimary"
-        android:textSize="@dimen/text_body" />
+        android:textColor="@color/textSecondary"
+        android:textSize="@dimen/text_secondary" />
 
     <FrameLayout
         android:layout_width="match_parent"
