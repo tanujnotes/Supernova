@@ -105,6 +105,7 @@ import com.supernova.launcher.ui.LabelStyler
 import com.supernova.launcher.ui.SwipeArrowDrawable
 import com.supernova.launcher.ui.FolderIconDrawable
 import com.supernova.launcher.ui.FolderMemberAdapter
+import com.supernova.launcher.ui.FolderTileSwipeHold
 import com.supernova.launcher.ui.FolderPopup
 import com.supernova.launcher.ui.FolderReorderDrag
 import com.supernova.launcher.ui.PausedIcon
@@ -4689,21 +4690,22 @@ class LauncherActivity :
         if (!claimsUp && !claimsDown) return
         var startY = 0f
         var startX = 0f
+        val hold = inFolder?.let { FolderTileSwipeHold(view, claimsUp, claimsDown) }
         view.setOnTouchListener { v, event ->
+            // In an open folder the grid is held off until the finger has
+            // gone one way.
+            hold?.onTouch(v, event)
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     startY = event.rawY
                     startX = event.rawX
                     // An open folder's window never feeds the home detector
                     // or the drawer pull.
-                    if (inFolder == null) claimHomeSwipe(claimsUp, claimsDown)
+                    if (hold == null) claimHomeSwipe(claimsUp, claimsDown)
                 }
                 MotionEvent.ACTION_UP -> {
-                    val dy = startY - event.rawY
-                    val dx = abs(event.rawX - startX)
-                    val up = claimsUp && dy > dp(48) && dy > dx
-                    val down = claimsDown && -dy > dp(48) && -dy > dx
-                    if (up || down) {
+                    val up = iconSwipeAt(event.rawX - startX, startY - event.rawY, claimsUp, claimsDown)
+                    if (up != null) {
                         runIconSwipe(v, event, item, up, inFolder)
                         return@setOnTouchListener true
                     }
@@ -4711,6 +4713,14 @@ class LauncherActivity :
             }
             false
         }
+    }
+
+    // The lift's swipe on an icon: true up, false down, null for neither.
+    // dy is the finger's rise.
+    private fun iconSwipeAt(dx: Float, dy: Float, claimsUp: Boolean, claimsDown: Boolean): Boolean? = when {
+        claimsUp && dy > dp(48) && dy > abs(dx) -> true
+        claimsDown && -dy > dp(48) && -dy > abs(dx) -> false
+        else -> null
     }
 
     private fun claimHomeSwipe(claimsUp: Boolean, claimsDown: Boolean) {
