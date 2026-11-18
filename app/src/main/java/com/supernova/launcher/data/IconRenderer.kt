@@ -183,6 +183,32 @@ class IconRenderer(context: Context) {
         return reshaped ?: render(source, null, shape, customShape, glass)
     }
 
+    // A pack's own art. It is finished as the pack made it, so Reshape legacy
+    // leaves it alone: its resizing shrank it, and its light plate hid white
+    // line art. In a chosen shape, art that is one solid body (a tile, a disc,
+    // a plate with its logo) takes the shape as before; art drawn on nothing
+    // (line art, a glyph) is drawn whole, since the shape's overfill and clip
+    // cut its outer lines away.
+    fun renderPackArt(source: Drawable, shape: IconShape, customShape: CustomShapeSpec?): Drawable {
+        val asMade = source !is AdaptiveIconDrawable && (shape == IconShape.SYSTEM || !solid(source))
+        if (!asMade) return render(source, null, shape, customShape, IconGlass.OFF)
+        val bitmap = createBitmap(iconSizePx, iconSizePx)
+        drawBase(Canvas(bitmap), source, 1f, hasBack = false)
+        return if (shadow) withShadow(bitmap) else bitmap.toDrawable(resources)
+    }
+
+    // Whether the drawable, drawn at the icon's size, is one solid body.
+    private fun solid(source: Drawable): Boolean {
+        val size = iconSizePx
+        val picture = createBitmap(size, size)
+        source.setBounds(0, 0, size, size)
+        source.draw(Canvas(picture))
+        val pixels = IntArray(size * size)
+        picture.getPixels(pixels, 0, size, 0, 0, size, size)
+        picture.recycle()
+        return PictureFrame.solid(pixels, size)
+    }
+
     // The tile of a legacy icon cut to the icon's shape; null for one with no
     // tile, which stays a legacy icon.
     private fun legacyTile(picture: Bitmap, mask: Path): Drawable? {

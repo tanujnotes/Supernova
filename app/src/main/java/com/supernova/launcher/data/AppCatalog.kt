@@ -195,7 +195,7 @@ class AppCatalog(
                 val calendar = iconPacks.calendarDrawable(app.packageName, app.className, day)
                 if (calendar != null) {
                     val rendered = runLogged("render calendar icon") {
-                        iconRenderer.render(calendar, null, shapeFor(override), customShapeSpec, IconGlass.OFF)
+                        iconRenderer.renderPackArt(calendar, shapeFor(override), customShapeSpec)
                     }.getOrNull()
                     if (rendered != null) {
                         val badged = runLogged("badge icon for its profile") {
@@ -298,6 +298,7 @@ class AppCatalog(
             when {
                 gallery != null -> pickedPicture(gallery.bitmap, effectiveShape)
                 ownIcon -> iconRenderer.renderOwnIcon(source, effectiveShape, customShapeSpec, glass)
+                finishedArt -> iconRenderer.renderPackArt(source, effectiveShape, customShapeSpec)
                 else -> iconRenderer.render(source, decoration, effectiveShape, customShapeSpec, glass)
             }
         }.getOrNull()
@@ -552,7 +553,7 @@ class AppCatalog(
             renderPickedAppIcon(source)
         } else {
             runLogged("render pack drawable") {
-                iconRenderer.render(source, null, iconShape, customShapeSpec, IconGlass.OFF)
+                iconRenderer.renderPackArt(source, iconShape, customShapeSpec)
             }.getOrNull()
         }
     }
