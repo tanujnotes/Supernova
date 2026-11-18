@@ -545,6 +545,9 @@
     <string name="about_no_browser">No app here opens links</string>
     <string name="about_source">Source code</string>
     <string name="about_source_url" translatable="false">https://github.com/tanujnotes/Supernova</string>
+    <string name="about_privacy">Privacy policy</string>
+    <string name="about_privacy_summary">No data collected; nothing leaves this phone</string>
+    <string name="about_privacy_url" translatable="false">https://github.com/tanujnotes/Supernova/blob/main/PRIVACY.md</string>
     <string name="crash_log">Crash log</string>
     <string name="crash_log_none">No crashes recorded</string>
     <plurals name="crash_log_count">

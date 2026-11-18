@@ -1785,6 +1785,11 @@ object SettingsCatalogue {
                     onClick = { AboutLinks.open(context, context.getString(R.string.about_source_url)) }
                 ),
                 SettingItem.Row(
+                    R.string.about_privacy,
+                    subtitle = { context.getString(R.string.about_privacy_summary) },
+                    onClick = { AboutLinks.open(context, context.getString(R.string.about_privacy_url)) }
+                ).describedBy(R.string.about_privacy_summary),
+                SettingItem.Row(
                     R.string.about_report_issue,
                     subtitle = { context.getString(R.string.about_report_issue_summary) },
                     onClick = { AboutLinks.open(context, AboutLinks.newIssueUrl(context)) }
