@@ -141,6 +141,14 @@
             android:layout_height="wrap_content"
             android:orientation="vertical" />
 
+        <!-- Custom color, under Fixed colors: Color and Shade sliders, hex, recent colors. -->
+        <LinearLayout
+            android:id="@+id/customRows"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone" />
+
         <Button
             android:id="@+id/styleDefault"
             style="@style/Widget.Supernova.Button.Text"

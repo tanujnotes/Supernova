@@ -33,11 +33,7 @@ class ColorSheet(
     // Picking a color shows it solid, as the fixed list did, until the slider moves.
     private var opacityMoved = false
     private var onPick: (String) -> Unit = {}
-    private var title = 0
-
-    // From Custom color: what it hands back is the pick; an AARRGGBB hex
-    // sets the opacity too.
-    private fun useCustom(picked: Int, alpha: Int?) {
+    private val custom = CustomColorRows(context, binding.customRows) { picked, alpha ->
         rgb = picked
         when {
             alpha != null -> { opacity = percent(alpha shl ALPHA_SHIFT); opacityMoved = true }
@@ -55,7 +51,6 @@ class ColorSheet(
             opacity = percent(stored)
             opacityMoved = opacity != FULL
         }
-        this.title = title
         binding.styleTitle.setText(title)
         listOf(binding.slotGroup, binding.stripText, binding.stripAccent, binding.contrastRow)
             .forEach { it.visibility = View.GONE }
@@ -73,8 +68,10 @@ class ColorSheet(
             override fun onStopTrackingTouch(seekBar: SeekBar) = onPick(value())
         })
         render()
+        custom.show(rgb ?: defaultColor)
         val dialog = Sheets.open(context)
         dialog.setContentView(binding.root)
+        dialog.setOnDismissListener { custom.remember() }
         dialog.show()
     }
 
@@ -101,6 +98,7 @@ class ColorSheet(
         if (!opacityMoved) opacity = if (rgb == null) defaultOpacity else FULL
         onPick(value())
         render()
+        custom.show(rgb ?: defaultColor)
     }
 
     private fun renderStrip() {
@@ -111,12 +109,7 @@ class ColorSheet(
         renderStrip()
         binding.opacitySeek.progress = opacity
         binding.opacityValue.text = context.getString(R.string.opacity_percent, opacity)
-        StylePickerSheet.fillSwatches(
-            binding, palette, { rgb != null && specColor(it) == rgb }, ::pick,
-            CustomSwatch(rgb) {
-                CustomColorSheet(context).show(context.getString(title), rgb ?: defaultColor, ::useCustom)
-            }
-        )
+        StylePickerSheet.fillSwatches(context, binding, palette, { rgb != null && specColor(it) == rgb }, ::pick)
     }
 
     companion object {

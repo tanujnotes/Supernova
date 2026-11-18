@@ -8,6 +8,7 @@ import android.text.InputFilter
 import android.text.InputType
 import android.text.TextWatcher
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -17,31 +18,37 @@ import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.isVisible
 import com.supernova.launcher.R
-import com.supernova.launcher.databinding.SheetCustomColorBinding
+import com.supernova.launcher.databinding.ViewCustomColorBinding
 import com.supernova.launcher.ui.DialogField
-import com.supernova.launcher.ui.Sheets
 import com.supernova.launcher.ui.dp
 import java.util.Locale
 
-// Any color, from the + swatch of the style and color sheets: a preview, a
-// Color slider (hue), a Shade slider (dark to light in that hue), a hex field
-// (RRGGBB, or AARRGGBB to set the opacity too) and the last few colors used.
-// Nothing changes until Use color, which hands the color back.
-class CustomColorSheet(private val context: Context) {
-
-    private val binding = SheetCustomColorBinding.inflate(LayoutInflater.from(context))
+// Any color, under the Fixed colors row of the style and color sheets: a
+// Color slider (hue), a Shade slider (dark to light in that hue), a hex
+// field (RRGGBB, or AARRGGBB to set the opacity too) and the last few custom
+// colors. Each change goes to onColor as it is made; the sheet's own strip
+// is the preview.
+class CustomColorRows(
+    private val context: Context,
+    private val container: ViewGroup,
+    // Opaque RGB, and an alpha (0-255) when the hex had one.
+    private val onColor: (rgb: Int, alpha: Int?) -> Unit
+) {
+    private val binding = ViewCustomColorBinding.inflate(LayoutInflater.from(context), container, true)
     private val hex = EditText(context)
 
     // Hue 0-360, saturation and lightness 0-1. Kept here so a slider never
     // jumps as the color rounds through RGB.
     private val hsl = FloatArray(HSL_SIZE)
-    private var pickedAlpha: Int? = null
     private var updating = false
 
-    // subtitle: what the color is for ("App drawer · Background").
-    fun show(subtitle: CharSequence, initial: Int, onUse: (rgb: Int, alpha: Int?) -> Unit) {
-        binding.customSubtitle.text = subtitle
-        binding.customSubtitle.isVisible = subtitle.isNotEmpty()
+    // The last color made here, kept for Recent when the sheet closes.
+    private var made: Int? = null
+
+    private val color: Int get() = ColorUtils.HSLToColor(hsl) or OPAQUE
+
+    init {
+        container.isVisible = true
         binding.customHueTrack.background = track(
             IntArray(HUE_STOPS) { Color.HSVToColor(floatArrayOf(it * FULL_HUE / (HUE_STOPS - 1), 1f, 1f)) }
         )
@@ -65,52 +72,47 @@ class CustomColorSheet(private val context: Context) {
             })
         }
         addHexField()
-        ColorUtils.colorToHSL(initial or OPAQUE, hsl)
-        render()
         showRecent()
-
-        val dialog = Sheets.open(context)
-        dialog.setContentView(binding.root)
-        binding.customCancel.setOnClickListener { dialog.dismiss() }
-        binding.customUse.setOnClickListener {
-            val rgb = color
-            remember(rgb)
-            dialog.dismiss()
-            onUse(rgb, pickedAlpha)
-        }
-        dialog.show()
     }
 
-    private val color: Int get() = ColorUtils.HSLToColor(hsl) or OPAQUE
+    // Shows a color picked elsewhere (a swatch, Default, the stored value).
+    fun show(rgb: Int) {
+        ColorUtils.colorToHSL(rgb or OPAQUE, hsl)
+        render()
+    }
+
+    // The sheet is closing: the last color made here joins Recent.
+    fun remember() {
+        val rgb = made ?: return
+        val list = (listOf(rgb) + readRecent().filter { it != rgb }).take(RECENT_COUNT)
+        runCatching {
+            prefs.edit {
+                putString(KEY_RECENT, list.joinToString(",") { String.format(Locale.ROOT, "%06X", it and RGB_MASK) })
+            }
+        }
+    }
 
     private fun track(colors: IntArray) =
         GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, colors)
             .apply { cornerRadius = context.dp(TRACK_RADIUS_DP).toFloat() }
 
-    private fun shadeAt(lightness: Float) =
-        ColorUtils.HSLToColor(floatArrayOf(hsl[0], hsl[1], lightness))
-
     private fun render() {
+        val shadeAt = { lightness: Float -> ColorUtils.HSLToColor(floatArrayOf(hsl[0], hsl[1], lightness)) }
         updating = true
-        val rgb = color
         binding.customHueSeek.progress = Math.round(hsl[0]).coerceIn(0, MAX_HUE)
         binding.customShadeSeek.progress =
             (Math.round(hsl[2] * PERCENT) - SHADE_MIN).coerceIn(0, SHADE_MAX - SHADE_MIN)
         binding.customShadeTrack.background = track(
             intArrayOf(shadeAt(SHADE_MIN / PERCENT), shadeAt(HALF), shadeAt(SHADE_MAX / PERCENT))
         )
-        binding.customPreview.background = GradientDrawable().apply {
-            cornerRadius = context.dp(PREVIEW_RADIUS_DP).toFloat()
-            setColor(rgb)
-            setStroke(context.dp(1), context.getColor(R.color.settingsDivider))
-        }
-        val text = String.format(Locale.ROOT, "#%06X", rgb and RGB_MASK)
-        binding.customPreviewHex.text = text
-        val light = ColorUtils.calculateLuminance(rgb) > LIGHT
-        binding.customPreviewHex.setTextColor(if (light) Color.BLACK else Color.WHITE)
-        binding.customPreview.contentDescription = context.getString(R.string.a11y_custom_color_preview, text)
-        if (!hex.hasFocus()) hex.setText(text.removePrefix("#"))
+        if (!hex.hasFocus()) hex.setText(String.format(Locale.ROOT, "%06X", color and RGB_MASK))
         updating = false
+    }
+
+    private fun apply(alpha: Int?) {
+        render()
+        made = color
+        onColor(color, alpha)
     }
 
     private fun fromSliders(hueMoved: Boolean) {
@@ -118,9 +120,8 @@ class CustomColorSheet(private val context: Context) {
         hsl[2] = (binding.customShadeSeek.progress + SHADE_MIN) / PERCENT
         // A grey has no hue to show: moving Color gives it some.
         if (hueMoved && hsl[1] < GREY) hsl[1] = PICKED_SATURATION
-        pickedAlpha = null
         hex.clearFocus()
-        render()
+        apply(null)
     }
 
     private fun addHexField() {
@@ -151,36 +152,33 @@ class CustomColorSheet(private val context: Context) {
 
     private fun fromHex(text: String) {
         val value = text.toLongOrNull(HEX_RADIX) ?: return
-        val rgb = value.toInt() or OPAQUE
-        pickedAlpha = when (text.length) {
+        val alpha = when (text.length) {
             RGB_DIGITS -> null
             ARGB_DIGITS -> value.toInt() ushr ALPHA_SHIFT
             else -> return
         }
-        ColorUtils.colorToHSL(rgb, hsl)
-        render()
+        ColorUtils.colorToHSL(value.toInt() or OPAQUE, hsl)
+        apply(alpha)
     }
 
-    // The last few colors used, newest first; none yet hides the row.
+    // The last few custom colors, newest first; none yet hides the row.
     private fun showRecent() {
         val recent = readRecent()
         binding.customRecentLabel.isVisible = recent.isNotEmpty()
         binding.customRecentRow.isVisible = recent.isNotEmpty()
         val size = context.dp(SWATCH_DP)
         recent.forEach { rgb ->
-            val name = String.format(Locale.ROOT, "#%06X", rgb and RGB_MASK)
-            val dot = android.view.View(context).apply {
+            val dot = View(context).apply {
                 background = GradientDrawable().apply {
                     shape = GradientDrawable.OVAL
                     setColor(rgb)
                     setStroke(context.dp(1), context.getColor(R.color.settingsDivider))
                 }
-                contentDescription = name
+                contentDescription = String.format(Locale.ROOT, "#%06X", rgb and RGB_MASK)
                 setOnClickListener {
                     ColorUtils.colorToHSL(rgb, hsl)
-                    pickedAlpha = null
                     hex.clearFocus()
-                    render()
+                    apply(null)
                 }
             }
             binding.customRecentRow.addView(dot, LinearLayout.LayoutParams(size, size).apply {
@@ -197,15 +195,6 @@ class CustomColorSheet(private val context: Context) {
         }
     }.getOrDefault(emptyList())
 
-    private fun remember(rgb: Int) {
-        val list = (listOf(rgb) + readRecent().filter { it != rgb }).take(RECENT_COUNT)
-        runCatching {
-            prefs.edit {
-                putString(KEY_RECENT, list.joinToString(",") { String.format(Locale.ROOT, "%06X", it and RGB_MASK) })
-            }
-        }
-    }
-
     private companion object {
         const val HSL_SIZE = 3
         const val HUE_STOPS = 7
@@ -217,12 +206,10 @@ class CustomColorSheet(private val context: Context) {
         const val HALF = 0.5f
         const val GREY = 0.08f
         const val PICKED_SATURATION = 0.55f
-        const val LIGHT = 0.45
         const val TRACK_RADIUS_DP = 12
         const val THUMB_DP = 28
         const val THUMB_RING_DP = 3
         const val THUMB_RING = 0x66000000
-        const val PREVIEW_RADIUS_DP = 20
         const val SWATCH_DP = 40
         const val SWATCH_GAP_DP = 10
         const val RECENT_COUNT = 5
