@@ -49,11 +49,6 @@ class AppChecklist<T>(
         val search = EditText(context).apply {
             hint = context.getString(R.string.search_apps)
             isSingleLine = true
-            // The outlined box draws no inner space of its own for a plain
-            // EditText: without it the text sits on the border.
-            val padH = context.dp(FIELD_PAD_H_DP)
-            val padV = context.dp(FIELD_PAD_V_DP)
-            setPadding(padH, padV, padH, padV)
             doAfterTextChanged { text ->
                 query = text?.toString()?.takeIf { it.isNotBlank() }
                 rows = arrange(query)
@@ -229,8 +224,6 @@ class AppChecklist<T>(
         const val KEY_HIDE_PLACED = "hide_placed"
         const val LIST_SHARE = 0.55f
         const val BELOW_FIELD_DP = 8
-        const val FIELD_PAD_H_DP = 16
-        const val FIELD_PAD_V_DP = 14
         // The dialog's own 80dp leaves a band above and below the card
         // once the keyboard shrinks the window.
         const val INSET_V_DP = 24
