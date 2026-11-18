@@ -102,8 +102,10 @@
     <string name="open_settings">Open settings</string>
     <string name="not_now">Not now</string>
     <string name="continue_label">Continue</string>
-    <string name="accessibility_needed_title">Turn on the accessibility service</string>
-    <string name="accessibility_needed_message">Lock screen, Recent apps and Quick settings need Supernova\'s accessibility service. Supernova uses it only for these actions.</string>
+    <string name="accessibility_needed_title">Use the Accessibility API?</string>
+    <string name="accessibility_needed_message">Supernova uses Android\'s Accessibility API only to lock the screen, open Recent apps and open Quick settings when you use a gesture set to one of them.\n\nIt does not read what is on the screen or what you type, and it collects no data. Supernova has no internet access, so nothing leaves this phone.\n\nIf you agree, turn on Supernova on the next screen. You can turn it off there at any time.</string>
+    <string name="accessibility_agree">Agree</string>
+    <string name="accessibility_decline">Decline</string>
     <string name="gestures_need_accessibility">Needs the accessibility service</string>
     <string name="gestures_need_accessibility_summary">Some gestures need this on. Tap to turn it on</string>
     <string name="device_admin_confirm_title">Lock with device admin?</string>
@@ -137,7 +139,7 @@
         <item quantity="other">%d shortcuts</item>
     </plurals>
     <string name="gestures">Gestures</string>
-    <string name="accessibility_description">Lets Supernova lock the screen from a gesture. Optional; no screen content is read.</string>
+    <string name="accessibility_description">Lets Supernova lock the screen, open Recent apps and open Quick settings from your gestures. It does not read the screen or collect any data. Optional.</string>
     <string name="hidden_apps">Hidden apps</string>
     <string name="drawer_groups">Drawer groups</string>
     <string name="drawer_style">Drawer style</string>

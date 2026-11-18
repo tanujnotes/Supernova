@@ -80,17 +80,22 @@ object PermissionPrompts {
         }
     }
 
+    // The disclosure store policy asks for before the system screen: what
+    // the service does and doesn't do, and an explicit Agree. Every way into
+    // the accessibility settings goes through here while the service is off.
     fun explainAccessibility(activity: Activity) {
         MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.accessibility_needed_title)
             .setMessage(R.string.accessibility_needed_message)
-            .setPositiveButton(R.string.open_settings) { _, _ ->
-                runLogged("open accessibility settings") {
-                    activity.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                }
-            }
-            .setNegativeButton(R.string.not_now, null)
+            .setPositiveButton(R.string.accessibility_agree) { _, _ -> openAccessibilitySettings(activity) }
+            .setNegativeButton(R.string.accessibility_decline, null)
             .show()
+    }
+
+    fun openAccessibilitySettings(activity: Activity) {
+        runLogged("open accessibility settings") {
+            activity.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
     }
 
     // A gesture is bound to something only the accessibility service can do.

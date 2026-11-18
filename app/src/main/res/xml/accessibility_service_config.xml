@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Global actions only (lock, recents, quick settings): no events, no
+     window content, no gestures. -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeWindowStateChanged"
+    xmlns:tools="http://schemas.android.com/tools"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:canPerformGestures="false"
+    android:canRetrieveWindowContent="false"
+    android:isAccessibilityTool="false"
     android:description="@string/accessibility_description"
-    android:notificationTimeout="100" />
+    tools:ignore="UnusedAttribute" />

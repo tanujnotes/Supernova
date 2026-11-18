@@ -173,10 +173,13 @@ class SettingsActivity : AppCompatActivity() {
         when (permission) {
             com.supernova.launcher.ui.settings.LabsPermission.NOTIFICATIONS ->
                 com.supernova.launcher.ui.PermissionPrompts.openNotificationAccessWithHelp(this)
-            com.supernova.launcher.ui.settings.LabsPermission.ACCESSIBILITY ->
-                runLogged("open accessibility settings") {
-                    startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                }
+            // On: straight to the system screen to turn it off. Off: the
+            // disclosure first.
+            com.supernova.launcher.ui.settings.LabsPermission.ACCESSIBILITY -> if (granted) {
+                com.supernova.launcher.ui.PermissionPrompts.openAccessibilitySettings(this)
+            } else {
+                com.supernova.launcher.ui.PermissionPrompts.explainAccessibility(this)
+            }
             com.supernova.launcher.ui.settings.LabsPermission.DEVICE_ADMIN -> if (granted) {
                 // The app can give up its own admin; asking first, since
                 // the lock method that needs it stops working.
