@@ -29,6 +29,10 @@ import com.supernova.launcher.ui.theme.SurfaceShapes
 import com.supernova.launcher.ui.theme.ThemeEngine
 import com.supernova.launcher.ui.theme.ToneRamp
 
+// The + swatch that ends the fixed colors: the color picked now when it is
+// none of the swatches (shown ticked in the + place), and what a tap opens.
+class CustomSwatch(val color: Int?, val onClick: () -> Unit)
+
 // Per-surface style editor: Surface/Text/Accent color slots picked from the
 // active tonal palette, fixed swatches or any color, plus opacity.
 // Every change persists through prefs.styleConfig immediately; the strip at
@@ -88,16 +92,7 @@ object StylePickerSheet {
             viewModel.set(Pref.styleConfig, config.encode())
         }
 
-        // A slider drag saves once it settles, not on every step.
-        val persistLater = Runnable { persist() }
-        fun persistSoon() {
-            binding.root.removeCallbacks(persistLater)
-            binding.root.postDelayed(persistLater, CUSTOM_SAVE_DELAY_MS)
-        }
-        dialog.setOnDismissListener {
-            if (binding.root.removeCallbacks(persistLater)) persist()
-            onDismiss()
-        }
+        dialog.setOnDismissListener { onDismiss() }
 
         fun activeSpec(): ColorSpec = when (slot) {
             Slot.SURFACE -> style.surface
@@ -140,29 +135,22 @@ object StylePickerSheet {
         }
 
         lateinit var renderSwatches: () -> Unit
-        lateinit var custom: CustomColorRows
+        lateinit var openCustom: () -> Unit
+        lateinit var useCustom: (Int, Int?) -> Unit
 
-        // The any-color rows start from the slot's color as drawn.
-        fun showCustom() {
+        // The slot's color as drawn.
+        fun slotColor(): Int {
             val resolved = resolvedNow()
-            val color = when (slot) {
+            return when (slot) {
                 Slot.SURFACE -> resolved.surface
                 Slot.TEXT -> resolved.text
                 Slot.ACCENT -> resolved.accent
-            }
-            custom.show(color or OPAQUE)
+            } or OPAQUE
         }
 
-        fun onPick(spec: ColorSpec, fromCustom: Boolean = false) {
+        fun onPick(spec: ColorSpec) {
             setActiveSpec(spec)
-            if (fromCustom) {
-                // The strip resolves the copy, so it can run ahead of the save.
-                config = config.with(surfaceId, style)
-                persistSoon()
-            } else {
-                binding.root.removeCallbacks(persistLater)
-                persist()
-            }
+            persist()
             renderStrip()
             renderSwatches()
             // The home background is transparent by default and the drawer's
@@ -178,19 +166,18 @@ object StylePickerSheet {
                 binding.opacitySeek.progress = shown
                 binding.opacityValue.text = context.getString(R.string.opacity_percent, shown)
             }
-            if (!fromCustom) showCustom()
         }
 
         renderSwatches = {
             val spec = activeSpec()
-            fillSwatches(context, binding, palette, { candidate ->
+            fillSwatches(binding, palette, { candidate ->
                 if (candidate.fixed != null) {
                     candidate.fixed.equals(spec.fixed, ignoreCase = true)
                 } else {
                     spec.fixed == null && spec.role == candidate.role &&
                         spec.tone != null && ToneRamp.indexOfTone(spec.tone) == ToneRamp.indexOfTone(candidate.tone!!)
                 }
-            }, { onPick(it) })
+            }, { onPick(it) }, CustomSwatch(spec.fixed?.let { slotColor() }) { openCustom() })
         }
 
         fun slotButtonId(target: Slot): Int = when (target) {
@@ -234,7 +221,6 @@ object StylePickerSheet {
             renderSlotButtons()
             renderSwatches()
             renderContrast()
-            showCustom()
         }
 
         binding.slotGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
@@ -257,10 +243,28 @@ object StylePickerSheet {
             renderStrip()
         }
 
-        // A color from the sliders or the hex field goes in as a fixed one;
-        // an AARRGGBB hex sets the surface's opacity as well.
-        custom = CustomColorRows(context, binding.customRows) { rgb, alpha ->
-            onPick(ColorSpec(fixed = String.format(java.util.Locale.ROOT, "#%08X", rgb or OPAQUE)), fromCustom = true)
+        // The + swatch: Custom color, starting from the slot's color. What it
+        // hands back goes in as a fixed one; an AARRGGBB hex sets the
+        // surface's opacity as well.
+        openCustom = {
+            val slotName = when (slot) {
+                Slot.SURFACE -> R.string.style_slot_surface
+                Slot.TEXT -> R.string.style_slot_text
+                Slot.ACCENT -> R.string.style_slot_accent
+            }
+            val subtitle = if (surfaceId == SurfaceId.HOME) {
+                context.getString(EnumLabels.of(surfaceId))
+            } else {
+                context.getString(
+                    R.string.custom_color_for,
+                    context.getString(EnumLabels.of(surfaceId)),
+                    context.getString(slotName)
+                )
+            }
+            CustomColorSheet(context).show(subtitle, slotColor()) { rgb, alpha -> useCustom(rgb, alpha) }
+        }
+        useCustom = { rgb, alpha ->
+            onPick(ColorSpec(fixed = String.format(java.util.Locale.ROOT, "#%08X", rgb or OPAQUE)))
             if (alpha != null && slot == Slot.SURFACE && binding.opacityRow.isVisible) {
                 val percent = (alpha * 100 / 255).coerceAtLeast(binding.opacitySeek.min)
                 binding.opacitySeek.progress = percent
@@ -311,19 +315,21 @@ object StylePickerSheet {
         renderSwatches()
         renderContrast()
         renderStrip()
-        showCustom()
         dialog.show()
     }
 
     // The palette's tone rows and the fixed colors, a check on the selected one.
     internal fun fillSwatches(
-        context: Context,
         binding: SheetStylePickerBinding,
         palette: com.supernova.launcher.ui.theme.TonalPalette,
         isSelected: (ColorSpec) -> Boolean,
-        onPick: (ColorSpec) -> Unit
+        onPick: (ColorSpec) -> Unit,
+        custom: CustomSwatch
     ) {
+        val context = binding.root.context
         binding.swatchRows.removeAllViews()
+        var anySelected = false
+        val selected: (ColorSpec) -> Boolean = { spec -> isSelected(spec).also { if (it) anySelected = true } }
         val swatchParams = LinearLayout.LayoutParams(context.dp(40), context.dp(40)).apply {
             marginEnd = context.dp(8)
         }
@@ -362,7 +368,7 @@ object StylePickerSheet {
                     val spec = ColorSpec(role = role, tone = tone)
                     row.addView(
                         swatch(
-                            context, palette.tone(role, tone), isSelected(spec),
+                            context, palette.tone(role, tone), selected(spec),
                             context.getString(R.string.a11y_swatch_tone, context.getString(labelRes), tone)
                         ) { onPick(spec) },
                         swatchParams
@@ -374,10 +380,35 @@ object StylePickerSheet {
             FIXED.forEach { hex ->
                 val spec = ColorSpec(fixed = hex)
                 row.addView(
-                    swatch(context, Color.parseColor(hex), isSelected(spec), hex) { onPick(spec) },
+                    swatch(context, Color.parseColor(hex), selected(spec), hex) { onPick(spec) },
                     swatchParams
                 )
             }
+            row.addView(customSwatch(context, custom.color.takeUnless { anySelected }, custom.onClick), swatchParams)
+        }
+    }
+
+    // + in a dashed ring, or the custom color picked now, ticked.
+    private fun customSwatch(context: Context, picked: Int?, onClick: () -> Unit): android.view.View {
+        if (picked != null) {
+            return swatch(context, picked, true, context.getString(R.string.custom_color_title), onClick)
+        }
+        return TextView(context).apply {
+            text = "+"
+            gravity = Gravity.CENTER
+            setTextColor(context.getColor(R.color.textPrimary))
+            textSize = PLUS_SP
+            contentDescription = context.getString(R.string.custom_color_title)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setStroke(
+                    context.dp(PLUS_RING_DP).toInt(),
+                    context.getColor(R.color.settingsBox),
+                    context.dp(PLUS_DASH_DP),
+                    context.dp(PLUS_GAP_DP)
+                )
+            }
+            setOnClickListener { onClick() }
         }
     }
 
@@ -415,7 +446,10 @@ object StylePickerSheet {
     }
 
     private const val OPAQUE = 0xFF000000.toInt()
-    private const val CUSTOM_SAVE_DELAY_MS = 300L
+    private const val PLUS_SP = 22f
+    private const val PLUS_RING_DP = 1.5f
+    private const val PLUS_DASH_DP = 4f
+    private const val PLUS_GAP_DP = 3f
     private const val CONTRAST_STEP = 5
     private const val FULL_OPACITY = 100
     private const val DRAWER_FIELD_OPACITY = 14
