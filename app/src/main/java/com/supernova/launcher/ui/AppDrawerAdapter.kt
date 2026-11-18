@@ -674,13 +674,13 @@ class AppDrawerAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind() {
             val context = binding.root.context
-            val engine = labelPrefs?.searchWebProvider ?: com.supernova.launcher.search.WebProvider.GOOGLE
+            val engine = com.supernova.launcher.search.WebEngine.of(labelPrefs)
             val color = context.getColor(R.color.textPrimary)
             binding.resultIcon.setImageResource(R.drawable.ic_search)
             androidx.core.widget.ImageViewCompat.setImageTintList(
                 binding.resultIcon, android.content.res.ColorStateList.valueOf(color)
             )
-            binding.resultLabel.text = context.getString(R.string.search_web_for, engine.displayName, query.trim())
+            binding.resultLabel.text = context.getString(R.string.search_web_for, engine.name, query.trim())
             binding.resultLabel.setTextColor(color)
             binding.root.setOnClickListener { onWebSearch() }
         }

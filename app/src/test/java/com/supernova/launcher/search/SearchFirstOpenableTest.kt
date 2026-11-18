@@ -11,7 +11,7 @@ class SearchFirstOpenableTest {
     private val folder = SearchResult.Folder("id", null, "Folder", null)
     private val shortcut = SearchResult.Shortcut("p", "s", "Shortcut", 0L, null)
     private val contact = SearchResult.Contact(1L, "key", "Name", null)
-    private val web = SearchResult.Web("q", WebProvider.GOOGLE)
+    private val web = SearchResult.Web("q", WebEngine(WebProvider.GOOGLE))
 
     @Test
     fun followsTheListsOrderNotTheProviders() {

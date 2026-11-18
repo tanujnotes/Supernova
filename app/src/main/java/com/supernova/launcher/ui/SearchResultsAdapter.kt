@@ -604,7 +604,7 @@ class SearchResultsAdapter(
             binding.resultIcon.setImageResource(R.drawable.ic_search)
             tintIcon()
             binding.resultLabel.text =
-                binding.root.context.getString(R.string.search_web_for, web.provider.displayName, web.query)
+                binding.root.context.getString(R.string.search_web_for, web.provider.name, web.query)
             binding.root.setOnClickListener { callbacks.onWeb(web) }
         }
 

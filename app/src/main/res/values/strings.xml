@@ -780,6 +780,10 @@
     <string name="settings_section_search">Search</string>
     <string name="search_hint">Search</string>
     <string name="search_web_provider">Web search engine</string>
+    <string name="search_web_custom_url">Search URL</string>
+    <string name="search_web_custom_title">Custom search engine</string>
+    <string name="search_web_custom_message" formatted="false">The address of a search, with %s where your search goes. For example: https://example.org/search?q=%s</string>
+    <string name="search_web_custom_invalid">Enter an address starting with https://</string>
     <string name="search_contacts">Search contacts</string>
     <string name="search_shortcuts">Search app shortcuts</string>
     <string name="search_calculator">Calculator</string>

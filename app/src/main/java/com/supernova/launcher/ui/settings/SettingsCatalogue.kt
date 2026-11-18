@@ -83,6 +83,8 @@ object SettingsCatalogue {
         val editBadgedApps: () -> Unit = {},
         val postTestBadge: () -> Unit = {},
         val openPaletteDialog: () -> Unit = {},
+        // The Custom engine's URL; select: Custom becomes the engine on Save.
+        val editSearchUrl: (select: Boolean) -> Unit = {},
         val openStylePicker: (SurfaceId) -> Unit = {},
         val showAutoBackups: () -> Unit = {},
         val exportBackup: () -> Unit = {},
@@ -1019,10 +1021,23 @@ object SettingsCatalogue {
             listOf(
                 SettingItem.Preview(PreviewKind.SEARCH),
                 SettingItem.Header(R.string.group_providers),
+                // Custom asks for its URL first, and stays as it was on Cancel.
                 rows.choiceText(
                     R.string.search_web_provider, WebProvider.entries,
                     { it.searchWebProvider }, { it.displayName }
-                ) { viewModel.set(Pref.searchWebProvider, it) },
+                ) {
+                    if (it == WebProvider.CUSTOM) {
+                        actions.editSearchUrl(true)
+                    } else {
+                        viewModel.set(Pref.searchWebProvider, it)
+                    }
+                },
+                SettingItem.Row(
+                    R.string.search_web_custom_url,
+                    subtitle = { it.searchWebCustomUrl },
+                    onClick = { actions.editSearchUrl(false) },
+                    visibleIf = { it.searchWebProvider == WebProvider.CUSTOM }
+                ),
                 SettingItem.Toggle(
                     R.string.search_contacts,
                     get = { it.searchContacts },

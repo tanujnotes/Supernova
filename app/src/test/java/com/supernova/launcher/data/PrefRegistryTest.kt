@@ -193,7 +193,7 @@ class PrefRegistryTest {
         accent_color:BLUE,INDIGO,PURPLE,PINK,RED,ORANGE,AMBER,GREEN,TEAL,CYAN
         palette_source:SYSTEM,WALLPAPER,CUSTOM
         label_font:DEFAULT,CONDENSED,SERIF,MONOSPACE
-        search_web_provider:GOOGLE,DUCKDUCKGO,BRAVE,BING,ECOSIA,STARTPAGE
+        search_web_provider:GOOGLE,DUCKDUCKGO,BRAVE,BING,ECOSIA,STARTPAGE,QWANT,YAHOO,YANDEX,KAGI,CUSTOM
         search_window_mode:IMMERSIVE,WINDOW
         popup_style:BLOCK,PILLS,ANDROID12
         animation_speed:RELAXED,FAST
@@ -231,7 +231,7 @@ class PrefRegistryTest {
         palette_seed:S style_config:S widget_corner_radius:I show_scrims:B wallpaper_zoom:B
         auto_add_apps:B label_font:S label_single_line:B dock_infinite_scroll:B
         dock_match_desktop:B dock_overlay:B dock_auto_close:B dock_remember_position:B
-        dock_padding_h:I dock_padding_v:I search_web_provider:S search_contacts:B
+        dock_padding_h:I dock_padding_v:I search_web_provider:S search_web_custom_url:S search_contacts:B
         search_shortcuts:B search_folders:B search_window_mode:S search_apps_one_row:B
         search_contact_cards:B search_cards:B search_calculator:B search_hidden_apps:B
         search_history:B search_private_keyboard:B search_query_shortcuts:B search_bar_widget_id:I

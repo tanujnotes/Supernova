@@ -385,7 +385,7 @@ class SearchController(
             com.supernova.launcher.search.PrivateSpaceSearchProvider(privateSpaceLabel, privateSpaceIcon),
             com.supernova.launcher.search.CardSearchProvider { viewModel.feedCards() },
             WebSearchProvider(
-                provider = { viewModel.state.value.prefs.searchWebProvider },
+                provider = { com.supernova.launcher.search.WebEngine.of(viewModel.state.value.prefs) },
                 chips = { SearchChip.decode(viewModel.state.value.prefs.searchChips) }
             )
         )
@@ -546,8 +546,8 @@ class SearchController(
                 surface.dismiss()
             }
             else -> {
-                val provider = viewModel.state.value.prefs.searchWebProvider
-                if (onOpenUri(provider.searchUrl(query), null)) surface.dismiss()
+                val engine = com.supernova.launcher.search.WebEngine.of(viewModel.state.value.prefs)
+                if (onOpenUri(engine.searchUrl(query), null)) surface.dismiss()
             }
         }
     }

@@ -468,6 +468,7 @@ class SettingsActivity : AppCompatActivity() {
                     .show()
             },
             openPaletteDialog = ::showPaletteSourcePicker,
+            editSearchUrl = ::promptSearchUrl,
             openStylePicker = { surfaceId ->
                 stylePickerOpen = true
                 StylePickerSheet.show(this, viewModel, surfaceId) {
@@ -1201,6 +1202,35 @@ class SettingsActivity : AppCompatActivity() {
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    // The Custom engine's search URL, %s where the query goes. An address
+    // that isn't http(s) is refused and the field stays open with the error.
+    private fun promptSearchUrl(select: Boolean) {
+        val prefs = viewModel.state.value.prefs
+        val input = EditText(this).apply {
+            hint = getString(R.string.search_web_custom_url)
+            setText(prefs.searchWebCustomUrl.ifEmpty { "https://" })
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_URI
+            setSingleLine()
+        }
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.search_web_custom_title)
+            .setMessage(R.string.search_web_custom_message)
+            .setView(com.supernova.launcher.ui.DialogField.wrap(input))
+            .setPositiveButton(R.string.save, null)
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+        dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setOnClickListener {
+            val url = input.text?.toString().orEmpty().trim()
+            if (!com.supernova.launcher.search.WebEngine.isUsableUrl(url)) {
+                input.error = getString(R.string.search_web_custom_invalid)
+                return@setOnClickListener
+            }
+            viewModel.set(Pref.searchWebCustomUrl, url)
+            if (select) viewModel.set(Pref.searchWebProvider, com.supernova.launcher.search.WebProvider.CUSTOM)
+            dialog.dismiss()
+        }
     }
 
     // Current default home's label, shown as the row's value pill.

@@ -421,6 +421,8 @@ data class LauncherPrefs(
     val dockPaddingV: Int = 0,
     // Global search: web engine (WebProvider name) and per-provider toggles.
     val searchWebProvider: WebProvider = WebProvider.GOOGLE,
+    // The search URL for the Custom engine, %s where the query goes.
+    val searchWebCustomUrl: String = "",
     val searchContacts: Boolean = false,
     val searchShortcuts: Boolean = true,
     // Folder names (workspace and drawer groups) as search results. Off by

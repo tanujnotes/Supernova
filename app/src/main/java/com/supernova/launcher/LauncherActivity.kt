@@ -1371,7 +1371,8 @@ class LauncherActivity :
             onAppClick = { view, app -> launchApp(app, view) },
             onAppLongPress = ::longPressNewApp,
             onWebSearch = { query ->
-                if (openUri(viewModel.state.value.prefs.searchWebProvider.searchUrl(query))) hideDrawer()
+                val engine = com.supernova.launcher.search.WebEngine.of(viewModel.state.value.prefs)
+                if (openUri(engine.searchUrl(query))) hideDrawer()
             },
             onChipSearch = { chip, query ->
                 if (openUri(chip.url(query), chip.fallbackUrl(query))) hideDrawer()

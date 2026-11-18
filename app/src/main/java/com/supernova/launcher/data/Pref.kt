@@ -288,6 +288,7 @@ object Pref {
     val dockPaddingH = int("dock_padding_h")
     val dockPaddingV = int("dock_padding_v")
     val searchWebProvider = choice("search_web_provider", WebProvider.entries)
+    val searchWebCustomUrl = text("search_web_custom_url")
     val searchContacts = bool("search_contacts")
     val searchShortcuts = bool("search_shortcuts")
     val searchFolders = bool("search_folders")
