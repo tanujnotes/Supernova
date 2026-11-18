@@ -158,7 +158,8 @@ class IconRenderer(context: Context) {
     }
 
     // An app's own icon, left as it comes. A legacy one that is a tile of its
-    // own takes the icon shape at full size, as an adaptive icon does;
+    // own takes the icon shape at full size, as an adaptive icon does, and a
+    // disc of its own is drawn whole at that size (see legacyDisc);
     // rescaling it as a glyph left it smaller than the icons around it, and
     // overfilling a chosen shape cropped its art. A legacy logo is kept
     // whole on a plate of that shape (see legacyLogo). A pack's art, a picked picture
@@ -174,7 +175,8 @@ class IconRenderer(context: Context) {
             val mask = shapePath ?: glassPainter.systemMask(AdaptiveIconDrawable(Color.BLACK.toDrawable(), null), size)
             // Auto with the system shape only resizes, as render does.
             val plated = shapePath != null || reshapeLegacy == ReshapeLegacy.ON
-            legacyTile(picture, mask) ?: if (plated) legacyLogo(picture, mask) else null
+            legacyTile(picture, mask) ?: legacyDisc(picture, mask)
+                ?: if (plated) legacyLogo(picture, mask) else null
         } else {
             null
         }
@@ -192,6 +194,18 @@ class IconRenderer(context: Context) {
         // on a rounder tile isn't cropped more than it has to be.
         val cover = PictureFrame.reach(maskPixels(mask, size), size) / PictureFrame.boxReach(pixels, size, box)
         return filledMask(picture, box, mask, cover.coerceAtLeast(1f))
+    }
+
+    // A legacy icon that is a disc of its own, drawn whole across the
+    // icon's width inside its shape, as big as the icons beside it. As a
+    // logo it sat at 72% of them, so at any icon size it looked a size
+    // behind (#231). Null for one that isn't a disc.
+    private fun legacyDisc(picture: Bitmap, mask: Path): Drawable? {
+        val size = iconSizePx
+        val pixels = IntArray(size * size)
+        picture.getPixels(pixels, 0, size, 0, 0, size, size)
+        val box = PictureFrame.disc(pixels, size) ?: return null
+        return filledMask(picture, box, mask, 1f)
     }
 
     // A legacy logo: whole, at the uniform size, on a plate cut to the

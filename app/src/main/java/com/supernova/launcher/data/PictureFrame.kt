@@ -34,6 +34,39 @@ internal object PictureFrame {
                 cornersSolid(pixels, size, box, TILE_CORNER_INSET)
         }
 
+    // The box round a legacy icon that is a round tile of its own (a web
+    // app's, a round launcher icon): a solid disc as big as a tile, clear
+    // outside its circle. Null for anything else, a square tile included.
+    fun disc(pixels: IntArray, size: Int): IntArray? =
+        BakedBacking.contentBounds(pixels, size)?.takeIf { box ->
+            val width = box[BakedBacking.RIGHT] - box[BakedBacking.LEFT] + 1
+            val height = box[BakedBacking.BOTTOM] - box[BakedBacking.TOP] + 1
+            maxOf(width, height) * TILE_ASPECT <= minOf(width, height) &&
+                minOf(width, height) >= size * TILE_SPAN && discSolid(pixels, size, box) &&
+                outsideClear(pixels, size, box)
+        }
+
+    // Whether the box's corners, outside the disc it encloses, are clear
+    // but for an edge's antialiasing.
+    private fun outsideClear(pixels: IntArray, size: Int, box: IntArray): Boolean {
+        val centreX = (box[BakedBacking.LEFT] + box[BakedBacking.RIGHT]) / 2f
+        val centreY = (box[BakedBacking.TOP] + box[BakedBacking.BOTTOM]) / 2f
+        val radiusX = (box[BakedBacking.RIGHT] - box[BakedBacking.LEFT] + 1) / 2f
+        val radiusY = (box[BakedBacking.BOTTOM] - box[BakedBacking.TOP] + 1) / 2f
+        var outside = 0
+        var solid = 0
+        for (y in box[BakedBacking.TOP]..box[BakedBacking.BOTTOM]) {
+            for (x in box[BakedBacking.LEFT]..box[BakedBacking.RIGHT]) {
+                val dx = (x - centreX) / radiusX
+                val dy = (y - centreY) / radiusY
+                if (dx * dx + dy * dy <= 1f) continue
+                outside++
+                if (alpha(pixels[y * size + x]) >= SOLID_ALPHA) solid++
+            }
+        }
+        return solid <= outside * DISC_CORNER_SHARE
+    }
+
     // Whether a picture's silhouette is one solid body: the disc inside its
     // content box has no gap. A tile or a disc is; a logo made of pieces (a
     // cloud over a page, a pattern of triangles) or with a bite out of it
@@ -121,6 +154,8 @@ internal object PictureFrame {
     // How far in from its corners, as a share of the icon, a tile is solid:
     // room for rounding, not for a disc's or a hexagon's missing corners.
     private const val TILE_CORNER_INSET = 0.08f
+    // At most this share of a disc's box corners may be solid.
+    private const val DISC_CORNER_SHARE = 0.15f
     // This share of the disc inside its box must be solid.
     private const val SOLID_SHARE = 0.97f
     private const val SOLID_ALPHA = 128
