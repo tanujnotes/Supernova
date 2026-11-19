@@ -253,8 +253,12 @@ class IconPackRepository(private val context: Context) {
                 parser.close()
             }
         }
-        // Some packs ship their xml as a raw asset instead of a compiled resource.
-        val stream = runCatching { resources.assets.open("$name.xml") }.getOrNull() ?: return null
+        // Some packs ship their xml uncompiled instead: as an asset, or in
+        // res/raw (the generated packs of icon pack maker apps).
+        val rawId = resources.getIdentifier(name, "raw", packageName)
+        val stream = runCatching { resources.assets.open("$name.xml") }.getOrNull()
+            ?: rawId.takeIf { it != 0 }?.let { id -> runCatching { resources.openRawResource(id) }.getOrNull() }
+            ?: return null
         return stream.use { input ->
             val parser = runCatching {
                 android.util.Xml.newPullParser().apply { setInput(input, null) }
