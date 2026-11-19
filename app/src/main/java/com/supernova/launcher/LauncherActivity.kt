@@ -951,6 +951,7 @@ class LauncherActivity :
         override fun onReceive(context: android.content.Context, intent: Intent) {
             privateSpaceCard.cancelPending()
             resetToHome(animate = false, keepDrawer = drawerKeptBehindLaunch)
+            if (drawerKeptBehindLaunch && ::drawer.isInitialized) drawer.resetPosition()
         }
     }
 
@@ -2644,10 +2645,7 @@ class LauncherActivity :
         // on the home screen itself, and one made in another app to get back to
         // it. Only the first is a home press "on" the launcher.
         val cameFromBackground = startedSinceResume
-        // drawerAutoClose off keeps a drawer that stayed open behind a
-        // launched app open on return home; a home press while the launcher
-        // itself is frontmost still resets it like any launcher.
-        val keepDrawerOpen = !viewModel.state.value.prefs.drawerAutoClose && cameFromBackground
+        val keepDrawerOpen = keepDrawerForHomePress(cameFromBackground)
         // Read before the reset moves the pager off it.
         // The dock counts too: a press on home with the dock on a side page
         // brings it back to its main page rather than running the action.
@@ -2690,6 +2688,21 @@ class LauncherActivity :
             val action = HomeButtonAction.effective(prefs.homeButtonAction, prefs.homeSearch)
             if (action != GestureAction.NONE) actions.run(GestureBinding(action))
         }
+    }
+
+    // Whether a home press spares the drawer. drawerAutoClose off keeps a
+    // drawer that stayed open behind a launched app open on return home, when
+    // Remember position is on; with it off the press closes that drawer at
+    // once, so the next open lands on the default tab at the top (#275). A
+    // home press while the launcher itself is frontmost resets it like any
+    // launcher.
+    private fun keepDrawerForHomePress(cameFromBackground: Boolean): Boolean {
+        val prefs = viewModel.state.value.prefs
+        if (!cameFromBackground || prefs.drawerAutoClose) return false
+        if (!prefs.drawerRememberPosition && ::drawer.isInitialized && drawer.isExpanded) {
+            hideDrawer(instant = true)
+        }
+        return prefs.drawerRememberPosition
     }
 
     private fun launchApp(app: LaunchableApp, anchor: View? = null) {

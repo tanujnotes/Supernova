@@ -801,6 +801,16 @@ class DrawerController(
         }
     }
 
+    // Remember position off: the default tab and the top again, in place, for
+    // a drawer left open behind an app when the screen turns off (#275).
+    // Nobody sees it, and the tab change takes no slide.
+    fun resetPosition() {
+        val prefs = viewModel.state.value.prefs
+        if (prefs.drawerRememberPosition) return
+        showDefaultTab(prefs)
+        binding.drawerRecycler.scrollToPosition(0)
+    }
+
     // Selects the default tab (else the first) with no slide; a no-op when
     // the bar is hidden or that tab already shows.
     private fun showDefaultTab(prefs: LauncherPrefs) {
