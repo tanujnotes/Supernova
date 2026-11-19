@@ -689,34 +689,7 @@ class LauncherRepository(private val context: Context) {
     }
 
     suspend fun removeItemsForPackage(packageName: String, userSerial: Long) {
-        mutate { current ->
-            val removedIds = current.items.filter { item ->
-                when (item.itemType) {
-                    ItemType.APP,
-                    ItemType.SHORTCUT -> item.packageName == packageName && item.userSerial == userSerial
-                    // So only the launcher's own user losing the app takes
-                    // its widgets: the work copy of an app going leaves the
-                    // personal widget alone.
-                    ItemType.WIDGET -> userSerial == ownUserSerial &&
-                        item.widgetProvider?.substringBefore('/') == packageName
-                    ItemType.FOLDER -> false
-                }
-            }.map { it.id }.toSet()
-            if (removedIds.isEmpty()) return@mutate current
-
-            val remaining = current.items.filterNot { it.id in removedIds }
-            val emptyFolderIds = remaining.filter { folder ->
-                folder.itemType == ItemType.FOLDER && remaining.none { it.folderId == folder.id }
-            }.map { it.id }.toSet()
-
-            current.copy(
-                items = remaining.filterNot { it.id in emptyFolderIds },
-                // Overrides for the removed app would otherwise accrete forever.
-                appOverrides = current.appOverrides.filterKeys {
-                    !it.startsWith("$userSerial/$packageName/")
-                }
-            )
-        }
+        mutate { current -> PackageRemoval.applied(current, packageName, userSerial, ownUserSerial) }
     }
 
     suspend fun setAppOverride(key: String, transform: (AppOverride) -> AppOverride) {

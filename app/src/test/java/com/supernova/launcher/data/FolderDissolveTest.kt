@@ -170,4 +170,73 @@ class FolderDissolveTest {
         assertEquals(listOf("f", "c", "n"), done.items.map { it.id })
         assertEquals(3, done.item("n").rank)
     }
+    // Uninstalling an app takes it out of its folder as a drag out does.
+    private fun uninstalled(model: LauncherModel, id: String) =
+        PackageRemoval.applied(model, "p.$id", 0L, 0L)
+
+    @Test
+    fun uninstallingOneOfTwoLeavesTheOtherInThePageFoldersPlace() {
+        val model = LauncherModel(
+            items = listOf(
+                app("w", ContainerType.WORKSPACE, x = 0),
+                pageFolder,
+                app("a", ContainerType.FOLDER, rank = 0, folder = "f"),
+                app("b", ContainerType.FOLDER, rank = 1, folder = "f")
+            ),
+            pageCount = 2
+        )
+        val done = uninstalled(model, "a")
+        assertEquals(listOf("w", "b"), done.items.map { it.id })
+        val last = done.item("b")
+        assertEquals(ContainerType.WORKSPACE, last.container)
+        assertNull(last.folderId)
+        assertEquals(1, last.page)
+        assertEquals(2, last.cellX)
+        assertEquals(3, last.cellY)
+    }
+
+    @Test
+    fun uninstallingOneOfTwoLeavesTheOtherInTheDockedFoldersSlot() {
+        val model = LauncherModel(
+            items = listOf(
+                LauncherItem(id = "f", itemType = ItemType.FOLDER, container = ContainerType.DOCK, rank = 3, label = "F"),
+                app("a", ContainerType.FOLDER, rank = 0, folder = "f"),
+                app("b", ContainerType.FOLDER, rank = 1, folder = "f")
+            )
+        )
+        val last = uninstalled(model, "b").items.single()
+        assertEquals("a", last.id)
+        assertEquals(ContainerType.DOCK, last.container)
+        assertEquals(3, last.rank)
+        assertNull(last.folderId)
+    }
+
+    @Test
+    fun uninstallingOneOfThreeKeepsTheFolder() {
+        val done = uninstalled(checklistFolder, "b")
+        assertEquals(listOf("f", "a", "c"), done.items.map { it.id })
+        assertEquals("f", done.item("c").folderId)
+    }
+
+    @Test
+    fun uninstallingTheOnlyAppTakesTheFolderAway() {
+        val model = LauncherModel(
+            items = listOf(pageFolder, app("a", ContainerType.FOLDER, folder = "f"), app("w", ContainerType.WORKSPACE)),
+            pageCount = 2
+        )
+        assertEquals(listOf("w"), uninstalled(model, "a").items.map { it.id })
+    }
+
+    @Test
+    fun anotherUsersCopyGoingLeavesTheFolderAlone() {
+        val model = LauncherModel(
+            items = listOf(
+                pageFolder,
+                app("a", ContainerType.FOLDER, rank = 0, folder = "f"),
+                app("b", ContainerType.FOLDER, rank = 1, folder = "f")
+            ),
+            pageCount = 2
+        )
+        assertSame(model, PackageRemoval.applied(model, "p.a", 10L, 0L))
+    }
 }
