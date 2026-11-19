@@ -1392,6 +1392,27 @@ class DrawerController(
             syncPages()
         } else {
             needsRefresh = true
+            if (state.apps.isNotEmpty()) populateWhenIdle()
+        }
+    }
+
+    private var populateQueued = false
+
+    // The list's first build (sort, folders, diff) waited for the first open,
+    // on the tap; once the apps are known it is done in the main thread's
+    // first idle moment instead (#277). The sheet is GONE, so nothing lays
+    // out until it opens; later changes still wait for an open.
+    private fun populateWhenIdle() {
+        if (populateQueued) return
+        populateQueued = true
+        android.os.Looper.myQueue().addIdleHandler {
+            populateQueued = false
+            if (!populated && !isVisible && !isPulling) {
+                populated = true
+                needsRefresh = false
+                submit()
+            }
+            false
         }
     }
 

@@ -23,6 +23,9 @@
          and the size that shrink gave it (DrawerTileFit). -->
     <item name="tag_tile_label_base_px" type="id" />
     <item name="tag_tile_label_px" type="id" />
+    <!-- View tag: the app a drawer icon view shows, or is waiting for while
+         its icon renders off the main thread (AppDrawerAdapter.bindIcon). -->
+    <item name="tag_icon_app" type="id" />
     <!-- Accessibility actions on a home screen icon: a move without a drag
          (ItemMoveActions). -->
     <item name="a11y_move_left" type="id" />

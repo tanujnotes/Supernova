@@ -170,8 +170,14 @@ class AppCatalog(
         return waiters.ahead { renderIcon(app, own.copy(customLabel = null, hideLabel = false)) }
     }
 
+    // An app's icon if it is already rendered, else null: never renders, so
+    // it is safe on the main thread. The drawer binds with this and renders
+    // the misses off it (IconThread) - a launcher restarted overnight opened
+    // its first drawer with every visible icon drawn on the tap (#277).
+    fun cachedIcon(app: LaunchableApp): Drawable? = renderIcon(app, null, cachedOnly = true)
+
     // `own` is a placed copy's icon edit, which stands in for the app's.
-    private fun renderIcon(app: LaunchableApp, own: AppOverride?): Drawable? {
+    private fun renderIcon(app: LaunchableApp, own: AppOverride?, cachedOnly: Boolean = false): Drawable? {
         val appKey = "${app.userSerial}/${app.packageName}/${app.className}"
         val user = userForSerial(app.userSerial) ?: return null
         // An app's own date icon (#266) is cached under the day too, so the
@@ -179,6 +185,8 @@ class AppCatalog(
         val dated = resolveActivity(app.packageName, app.className, user)?.let(dynamicIcons::has) == true
         val baseKey = if (own == null) appKey else "$appKey#${own.hashCode()}"
         val cacheKey = if (dated) "$baseKey@cal${today()}" else baseKey
+        // A pack's calendar icon lives under its own day key.
+        if (cachedOnly) return iconCache.get(cacheKey) ?: iconCache.get("$cacheKey@cal${today()}")
         iconCache.get(cacheKey)?.let { return it }
 
         synchronized(renderLock) {
