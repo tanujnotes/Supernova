@@ -48,9 +48,7 @@ class DrawerGroupsPane(
     // back under the finger.
     private var dragging = false
     private val touchHelper = ItemTouchHelper(
-        GroupReorder(adapter, onDragging = { dragging = it }) { type ->
-            if (type == null) refresh() else viewModel.setGroupOrder(type, adapter.ids(type))
-        }
+        GroupReorder(adapter, onDragging = { dragging = it }) { moved -> if (moved) dropped() else refresh() }
     )
 
     // The group whose page is open (null: the list), by its id.
@@ -161,6 +159,23 @@ class DrawerGroupsPane(
             pickAppsFor = created.id
             refresh()
         }
+    }
+
+    // Both cards' order stored, and a group dragged onto the other card
+    // turned into a tab or a folder there (#267), with Undo.
+    private fun dropped() {
+        val tabs = adapter.ids(DrawerGroupType.TAB)
+        val folders = adapter.ids(DrawerGroupType.FOLDER)
+        val before = viewModel.drawerGroups()
+        val defaultTab = viewModel.state.value.prefs.drawerDefaultTab
+        viewModel.arrangeGroups(tabs, folders)
+        val group = before.singleOrNull {
+            if (it.type == DrawerGroupType.TAB) it.id in folders else it.id in tabs
+        } ?: return
+        val message = if (group.type == DrawerGroupType.TAB) R.string.group_now_folder else R.string.group_now_tab
+        Snackbar.make(container, activity.getString(message, group.name), Snackbar.LENGTH_LONG)
+            .setAction(R.string.undo) { viewModel.revertGroups(before, defaultTab) }
+            .show()
     }
 
     override fun startDrag(holder: RecyclerView.ViewHolder) = touchHelper.startDrag(holder)

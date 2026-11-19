@@ -4,20 +4,19 @@ import android.graphics.Canvas
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.supernova.launcher.R
-import com.supernova.launcher.data.DrawerGroupType
 import com.supernova.launcher.ui.dp
 
-// Dragging a group to a new place among its own kind, by its handle or by a
-// hold on its row: a tab among the tabs, a folder among the folders. The
-// row lifts off its card while it is held. onDragging brackets the drag;
-// onDropped names the type whose order changed, if any did.
+// Dragging a group to a new place, by its handle or by a hold on its row:
+// among its own kind, or onto the other card to become a tab or a folder
+// (#267). The row lifts off its card while it is held. onDragging brackets
+// the drag; onDropped says whether any row moved.
 class GroupReorder(
     private val adapter: GroupListAdapter,
     private val onDragging: (Boolean) -> Unit,
-    private val onDropped: (DrawerGroupType?) -> Unit
+    private val onDropped: (Boolean) -> Unit
 ) : ItemTouchHelper.Callback() {
 
-    private var moved: DrawerGroupType? = null
+    private var moved = false
 
     private fun group(holder: RecyclerView.ViewHolder) =
         (adapter.row(holder.bindingAdapterPosition) as? GroupListRow.Group)?.group
@@ -25,13 +24,19 @@ class GroupReorder(
     override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int =
         if (group(viewHolder) == null) 0 else makeMovementFlags(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0)
 
+    // Any other group, or the other card's New row: the way onto that card
+    // when it is empty, and its foot coming up from below.
     override fun canDropOver(
         recyclerView: RecyclerView,
         current: RecyclerView.ViewHolder,
         target: RecyclerView.ViewHolder
     ): Boolean {
-        val type = group(current)?.type
-        return type != null && type == group(target)?.type
+        if (group(current) == null) return false
+        return when (val row = adapter.row(target.bindingAdapterPosition)) {
+            is GroupListRow.Group -> true
+            is GroupListRow.Add -> row.type != adapter.cardType(current.bindingAdapterPosition)
+            else -> false
+        }
     }
 
     override fun onMove(
@@ -39,12 +44,14 @@ class GroupReorder(
         viewHolder: RecyclerView.ViewHolder,
         target: RecyclerView.ViewHolder
     ): Boolean {
-        val type = group(viewHolder)?.type
         val from = viewHolder.bindingAdapterPosition
         val to = target.bindingAdapterPosition
-        if (type == null || from < 0 || to < 0) return false
+        if (group(viewHolder) == null || from < 0 || to < 0) return false
+        val crossing = adapter.cardType(from) != adapter.cardType(to)
         adapter.move(from, to)
-        moved = type
+        // The cards' ends moved: their insets follow.
+        if (crossing) recyclerView.invalidateItemDecorations()
+        moved = true
         return true
     }
 
@@ -80,7 +87,7 @@ class GroupReorder(
         recyclerView.invalidateItemDecorations()
         onDragging(false)
         onDropped(moved)
-        moved = null
+        moved = false
     }
 
     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) = Unit

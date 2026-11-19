@@ -1225,10 +1225,11 @@ class LauncherViewModel(
         // toggle can no longer silently delete their customization. A group
         // that never chose whether its apps stay in the main list keeps what
         // it did before, which its old type decided.
-        editGroup(group.id) {
-            it.copy(type = type, smart = false, keepInMain = it.keepInMain ?: !leavesMainList(it))
-        }
+        editGroup(group.id) { retyped(it, type) }
     }
+
+    private fun retyped(group: DrawerGroup, type: DrawerGroupType): DrawerGroup =
+        group.copy(type = type, smart = false, keepInMain = group.keepInMain ?: !leavesMainList(group))
 
     // One group changed against what is stored, not against the caller's
     // copy of it; see LauncherPreferences.updateDrawerGroups.
@@ -1285,6 +1286,28 @@ class LauncherViewModel(
     fun setGroupOrder(type: DrawerGroupType, ids: List<String>) {
         viewModelScope.launch {
             preferences.updateDrawerGroups { DrawerGroupOrder.reordered(it, type, ids) }
+        }
+    }
+
+    // A drag on the Drawer groups page that may carry a group from one card
+    // to the other (#267): both kinds' order, any group in the other list
+    // retyped as the group page's Show as does. A tab turned folder is no
+    // tab to open the drawer on.
+    fun arrangeGroups(tabs: List<String>, folders: List<String>) {
+        viewModelScope.launch {
+            preferences.updateDrawerGroups { DrawerGroupOrder.arranged(it, tabs, folders, ::retyped) }
+        }
+        if (state.value.prefs.drawerDefaultTab in folders) set(Pref.drawerDefaultTab, "")
+    }
+
+    // Undo of that drag: the groups as before held them, and the default
+    // tab back if the drag cleared it.
+    fun revertGroups(before: List<DrawerGroup>, defaultTab: String) {
+        viewModelScope.launch {
+            preferences.updateDrawerGroups { DrawerGroupOrder.reverted(it, before) }
+        }
+        if (defaultTab.isNotEmpty() && state.value.prefs.drawerDefaultTab.isEmpty()) {
+            set(Pref.drawerDefaultTab, defaultTab)
         }
     }
 

@@ -482,7 +482,7 @@
     <string name="group_default_tag">Default</string>
     <string name="group_smart_tag">Smart</string>
     <string name="group_tab_hint">Drag a row to set the order in the tab bar.</string>
-    <string name="group_folder_hint">Folders sit in the app list, in this order.</string>
+    <string name="group_folder_hint">Folders sit in the app list, in this order. Drag one up into Tabs to make it a tab.</string>
     <string name="group_tab_bar_hidden">The tab bar is hidden, so tabs don\'t show in the drawer. Set Tab bar position on the App drawer page to bring them back.</string>
     <string name="groups_intro">Sort the app drawer your way. A group is a set of apps shown as a tab or as a folder.</string>
     <string name="groups_tabs_blurb">Pages of the drawer you swipe between, such as Games or Travel.</string>
@@ -501,6 +501,8 @@
     <string name="delete_tab">Delete tab</string>
     <string name="delete_folder_group">Delete folder</string>
     <string name="group_deleted">%1$s deleted</string>
+    <string name="group_now_tab">%1$s is now a tab</string>
+    <string name="group_now_folder">%1$s is now a folder</string>
     <string name="group_name_required">Enter a name</string>
     <string name="new_tab">New tab</string>
     <string name="group_settings">Group settings</string>
