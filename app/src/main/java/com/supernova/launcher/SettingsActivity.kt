@@ -457,7 +457,12 @@ class SettingsActivity : AppCompatActivity() {
 
         val actions = SettingsCatalogue.Actions(
             pickChoice = {
-                showChoice(getString(it.title), it.labels, it.selected, MenuExtras(swatches = it.swatches), it.onPick)
+                if (it.preview != null) {
+                    com.supernova.launcher.ui.settings.MotionChoiceSheet.show(this, viewModel, it)
+                } else {
+                    val extras = MenuExtras(swatches = it.swatches)
+                    showChoice(getString(it.title), it.labels, it.selected, extras, it.onPick)
+                }
             },
             pickIconPack = ::showIconPackPicker,
             pickIconShape = ::showIconShapePicker,

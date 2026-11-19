@@ -197,7 +197,6 @@ object SettingsCatalogue {
             look = SettingItem.RowLook(swatch = { swatchOf(current(it)) })
         )
 
-
         // Shows the choice now: for rows built by hand and for controls that
         // are not rows (the Label card's font).
         fun <T> pick(
@@ -339,6 +338,7 @@ object SettingsCatalogue {
         actions: Actions
     ): List<SettingsSection> {
         val rows = Rows(context, viewModel, actions)
+        val motionRows = MotionChoiceSheet.Rows(context, viewModel, actions.pickChoice)
         // The drawer field's Top/Bottom/Hidden, on its own page and on the
         // App drawer page.
         val drawerBarLabel = { placement: DrawerBarPlacement ->
@@ -466,15 +466,14 @@ object SettingsCatalogue {
                     R.string.animation_speed, com.supernova.launcher.ui.AnimationSpeed.entries,
                     { it.animationSpeed }, { EnumLabels.of(it) }
                 ) { viewModel.set(Pref.animationSpeed, it) }.hiddenWhen(animationsHidden),
-                rows.choice(
-                    R.string.scroll_effect, ScrollEffect.entries,
+                motionRows.choice(
+                    R.string.scroll_effect, ChoicePreview.PageEffect,
                     { it.scrollEffect }, { EnumLabels.of(it) }
                 ) { viewModel.setScrollEffect(it) }.hiddenWhen(animationsHidden),
-                rows.choice(
-                    R.string.launch_animation, LaunchAnimation.entries,
-                    { it.launchAnimation }, { EnumLabels.of(it) },
-                    onPick = { viewModel.set(Pref.launchAnimation, it) }
-                ).hiddenWhen(animationsHidden),
+                motionRows.choice(
+                    R.string.launch_animation, ChoicePreview.Launch,
+                    { it.launchAnimation }, { EnumLabels.of(it) }
+                ) { viewModel.set(Pref.launchAnimation, it) }.hiddenWhen(animationsHidden),
                 SettingItem.Toggle(
                     R.string.drop_targets,
                     get = { it.dropTargets },
@@ -812,8 +811,8 @@ object SettingsCatalogue {
                     get = { it.drawerInfiniteScroll },
                     set = { viewModel.set(Pref.drawerInfiniteScroll, it) }
                 ).hiddenWhen { dependsOn(R.string.drawer_style, it.drawerStyle != DrawerStyle.PAGED_GRID) },
-                rows.choice(
-                    R.string.drawer_page_effect, ScrollEffect.entries,
+                motionRows.choice(
+                    R.string.drawer_page_effect, ChoicePreview.PageEffect,
                     { it.drawerPageEffect }, { EnumLabels.of(it) }
                 ) { viewModel.set(Pref.drawerPageEffect, it) }.blockedWhen(animationsOff).hiddenWhen {
                     dependsOn(R.string.drawer_style, it.drawerStyle != DrawerStyle.PAGED_GRID)

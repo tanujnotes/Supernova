@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A motion setting's picker (Page scroll effect, App animation): a live
+     preview of the option in force, pinned over the list of options. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="@dimen/space_md">
+
+    <include layout="@layout/sheet_handle" />
+
+    <TextView
+        android:id="@+id/motionTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="@dimen/space_lg"
+        android:paddingTop="@dimen/space_xs"
+        android:paddingBottom="@dimen/space_md"
+        android:textColor="@color/textPrimary"
+        android:textSize="@dimen/text_headline"
+        android:textStyle="bold" />
+
+    <FrameLayout
+        android:id="@+id/motionPreview"
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        android:layout_marginHorizontal="@dimen/space_lg"
+        android:layout_marginBottom="@dimen/space_sm"
+        android:contentDescription="@string/a11y_preview" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <RadioGroup
+            android:id="@+id/motionOptions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="@dimen/space_md" />
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>
