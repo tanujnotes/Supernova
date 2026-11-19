@@ -123,4 +123,16 @@ class TabFoldersTest {
         assertEquals(setOf(TabFolders.keyOf("Social")), TabFolders.nestedKeys(all) { true })
         assertEquals(emptySet<String>(), TabFolders.nestedKeys(all) { false })
     }
+
+    @Test
+    fun folderGoesInAnyTabAndNoFolderItHoldsOrIsIn() {
+        val maps = folder("Maps")
+        val travel = folder("Travel", TabFolders.keyOf("Maps"))
+        val trips = folder("Trips", TabFolders.keyOf("Travel"))
+        val tools = folder("Tools")
+        val work = tab("Work")
+        val all = listOf(work, maps, travel, trips, tools)
+        assertEquals(listOf(work, tools), FolderPlaces.of(trips, all))
+        assertEquals(listOf(work, travel, trips, tools), FolderPlaces.of(maps, all))
+    }
 }

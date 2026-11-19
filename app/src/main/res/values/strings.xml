@@ -494,6 +494,8 @@
     <string name="group_folder_icon">Folder icon</string>
     <string name="group_tab_icon">Tab icon</string>
     <string name="group_folder_icon_change">Change</string>
+    <string name="group_put_in">Put it in</string>
+    <string name="group_put_in_nowhere">No tab or folder</string>
     <string name="group_more_apps">+%d</string>
     <string name="group_default_tab_summary">The drawer opens on this tab</string>
     <string name="delete_tab">Delete tab</string>

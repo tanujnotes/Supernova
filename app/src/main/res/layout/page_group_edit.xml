@@ -146,6 +146,64 @@
                         android:textSize="@dimen/text_body" />
                 </LinearLayout>
             </LinearLayout>
+
+            <!-- A folder only: the tabs and folders it sits in (#238). -->
+            <LinearLayout
+                android:id="@+id/groupPlaceRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="@dimen/space_md"
+                    android:background="@color/settingsDivider" />
+
+                <LinearLayout
+                    android:id="@+id/groupPlaceButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:gravity="center_vertical"
+                    android:minHeight="64dp"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="@dimen/space_md"
+                    android:paddingVertical="@dimen/space_sm">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="@string/group_put_in"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="@dimen/text_body" />
+
+                        <TextView
+                            android:id="@+id/groupPlaceValue"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/space_xxs"
+                            android:textColor="@color/textSecondary"
+                            android:textSize="@dimen/text_secondary" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_md"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="@string/group_folder_icon_change"
+                        android:textColor="?attr/colorAccentOnRaised"
+                        android:textSize="@dimen/text_body" />
+                </LinearLayout>
+            </LinearLayout>
         </LinearLayout>
 
         <!-- The Apps label, as a settings page's group label, with the
