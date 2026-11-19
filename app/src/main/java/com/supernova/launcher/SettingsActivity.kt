@@ -140,6 +140,8 @@ class SettingsActivity : AppCompatActivity() {
     // applySettingsAccent); a different one recreates it, but not while a
     // style sheet is open, which the recreate would close mid-pick.
     private var appliedAccent: Int = 0
+    // Likewise the Settings style's Text (#281), null when unset.
+    private var appliedText: Int? = null
     private var stylePickerOpen = false
 
     // Header search over the whole catalogue; the index resolves lazily on
@@ -368,6 +370,7 @@ class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         appliedAccent = ThemeEngine.applySettingsAccent(this, viewModel.state.value.prefs)
+        appliedText = com.supernova.launcher.ui.theme.CustomAccent.settingsText(this, viewModel.state.value.prefs)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
         // Edge-to-edge, like the launcher window: the toolbar takes the status
@@ -707,8 +710,10 @@ class SettingsActivity : AppCompatActivity() {
         if (stylePickerOpen) return
         val accent = com.supernova.launcher.ui.theme.CustomAccent.settingsAccent(this, prefs)
             ?: ThemeEngine.accentColor(this, prefs.accentColor)
-        if (accent != appliedAccent) {
+        val text = com.supernova.launcher.ui.theme.CustomAccent.settingsText(this, prefs)
+        if (accent != appliedAccent || text != appliedText) {
             appliedAccent = accent
+            appliedText = text
             recreate()
         }
     }
@@ -720,13 +725,18 @@ class SettingsActivity : AppCompatActivity() {
     private fun applySettingsSurface(prefs: LauncherPrefs) {
         val surface = Styles.resolve(this, prefs).of(SurfaceId.SETTINGS).surface
         binding.root.setBackgroundColor(surface)
+        // The clock sits on this background: dark icons on a light one, like
+        // a yellow Background in dark mode (#281). The navigation bar sits on
+        // the unstyled tab bar and keeps the theme's.
+        WindowCompat.getInsetsController(window, binding.root).isAppearanceLightStatusBars =
+            androidx.core.graphics.ColorUtils.calculateLuminance(surface or OPAQUE) > HALF
         groupCards.cardColor = when {
             surface == getColor(R.color.background) -> getColor(R.color.surface)
             androidx.core.graphics.ColorUtils.calculateLuminance(surface or OPAQUE) > HALF ->
                 androidx.core.graphics.ColorUtils.blendARGB(surface, android.graphics.Color.WHITE, CARD_LIFT_LIGHT)
             else -> androidx.core.graphics.ColorUtils.blendARGB(surface, android.graphics.Color.WHITE, CARD_LIFT_DARK)
         }
-        groupCards.dividerColor = getColor(R.color.settingsDivider)
+        groupCards.dividerColor = getColor(R.color.settingsPageDivider)
         binding.settingsRecycler.invalidateItemDecorations()
         groupsPane?.cardColor = groupCards.cardColor
     }

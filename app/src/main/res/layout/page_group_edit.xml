@@ -57,7 +57,7 @@
                 android:layout_marginTop="@dimen/space_ml"
                 android:fontFamily="sans-serif-medium"
                 android:text="@string/group_show_as"
-                android:textColor="@color/textSecondary"
+                android:textColor="@color/settingsTextSecondary"
                 android:textSize="@dimen/text_secondary" />
 
             <com.google.android.material.button.MaterialButtonToggleGroup
@@ -93,7 +93,7 @@
                 android:layout_marginHorizontal="@dimen/space_md"
                 android:layout_marginTop="@dimen/space_sm"
                 android:layout_marginBottom="@dimen/space_md"
-                android:textColor="@color/textSecondary"
+                android:textColor="@color/settingsTextSecondary"
                 android:textSize="@dimen/text_secondary" />
 
             <!-- The group's own icon, under a hairline from the text line. -->
@@ -107,7 +107,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:layout_marginStart="72dp"
-                    android:background="@color/settingsDivider" />
+                    android:background="@color/settingsPageDivider" />
 
                 <LinearLayout
                     android:id="@+id/groupIconButton"
@@ -133,7 +133,7 @@
                         android:layout_weight="1"
                         android:fontFamily="sans-serif-medium"
                         android:text="@string/group_folder_icon"
-                        android:textColor="@color/textPrimary"
+                        android:textColor="@color/settingsText"
                         android:textSize="@dimen/text_body" />
 
                     <TextView
@@ -158,7 +158,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:layout_marginStart="@dimen/space_md"
-                    android:background="@color/settingsDivider" />
+                    android:background="@color/settingsPageDivider" />
 
                 <LinearLayout
                     android:id="@+id/groupPlaceButton"
@@ -182,7 +182,7 @@
                             android:layout_height="wrap_content"
                             android:fontFamily="sans-serif-medium"
                             android:text="@string/group_put_in"
-                            android:textColor="@color/textPrimary"
+                            android:textColor="@color/settingsText"
                             android:textSize="@dimen/text_body" />
 
                         <TextView
@@ -190,7 +190,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="@dimen/space_xxs"
-                            android:textColor="@color/textSecondary"
+                            android:textColor="@color/settingsTextSecondary"
                             android:textSize="@dimen/text_secondary" />
                     </LinearLayout>
 
@@ -223,7 +223,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:letterSpacing="0.015"
                 android:text="@string/picker_tab_apps"
-                android:textColor="@color/textSecondary"
+                android:textColor="@color/settingsTextSecondary"
                 android:textSize="@dimen/text_secondary" />
 
             <TextView
@@ -231,7 +231,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="sans-serif-medium"
-                android:textColor="@color/textSecondary"
+                android:textColor="@color/settingsTextSecondary"
                 android:textSize="@dimen/text_secondary" />
         </LinearLayout>
 
@@ -260,14 +260,14 @@
                 android:minHeight="56dp"
                 android:paddingHorizontal="@dimen/space_md"
                 android:text="@string/group_empty"
-                android:textColor="@color/textSecondary"
+                android:textColor="@color/settingsTextSecondary"
                 android:textSize="@dimen/text_secondary" />
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginStart="@dimen/space_md"
-                android:background="@color/settingsDivider" />
+                android:background="@color/settingsPageDivider" />
 
             <TextView
                 android:id="@+id/groupSelectApps"
@@ -301,7 +301,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginStart="@dimen/space_md"
-                android:background="@color/settingsDivider" />
+                android:background="@color/settingsPageDivider" />
 
             <include
                 android:id="@+id/groupDefault"

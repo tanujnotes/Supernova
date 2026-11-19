@@ -41,7 +41,7 @@
                 android:ellipsize="end"
                 android:fontFamily="sans-serif-medium"
                 android:maxLines="1"
-                android:textColor="@color/textPrimary"
+                android:textColor="@color/settingsText"
                 android:textSize="@dimen/text_body"
                 app:layout_constrainedWidth="true"
                 app:layout_constraintBottom_toBottomOf="parent"
@@ -77,7 +77,7 @@
             android:layout_marginTop="@dimen/space_xxs"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textColor="@color/textSecondary"
+            android:textColor="@color/settingsTextSecondary"
             android:textSize="@dimen/text_secondary" />
     </LinearLayout>
 
@@ -88,5 +88,5 @@
         android:contentDescription="@string/card_reorder"
         android:padding="@dimen/space_ms"
         android:src="@drawable/ic_drag_handle"
-        app:tint="@color/textSecondary" />
+        app:tint="@color/settingsTextSecondary" />
 </LinearLayout>

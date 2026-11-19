@@ -391,6 +391,20 @@
         <item name="android:textColor">@color/textPrimary</item>
     </style>
 
+    <!-- The settings pages' lists and bars: the Settings style's Text drives
+         the theme's text, control and ripple colours there (#281). Equal to
+         the theme's own until Text is set. -->
+    <style name="ThemeOverlay.Supernova.SettingsPage" parent="">
+        <item name="android:textColorPrimary">@color/settingsText</item>
+        <item name="android:textColorSecondary">@color/settingsTextSecondary</item>
+        <item name="colorOnSurface">@color/settingsText</item>
+        <item name="android:colorForeground">@color/settingsText</item>
+        <item name="colorControlNormal">@color/settingsTextSecondary</item>
+        <item name="android:colorControlNormal">@color/settingsTextSecondary</item>
+        <item name="colorControlHighlight">@color/settingsPageHighlight</item>
+        <item name="android:colorControlHighlight">@color/settingsPageHighlight</item>
+    </style>
+
     <style name="Widget.Supernova.Switch" parent="Widget.MaterialComponents.CompoundButton.Switch">
         <item name="android:textColor">@color/textPrimary</item>
     </style>

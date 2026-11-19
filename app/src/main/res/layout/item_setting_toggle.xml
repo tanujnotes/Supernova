@@ -24,7 +24,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:fontFamily="sans-serif-medium"
-            android:textColor="@color/textPrimary"
+            android:textColor="@color/settingsText"
             android:textSize="@dimen/text_body" />
 
         <!-- Most toggles are explained under the title. -->
@@ -33,7 +33,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_xxs"
-            android:textColor="@color/textSecondary"
+            android:textColor="@color/settingsTextSecondary"
             android:textSize="@dimen/text_secondary"
             android:visibility="gone" />
     </LinearLayout>
@@ -49,13 +49,13 @@
         android:importantForAccessibility="no"
         android:src="@drawable/ic_chevron_down"
         android:visibility="gone"
-        app:tint="@color/textSecondary" />
+        app:tint="@color/settingsTextSecondary" />
 
     <View
         android:id="@+id/settingDivider"
         android:layout_width="1dp"
         android:layout_height="32dp"
-        android:background="@color/settingsDivider"
+        android:background="@color/settingsPageDivider"
         android:visibility="gone" />
 
     <!-- The id stays so the adapter's CompoundButton handling is untouched. -->

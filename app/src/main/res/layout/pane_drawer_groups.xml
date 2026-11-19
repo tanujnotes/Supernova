@@ -2,6 +2,7 @@
 <!-- The Drawer groups page, in place of the settings list: the groups, or
      one group's own page over them. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:theme="@style/ThemeOverlay.Supernova.SettingsPage"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 

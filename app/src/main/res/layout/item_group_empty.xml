@@ -166,7 +166,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_md"
-        android:textColor="@color/textPrimary"
+        android:textColor="@color/settingsText"
         android:textSize="@dimen/text_title"
         android:textStyle="bold" />
 
@@ -176,7 +176,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_sm"
         android:lineSpacingExtra="2sp"
-        android:textColor="@color/textSecondary"
+        android:textColor="@color/settingsTextSecondary"
         android:textSize="@dimen/text_secondary" />
 
     <Button

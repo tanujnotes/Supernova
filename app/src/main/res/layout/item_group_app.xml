@@ -28,6 +28,6 @@
         android:gravity="center_horizontal"
         android:maxLines="1"
         android:paddingHorizontal="@dimen/space_xxs"
-        android:textColor="@color/textSecondary"
+        android:textColor="@color/settingsTextSecondary"
         android:textSize="@dimen/text_caption" />
 </LinearLayout>
