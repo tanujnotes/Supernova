@@ -347,6 +347,17 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    private var imeBottom = 0
+    private var listBottomPadding = 0
+
+    private fun applyImePadding() {
+        val covered = (imeBottom - binding.settingsTabs.height).coerceAtLeast(0)
+        val padding = listBottomPadding + covered
+        if (binding.settingsRecycler.paddingBottom != padding) {
+            binding.settingsRecycler.updatePadding(bottom = padding)
+        }
+    }
+
     // Half the width landscape has beyond the capped content column, or 0
     // in portrait / when the window is already narrower than the cap.
     private fun contentGutter(bars: androidx.core.graphics.Insets): Int {
@@ -405,6 +416,7 @@ class SettingsActivity : AppCompatActivity() {
             binding.settingsRecycler, binding.groupsPane, binding.settingsTabs
         )
         val basePadding = sideInsetViews.map { Triple(it.paddingLeft, it.paddingRight, it.paddingBottom) }
+        listBottomPadding = binding.settingsRecycler.paddingBottom
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
             val bars = insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
@@ -426,7 +438,18 @@ class SettingsActivity : AppCompatActivity() {
                     child.updatePadding(bottom = bottom + bars.bottom)
                 }
             }
+            imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            applyImePadding()
             insets
+        }
+        // The keyboard covers the tab bar and the bottom of the list (the window
+        // is edge-to-edge, so nothing resizes for it): the list takes the part
+        // of the keyboard that rises above the tab bar as extra bottom padding,
+        // so its last row scrolls up clear of the keyboard and the padding
+        // goes again when it closes. The tab bar's height can land after the
+        // insets, hence the layout listener.
+        binding.settingsTabs.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            if (bottom - top != oldBottom - oldTop) applyImePadding()
         }
         previews = PreviewController(viewModel)
         adapter = SettingsAdapter(previews)
