@@ -3,6 +3,8 @@ package com.supernova.launcher.widget
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Typeface
 import android.view.View
 import com.supernova.launcher.data.WorkspaceGeometry
 import com.supernova.launcher.ui.WorkspaceCanvas
@@ -24,6 +26,11 @@ import kotlin.math.roundToInt
 // The frame stays up through that rebind, for the next drag: the page keeps
 // it, and the activity anchors it to the widget's new view and cells until
 // it is dismissed.
+//
+// A widget that offers its settings screen again carries a "Widget settings"
+// pill near its bottom edge, as the reference frame carries its settings
+// button: widgets whose setup is optional are placed without it, and this is
+// where a resize leads people looking for it.
 class WidgetResizeFrame(
     context: Context,
     // The widget it frames; a rebind finds the widget's new view by it.
@@ -41,7 +48,7 @@ class WidgetResizeFrame(
     private val onCommit: (cellX: Int, cellY: Int, spanX: Int, spanY: Int) -> Unit
 ) : View(context) {
 
-    enum class Press { EDGE, WIDGET, OUTSIDE }
+    enum class Press { EDGE, SETTINGS, WIDGET, OUTSIDE }
 
     var cellX: Int = 0
         private set
@@ -64,6 +71,15 @@ class WidgetResizeFrame(
         color = OUTLINE_COLOR
     }
     private val handlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = HANDLE_COLOR }
+    private val settingsPill = SettingsPill(this)
+
+    // The settings pill's words, longest first: the first that fits the
+    // widget's width is drawn. Empty for widgets with no settings screen.
+    var settingsLabels: List<String> = emptyList()
+        set(value) {
+            field = value
+            invalidate()
+        }
 
     // The edges the drag in progress moves.
     private var dragLeft = false
@@ -124,8 +140,9 @@ class WidgetResizeFrame(
         dragScale = screenScale()
         val x = (rawX - screenLocation[0]) / dragScale
         val y = (rawY - screenLocation[1]) / dragScale
+        val onPill = settingsPill.contains(x, y)
         val band = grabBand / dragScale
-        val inBand = within(x, width, band) && within(y, height, band)
+        val inBand = !onPill && within(x, width, band) && within(y, height, band)
         val edgeX = if (inBand) edgeOf(x, width, band) else 0
         val edgeY = if (inBand) edgeOf(y, height, band) else 0
         dragLeft = edgeX < 0
@@ -135,6 +152,7 @@ class WidgetResizeFrame(
         if (dragging) beginDrag(rawX, rawY)
         return when {
             dragging -> Press.EDGE
+            onPill -> Press.SETTINGS
             within(x, width, 0f) && within(y, height, 0f) -> Press.WIDGET
             else -> Press.OUTSIDE
         }
@@ -192,6 +210,7 @@ class WidgetResizeFrame(
         canvas.drawCircle(width - inset, height / 2f, handleRadius, handlePaint)
         canvas.drawCircle(width / 2f, inset, handleRadius, handlePaint)
         canvas.drawCircle(width / 2f, height - inset, handleRadius, handlePaint)
+        settingsPill.draw(canvas, settingsLabels, handleRadius)
     }
 
     private fun applyDrag(dx: Float, dy: Float) {
@@ -289,4 +308,48 @@ private fun edgeOf(position: Float, size: Int, band: Float): Int = when {
     position < band && position <= size - position -> -1
     position > size - band -> 1
     else -> 0
+}
+
+// The frame's "Widget settings" pill, centred above its bottom handle in the
+// first label that fits the widget's width; none on a widget too small for
+// any. Hit-tested in the frame's own pixels, where it was last drawn.
+private class SettingsPill(private val frame: View) {
+    private val density = frame.resources.displayMetrics.density
+    private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = FILL_COLOR }
+    private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = TEXT_COLOR
+        textSize = android.util.TypedValue.applyDimension(
+            android.util.TypedValue.COMPLEX_UNIT_SP, TEXT_SP, frame.resources.displayMetrics
+        )
+        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+    }
+    private val rect = RectF()
+    private var shown = false
+
+    fun contains(x: Float, y: Float) = shown && rect.contains(x, y)
+
+    fun draw(canvas: Canvas, labels: List<String>, handleRadius: Float) {
+        val padX = PAD_X_DP * density
+        val margin = MARGIN_DP * density
+        val pillHeight = HEIGHT_DP * density
+        val bottom = frame.height - handleRadius - margin
+        val label = labels.firstOrNull { text.measureText(it) + 2 * padX <= frame.width - 2 * margin }
+            ?.takeIf { bottom - pillHeight >= margin }
+        shown = label != null
+        if (label == null) return
+        val pillWidth = text.measureText(label) + 2 * padX
+        rect.set((frame.width - pillWidth) / 2f, bottom - pillHeight, (frame.width + pillWidth) / 2f, bottom)
+        canvas.drawRoundRect(rect, pillHeight / 2f, pillHeight / 2f, fill)
+        val baseline = rect.centerY() - (text.descent() + text.ascent()) / 2f
+        canvas.drawText(label, rect.left + padX, baseline, text)
+    }
+
+    private companion object {
+        const val FILL_COLOR = 0xFFFFFFFF.toInt()
+        const val TEXT_COLOR = 0xDE000000.toInt()
+        const val TEXT_SP = 13f
+        const val HEIGHT_DP = 32f
+        const val PAD_X_DP = 14f
+        const val MARGIN_DP = 8f
+    }
 }

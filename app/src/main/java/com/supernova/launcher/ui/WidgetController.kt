@@ -207,6 +207,10 @@ class WidgetController(
     private var resizeDragActive = false
     // A press on the framed widget, until it moves or lifts.
     private var pressOnFramedWidget = false
+    // A press on the frame's Widget settings pill: a tap opens the settings,
+    // and the whole stream is the frame's, so the widget never sees it.
+    private var pressOnFrameSettings = false
+    private var frameSettingsTapValid = false
     private var pressStartX = 0f
     private var pressStartY = 0f
     private val touchSlop = android.view.ViewConfiguration.get(activity).scaledTouchSlop
@@ -288,34 +292,70 @@ class WidgetController(
     // close the frame and edit mode together. An open feed pane covers the
     // frame, and a press there is the pane's.
     fun trackResizeDrag(ev: MotionEvent, keepOnPress: Boolean = false): Boolean {
+        if (pressOnFrameSettings && ev.actionMasked != MotionEvent.ACTION_DOWN) return trackFrameSettingsPress(ev)
         val frame = activeResizeFrame
+        var consumed = false
         when (ev.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 resizeDragActive = false
                 pressOnFramedWidget = false
                 if (frame != null && !host.feedOpen) onFramePress(frame, ev, keepOnPress)
+                consumed = resizeDragActive || pressOnFrameSettings
             }
-            MotionEvent.ACTION_MOVE ->
+            MotionEvent.ACTION_MOVE -> {
                 if (resizeDragActive) {
                     frame?.dragTo(ev.rawX, ev.rawY)
                 } else if (pressOnFramedWidget && hypot(ev.rawX - pressStartX, ev.rawY - pressStartY) > touchSlop) {
                     pressOnFramedWidget = false
                     dismissResizeFrame()
                 }
+                consumed = resizeDragActive
+            }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 pressOnFramedWidget = false
-                val ended = resizeDragActive
+                consumed = resizeDragActive
                 resizeDragActive = false
-                if (ended) frame?.endDrag()
-                return ended
+                if (consumed) frame?.endDrag()
+            }
+            else -> consumed = resizeDragActive
+        }
+        return consumed
+    }
+
+    // The rest of a press on the frame's settings pill, all of it the
+    // frame's: a lift within the slop opens the widget's settings.
+    private fun trackFrameSettingsPress(ev: MotionEvent): Boolean {
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_MOVE ->
+                if (hypot(ev.rawX - pressStartX, ev.rawY - pressStartY) > touchSlop) frameSettingsTapValid = false
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                pressOnFrameSettings = false
+                val frame = activeResizeFrame
+                if (ev.actionMasked == MotionEvent.ACTION_UP && frameSettingsTapValid && frame != null) {
+                    openFrameWidgetSettings(frame)
+                }
             }
         }
-        return resizeDragActive
+        return true
+    }
+
+    // The frame comes down first: the settings screen covers the page, and
+    // the widget may change size or content behind it.
+    private fun openFrameWidgetSettings(frame: WidgetResizeFrame) {
+        val item = viewModel.state.value.model.items.firstOrNull { it.id == frame.itemId } ?: return
+        dismissResizeFrame()
+        openWidgetSettings(item)
     }
 
     private fun onFramePress(frame: WidgetResizeFrame, ev: MotionEvent, keepOnPress: Boolean) {
         when (frame.press(ev.rawX, ev.rawY)) {
             WidgetResizeFrame.Press.EDGE -> resizeDragActive = true
+            WidgetResizeFrame.Press.SETTINGS -> {
+                pressOnFrameSettings = true
+                frameSettingsTapValid = true
+                pressStartX = ev.rawX
+                pressStartY = ev.rawY
+            }
             WidgetResizeFrame.Press.WIDGET -> {
                 pressOnFramedWidget = true
                 pressStartX = ev.rawX
@@ -557,6 +597,12 @@ class WidgetController(
                 }
             }
         )
+        if (isReconfigurable(item)) {
+            frame.settingsLabels = listOf(
+                activity.getString(R.string.widget_settings),
+                activity.getString(R.string.settings)
+            )
+        }
         if (anchorResizeFrame(frame, widgetView)) activeResizeFrame = frame
     }
 
