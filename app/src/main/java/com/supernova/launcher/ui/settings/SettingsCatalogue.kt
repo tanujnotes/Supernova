@@ -43,6 +43,7 @@ import com.supernova.launcher.ui.LabelContext
 import com.supernova.launcher.ui.LabelOverride
 import com.supernova.launcher.ui.LabelStyler
 import com.supernova.launcher.ui.LaunchAnimation
+import com.supernova.launcher.ui.NavBarButtons
 import com.supernova.launcher.ui.StatusBarIcons
 import com.supernova.launcher.ui.theme.AccentColor
 import com.supernova.launcher.ui.theme.PaletteSourceMode
@@ -498,6 +499,10 @@ object SettingsCatalogue {
                 ) { viewModel.set(Pref.darkStatusIcons, it) }.hiddenWhen {
                     needsOff(R.string.hide_status_bar, it.hideStatusBar)
                 },
+                rows.choice(
+                    R.string.nav_bar_buttons, NavBarButtons.entries,
+                    { it.navBarButtons }, { EnumLabels.of(it) }
+                ) { viewModel.set(Pref.navBarButtons, it) },
                 SettingItem.Toggle(
                     R.string.transparent_status,
                     get = { it.transparentStatus },

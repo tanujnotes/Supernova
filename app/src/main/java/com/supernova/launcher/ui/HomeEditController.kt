@@ -258,6 +258,10 @@ class HomeEditController(
         }
         activity.window.navigationBarColor = surface
         binding.navBarBand.setBackgroundColor(surface)
+        // Buttons that read on the sheet's colour, whatever the home choice.
+        androidx.core.view.WindowInsetsControllerCompat(activity.window, binding.root)
+            .isAppearanceLightNavigationBars =
+            androidx.core.graphics.ColorUtils.calculateLuminance(surface) > LIGHT_SURFACE
 
         binding.editWidgetSearch.setText("")
         behavior.state = BottomSheetBehavior.STATE_COLLAPSED
@@ -304,6 +308,8 @@ class HomeEditController(
         activity.window.navigationBarColor =
             if (prefs.transparentNav) android.graphics.Color.TRANSPARENT else android.graphics.Color.BLACK
         binding.navBarBand.setBackgroundColor(android.graphics.Color.BLACK)
+        androidx.core.view.WindowInsetsControllerCompat(activity.window, binding.root)
+            .isAppearanceLightNavigationBars = SystemBarIcons.lightNavBar(activity, prefs)
         // Contrast scrim control is Android 10+; Android 9 keeps its default.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             activity.window.isNavigationBarContrastEnforced = !prefs.transparentNav
@@ -354,5 +360,6 @@ class HomeEditController(
         const val PEEK_FRACTION = 0.22f
         const val ZOOM_MS = 220L
         const val OPAQUE = 0xFF
+        const val LIGHT_SURFACE = 0.5
     }
 }

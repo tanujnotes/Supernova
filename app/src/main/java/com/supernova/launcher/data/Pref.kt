@@ -26,6 +26,7 @@ import com.supernova.launcher.ui.LabelFont
 import com.supernova.launcher.ui.LaunchAnimation
 import com.supernova.launcher.ui.PopupMenuStyle
 import com.supernova.launcher.ui.ScrollEffect
+import com.supernova.launcher.ui.NavBarButtons
 import com.supernova.launcher.ui.StatusBarIcons
 import com.supernova.launcher.ui.theme.AccentColor
 import com.supernova.launcher.ui.theme.PaletteSourceMode
@@ -323,6 +324,7 @@ object Pref {
     val hideStatusBar = bool("hide_status_bar")
     val darkStatusIcons = choice("dark_status_icons", StatusBarIcons.entries)
     val transparentNav = bool("transparent_nav")
+    val navBarButtons = choice("nav_bar_buttons", NavBarButtons.entries)
     val transparentStatus = bool("transparent_status")
     val homeRotation = bool("home_rotation")
     val homeOrientation = text("home_orientation")

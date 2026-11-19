@@ -19,6 +19,7 @@ import com.supernova.launcher.ui.LabelFont
 import com.supernova.launcher.ui.LaunchAnimation
 import com.supernova.launcher.ui.PopupMenuStyle
 import com.supernova.launcher.ui.ScrollEffect
+import com.supernova.launcher.ui.NavBarButtons
 import com.supernova.launcher.ui.StatusBarIcons
 import com.supernova.launcher.ui.theme.AccentColor
 import com.supernova.launcher.ui.theme.PaletteSourceMode
@@ -505,6 +506,8 @@ data class LauncherPrefs(
     val hideStatusBar: Boolean = false,
     val darkStatusIcons: StatusBarIcons = StatusBarIcons.AUTO,
     val transparentNav: Boolean = true,
+    // Nav bar button tint (ui/NavBarButtons); AUTO follows the theme.
+    val navBarButtons: NavBarButtons = NavBarButtons.AUTO,
     // The status bar's twin of transparentNav: off paints it black over the
     // wallpaper instead of letting the wallpaper through.
     val transparentStatus: Boolean = true,

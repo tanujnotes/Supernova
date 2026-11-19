@@ -126,6 +126,25 @@ enum class StatusBarIcons {
     }
 }
 
+// Navigation bar button tint (navBarButtons pref): STATUS_BAR uses whatever
+// the status bar choice is; the rest mean what StatusBarIcons' do (LIGHT is
+// the light-bar appearance, i.e. dark buttons).
+@kotlinx.serialization.Serializable(with = NavBarButtons.Names::class)
+enum class NavBarButtons {
+    STATUS_BAR,
+    AUTO,
+    WALLPAPER,
+    LIGHT,
+    DARK;
+
+    // Its name in the store and in a backup, read back leniently.
+    object Names : SettingEnumSerializer<NavBarButtons>("NavBarButtons", entries, AUTO)
+
+    companion object {
+        fun fromName(name: String): NavBarButtons = Names.parse(name)
+    }
+}
+
 // Launcher orientation (homeOrientation pref). DEFAULT pins portrait exactly
 // like the old homeRotation=false; AUTO_ROTATE follows the sensor; PORTRAIT
 // and LANDSCAPE force an axis but allow the 180-degree sensor flip.
