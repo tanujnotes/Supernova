@@ -1004,9 +1004,34 @@ class LauncherViewModel(
     // out: they can't go home, into folders or onto gestures, which would
     // still show or open them once the space is locked.
     fun visibleApps(): List<LaunchableApp> {
-        val hidden = state.value.prefs.hiddenApps
-        return sortedApps(withOverrides(state.value.apps.filterNot { it.privateSpace || hiddenKey(it) in hidden }))
+        val current = state.value
+        val hidden = current.prefs.hiddenApps
+        val inputs = listOf(
+            current.apps, hidden, current.model.appOverrides, current.prefs.drawerSort, launchCounts, recentLaunches,
+            java.util.Locale.getDefault()
+        )
+        visibleAppsMemo?.takeIf { it.matches(inputs) }?.let { return it.value.first }
+        val apps = sortedApps(withOverrides(current.apps.filterNot { it.privateSpace || hiddenKey(it) in hidden }))
+        visibleAppsMemo = Memo(inputs, apps to apps.map(::hiddenKey))
+        return apps
     }
+
+    // visibleApps() with each app's key beside it, by position.
+    private fun visibleAppKeys(): Pair<List<LaunchableApp>, List<String>> {
+        val apps = visibleApps()
+        return visibleAppsMemo?.value?.takeIf { it.first === apps } ?: (apps to apps.map(::hiddenKey))
+    }
+
+    // A drawer tab switch asks for the visible apps once per folder and tab
+    // (#278), and each answer sorted every app with a Collator: kept while
+    // what it is made from is the same objects.
+    private class Memo<T>(val inputs: List<Any?>, val value: T) {
+        fun matches(now: List<Any?>): Boolean =
+            inputs.size == now.size && inputs.indices.all { inputs[it] === now[it] }
+    }
+
+    @Volatile private var visibleAppsMemo: Memo<Pair<List<LaunchableApp>, List<String>>>? = null
+    @Volatile private var drawerGroupsMemo: Memo<List<DrawerGroup>>? = null
 
     // Listed only while the space is unlocked (AppCatalog).
     fun privateApps(): List<LaunchableApp> {
@@ -1146,9 +1171,14 @@ class LauncherViewModel(
     fun hasWorkApps(): Boolean =
         workPaused() || state.value.apps.any { it.work }
 
-    fun drawerGroups(): List<DrawerGroup> =
-        state.value.prefs.drawerGroups.mapNotNull(DrawerGroup::decode)
+    fun drawerGroups(): List<DrawerGroup> {
+        val stored = listOf(state.value.prefs.drawerGroups)
+        drawerGroupsMemo?.takeIf { it.matches(stored) }?.let { return it.value }
+        val groups = state.value.prefs.drawerGroups.mapNotNull(DrawerGroup::decode)
             .sortedWith(compareBy<DrawerGroup> { it.order }.then(LabelOrder.by { it.name }))
+        drawerGroupsMemo = Memo(stored, groups)
+        return groups
+    }
 
     // TAB groups drive the tab bar; FOLDER groups render as drawer folders.
     fun drawerTabGroups(): List<DrawerGroup> =
@@ -1320,9 +1350,9 @@ class LauncherViewModel(
     }
 
     fun appsInGroup(group: DrawerGroup?): List<LaunchableApp> {
-        val visible = visibleApps()
-        if (group == null) return visible
-        return visible.filter { hiddenKey(it) in group.members }
+        if (group == null) return visibleApps()
+        val (visible, keys) = visibleAppKeys()
+        return visible.filterIndexed { index, _ -> keys[index] in group.members }
     }
 
     // A group's Select apps rows: [apps], and first the drawer folders it

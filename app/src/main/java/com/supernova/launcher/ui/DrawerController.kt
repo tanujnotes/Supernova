@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.os.SystemClock
-import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -156,6 +155,9 @@ class DrawerController(
     private var shownTabIndex = -1
     // +1 or -1 while a swipe's tab change is being applied, else 0 (a tap).
     private var swipeDirection = 0
+    // A swipe's lift that changed tab: how far the list was from where the
+    // next page would sit, and the finger's speed (TabSwipeDrag).
+    private var dragSettle: Pair<Float, Float>? = null
     // Set while rebuildTabs picks the tab: no change the user made, no slide.
     private var rebuildingTabs = false
     private var renderedTabsKey: String? = null
@@ -184,101 +186,117 @@ class DrawerController(
     private var keyboardHeight = 0
     private var searchRowLifted = false
 
-    // A horizontal fling on the list switches to the neighbouring group tab
-    // (not for the paged grid, which uses horizontal scroll for its pages).
-    private val tabSwipeDetector by lazy {
-        GestureDetector(binding.root.context, object : GestureDetector.SimpleOnGestureListener() {
-            override fun onFling(
-                e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float
-            ): Boolean {
-                if (!tabSwipeable()) return false
-                if (kotlin.math.abs(velocityX) < kotlin.math.abs(velocityY) * 1.5f) return false
-                if (kotlin.math.abs(velocityX) < TAB_FLING_MIN_VELOCITY) return false
-                // Swipe left -> next tab, swipe right -> previous.
-                selectAdjacentTab(if (velocityX < 0) 1 else -1)
-                return false
-            }
-        })
-    }
-
     private fun tabSwipeable(): Boolean =
         currentStyle != DrawerStyle.PAGED_GRID &&
             !viewModel.state.value.prefs.drawerTabsNoSwipe &&
             binding.drawerTabs.visibility == View.VISIBLE && binding.drawerTabs.tabCount >= 2
 
+    // A sideways swipe on the list moves to the neighbouring group tab (not
+    // for the paged grid, which uses horizontal scroll for its pages).
     private fun attachTabSwipe() {
-        val slop = android.view.ViewConfiguration.get(binding.root.context).scaledTouchSlop
-        binding.drawerRecycler.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
-            private var downX = 0f
-            private var downY = 0f
-
-            // Watching only, so vertical scrolling is untouched, until the
-            // gesture reads as a sideways swipe. Then it is taken: the row
-            // under the finger gets a cancel and drops its press, where
-            // before its click fired on the same lift and the swipe that
-            // switched tabs also opened the app it crossed.
-            override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
-                tabSwipeDetector.onTouchEvent(e)
-                when (e.actionMasked) {
-                    MotionEvent.ACTION_DOWN -> {
-                        downX = e.x
-                        downY = e.y
+        binding.drawerRecycler.addOnItemTouchListener(
+            TabSwipeDrag(
+                binding.drawerListContainer,
+                swipeable = ::tabSwipeable,
+                hasTab = { delta -> adjacentTab(delta) != null },
+                onCommit = { delta, remaining, velocity ->
+                    dragSettle = remaining to velocity
+                    selectAdjacentTab(delta)
+                    // No change after all (the bar changed under the finger).
+                    if (dragSettle != null) {
+                        dragSettle = null
+                        slideInTab(0)
                     }
-                    MotionEvent.ACTION_MOVE -> {
-                        if (!tabSwipeable()) return false
-                        val dx = kotlin.math.abs(e.x - downX)
-                        val dy = kotlin.math.abs(e.y - downY)
-                        if (dx > slop && dx > dy * 1.5f) return true
-                    }
-                }
-                return false
-            }
-
-            // The rest of a taken swipe, to its fling.
-            override fun onTouchEvent(rv: RecyclerView, e: MotionEvent) {
-                tabSwipeDetector.onTouchEvent(e)
-            }
-        })
+                },
+                animate = { Animations.enabled(viewModel.state.value.prefs) },
+                onMoving = { moving -> showFastScroller(!moving) }
+            )
+        )
     }
 
-    private fun selectAdjacentTab(delta: Int) {
+    // The tab that way from the selected one, or null at an end with Loop
+    // tabs off.
+    private fun adjacentTab(delta: Int): Int? {
         val tabs = binding.drawerTabs
         val count = tabs.tabCount
-        val current = (0 until count).firstOrNull { tabs.getTabAt(it)?.isSelected == true } ?: return
+        val current = (0 until count).firstOrNull { tabs.getTabAt(it)?.isSelected == true } ?: return null
         // Loop tabs: past the last tab is the first, before the first the last.
         val next = if (viewModel.state.value.prefs.drawerTabsLoop) {
             Math.floorMod(current + delta, count)
         } else {
             (current + delta).coerceIn(0, count - 1)
         }
-        if (next == current) return
+        return next.takeIf { it != current }
+    }
+
+    private fun selectAdjacentTab(delta: Int) {
+        val next = adjacentTab(delta) ?: return
         // The swipe's own way, so a wrap still slides in from the side the
         // finger came from rather than from the far end.
         swipeDirection = delta
-        tabs.getTabAt(next)?.select()
+        binding.drawerTabs.getTabAt(next)?.select()
     }
 
     // A tab the user switches to slides in from its side and fades up:
     // from the right for a later tab (or a swipe left), from the left for
     // an earlier one. Not while the drawer is still opening, a query
     // filters the list, or Supernova's animations are off.
+    //
+    // After a swipe (TabSwipeDrag) the new tab's list comes in from where
+    // the next page would lie, the rest of the width away, in the pager's
+    // settle time for the finger's speed.
     private fun slideInTab(direction: Int) {
         val prefs = viewModel.state.value.prefs
         val list = binding.drawerListContainer
+        val drag = dragSettle
+        dragSettle = null
         list.animate().cancel()
         val filtering = searchingExternally || binding.drawerSearch.text?.isNotEmpty() == true
         val still = !Animations.enabled(prefs) || progress < 1f || list.width == 0
-        if (still || filtering) {
+        if (still || filtering || direction == 0) {
             list.translationX = 0f
             list.alpha = 1f
+            list.setLayerType(View.LAYER_TYPE_NONE, null)
+            showFastScroller(true)
             return
         }
-        list.translationX = direction * list.width * TAB_SLIDE_FRACTION
-        list.alpha = 0f
-        list.animate().translationX(0f).alpha(1f)
-            .setDuration(Animations.duration(prefs, TAB_SLIDE_MS))
-            .setInterpolator(android.view.animation.DecelerateInterpolator())
+        showFastScroller(false)
+        // A layer for the fade: without one, every frame drew the whole list
+        // offscreen (about 20ms a frame on the Samsung).
+        list.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        val animator = if (drag != null) {
+            val (remaining, velocity) = drag
+            list.translationX = direction * remaining
+            list.alpha = TAB_DRAG_START_ALPHA
+            val ms = PageFlingSettle.durationMs(
+                remaining.toInt(), list.width, velocity, list.resources.displayMetrics.density
+            )
+            list.animate().setDuration(ms.toLong()).setInterpolator(PageFlingSettle.QuinticOut)
+        } else {
+            list.translationX = direction * list.width * TAB_SLIDE_FRACTION
+            list.alpha = 0f
+            list.animate().setDuration(Animations.duration(prefs, TAB_SLIDE_MS))
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+        }
+        animator.translationX(0f).alpha(1f)
+            .withEndAction {
+                list.setLayerType(View.LAYER_TYPE_NONE, null)
+                showFastScroller(true)
+            }
             .start()
+    }
+
+    // The fast scrollbar rides in the list's container, so a tab's slide
+    // would carry it sideways: gone while the list moves, back once it is
+    // in place.
+    private fun showFastScroller(show: Boolean) {
+        val scroller = binding.drawerFastScroller
+        scroller.animate().cancel()
+        if (show) {
+            scroller.animate().alpha(1f).setDuration(FAST_SCROLLER_FADE_MS).start()
+        } else {
+            scroller.alpha = 0f
+        }
     }
 
     // drawerPullToSearch pref: dragging on past the end of the list opens the
@@ -699,7 +717,9 @@ class DrawerController(
                 swipeDirection = 0
                 shownTabIndex = tab.position
                 selectedTab = tab.tag
-                submit()
+                // Another tab's list replaces this one outright, from its top.
+                submit(replace = true)
+                binding.drawerRecycler.scrollToPosition(0)
                 adapter.filter(binding.drawerSearch.text?.toString().orEmpty())
                 syncPages()
                 if (slide) slideInTab(direction)
@@ -1549,7 +1569,7 @@ class DrawerController(
     private fun storedTab(tab: DrawerGroup): DrawerGroup =
         viewModel.drawerTabGroups().firstOrNull { it.id == tab.id } ?: tab
 
-    private fun submit() {
+    private fun submit(replace: Boolean = false) {
         val prefs = viewModel.state.value.prefs
         val tab = selectedTab
         // FOLDER-type groups render on the All (or Personal) list and in the
@@ -1598,7 +1618,7 @@ class DrawerController(
             if (section) privateSection.root else null,
             if (section) viewModel.privateApps() else emptyList()
         )
-        adapter.submit(apps, folders, prefs.drawerFoldersFirst, listOrder(prefs))
+        adapter.submit(apps, folders, prefs.drawerFoldersFirst, listOrder(prefs), replace)
         revealPrivateSectionIfDue()
         // The first apps make a tile measurable.
         if (adapter.tileHeightPx == 0) refreshGridRows(prefs)
@@ -2412,11 +2432,13 @@ class DrawerController(
         // item_drawer_app's 4dp side padding, both sides.
         const val TILE_SIDE_PADDING_DP = 8
         const val MAX_COLUMNS = 12
-        const val TAB_FLING_MIN_VELOCITY = 900f
         // A switched-to tab's list starts a quarter of its width aside and
         // settles in this long (before the animation speed pref).
         const val TAB_SLIDE_FRACTION = 0.25f
         const val TAB_SLIDE_MS = 220L
+        // A swiped-to tab's list fades up from here as it settles.
+        const val TAB_DRAG_START_ALPHA = 0.5f
+        const val FAST_SCROLLER_FADE_MS = 150L
         // The Bubble tab type's pill: fully round, 6dp inside the bar's
         // height at top and bottom.
         const val TAB_BUBBLE_RADIUS_DP = 100f

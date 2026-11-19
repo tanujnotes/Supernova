@@ -271,7 +271,10 @@ class AppDrawerAdapter(
         apps: List<LaunchableApp>,
         folders: List<FolderEntry> = emptyList(),
         foldersFirst: Boolean = true,
-        order: Order = Order.A_Z
+        order: Order = Order.A_Z,
+        // Another tab's list: a diff against the old one finds nothing to
+        // keep and only costs time (#278).
+        replace: Boolean = false
     ) {
         allEntries.clear()
         apps.mapTo(allEntries, ::Entry)
@@ -279,7 +282,7 @@ class AppDrawerAdapter(
         folderEntries.addAll(folders)
         this.foldersFirst = foldersFirst
         this.order = order
-        applyFilter()
+        applyFilter(replace)
     }
 
     // The flat, filtered list the paged style cuts its pages from.
@@ -298,7 +301,7 @@ class AppDrawerAdapter(
         applyFilter()
     }
 
-    private fun applyFilter() {
+    private fun applyFilter(replace: Boolean = false) {
         val oldItems = displayItems.toList()
         displayItems.clear()
         if (query.isBlank()) {
@@ -332,7 +335,7 @@ class AppDrawerAdapter(
         // list shows rows of its own instead (the web rows, or an empty tab's
         // message), which the diff doesn't see; fall back to a full refresh
         // there, which also rebinds an empty tab's action for the new tab.
-        if (oldItems.isEmpty() || displayItems.isEmpty()) {
+        if (replace || oldItems.isEmpty() || displayItems.isEmpty()) {
             notifyDataSetChanged()
             return
         }
