@@ -134,8 +134,11 @@ object Pref {
     private const val LABEL_SIZE_MAX = 18
     private const val DAY_LAST_MINUTE = 1439
 
-    // Dock pages, and the feed's rows of shortcuts.
-    private const val PAGES_OR_ROWS_MAX = 3
+    // The feed's rows of shortcuts.
+    private const val FEED_SHORTCUT_ROWS_MAX = 3
+
+    // Dock pages; the settings slider reads it too.
+    const val DOCK_PAGES_MAX = 5
 
     private val specs = mutableListOf<PrefSpec<*>>()
     val all: List<PrefSpec<*>> get() = specs
@@ -182,7 +185,7 @@ object Pref {
     val desktopPaddingV = int("desktop_padding_v", 0..DESKTOP_PADDING_MAX)
     val desktopLocked = bool("desktop_locked")
     val dockEnabled = bool("dock_enabled")
-    val dockPages = int("dock_pages", 1..PAGES_OR_ROWS_MAX)
+    val dockPages = int("dock_pages", 1..DOCK_PAGES_MAX)
     val dockBgStyle = choice("dock_bg_style", DockBgStyle.entries)
     val dockBgOpacity = float("dock_bg_opacity", 0f..1f)
     val dockBgRadius = int("dock_bg_radius", 0..DOCK_BG_RADIUS_MAX)
@@ -337,7 +340,7 @@ object Pref {
     val feedShowMedia = bool("feed_show_media")
     val feedShowCalendar = bool("feed_show_calendar")
     val feedShowContacts = bool("feed_show_contacts")
-    val feedShortcutRows = int("feed_shortcut_rows", 1..PAGES_OR_ROWS_MAX)
+    val feedShortcutRows = int("feed_shortcut_rows", 1..FEED_SHORTCUT_ROWS_MAX)
     val labsEnabled = bool("labs_enabled")
     val labsShowComponent = bool("labs_show_component")
     val labsExportPng = bool("labs_export_png")
