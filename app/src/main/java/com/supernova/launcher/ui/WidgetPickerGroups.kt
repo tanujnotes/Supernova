@@ -99,6 +99,21 @@ class WidgetPickerIcons(
 
 object WidgetPickerGroups {
 
+    // Whether an app has anything for the picker: a listable widget in any
+    // profile, or a shortcut activity. The long-press "Widgets" row shows
+    // only then, where it opened a blank sheet before.
+    fun offersAny(context: Context, packageName: String): Boolean {
+        val widgets = runCatching {
+            AppWidgetManager.getInstance(context).getInstalledProvidersForPackage(packageName, null)
+        }.getOrDefault(emptyList())
+        if (widgets.any(WidgetFeatures::listable)) return true
+        return runCatching {
+            context.packageManager.queryIntentActivities(
+                Intent(Intent.ACTION_CREATE_SHORTCUT).setPackage(packageName), 0
+            ).isNotEmpty()
+        }.getOrDefault(false)
+    }
+
     // Every installed app that offers widgets and/or shortcuts, grouped by
     // package and sorted by label. Runs off the main thread (binder + icons).
     fun build(

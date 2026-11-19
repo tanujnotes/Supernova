@@ -539,6 +539,16 @@
             android:textColorHint="@color/textSecondary"
             android:textSize="@dimen/text_body" />
 
+        <!-- A search that found nothing says so. -->
+        <TextView
+            android:id="@+id/editWidgetNoMatches"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="@dimen/space_md"
+            android:textColor="@color/textSecondary"
+            android:textSize="@dimen/text_body"
+            android:visibility="gone" />
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/editWidgetRecycler"
             android:layout_width="match_parent"

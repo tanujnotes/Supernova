@@ -417,7 +417,13 @@ class AppDrawerAdapter(
 
     // A tab with nothing in it: what to say, and the way to fill it. Null
     // leaves an empty list empty (the All tab, a search).
-    class EmptyState(val message: CharSequence, val actionLabel: CharSequence, val onAction: () -> Unit)
+    // messageColor: the drawer's own text colour, null for the theme's.
+    class EmptyState(
+        val message: CharSequence,
+        val actionLabel: CharSequence,
+        val messageColor: Int? = null,
+        val onAction: () -> Unit
+    )
 
     var emptyState: EmptyState? = null
 
@@ -690,7 +696,10 @@ class AppDrawerAdapter(
     ) {
         fun bind(state: EmptyState) {
             val box = itemView as android.widget.LinearLayout
-            (box.getChildAt(0) as android.widget.TextView).text = state.message
+            (box.getChildAt(0) as android.widget.TextView).apply {
+                text = state.message
+                setTextColor(state.messageColor ?: context.getColor(R.color.textSecondary))
+            }
             (box.getChildAt(1) as android.widget.TextView).apply {
                 text = state.actionLabel
                 setOnClickListener { state.onAction() }

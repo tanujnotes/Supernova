@@ -113,6 +113,12 @@ class HomeEditController(
         binding.editWidgetRecycler.adapter = adapter
         binding.editWidgetRecycler.itemAnimator = null
         binding.editWidgetSearch.doAfterTextChanged { adapter.filter(it?.toString().orEmpty()) }
+        adapter.onNoMatches = { none ->
+            binding.editWidgetNoMatches.text = activity.getString(
+                R.string.widget_search_no_matches, binding.editWidgetSearch.text.toString().trim()
+            )
+            binding.editWidgetNoMatches.visibility = if (none) View.VISIBLE else View.GONE
+        }
         // Searching opens the sheet fully: at its peek the keyboard covered
         // both the field and the list.
         binding.editWidgetSearch.setOnFocusChangeListener { _, focused ->

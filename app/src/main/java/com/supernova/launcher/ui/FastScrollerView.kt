@@ -31,6 +31,10 @@ class FastScrollerView @JvmOverloads constructor(
     // list not sorted by name, which the thumb then moves item by item.
     internal var sections: () -> List<FastScrollMath.Section> = { emptyList() }
 
+    // A thumb drag begins: the list moves without a touch drag of its own,
+    // so its owner hears of it here.
+    internal var onDragStart: () -> Unit = {}
+
     private val density = resources.displayMetrics.density
     // The track's resting and dragging widths, the thumb's padding and its
     // height.
@@ -158,6 +162,7 @@ class FastScrollerView @JvmOverloads constructor(
 
     private fun startDrag() {
         dragging = true
+        onDragStart()
         // A fling still running would fight the thumb for the list.
         list?.stopScroll()
         dragSections = sections()

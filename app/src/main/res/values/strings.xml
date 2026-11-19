@@ -8,7 +8,7 @@
     <string name="add_page">Add page</string>
     <string name="remove_page">Remove this page</string>
     <string name="page_removed">Page removed</string>
-    <string name="set_default_page">Set as default page</string>
+    <string name="set_default_page">Make this the home page</string>
     <string name="move_page_left">Move page left</string>
     <string name="move_page_right">Move page right</string>
     <string name="settings_title">Launcher settings</string>
@@ -34,6 +34,7 @@
     <string name="pin_shortcut_title">Add “%1$s” to Home?</string>
     <string name="pin_widget_title">Add “%1$s” widget to Home?</string>
     <string name="widget_picker_empty">No widgets available</string>
+    <string name="widget_search_no_matches">Nothing matches “%1$s”</string>
     <string name="home_action_wallpaper">Wallpapers</string>
     <string name="wallpaper_apps">Wallpaper apps</string>
     <string name="wallpaper_from_files">Image from files</string>
@@ -54,6 +55,7 @@
     <string name="no_room_on_page">No room on this page</string>
     <string name="no_room_anywhere">No room on any page</string>
     <string name="widget_not_in_dock">Widgets can\'t go in the dock</string>
+    <string name="shortcut_not_in_dock">Add it to the home screen first, then move it to the dock</string>
     <string name="added_to_page">Added to page %1$d</string>
     <string name="widget_span">%1$d × %2$d</string>
     <string name="widget_add_interrupted">Widget setup was interrupted, please try again</string>
@@ -98,6 +100,8 @@
     <string name="notification_access_title">Allow notification access</string>
     <string name="notification_access_badges">Badges are counted from your notifications, so Supernova needs notification access. They are read on this phone only.</string>
     <string name="notification_access_popup">The long-press menu lists an app\'s notifications, so Supernova needs notification access. They are read on this phone only.</string>
+    <string name="notification_access_media">The media card shows what is playing from your notifications, so Supernova needs notification access. They are read on this phone only.</string>
+    <string name="permission_in_app_info">Android won\'t ask again. Allow it here, under Permissions</string>
     <string name="notification_access_restricted">If the notification access switch is greyed out, Android is blocking it because Supernova was not installed from the Play Store. Open App info, tap the \u22ee menu at the top right, choose Allow restricted settings, then open the notification access screen again.</string>
     <string name="open_settings">Open settings</string>
     <string name="not_now">Not now</string>
@@ -289,6 +293,7 @@
     <string name="badge_style_numeric">Numeric dots</string>
     <string name="badge_style_dynamic">Dynamic badges</string>
     <string name="badged_apps">Badged apps</string>
+    <string name="badged_apps_all">All apps</string>
     <string name="badge_color">Badge color</string>
     <string name="badge_color_icon">Matches the app icon</string>
     <string name="badge_text_color">Number color</string>
@@ -365,6 +370,7 @@
     <string name="page_desc">Page %1$d of %2$d</string>
     <string name="auto_backups">Automatic backups</string>
     <string name="no_auto_backups">No automatic backups yet</string>
+    <string name="auto_backups_latest">Latest %1$s</string>
     <string name="restore_backup_q">Restore this backup?</string>
     <string name="import_confirm_own">This replaces your home screen and all settings with the ones in the backup. Your current setup is saved under Automatic backups first.</string>
     <string name="import_confirm_other">This replaces your home screen with the layout from another launcher\'s backup. Your other settings stay. Your current setup is saved under Automatic backups first.</string>
@@ -385,7 +391,7 @@
     <string name="action_expand_notifications">Expand notifications</string>
     <string name="action_open_settings">Open launcher settings</string>
     <string name="action_lock_screen">Lock screen</string>
-    <string name="action_default_page">Go to default page</string>
+    <string name="action_default_page">Go to home page</string>
     <string name="action_open_search">Open search</string>
     <string name="action_recents">Recent apps</string>
     <string name="action_quick_settings">Quick settings</string>
@@ -592,6 +598,9 @@
     <string name="group_label_rows">Labels</string>
     <string name="group_badges">Badges</string>
     <string name="group_popup">Popup menu</string>
+    <string name="group_editing">Editing</string>
+    <string name="group_search_window">Search window</string>
+    <string name="group_folder_window">Window</string>
     <string name="group_one_finger">One finger</string>
     <string name="group_two_fingers">Two fingers</string>
     <string name="style_strip_sample">Aa</string>
@@ -908,6 +917,8 @@
 
     <!-- Phase 6: popup menu -->
     <string name="popup_menu_rows">Popup menu items</string>
+    <!-- Under Popup menu items: how many extra rows each menu has. -->
+    <string name="popup_rows_summary">%1$d on Home · %2$d in the drawer</string>
     <string name="popup_notifications">Notifications in popup</string>
     <string name="popup_row_store">Show in store</string>
     <string name="popup_row_close_app">Close app</string>
@@ -929,7 +940,7 @@
     <string name="transparent_status">Transparent status bar</string>
     <string name="nav_bar_buttons">Navigation bar button color</string>
     <string name="nav_buttons_status_bar">Same as status bar</string>
-    <string name="home_button_main_page_only">Only on the main page</string>
+    <string name="home_button_main_page_only">Only on the home page</string>
 
     <!-- Phase 7: feed page -->
     <string name="settings_section_feed">Feed</string>
@@ -1014,8 +1025,8 @@
     <!-- Onboarding: the first run - welcome, then six choices over a live
          preview of the home screen, then the finished home. -->
     <string name="onboarding_welcome_to">Welcome to</string>
-    <string name="onboarding_tagline">Infinitely customisable homescreen</string>
-    <string name="onboarding_design_home">Design my homescreen</string>
+    <string name="onboarding_tagline">Infinitely customizable home screen</string>
+    <string name="onboarding_design_home">Design my home screen</string>
     <string name="onboarding_restore_backup">Restore backup</string>
     <string name="onboarding_skip_setup">Skip setup</string>
     <string name="onboarding_skip_hint">To skip setting up Supernova, tap \'Skip setup\'</string>
@@ -1044,7 +1055,7 @@
     <string name="onboarding_density_roomy">Roomy</string>
     <string name="onboarding_density_balanced">Balanced</string>
     <string name="onboarding_density_packed">Packed</string>
-    <!-- A grid's size: columns by rows. -->
+    <!-- A grid's size: rows by columns, as Settings shows it. -->
     <string name="onboarding_grid_size">%1$d × %2$d</string>
     <string name="onboarding_names_title">Name your apps</string>
     <string name="onboarding_names_summary">Pick a lettering, or hide the names.</string>
@@ -1085,7 +1096,7 @@
     <string name="variant_themed">Themed</string>
     <string name="variant_original">Original</string>
     <string name="variant_default_hint">Follows the launcher: its icon shape, glass and themed icons.</string>
-    <string name="variant_themed_hint">A one-colour icon on a tinted plate, even with themed icons off.</string>
+    <string name="variant_themed_hint">A one-color icon on a tinted plate, even with themed icons off.</string>
     <string name="variant_original_hint">The icon as the app made it. Only a shape picked here applies.</string>
     <!-- Edit sheet preview: the icon as it will look, and what differs from the default. -->
     <string name="edit_preview">Preview</string>

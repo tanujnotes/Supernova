@@ -143,7 +143,12 @@ object CustomCardEditorSheet {
         }
 
         bindHeight(activity, binding, draft)
-        bindItems(activity, viewModel, binding, draft, refreshPreview)
+        // An apps-and-shortcuts card saves once it holds one: empty, it was
+        // a blank plate in the feed.
+        bindItems(activity, viewModel, binding, draft) {
+            refreshPreview()
+            binding.cardSave.isEnabled = widget || draft.items.isNotEmpty()
+        }
 
         // ---- Buttons ----
         binding.cardRemove.visibility = if (existing == null) View.GONE else View.VISIBLE

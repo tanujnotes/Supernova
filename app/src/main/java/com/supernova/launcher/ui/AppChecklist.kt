@@ -80,8 +80,9 @@ class AppChecklist<T>(
         addView(list, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
     }
 
-    // In a dialog with a Save button. Ticks are kept until Save, which hands
-    // them over; a tap outside or back drops them.
+    // In a dialog with Save and Cancel. Ticks are kept until Save, which
+    // hands them over; Cancel or Back drops them. A tap just outside doesn't,
+    // as the boxes sit close to the dialog's edge.
     fun show(title: CharSequence, onSave: (BooleanArray) -> Unit): AlertDialog? =
         open(title, renamable = false) { ticks, _ -> onSave(ticks) }
 
@@ -106,7 +107,9 @@ class AppChecklist<T>(
             .setPositiveButton(R.string.save) { _, _ ->
                 onSave(checked, titleField?.text?.toString()?.trim() ?: title.toString())
             }
+            .setNegativeButton(R.string.cancel, null)
             .create()
+        dialog.setCanceledOnTouchOutside(false)
         dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         dialog.show()
         OpenDialogs.track(dialog)

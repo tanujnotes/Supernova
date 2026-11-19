@@ -129,9 +129,11 @@ class PinRequestActivity : AppCompatActivity() {
                             // icon, and folded the new icon into a folder.
                             mergeFolders = false
                         )
+                        say(getString(R.string.added_to_page, placement.page + 1))
                         finish()
                     }
                 } else {
+                    say(getString(R.string.shortcut_unusable))
                     finish()
                 }
             }
@@ -189,6 +191,7 @@ class PinRequestActivity : AppCompatActivity() {
         if (!launched) {
             pendingWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
             widgetHost.deleteAppWidgetId(widgetId)
+            say(getString(R.string.widget_bind_failed))
             finish()
         }
     }
@@ -197,6 +200,7 @@ class PinRequestActivity : AppCompatActivity() {
         val extras = Bundle().apply { putInt(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId) }
         if (!request.isValid || !runLogged("accept pin request") { request.accept(extras) }.getOrDefault(false)) {
             widgetHost.deleteAppWidgetId(widgetId)
+            say(getString(R.string.widget_bind_failed))
             finish()
             return
         }
@@ -218,8 +222,15 @@ class PinRequestActivity : AppCompatActivity() {
                 spanY = spanY,
                 userSerial = serial
             )
+            say(getString(R.string.added_to_page, placement.page + 1))
             finish()
         }
+    }
+
+    // Where the item went, or why nothing did, as the launcher's own adds
+    // say it; the app context, as this screen is finishing.
+    private fun say(text: String) {
+        android.widget.Toast.makeText(applicationContext, text, android.widget.Toast.LENGTH_SHORT).show()
     }
 
     // This screen has no workspace to measure, so a cell is estimated from

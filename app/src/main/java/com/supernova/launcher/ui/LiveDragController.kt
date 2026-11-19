@@ -1281,9 +1281,9 @@ class LiveDragController(
         // A widget let go over the dock: findDragTarget keeps it off the dock,
         // and the fly-back alone didn't say why.
         val overDock = binding.dockBar.isShown && binding.dockBar.screenRect().contains(rawX.toInt(), rawY.toInt())
-        if (isWidgetPayload(payload) && overDock) {
-            android.widget.Toast.makeText(context, R.string.widget_not_in_dock, android.widget.Toast.LENGTH_SHORT)
-                .show()
+        if (overDock && !dockable(payload)) {
+            val why = if (isWidgetPayload(payload)) R.string.widget_not_in_dock else R.string.shortcut_not_in_dock
+            android.widget.Toast.makeText(context, why, android.widget.Toast.LENGTH_SHORT).show()
         }
         // Nowhere to land: an item flies back to where it came from; a drawer
         // app or a picker widget has no home on screen and just fades. An app

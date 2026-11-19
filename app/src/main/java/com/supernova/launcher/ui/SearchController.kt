@@ -228,6 +228,9 @@ class SearchController(
         onShown(!windowMode())
         showZeroState()
         loadRecentQueries()
+        // From the top, where Recent searches sit, whatever was scrolled to
+        // last time.
+        ui.searchResults.scrollToPosition(0)
         ui.root.visibility = View.VISIBLE
         ui.root.animate().cancel()
         val backdrop = binding.searchBackdrop
@@ -359,6 +362,19 @@ class SearchController(
             onEmptyQuery = { showZeroState() }
         )
         overlaySurface = surface
+
+        // A finger drag on the results takes the keyboard down, as in the
+        // drawer, so the whole list can be read.
+        ui.searchResults.addOnScrollListener(object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(rv: androidx.recyclerview.widget.RecyclerView, newState: Int) {
+                if (newState == androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_DRAGGING &&
+                    ui.searchInput.hasFocus()
+                ) {
+                    ui.searchInput.clearFocus()
+                    imm()?.hideSoftInputFromWindow(ui.searchInput.windowToken, 0)
+                }
+            }
+        })
 
         ui.searchInput.doAfterTextChanged { text ->
             if (suppressQueryEvents) return@doAfterTextChanged

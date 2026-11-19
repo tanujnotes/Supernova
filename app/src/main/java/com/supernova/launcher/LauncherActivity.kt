@@ -614,11 +614,14 @@ class LauncherActivity :
                     workspaceAdapter.centerPosition(page), Animations.scrollPages(viewModel.state.value.prefs)
                 )
             }
+            // Lock layout refuses here as it does in edit mode.
             override fun addPage() {
+                if (com.supernova.launcher.ui.DesktopLock.refused(this@LauncherActivity, viewModel)) return
                 viewModel.addPage()
                 refreshPreviewsSoon()
             }
             override fun removePage(page: Int) {
+                if (com.supernova.launcher.ui.DesktopLock.refused(this@LauncherActivity, viewModel)) return
                 if (viewModel.workspaceItems(page).isEmpty()) {
                     viewModel.removePage(page)
                 } else {
@@ -627,10 +630,12 @@ class LauncherActivity :
                 refreshPreviewsSoon()
             }
             override fun movePage(from: Int, to: Int) {
+                if (com.supernova.launcher.ui.DesktopLock.refused(this@LauncherActivity, viewModel)) return
                 viewModel.movePage(from, to)
                 refreshPreviewsSoon()
             }
             override fun setDefaultPage(page: Int) {
+                if (com.supernova.launcher.ui.DesktopLock.refused(this@LauncherActivity, viewModel)) return
                 viewModel.setDefaultPage(page)
                 refreshPreviewsSoon()
             }
@@ -1552,11 +1557,23 @@ class LauncherActivity :
                 }
 
                 override fun requestCalendarPermission() {
-                    requestFeedCalendarPermission.launch(android.Manifest.permission.READ_CALENDAR)
+                    val permission = android.Manifest.permission.READ_CALENDAR
+                    com.supernova.launcher.ui.PermissionPrompts.askRuntime(this@LauncherActivity, permission) {
+                        requestFeedCalendarPermission.launch(permission)
+                    }
                 }
 
                 override fun requestContactsPermission() {
-                    requestFeedContactsPermission.launch(android.Manifest.permission.READ_CONTACTS)
+                    val permission = android.Manifest.permission.READ_CONTACTS
+                    com.supernova.launcher.ui.PermissionPrompts.askRuntime(this@LauncherActivity, permission) {
+                        requestFeedContactsPermission.launch(permission)
+                    }
+                }
+
+                override fun requestMediaAccess() {
+                    com.supernova.launcher.ui.PermissionPrompts.explainNotificationAccess(
+                        this@LauncherActivity, R.string.notification_access_media
+                    )
                 }
 
                 override fun openCalendarEvent(eventId: Long) {
@@ -3439,7 +3456,9 @@ class LauncherActivity :
                         removeItemWithUndo(item)
                     }
                 }
-                if (item.itemType == ItemType.APP && !locked) {
+                if (item.itemType == ItemType.APP && !locked &&
+                    item.packageName?.let { com.supernova.launcher.ui.WidgetPickerGroups.offersAny(this, it) } == true
+                ) {
                     menu.addRow(getString(R.string.widgets_row), R.drawable.ic_menu_widgets) {
                         widgets.showPickerFor(item.packageName)
                     }
@@ -3562,7 +3581,16 @@ class LauncherActivity :
 
     // A widget's host id is kept while the Undo bar shows, so Undo brings the
     // same widget back; it is deleted once the bar goes without an Undo.
-    override fun removeItemWithUndo(item: LauncherItem) {
+    override fun removeItemWithUndo(item: LauncherItem) = removeItemWithUndo(item, null, null)
+
+    // `window` is a view in the window the bar shows in (null: the
+    // activity's), as an open folder covers the activity's; `onUndo` is
+    // handed the model from before the Undo, to redraw that folder.
+    private fun removeItemWithUndo(
+        item: LauncherItem,
+        window: View?,
+        onUndo: ((com.supernova.launcher.data.LauncherModel) -> Unit)?
+    ) {
         val widget = item.itemType == ItemType.WIDGET
         if (widget) widgets.onWidgetItemRemoved(item)
         // Capture before removal: the exact item plus folder members, so undo
@@ -3578,10 +3606,15 @@ class LauncherActivity :
             removeEmptyPages(emptied = item.desktopPage())
             return
         }
+        val host = window ?: binding.root
         val snackbar = Snackbar
-            .make(binding.root, R.string.item_removed, UNDO_DURATION_MS)
-            .setAction(R.string.undo) { viewModel.restoreItems(listOf(item) + members) }
-        if (binding.dockBar.visibility == View.VISIBLE) {
+            .make(host, R.string.item_removed, UNDO_DURATION_MS)
+            .setAction(R.string.undo) {
+                val before = viewModel.state.value.model
+                viewModel.restoreItems(listOf(item) + members)
+                onUndo?.invoke(before)
+            }
+        if (host === binding.root && binding.dockBar.visibility == View.VISIBLE) {
             snackbar.anchorView = binding.dockBar
         }
         snackbar.addCallback(object : Snackbar.Callback() {
@@ -3711,6 +3744,8 @@ class LauncherActivity :
                     followRemovedPages(count, removed.page)
                     onUndo()
                 }
+            // Over the Desktop previews scrim, so Undo isn't a tap on the scrim.
+            if (desktopPreviews.isShowing) snackbar.view.elevation = dp(OVER_PREVIEWS_ELEVATION_DP)
             // In edit mode, over the peeking Widgets sheet rather than under it.
             when {
                 ::editMode.isInitialized && editMode.isOpen -> snackbar.anchorView = binding.editWidgetSheet
@@ -3909,12 +3944,20 @@ class LauncherActivity :
                 val before = viewModel.state.value.model
                 // The folder's last app takes the folder with it.
                 val last = viewModel.folderMembers(folder.id).size <= 1
-                removeItemWithUndo(if (last) folder else member)
+                // A member's Undo bar shows in the folder's own window, as
+                // Sort's does; the last one closes the folder with it.
+                if (last) {
+                    removeItemWithUndo(folder)
+                } else {
+                    removeItemWithUndo(member, memberView, applied)
+                }
                 applied(before)
             }
         }
         member.packageName?.let { pkg ->
-            if (member.itemType == ItemType.APP && !locked) {
+            if (member.itemType == ItemType.APP && !locked &&
+                com.supernova.launcher.ui.WidgetPickerGroups.offersAny(this, pkg)
+            ) {
                 menu.addRow(getString(R.string.widgets_row), R.drawable.ic_menu_widgets) {
                     closeFolder()
                     widgets.showPickerFor(pkg)
@@ -4062,8 +4105,11 @@ class LauncherActivity :
             // The title row's overflow: Select apps and Sort, as the folder's
             // long-press has them. Opened by a tap, so modal at once, and the
             // card's touch interceptor closes it on a tap outside it.
-            onMenu = { button ->
+            onMenu = menu@{ button ->
                 memberMenu?.dismiss()
+                // Every row changes the layout, as the long-press menu's
+                // locked state has none of them.
+                if (com.supernova.launcher.ui.DesktopLock.refused(this@LauncherActivity, viewModel)) return@menu
                 val menu = newItemPopup()
                 menu.addRow(getString(R.string.select_apps), R.drawable.ic_menu_select_apps) {
                     // The folder closes first: as a focusable window it stays
@@ -4495,7 +4541,7 @@ class LauncherActivity :
                 val model = viewModel.state.value.model
                 val occupied = model.items.any { it.container == ContainerType.DOCK && it.rank == rank }
                 if (occupied && (0 until model.pageCount).none { viewModel.firstFreeWorkspaceCell(it) != null }) {
-                    Toast.makeText(this, R.string.no_room_on_page, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.no_room_anywhere, Toast.LENGTH_SHORT).show()
                     return false
                 }
                 when (payload) {
@@ -5014,6 +5060,8 @@ class LauncherActivity :
         // Above the drawer (12dp), the edit sheet (14dp) and the search
         // window (16dp); below the drop targets (20dp).
         private const val OVER_OVERLAYS_ELEVATION_DP = 18f
+        // Above the Desktop previews scrim (24dp).
+        private const val OVER_PREVIEWS_ELEVATION_DP = 26f
 
         // The icon box and item padding item_icon declares, and the padding a
         // dock icon column keeps around it instead. Kept here because the

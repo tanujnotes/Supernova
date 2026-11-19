@@ -104,6 +104,7 @@ class FolderPopup(private val context: Context) {
         binding.folderTitle.setHintTextColor(androidx.core.graphics.ColorUtils.setAlphaComponent(text, HINT_ALPHA))
         binding.folderCount.setTextColor(androidx.core.graphics.ColorUtils.setAlphaComponent(text, COUNT_ALPHA))
         binding.folderEditButton.imageTintList = android.content.res.ColorStateList.valueOf(text)
+        binding.folderAction.setTextColor(text)
         binding.folderTitle.visibility = if (showTitle) View.VISIBLE else View.GONE
         if (!titleEditable) {
             binding.folderTitle.apply {

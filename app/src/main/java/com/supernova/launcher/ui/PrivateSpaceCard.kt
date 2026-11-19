@@ -159,6 +159,8 @@ class PrivateSpaceCard(
             mode = prefs.folderMode,
             scroll = prefs.folderScroll,
             surfaceColor = surface.surface,
+            // Its title, count, Lock and menu read on the folder's colour.
+            textColor = surface.text,
             cornerRadiiDp = surface.cornerRadiiDp,
             // Whatever the folder setting: the title row carries the
             // space's Lock and menu.

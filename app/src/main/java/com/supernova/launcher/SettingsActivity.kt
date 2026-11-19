@@ -1440,6 +1440,8 @@ class SettingsActivity : AppCompatActivity() {
     // Two chained time pickers: dark-from, then dark-until (D1).
     private fun showThemeScheduleEditor() {
         val prefs = viewModel.state.value.prefs
+        // The phone's own 12- or 24-hour clock.
+        val is24Hour = android.text.format.DateFormat.is24HourFormat(this)
         android.app.TimePickerDialog(
             this,
             { _, startHour, startMin ->
@@ -1448,10 +1450,10 @@ class SettingsActivity : AppCompatActivity() {
                     { _, endHour, endMin ->
                         viewModel.setThemeSchedule(startHour * 60 + startMin, endHour * 60 + endMin)
                     },
-                    prefs.themeScheduleEnd / 60, prefs.themeScheduleEnd % 60, true
+                    prefs.themeScheduleEnd / 60, prefs.themeScheduleEnd % 60, is24Hour
                 ).apply { setTitle(getString(R.string.theme_schedule_until)) }.show()
             },
-            prefs.themeScheduleStart / 60, prefs.themeScheduleStart % 60, true
+            prefs.themeScheduleStart / 60, prefs.themeScheduleStart % 60, is24Hour
         ).apply { setTitle(getString(R.string.theme_schedule_from)) }.show()
     }
 

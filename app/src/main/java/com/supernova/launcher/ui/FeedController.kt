@@ -63,6 +63,9 @@ class FeedController(
 
         fun requestContactsPermission()
 
+        // The media card reads sessions through notification access.
+        fun requestMediaAccess()
+
         fun openCalendarEvent(eventId: Long)
 
         fun openContact(contact: ContactsCardSource.Starred, anchor: View)
@@ -526,7 +529,10 @@ class FeedController(
     // ask for their access as they would from settings.
     private fun showBuiltIn(key: String) {
         when (key) {
-            FeedOrder.MEDIA -> viewModel.set(com.supernova.launcher.data.Pref.feedShowMedia, true)
+            FeedOrder.MEDIA -> {
+                viewModel.set(com.supernova.launcher.data.Pref.feedShowMedia, true)
+                host.requestMediaAccess()
+            }
             FeedOrder.CALENDAR -> {
                 viewModel.set(com.supernova.launcher.data.Pref.feedShowCalendar, true)
                 host.requestCalendarPermission()

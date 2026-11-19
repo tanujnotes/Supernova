@@ -101,6 +101,10 @@ class WidgetPickerAdapter(
 
     val isEmpty: Boolean get() = groups.isEmpty()
 
+    // Told after each rebuild whether a search has found nothing, once
+    // every app it looks in has loaded: the sheet then says so.
+    var onNoMatches: (Boolean) -> Unit = {}
+
     private fun rebuild() {
         flat.clear()
         val q = query
@@ -140,6 +144,7 @@ class WidgetPickerAdapter(
             flat.addAll(shortcuts)
         }
         notifyDataSetChanged()
+        onNoMatches(q.isNotEmpty() && flat.isEmpty() && loading.isEmpty())
     }
 
     // An expanded app reads as one card: the header takes the top corners,

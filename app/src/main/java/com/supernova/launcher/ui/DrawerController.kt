@@ -758,6 +758,8 @@ class DrawerController(
         binding.drawerWorkTurnOn.setOnClickListener { viewModel.setWorkPaused(false) }
         binding.drawerFastScroller.attach(binding.drawerRecycler, binding.drawerFastScrollBubble)
         binding.drawerFastScroller.sections = { adapter.fastScrollSections() }
+        // The thumb drags the list as a finger would, and drops the keyboard too.
+        binding.drawerFastScroller.onDragStart = { if (binding.drawerSearch.hasFocus()) hideKeyboard() }
     }
 
     // The in-place transitions leave the sheet at STATE_EXPANDED while it is
@@ -1609,7 +1611,9 @@ class DrawerController(
         adapter.emptyState = (tab as? DrawerGroup)?.let { group ->
             AppDrawerAdapter.EmptyState(
                 binding.root.context.getString(R.string.drawer_tab_empty),
-                binding.root.context.getString(R.string.select_apps)
+                binding.root.context.getString(R.string.select_apps),
+                // On the drawer's colours, as its labels and tabs are.
+                withAlpha(Styles.resolve(binding.root.context, prefs).of(SurfaceId.DRAWER).text, TAB_TEXT_ALPHA)
             ) { onSelectTabApps(storedTab(group)) }
         }
         val section = tab == null && privateSectionActive(prefs)
@@ -2033,6 +2037,11 @@ class DrawerController(
         privateSection.privateSectionInstall.setTextColor(resolvedForBar.text)
         privateSection.privateSectionSettings.setTextColor(resolvedForBar.text)
         privateSection.privateSectionLock.setTextColor(resolvedForBar.text)
+        // The Private tab's own bar, as the tab-less section above.
+        binding.drawerPrivateStatus.setTextColor(withAlpha(resolvedForBar.text, TAB_TEXT_ALPHA))
+        binding.drawerPrivateInstall.setTextColor(resolvedForBar.text)
+        binding.drawerPrivateSettings.setTextColor(resolvedForBar.text)
+        binding.drawerPrivateLock.setTextColor(resolvedForBar.text)
         if (prefs.drawerTabStyle == DrawerTabStyle.BUBBLE) {
             val pill = GradientDrawable().apply {
                 cornerRadius = TAB_BUBBLE_RADIUS_DP * density
