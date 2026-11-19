@@ -667,17 +667,7 @@ object SettingsCatalogue {
                     // Behind-nav already forces the slab full-bleed, so the
                     // inset choice only means something without it.
                 ).hiddenWhen { dockBgHidden(it) ?: needsOff(R.string.dock_bg_behind_nav, it.dockBgBehindNav) }.nested(),
-                SettingItem.Toggle(
-                    R.string.dock_labels,
-                    get = { it.dockLabels },
-                    set = { viewModel.set(Pref.dockLabels, it) },
-                    // Not tied to the desktop's labels: the dock shows its
-                    // own whatever those are, and hiding the switch with
-                    // them left no way to turn the dock's off.
-                ).hiddenWhen(dockHidden),
-                *labelOverrideItems(context, viewModel, actions, LabelContext.DOCK) {
-                    dockHidden(it) ?: needsOn(R.string.dock_labels, !it.dockLabels)
-                }.toTypedArray(),
+                // Size before labels, as the other pages have them (#269).
                 SettingItem.Toggle(
                     R.string.dock_match_desktop,
                     get = { it.dockMatchDesktop },
@@ -692,6 +682,17 @@ object SettingsCatalogue {
                     display = { context.getString(R.string.opacity_percent, it) },
                     preview = { p, v -> p.copy(dockIconScale = v / 100f) }
                 ).hiddenWhen { dockHidden(it) ?: needsOff(R.string.dock_match_desktop, it.dockMatchDesktop) }.nested(),
+                SettingItem.Toggle(
+                    R.string.dock_labels,
+                    get = { it.dockLabels },
+                    set = { viewModel.set(Pref.dockLabels, it) },
+                    // Not tied to the desktop's labels: the dock shows its
+                    // own whatever those are, and hiding the switch with
+                    // them left no way to turn the dock's off.
+                ).hiddenWhen(dockHidden),
+                *labelOverrideItems(context, viewModel, actions, LabelContext.DOCK) {
+                    dockHidden(it) ?: needsOn(R.string.dock_labels, !it.dockLabels)
+                }.toTypedArray(),
                 SettingItem.Slider(
                     R.string.dock_padding_h,
                     min = 0, max = 48,

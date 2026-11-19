@@ -271,21 +271,27 @@ object IconPickerSheet {
         // The app being edited, if any: each pack's grid opens with that
         // pack's own icons for it.
         forApp: LaunchableApp? = null,
+        // A folder's apps (#255): their own icons lead the App icons grid,
+        // and their pack icons lead each pack's grid.
+        folderApps: List<LaunchableApp> = emptyList(),
         onPick: (pack: String?, name: String?) -> Unit
     ) {
+        val leaders = forApp?.let(::listOf) ?: folderApps
         scope.launch {
             val packs = viewModel.availableIconPacks()
             // Each entry pairs its label with the action tapping it runs.
             // App icons come first after Default: the built-in source.
             val entries = buildList<Pair<String, () -> Unit>> {
                 add(context.getString(R.string.option_default) to { onPick(null, null) })
-                add(context.getString(R.string.icon_source_apps) to { showAppGrid(context, viewModel, onPick) })
+                add(
+                    context.getString(R.string.icon_source_apps) to { showAppGrid(context, viewModel, leaders, onPick) }
+                )
                 if (onPickPhoto != null) {
                     add(context.getString(R.string.photo_from_gallery) to { onPickPhoto(false) })
                     add(context.getString(R.string.photo_from_files) to { onPickPhoto(true) })
                 }
                 packs.forEach { pack ->
-                    add(pack.label to { scope.showGrid(context, viewModel, pack.packageName, forApp, onPick) })
+                    add(pack.label to { scope.showGrid(context, viewModel, pack.packageName, leaders, onPick) })
                 }
             }
             MaterialAlertDialogBuilder(context)
@@ -300,22 +306,22 @@ object IconPickerSheet {
         context: Context,
         viewModel: LauncherViewModel,
         packPackage: String,
-        forApp: LaunchableApp?,
+        leaders: List<LaunchableApp>,
         onPick: (String?, String?) -> Unit
     ) {
         launch {
             val names = viewModel.packDrawableNames(packPackage)
-            val matches = forApp?.let { app ->
-                withContext(Dispatchers.Default) {
+            val matches = withContext(Dispatchers.Default) {
+                leaders.flatMap { app ->
                     viewModel.appCatalog().packMatches(packPackage, app.packageName, app.className)
-                }
-            }.orEmpty()
+                }.distinct()
+            }
             if (names.isEmpty() && matches.isEmpty()) {
                 Toast.makeText(context, R.string.no_icons_in_pack, Toast.LENGTH_SHORT).show()
                 return@launch
             }
-            val featured = forApp?.takeIf { matches.isNotEmpty() }?.let { app ->
-                Featured(app.label, matches)
+            val featured = matches.takeIf { it.isNotEmpty() }?.let {
+                Featured(leaders.singleOrNull()?.label, it)
             }
             showIconGrid(context, viewModel, IconGrid(packPackage, names, featured = featured), onPick)
         }
@@ -324,10 +330,22 @@ object IconPickerSheet {
     // Every installed app's own icon, A-Z by the app's name, unlabelled
     // (a long press names one). A work profile's copy of an app looks
     // the same, so each app shows once; private space apps stay off the
-    // home screen, so they aren't offered.
-    private fun showAppGrid(context: Context, viewModel: LauncherViewModel, onPick: (String?, String?) -> Unit) {
+    // home screen, so they aren't offered. A folder's apps lead, in the
+    // folder's order (#255).
+    private fun showAppGrid(
+        context: Context,
+        viewModel: LauncherViewModel,
+        leaders: List<LaunchableApp>,
+        onPick: (String?, String?) -> Unit
+    ) {
         val apps = appChoices(viewModel)
-        val grid = IconGrid(AppIconSource.PACK, apps.map(AppIconSource::nameFor), apps.map { it.label })
+        val lead = leaders.filterNot { it.privateSpace }.distinctBy { "${it.packageName}/${it.className}" }
+        val featured = lead.takeIf { it.isNotEmpty() }?.let {
+            Featured(it.singleOrNull()?.label, it.map(AppIconSource::nameFor))
+        }
+        val grid = IconGrid(
+            AppIconSource.PACK, apps.map(AppIconSource::nameFor), apps.map { it.label }, featured
+        )
         showIconGrid(context, viewModel, grid, onPick)
     }
 
@@ -359,7 +377,8 @@ object IconPickerSheet {
 
     // `appLabel` keeps the row through a search for the app's name: packs
     // rarely name a drawable after the app ("Gmail" is not "gmail" in many).
-    private class Featured(val appLabel: String, val names: List<String>)
+    // A folder's row (no one app's name) shows only with no search.
+    private class Featured(val appLabel: String?, val names: List<String>)
 
     // What the grid shows: one icon (its index into IconGrid.names, or -1
     // for a featured icon outside that list's order), or an empty gap that
@@ -375,7 +394,8 @@ object IconPickerSheet {
     private fun cells(grid: IconGrid, indices: List<Int>, query: String): List<Cell> {
         val all = indices.map { Cell.Icon(grid.names[it], it) }
         val featured = grid.featured?.takeIf {
-            query.isBlank() || IconSearch.words(it.appLabel).contains(IconSearch.words(query))
+            val label = it.appLabel
+            query.isBlank() || (label != null && IconSearch.words(label).contains(IconSearch.words(query)))
         } ?: return all
         return buildList {
             featured.names.forEach { add(Cell.Icon(it, -1)) }

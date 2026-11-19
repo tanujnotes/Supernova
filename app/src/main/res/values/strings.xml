@@ -179,7 +179,7 @@
     <string name="category_maps">Travel</string>
     <string name="category_productivity">Productivity</string>
     <string name="category_finance">Finance</string>
-    <string name="drawer_icon_scale">Icon scale</string>
+    <string name="drawer_icon_scale">Icon size</string>
     <string name="drawer_bg_opacity">Background opacity</string>
     <string name="drawer_fast_scroller">Fast scroller</string>
     <string name="drawer_labels">Icon labels</string>
@@ -598,7 +598,7 @@
     <string name="dock_bg_opacity">Background opacity</string>
     <string name="dock_bg_radius">Background radius</string>
     <string name="dock_labels">Icon labels</string>
-    <string name="dock_icon_scale">Icon scale</string>
+    <string name="dock_icon_scale">Icon size</string>
     <string name="dock_bg_none">None</string>
     <string name="dock_bg_rounded">Rounded rectangle</string>
     <string name="dock_bg_square">Square</string>
@@ -652,7 +652,7 @@
     <string name="folder_prioritize_first">Prioritize first icon</string>
     <string name="folder_prioritize_first_summary">The first app large in the folder icon, the rest small</string>
     <string name="label_customize">Customize labels</string>
-    <string name="folder_icon_scale">Icon scale</string>
+    <string name="folder_icon_scale">Icon size</string>
 
     <string name="effect_none">None</string>
     <string name="effect_simple">Simple</string>
@@ -689,7 +689,7 @@
     <string name="icon_size">Icon size</string>
     <!-- Under an Icon size bar when icons are drawn smaller to fit the grid. -->
     <string name="icon_size_fitted">Icons are at the largest this grid fits. Use fewer rows or columns, or turn labels off, for larger icons.</string>
-    <string name="label_group">Label</string>
+    <string name="label_group">Icon labels</string>
     <string name="label_card_size">Size</string>
     <string name="label_card_font">Font</string>
     <!-- Under the Label row: its size, then its font. -->
@@ -701,7 +701,7 @@
     <string name="font_serif">Serif</string>
     <string name="font_monospace">Monospace</string>
     <string name="dock_infinite_scroll">Infinite scroll</string>
-    <string name="dock_match_desktop">Match desktop icon scale</string>
+    <string name="dock_match_desktop">Match desktop icon size</string>
     <string name="dock_overlay">Display as overlay</string>
     <string name="dock_overlay_summary">The dock sits over the home screen instead of below it</string>
     <string name="dock_auto_close">Automatically close</string>
