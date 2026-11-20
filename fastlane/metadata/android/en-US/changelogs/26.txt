@@ -1,0 +1,10 @@
+Smoother drawer and search, safer settings, and a Restart row.
+
+- Lighter drawer scrolling, tab switches and search
+- Settings recover from the newest automatic backup if unreadable
+- Home from an app goes straight to the home page
+- Restart Supernova row in settings
+- Long-press the version to copy device details
+- Any colour for colour rows; Style Default resets opacity
+- Back clears the drawer search
+- Fixed search results hidden behind the keyboard
