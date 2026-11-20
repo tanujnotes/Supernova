@@ -253,6 +253,7 @@ object Pref {
     val badgeTextColor = text("badge_text_color")
     val badgeCornerRadius = int("badge_corner_radius", 0..BadgeLimits.CORNER_ROUND)
     val badgeOutline = bool("badge_outline")
+    val badgeOnCorner = bool("badge_on_corner")
     val folderPreviewStyle = choice("folder_preview_style", FolderPreviewStyle.entries)
     val folderPrioritizeFirst = bool("folder_prioritize_first")
     val folderColumns = int("folder_columns", 0..GridLimits.FOLDER_COLUMNS_BIG)

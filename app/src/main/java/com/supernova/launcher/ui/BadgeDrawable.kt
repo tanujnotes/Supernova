@@ -57,7 +57,10 @@ data class BadgeSpec(
     val textColor: Int = BadgeDrawable.DEFAULT_TEXT_COLOR,
     // NUMERIC only: 0 = square corners, 1 = fully round.
     val cornerFraction: Float = 1f,
-    val outline: Boolean = true
+    val outline: Boolean = true,
+    // Centred near the icon's corner, half outside it (#250), instead of
+    // flush inside the corner.
+    val onCorner: Boolean = false
 )
 
 // Wraps an icon and stamps a notification badge on a corner, the way
@@ -93,6 +96,8 @@ class BadgeDrawable(
     private val label = if (count > MAX_COUNT) "$MAX_COUNT+" else count.toString()
     private val metrics = Paint.FontMetrics()
     private val pill = RectF()
+    private var cornerX = 0f
+    private var cornerY = 0f
 
     private val onRight = spec.position == BadgePosition.TOP_RIGHT || spec.position == BadgePosition.BOTTOM_RIGHT
     private val onTop = spec.position == BadgePosition.TOP_RIGHT || spec.position == BadgePosition.TOP_LEFT
@@ -108,14 +113,29 @@ class BadgeDrawable(
         }
         val radius = min(bounds.width(), bounds.height()) * ratio * spec.scale
         val ring = if (spec.outline) OUTLINE_WIDTH_DP * density else 0f
+        // Where a corner badge is centred: a little inside the icon's
+        // corner, so it straddles the edge of a square or rounded icon and
+        // still touches a round one.
+        val insetX = bounds.width() * CORNER_INSET
+        val insetY = bounds.height() * CORNER_INSET
+        cornerX = if (onRight) bounds.right - insetX else bounds.left + insetX
+        cornerY = if (onTop) bounds.top + insetY else bounds.bottom - insetY
         if (spec.style == BadgeStyle.NUMERIC) drawCount(canvas, radius, ring) else drawCircle(canvas, radius, ring)
     }
 
     // A dot, or the notification's picture cut to a circle; flush in its
-    // corner.
+    // corner, or centred on it.
     private fun drawCircle(canvas: Canvas, radius: Float, ring: Float) {
-        val cx = if (onRight) bounds.right - radius else bounds.left + radius
-        val cy = if (onTop) bounds.top + radius else bounds.bottom - radius
+        val cx = when {
+            spec.onCorner -> cornerX
+            onRight -> bounds.right - radius
+            else -> bounds.left + radius
+        }
+        val cy = when {
+            spec.onCorner -> cornerY
+            onTop -> bounds.top + radius
+            else -> bounds.bottom - radius
+        }
         if (ring > 0f) canvas.drawCircle(cx, cy, radius + ring, outlinePaint)
         val picture = face
         if (picture == null || faceShader == null) {
@@ -135,8 +155,16 @@ class BadgeDrawable(
         textPaint.textSize = radius * TEXT_SIZE_RATIO
         val height = radius * 2f
         val width = maxOf(height, textPaint.measureText(label) + radius)
-        val left = if (onRight) bounds.right - width else bounds.left.toFloat()
-        val top = if (onTop) bounds.top.toFloat() else bounds.bottom - height
+        val left = when {
+            spec.onCorner -> cornerX - width / 2f
+            onRight -> bounds.right - width
+            else -> bounds.left.toFloat()
+        }
+        val top = when {
+            spec.onCorner -> cornerY - height / 2f
+            onTop -> bounds.top.toFloat()
+            else -> bounds.bottom - height
+        }
         pill.set(left, top, left + width, top + height)
         val corner = radius * spec.cornerFraction.coerceIn(0f, 1f)
         if (ring > 0f) {
@@ -178,5 +206,6 @@ class BadgeDrawable(
         private const val OUTLINE_WIDTH_DP = 1.5f
         private const val TEXT_SIZE_RATIO = 1.25f
         private const val MAX_COUNT = 99
+        private const val CORNER_INSET = 0.06f
     }
 }

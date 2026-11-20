@@ -384,7 +384,7 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
             "${prefs.folderColumns},${prefs.folderMode}," +
             "${prefs.folderIconScale},${prefs.folderMatchDesktop}," +
             "${prefs.styleConfig}|" +
-            "${prefs.badgeTextColor},${prefs.badgeCornerRadius},${prefs.badgeOutline}|" +
+            "${prefs.badgeTextColor},${prefs.badgeCornerRadius},${prefs.badgeOutline},${prefs.badgeOnCorner}|" +
             // The rest of the badge settings belong here too. They were
             // missing, and the only thing that applied them was the badge
             // collector rebuilding the world on every return to home - so

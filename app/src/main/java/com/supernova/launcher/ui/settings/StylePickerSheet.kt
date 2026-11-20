@@ -238,7 +238,29 @@ object StylePickerSheet {
             val target = Slot.entries.first { slotButtonId(it) == checkedId }
             if (target != slot) selectSlot(target)
         }
-        binding.styleDefault.setOnClickListener { onPick(ColorSpec()) }
+        // On the Surface slot, Default puts the opacity back as well: it reset
+        // everything but that (#298).
+        binding.styleDefault.setOnClickListener {
+            val surfaceSlot = slot == Slot.SURFACE
+            if (surfaceSlot) {
+                style = style.copy(alpha = null)
+                if (SurfaceOpacity.handles(surfaceId)) {
+                    val percent = SurfaceOpacity.defaultPercent(surfaceId)
+                    SurfaceOpacity.setPref(viewModel, surfaceId, percent)
+                    binding.opacitySeek.progress = percent
+                }
+            }
+            onPick(ColorSpec())
+            if (surfaceSlot && binding.opacityRow.isVisible) {
+                val shown = if (SurfaceOpacity.handles(surfaceId)) {
+                    binding.opacitySeek.progress
+                } else {
+                    (resolvedNow().surface ushr ALPHA_SHIFT) * FULL_OPACITY / ALPHA_MAX
+                }
+                binding.opacitySeek.progress = shown
+                binding.opacityValue.text = context.getString(R.string.opacity_percent, shown)
+            }
+        }
 
         fun applyOpacity(percent: Int) {
             if (SurfaceOpacity.handles(surfaceId)) {
@@ -419,5 +441,7 @@ object StylePickerSheet {
     private const val CUSTOM_SAVE_DELAY_MS = 300L
     private const val CONTRAST_STEP = 5
     private const val FULL_OPACITY = 100
+    private const val ALPHA_SHIFT = 24
+    private const val ALPHA_MAX = 255
     private const val DRAWER_FIELD_OPACITY = 14
 }

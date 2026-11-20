@@ -141,8 +141,9 @@ class LauncherViewModel(
 
     // A setting's write: off the main thread, fire and forget. Every plain
     // setter below is one of these.
+    // A write that fails (a full disk) is noted, not a crash on every tap.
     private fun persist(block: suspend () -> Unit) {
-        viewModelScope.launch { block() }
+        viewModelScope.launch { com.supernova.launcher.runLogged("save to the settings store") { block() } }
     }
 
     // Any one setting: viewModel.set(Pref.gridRows, 7). The settings that
@@ -318,6 +319,7 @@ class LauncherViewModel(
             // install's auto-add and smart-folder placement both run their
             // own fresh lookups rather than waiting on appsFlow.
             requestRefresh(immediate = false)
+            SearchMarks.forget()
             when (change) {
                 is AppChange.Removed -> {
                     viewModelScope.launch(Dispatchers.Default) { catalog.invalidatePackages(listOf(change.packageName)) }
@@ -1356,17 +1358,6 @@ class LauncherViewModel(
             preferences.updateDrawerGroups { DrawerGroupOrder.arranged(it, tabs, folders, ::retyped) }
         }
         if (state.value.prefs.drawerDefaultTab in folders) set(Pref.drawerDefaultTab, "")
-    }
-
-    // Undo of that drag: the groups as before held them, and the default
-    // tab back if the drag cleared it.
-    fun revertGroups(before: List<DrawerGroup>, defaultTab: String) {
-        viewModelScope.launch {
-            preferences.updateDrawerGroups { DrawerGroupOrder.reverted(it, before) }
-        }
-        if (defaultTab.isNotEmpty() && state.value.prefs.drawerDefaultTab.isEmpty()) {
-            set(Pref.drawerDefaultTab, defaultTab)
-        }
     }
 
     // Undo of a delete on the Drawer groups page: the group back out of

@@ -34,6 +34,39 @@ object WallpaperOffsets {
         if (!queued) handler.post(::flush)
     }
 
+    private class Zoom(
+        val token: IBinder,
+        val method: java.lang.reflect.Method,
+        val value: Float,
+        val onFail: () -> Unit
+    )
+
+    @Volatile
+    private var pendingZoom: Zoom? = null
+
+    // The wallpaper zoom behind the drawer, on the same thread: a binder call
+    // per frame of the drawer's open and close. `onFail` runs on the main
+    // thread when the wallpaper service refuses it.
+    fun zoom(context: Context, token: IBinder, method: java.lang.reflect.Method, value: Float, onFail: () -> Unit) {
+        if (manager == null) manager = WallpaperManager.getInstance(context.applicationContext)
+        val queued = pendingZoom != null
+        pendingZoom = Zoom(token, method, value, onFail)
+        if (!queued) handler.post(::flushZoom)
+    }
+
+    private fun flushZoom() {
+        val zoom = pendingZoom ?: return
+        pendingZoom = null
+        val wallpaper = manager ?: return
+        @Suppress("TooGenericExceptionCaught")
+        try {
+            zoom.method.invoke(wallpaper, zoom.token, zoom.value)
+        } catch (_: Exception) {
+            // Some OEM wallpaper services throw; the caller stops asking.
+            android.os.Handler(android.os.Looper.getMainLooper()).post(zoom.onFail)
+        }
+    }
+
     private fun flush() {
         val offset = pending ?: return
         pending = null

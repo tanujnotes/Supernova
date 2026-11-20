@@ -526,6 +526,17 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
                 binding.root.setOnClickListener(null)
                 binding.root.isClickable = false
             }
+            val longPress = item.onLongClick
+            if (longPress != null) {
+                binding.root.setOnLongClickListener {
+                    it.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                    longPress()
+                    true
+                }
+            } else {
+                binding.root.setOnLongClickListener(null)
+                binding.root.isLongClickable = false
+            }
         }
 
         // The accent tile, or the warning's amber one.

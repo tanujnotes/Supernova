@@ -75,6 +75,13 @@ class WorkspaceCanvas @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : FrameLayout(context, attrs) {
 
+    // An icon's tile wraps it tightly, so a corner badge (#250) reaches past
+    // the tile's edge, as an icon's shadow nearly does; nothing here may
+    // cut it.
+    init {
+        clipChildren = false
+    }
+
     // A one-cell icon's room at its own size, `needW` x `needH`, its icon
     // box and padding, and how it sets its parts: the icon to `iconPx`, the
     // label and padding to `scale` of their own. A large icon shrinks as the

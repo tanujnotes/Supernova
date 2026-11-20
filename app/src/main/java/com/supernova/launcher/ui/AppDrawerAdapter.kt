@@ -253,6 +253,7 @@ class AppDrawerAdapter(
                 labelPrefs?.badgeTextColor != prefs.badgeTextColor ||
                 labelPrefs?.badgeCornerRadius != prefs.badgeCornerRadius ||
                 labelPrefs?.badgeOutline != prefs.badgeOutline ||
+                labelPrefs?.badgeOnCorner != prefs.badgeOnCorner ||
                 labelPrefs?.folderBadges != prefs.folderBadges
             )
         if (this.iconScale == iconScale && this.showLabels == showLabels &&

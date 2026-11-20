@@ -1,13 +1,23 @@
 package com.supernova.launcher.data
 
 import android.content.Context
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 
-val Context.supernovaStore by preferencesDataStore(name = "supernova_store")
+// An unreadable file is replaced rather than thrown on every read
+// (StoreRecovery).
+val Context.supernovaStore by preferencesDataStore(
+    name = "supernova_store",
+    corruptionHandler = ReplaceFileCorruptionHandler { failure ->
+        StoreRecovery.onCorrupt(failure)
+        emptyPreferences()
+    }
+)
 
 object StoreKeys {
     val model: Preferences.Key<String> = stringPreferencesKey("launcher_model")

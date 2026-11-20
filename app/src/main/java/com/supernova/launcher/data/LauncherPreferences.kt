@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.mutablePreferencesOf
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
@@ -85,8 +86,11 @@ class LauncherPreferences(private val context: Context) {
 
     // distinctUntilChanged: unrelated store writes (the model document, a
     // gate flag) otherwise re-emit an equal snapshot and re-render the UI.
+    // Decoded off the main thread: every store write (a layout edit too)
+    // re-reads the whole store, and the collectors are on the main thread.
     val flow: Flow<LauncherPrefs> = context.supernovaStore.data.map(::decode).distinctUntilChanged()
         .onEach { latest = it }
+        .flowOn(kotlinx.coroutines.Dispatchers.Default)
 
     // The settings as last read, for whoever can't wait for the flow: a
     // screen picks its accent color before it inflates anything, and its

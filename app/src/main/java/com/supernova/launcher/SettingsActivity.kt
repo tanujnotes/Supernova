@@ -459,6 +459,14 @@ class SettingsActivity : AppCompatActivity() {
         adapter.onRowTapped = { menuAnchor = it }
 
         val actions = SettingsCatalogue.Actions(
+            pickColor = { title, current, default, onPick ->
+                val prefs = viewModel.state.value.prefs
+                val palette = com.supernova.launcher.ui.theme.PaletteFactory.resolve(
+                    this, prefs.paletteSource, prefs.paletteSeed,
+                    com.supernova.launcher.ui.theme.ThemeEngine.accentColor(this, prefs.accentColor)
+                )
+                ColorSheet(this, palette, default).show(title, current, onPick)
+            },
             pickChoice = {
                 if (it.preview != null) {
                     com.supernova.launcher.ui.settings.MotionChoiceSheet.show(this, viewModel, it)
@@ -526,15 +534,7 @@ class SettingsActivity : AppCompatActivity() {
                         .putExtra(com.supernova.launcher.onboarding.OnboardingActivity.EXTRA_RERUN, true)
                 )
             },
-            restartLauncher = {
-                // It closes Settings and the home screen at once: asked first.
-                MaterialAlertDialogBuilder(this)
-                    .setTitle(R.string.restart_launcher_q)
-                    .setMessage(R.string.restart_launcher_message)
-                    .setPositiveButton(R.string.restart) { _, _ -> restartLauncher() }
-                    .setNegativeButton(R.string.cancel, null)
-                    .show()
-            },
+            restartLauncher = ::confirmRestart,
             showCrashLog = ::showCrashLog,
             onBadgesEnabled = {
                 com.supernova.launcher.ui.PermissionPrompts
@@ -969,8 +969,19 @@ class SettingsActivity : AppCompatActivity() {
                 }
                 members.forEach { add(sectionLink(it)) }
             }
+            add(restartLink())
         }
     }
+
+    // Last in the App card, under Labs (#293): a launcher is hard to
+    // restart from outside, so the root list offers it directly.
+    private fun restartLink(): SettingItem.SectionLink =
+        SettingItem.SectionLink(
+            R.string.restart_supernova,
+            icon = R.drawable.ic_settings_restart,
+            subtitle = { getString(R.string.restart_supernova_subtitle) },
+            onClick = ::confirmRestart
+        )
 
     private fun sectionLink(s: SettingsSection): SettingItem.SectionLink =
         SettingItem.SectionLink(
@@ -1035,6 +1046,10 @@ class SettingsActivity : AppCompatActivity() {
         if (!previews.isTracking) {
             val view = paneView ?: com.supernova.launcher.ui.settings.preview.SettingsPreviewView(this).also {
                 paneView = it
+                // As item_setting_preview.xml has it: a corner badge
+                // reaches above its icon's row (#250).
+                it.clipChildren = false
+                it.clipToPadding = false
                 binding.previewPane.addView(
                     it,
                     // Centred in its card, however short the preview is.
@@ -1634,19 +1649,8 @@ class SettingsActivity : AppCompatActivity() {
 
     // A curated color by name, any other by hex, and the opacity when it
     // isn't solid: "Red", "Red, 50%", "#3F51B5".
-    private fun plateColorLabel(stored: String): String {
-        if (stored.isEmpty()) return getString(R.string.color_default)
-        val color = LabelStyler.parseColor(stored, com.supernova.launcher.ui.FolderIconDrawable.DEFAULT_PLATE_COLOR)
-        val rgb = android.graphics.Color.rgb(
-            android.graphics.Color.red(color), android.graphics.Color.green(color), android.graphics.Color.blue(color)
-        )
-        val named = SettingsCatalogue.CURATED_COLORS.firstOrNull {
-            it.second.isNotEmpty() && it.second.toColorInt() == rgb
-        }
-        val name = named?.let { getString(it.first) } ?: String.format(java.util.Locale.ROOT, "#%06X", rgb and 0xFFFFFF)
-        val opacity = ColorSheet.percent(color)
-        return if (color == rgb) name else getString(R.string.color_with_opacity, name, opacity)
-    }
+    private fun plateColorLabel(stored: String): String =
+        SettingsCatalogue.colorLabel(this, stored, com.supernova.launcher.ui.FolderIconDrawable.DEFAULT_PLATE_COLOR)
 
     private fun showLockMethodPicker() {
         val methods = listOf(LockMethod.ACCESSIBILITY, LockMethod.DEVICE_ADMIN)
@@ -1934,6 +1938,16 @@ class SettingsActivity : AppCompatActivity() {
     // ProcessPhoenix-style restart: schedule the launcher's MAIN/HOME intent
     // a beat from now, then hard-exit the process. recreate() only rebuilds
     // one activity; a real restart needs a fresh process.
+    // It closes Settings and the home screen at once: asked first.
+    private fun confirmRestart() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.restart_launcher_q)
+            .setMessage(R.string.restart_launcher_message)
+            .setPositiveButton(R.string.restart) { _, _ -> restartLauncher() }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
     private fun restartLauncher() {
         runLogged("restart launcher") {
             val intent = Intent(this, LauncherActivity::class.java)

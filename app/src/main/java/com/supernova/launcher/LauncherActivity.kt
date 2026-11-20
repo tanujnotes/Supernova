@@ -683,7 +683,9 @@ class LauncherActivity :
                 // Feed before drawer: the pane overlays the workspace, so back
                 // must close it before it can ever reach the (hidden) drawer.
                 ::feed.isInitialized && feed.isOpen -> feed.close()
-                ::drawer.isInitialized && drawer.isExpanded -> drawer.hide()
+                // A query typed in the drawer goes first: the full list
+                // comes back, and the next Back closes the drawer.
+                ::drawer.isInitialized && drawer.isExpanded -> if (!drawer.clearQuery()) drawer.hide()
                 else -> Unit
             }
         }
@@ -2098,6 +2100,9 @@ class LauncherActivity :
                 // slots evenly, so padding here only narrowed the label - the
                 // reason "Chrome" used to render as "Chro".
                 setPadding(0, dp(DOCK_SLOT_PADDING_V_DP), 0, dp(DOCK_SLOT_PADDING_V_DP))
+                // A corner badge (#250) reaches past its tile.
+                clipChildren = false
+                clipToPadding = false
                 // An empty slot takes its own taps, so they don't fall
                 // through to whatever lies behind the dock.
                 isClickable = true
@@ -2113,7 +2118,7 @@ class LauncherActivity :
                 // Same as the workspace rebind: never inherit the
                 // drag-source hiding on a reused view - but an item whose
                 // drop is still settling stays hidden until it lands.
-                itemView.alpha = if (item.id == drag.settlingItemId) 0f else 1f
+                itemView.alpha = if (drag.isSettling(item.id)) 0f else 1f
                 slot.addView(
                     itemView,
                     FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
@@ -2594,29 +2599,26 @@ class LauncherActivity :
         if (target == wallpaperZoomTarget) return
         wallpaperZoomTarget = target
         wallpaperZoomAnimator?.cancel()
-        val manager = WallpaperManager.getInstance(this)
+        // Sent from a background thread (WallpaperOffsets): each is a binder
+        // call, per frame of the ramp. A service that throws stops the zoom.
+        val onFail: () -> Unit = {
+            wallpaperZoomBroken = true
+            wallpaperZoomAnimator?.cancel()
+        }
         if (!Animations.enabled(prefs)) {
             // Restore-to-0 still applies (a mid-open pref flip can't strand a
             // zoomed wallpaper), just without the ramp.
             wallpaperZoomValue = target
-            try {
-                method.invoke(manager, token, target)
-            } catch (_: Exception) {
-                wallpaperZoomBroken = true
-            }
+            com.supernova.launcher.ui.WallpaperOffsets.zoom(this, token, method, target, onFail)
             return
         }
         wallpaperZoomAnimator = android.animation.ValueAnimator.ofFloat(wallpaperZoomValue, target).apply {
             duration = Animations.duration(prefs, WALLPAPER_ZOOM_MS)
             addUpdateListener { animator ->
                 wallpaperZoomValue = animator.animatedValue as Float
-                try {
-                    method.invoke(manager, token, wallpaperZoomValue)
-                } catch (_: Exception) {
-                    // Some OEM wallpaper services throw; stop retrying.
-                    wallpaperZoomBroken = true
-                    cancel()
-                }
+                com.supernova.launcher.ui.WallpaperOffsets.zoom(
+                    this@LauncherActivity, token, method, wallpaperZoomValue, onFail
+                )
             }
             start()
         }
@@ -2755,7 +2757,10 @@ class LauncherActivity :
         val promptClosed = privateSpaceCard.cancelPending()
         // With animations off (the launcher's or the system's) home lands
         // at once instead of scrolling past every page in between (#123).
-        val scroll = Animations.scrollPages(viewModel.state.value.prefs)
+        // From another app the launcher wasn't showing: it lands on its page
+        // at once, as Launcher3's does. Scrolled, a slow return showed the
+        // pages in between, widgets and all (#292).
+        val scroll = Animations.scrollPages(viewModel.state.value.prefs) && !cameFromBackground
         // A folder card the same swipe closed on its first touch (#110), read
         // after the reset, whose own closes don't count twice.
         val closed = com.supernova.launcher.ui.OpenDialogs.dismissAll(this) or
@@ -3756,7 +3761,7 @@ class LauncherActivity :
         val name = FolderToDrawer.groupName(folder.label)
         val view = DialogMoveToDrawerBinding.inflate(layoutInflater)
         val iconSize = resources.getDimensionPixelSize(R.dimen.move_folder_icon)
-        val icon = itemIcons.folderPreviewDrawable(folder).apply { setBounds(0, 0, iconSize, iconSize) }
+        val icon = itemIcons.folderPreviewDrawable(folder)?.apply { setBounds(0, 0, iconSize, iconSize) }
         view.moveFolderSummary.setCompoundDrawablesRelative(icon, null, null, null)
         view.moveFolderSummary.text = resources.getQuantityString(R.plurals.move_to_drawer_summary, apps, name, apps)
         view.moveTabHint.text = getString(R.string.move_to_drawer_tab_hint, name)
@@ -4643,9 +4648,9 @@ class LauncherActivity :
     // main thread once it is in. A bind used to render it right there.
     private fun itemIcon(item: LauncherItem, onLate: () -> Unit): android.graphics.drawable.Drawable? {
         val app = item.toLaunchableApp()
-        val catalog = viewModel.appCatalog()
-        val icon = when (item.itemType) {
-            ItemType.FOLDER -> itemIcons.folderPreviewDrawable(item, onLate)
+        val shown = lastItemIcons[item.id]
+        val fresh = when (item.itemType) {
+            ItemType.FOLDER -> itemIcons.folderPreviewDrawable(item, onLate, pendingAsNull = shown != null)
             ItemType.WIDGET -> getDrawable(R.drawable.ic_widget)
             ItemType.APP -> if (app == null) getDrawable(R.drawable.ic_supernova) else appItemIcon(item, app, onLate)
             ItemType.SHORTCUT -> when (val look = itemIcons.shortcutLook(item, onLate)) {
@@ -4653,13 +4658,25 @@ class LauncherActivity :
                 else -> look.icon ?: app?.let { appItemIcon(item, it, onLate) } ?: getDrawable(R.drawable.ic_supernova)
             }
         }
-        return if (item.itemType == ItemType.FOLDER) {
+        // While a late icon renders, the item keeps the picture it last
+        // showed: a page built again blanked its icons until they came
+        // back, which read as the home screen reloading (#292).
+        return badgedItemIcon(item, fresh?.also { lastItemIcons[item.id] = it } ?: shown)
+    }
+
+    private fun badgedItemIcon(
+        item: LauncherItem,
+        icon: android.graphics.drawable.Drawable?
+    ): android.graphics.drawable.Drawable? =
+        if (item.itemType == ItemType.FOLDER) {
             val count = itemIcons.folderBadgeCount(item)
             if (count > 0 && icon != null) itemIcons.badgeDrawable(icon, count) else icon
         } else {
             itemIcons.withBadge(icon, item.packageName, item.className, item.userSerial)
         }
-    }
+
+    // Each home and dock item's last icon (before its badge), by item id.
+    private val lastItemIcons = HashMap<String, android.graphics.drawable.Drawable>()
 
     // An item view's icon drawn again where it is (a badge moved).
     private fun redrawItemView(view: View, item: LauncherItem) {

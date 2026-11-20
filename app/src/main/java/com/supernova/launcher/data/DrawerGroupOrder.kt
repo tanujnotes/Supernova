@@ -44,15 +44,6 @@ object DrawerGroupOrder {
         return reordered(reordered(retyped, DrawerGroupType.TAB, tabs), DrawerGroupType.FOLDER, folders)
     }
 
-    // Undo of such a drag: every group still here back to its type, order
-    // and choices in before. Apps and names picked since stay.
-    fun reverted(now: List<DrawerGroup>, before: List<DrawerGroup>): List<DrawerGroup> =
-        now.map { group ->
-            before.firstOrNull { it.id == group.id }
-                ?.let { group.copy(type = it.type, order = it.order, smart = it.smart, keepInMain = it.keepInMain) }
-                ?: group
-        }
-
     // A deleted group put back: the group as it was in before, and its place
     // in every tab that held it then and still exists. Everything stored
     // since stays. The user asked for it back, so it is theirs: a smart
