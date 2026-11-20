@@ -410,15 +410,23 @@ class LauncherViewModel(
         catalog.warmIcons(firstFrameApps(repository.modelFlow.first()))
         iconGeneration.compareAndSet(0, 1)
 
+        // The list as the last run left it, so a drawer opened now has its
+        // apps while they are listed afresh: with a few hundred apps that
+        // takes seconds, and the drawer was empty until it was done.
+        if (appsFlow.value.isEmpty()) appsFlow.value = appListCache.load()
+
         // Behind the drawn frame: the list the drawer needs, and every other
         // icon. The first-frame icons are cache hits here.
         val apps = catalog.listLaunchableApps()
         privateSpaceFlow.value = catalog.privateSpace()
         pausedWorkFlow.value = catalog.pausedWorkProfiles()
         appsFlow.value = apps
+        appListCache.save(apps)
         pruneUninstalled(apps)
         catalog.warmIcons(apps)
     }
+
+    private val appListCache by lazy { com.supernova.launcher.data.AppListCache(getApplication()) }
 
     // Catching up on uninstalls the launcher missed (its process was gone
     // when the app went): an item whose app is no longer installed goes, as
@@ -529,6 +537,7 @@ class LauncherViewModel(
         privateSpaceFlow.value = catalog.privateSpace()
         pausedWorkFlow.value = catalog.pausedWorkProfiles()
         appsFlow.value = apps
+        appListCache.save(apps)
         pruneUninstalled(apps)
         // Pre-warm off the main thread so binds become cache hits; the
         // render lock keeps this safe alongside main-thread misses.

@@ -83,6 +83,8 @@ class AppCatalog(
     private val renderLock = Any()
     private val waiters = IconWaiters()
     private val appChanges = AppChanges(launcherApps, ::serialFor)
+    private val profiles = ProfileState(launcherApps, userManager, ::serialFor)
+    private val diskIcons = IconDiskCache(context)
 
     fun listLaunchableApps(): List<LaunchableApp> {
         val infoCache = mutableMapOf<String, LauncherActivityInfo>()
@@ -91,7 +93,7 @@ class AppCatalog(
         val apps = launcherApps.profiles.flatMap { user ->
             val serial = serialFor(user)
             val isPrivate = user == privateUser
-            val isWork = user != self && !isPrivate && isWorkUser(user)
+            val isWork = user != self && !isPrivate && profiles.isWorkUser(user)
             // A locked private space shows nothing anywhere, search included.
             if (isPrivate && userManager.isQuietModeEnabled(user)) return@flatMap emptyList()
             launcherApps.getActivityList(null, user).map { info ->
@@ -209,14 +211,15 @@ class AppCatalog(
         val user = userForSerial(app.userSerial) ?: return null
         // An app's own date icon (#266) is cached under the day too, so the
         // day rollover's sweep of "@cal" keys draws it afresh.
-        val dated = resolveActivity(app.packageName, app.className, user)?.let(dynamicIcons::has) == true
+        val info = resolveActivity(app.packageName, app.className, user)
+        val dated = info?.let(dynamicIcons::has) == true
         val cacheKey = if (dated) "$baseKey@cal${today()}" else baseKey
         iconCache.get(cacheKey)?.let { return it }
 
         synchronized(renderLock) {
             // A pre-warm may have rendered it while we waited for the lock.
             iconCache.get(cacheKey)?.let { return it }
-            val job = RenderJob(app, own, user, appKey, cacheKey, dated)
+            val job = RenderJob(app, own, user, cacheKey, dated, info)
             if (!large) return renderLocked(job)
             val normal = iconRenderer.resolutionScale
             iconRenderer.resolutionScale = largeResolution
@@ -234,15 +237,19 @@ class AppCatalog(
         val app: LaunchableApp,
         val own: AppOverride?,
         val user: UserHandle,
-        val appKey: String,
         val cacheKey: String,
-        val dated: Boolean
-    )
+        val dated: Boolean,
+        val info: LauncherActivityInfo?
+    ) {
+        val appKey = "${app.userSerial}/${app.packageName}/${app.className}"
+    }
 
     // renderIcon's render, under renderLock, into the job's cache entry.
     private fun renderLocked(job: RenderJob): Drawable? {
         val override = job.own ?: overrides[job.appKey]
-        return packCalendarIcon(job, override) ?: drawEdited(job.app, job.user, override)?.let { rendered ->
+        val ready = packCalendarIcon(job, override) ?: storedIcon(job, override)
+        return ready ?: drawEdited(job.app, job.user, override)?.let { rendered ->
+            storeIcon(job, override, rendered)
             if (job.own == null && LARGE_KEY !in job.cacheKey) {
                 dominantColorOf(IconRenderer.bitmapOf(rendered))?.let { dominantColors[job.appKey] = it }
             }
@@ -250,6 +257,45 @@ class AppCatalog(
                 .getOrNull()?.also { iconCache.put(job.cacheKey, it) }
         }
     }
+
+    // A rendered icon from the disk cache (IconDiskCache), badged and in
+    // memory as a render's would be; null when there is none to use. Date
+    // icons change by the day and never go there.
+    private fun storedIcon(job: RenderJob, override: AppOverride?): Drawable? {
+        val stamp = diskStamp(job, override)?.takeUnless { job.dated } ?: return null
+        return diskIcons.read(diskSignature(), job.cacheKey, stamp)?.let { stored ->
+            if (job.own == null && LARGE_KEY !in job.cacheKey) {
+                dominantColorOf(IconRenderer.bitmapOf(stored))?.let { dominantColors[job.appKey] = it }
+            }
+            (runLogged("badge icon for its profile") { pm.getUserBadgedIcon(stored, job.user) }.getOrNull() ?: stored)
+                .also { iconCache.put(job.cacheKey, it) }
+        }
+    }
+
+    private fun storeIcon(job: RenderJob, override: AppOverride?, rendered: Drawable) {
+        if (job.dated) return
+        diskStamp(job, override)?.let { diskIcons.write(diskSignature(), job.cacheKey, it, rendered) }
+    }
+
+    // What one icon was drawn from: the app's installed package (its path
+    // moves, or its file changes, with every update), its edits, the
+    // resolution, and the themed colors where they reach it. Null when the
+    // app's package can't be read: then it isn't kept.
+    private fun diskStamp(job: RenderJob, override: AppOverride?): String? {
+        val sourceDir = job.info?.applicationInfo?.sourceDir ?: return null
+        val themed = themedIcons || override?.iconVariant == "THEMED"
+        return "$sourceDir|${java.io.File(sourceDir).lastModified()}|${override?.hashCode()}|" +
+            "${iconRenderer.resolutionScale}|" + (if (themed) "$themedIconBg/$themedIconFg" else "")
+    }
+
+    // Every setting the icons share; a change starts a new disk folder.
+    private fun diskSignature(): String =
+        "$DISK_FORMAT|${context.resources.displayMetrics.densityDpi}|$iconShape|${customShapeSpec?.encode()}|" +
+            "${iconRenderer.reshapeLegacy}|${iconRenderer.shadow}|${iconRenderer.glass}|$themedIcons|" +
+            "$themedIconsAutogen|${iconPacks.loadedPack()}|$packStamp"
+
+    // The loaded pack's own install time: an updated pack draws afresh.
+    private var packStamp = 0L
 
     // Dynamic calendar icons: an isolated day-keyed cache entry, so the
     // date is always current and no normal icon key is touched. Null (the
@@ -394,6 +440,7 @@ class AppCatalog(
         // the first has warmed.
         if (iconPacks.isLoaded(packageName)) return
         iconPacks.load(packageName)
+        packStamp = packageName?.let { runCatching { pm.getPackageInfo(it, 0).lastUpdateTime }.getOrNull() } ?: 0L
         iconCache.evictAll()
         dominantColors.clear()
     }
@@ -402,6 +449,7 @@ class AppCatalog(
     // been updated since it was parsed, and every icon renders afresh.
     fun clearIconCache() = synchronized(renderLock) {
         iconPacks.reload()
+        diskIcons.clear()
         iconCache.evictAll()
         dominantColors.clear()
     }
@@ -770,82 +818,22 @@ class AppCatalog(
     fun isUninstalled(packageName: String, userSerial: Long): Boolean =
         userForSerial(userSerial)?.let { InstalledApps.isGone(launcherApps, userManager, packageName, it) } == true
 
-    // The private space profile (Android 15+), seen only while this is the
-    // default home app and holds ACCESS_HIDDEN_PROFILES.
-    fun privateSpaceUser(): UserHandle? {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) return null
-        return runCatching {
-            launcherApps.profiles.firstOrNull { user ->
-                launcherApps.getLauncherUserInfo(user)?.userType == UserManager.USER_TYPE_PROFILE_PRIVATE
-            }
-        }.getOrNull()
-    }
+    // The private space and work profiles (ProfileState).
+    fun privateSpaceUser(): UserHandle? = profiles.privateSpaceUser()
 
-    fun hasPrivateSpace(): Boolean = privateSpaceUser() != null
+    fun hasPrivateSpace(): Boolean = profiles.privateSpaceUser() != null
 
-    fun privateSpace(): PrivateSpace? {
-        val user = privateSpaceUser() ?: return null
-        val locked = runCatching { userManager.isQuietModeEnabled(user) }.getOrDefault(true)
-        // The system's "Hide private space when locked": the entry point
-        // goes too while it is locked.
-        val entryHidden = Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA && runCatching {
-            launcherApps.getLauncherUserInfo(user)?.userConfig
-                ?.getBoolean(LauncherUserInfo.PRIVATE_SPACE_ENTRYPOINT_HIDDEN) == true
-        }.getOrDefault(false)
-        return PrivateSpace(serialFor(user), locked, entryHidden)
-    }
+    fun privateSpace(): PrivateSpace? = profiles.privateSpace()
 
-    // Locking takes effect at once; unlocking asks for the space's own
-    // lock first, through the system's prompt.
-    fun setPrivateSpaceLocked(locked: Boolean): Boolean {
-        val user = privateSpaceUser() ?: return false
-        return runLogged("lock private space") { userManager.requestQuietModeEnabled(locked, user) }.getOrDefault(false)
-    }
+    fun setPrivateSpaceLocked(locked: Boolean): Boolean = profiles.setPrivateSpaceLocked(locked)
 
-    private fun workUsers(): List<UserHandle> = runCatching {
-        val self = android.os.Process.myUserHandle()
-        WorkProfiles.workUsers(launcherApps.profiles, self, privateSpaceUser(), ::isWorkUser)
-    }.getOrDefault(emptyList())
+    fun pausedWorkProfiles(): Set<Long> = profiles.pausedWorkProfiles()
 
-    // A managed profile, not a clone one (dual apps). Android 15 on says
-    // which; before it, the user id tells the OEM clones apart (a
-    // UserHandle's hash is its user id).
-    private fun isWorkUser(user: UserHandle): Boolean {
-        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            runCatching { launcherApps.getLauncherUserInfo(user)?.userType }.getOrNull()
-        } else {
-            null
-        }
-        return WorkProfiles.isWork(type, user.hashCode())
-    }
+    fun setWorkPaused(paused: Boolean) = profiles.setWorkPaused(paused)
 
-    private fun isPaused(user: UserHandle): Boolean =
-        runCatching { userManager.isQuietModeEnabled(user) }.getOrDefault(false)
+    fun privateSpaceSettings(): IntentSender? = profiles.privateSpaceSettings()
 
-    // The serials of the work profiles whose apps are paused.
-    fun pausedWorkProfiles(): Set<Long> =
-        workUsers().filter(::isPaused).mapTo(mutableSetOf(), ::serialFor)
-
-    // Pausing takes effect at once; turning work apps on may ask for the
-    // work profile's own lock first, through the system's prompt.
-    fun setWorkPaused(paused: Boolean) {
-        WorkProfiles.toToggle(workUsers(), ::isPaused, paused).forEach { user ->
-            runLogged("pause work apps") { userManager.requestQuietModeEnabled(paused, user) }
-        }
-    }
-
-    // Android 16 on; Android 15 offers launchers no way in.
-    fun privateSpaceSettings(): IntentSender? {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.BAKLAVA) return null
-        return runCatching { launcherApps.privateSpaceSettingsIntent }.getOrNull()
-    }
-
-    // The app store, opened to install into the private space.
-    fun privateSpaceInstall(): IntentSender? {
-        val user = privateSpaceUser()
-        if (user == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) return null
-        return runCatching { launcherApps.getAppMarketActivityIntent(null, user) }.getOrNull()
-    }
+    fun privateSpaceInstall(): IntentSender? = profiles.privateSpaceInstall()
 
     fun userForSerial(serial: Long): UserHandle? {
         usersBySerial[serial]?.let { return it }
@@ -913,6 +901,10 @@ class AppCatalog(
     }
 
     companion object {
+        // Bumped when a render changes how an icon looks for the same
+        // settings, so the disk cache starts over.
+        const val DISK_FORMAT = 1
+
         // Marks a Large icon's copy in a cache key.
         const val LARGE_KEY = "^large"
 

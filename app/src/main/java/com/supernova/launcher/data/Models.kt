@@ -691,6 +691,8 @@ data class BackupPayload(
     val prefs: LauncherPrefs
 )
 
+// Serializable for AppListCache, the drawer's list kept between runs.
+@Serializable
 data class LaunchableApp(
     val packageName: String,
     val className: String,

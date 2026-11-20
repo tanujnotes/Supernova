@@ -69,6 +69,8 @@ class IconPackRepository(private val context: Context) {
     @Synchronized
     fun isLoaded(packageName: String?): Boolean = packageName == loadedPackage
 
+    fun loadedPack(): String? = loadedPackage
+
     fun reload() {
         val pack = loadedPackage ?: return
         loadedPackage = null
