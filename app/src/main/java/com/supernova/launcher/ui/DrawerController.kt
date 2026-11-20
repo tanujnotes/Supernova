@@ -786,7 +786,11 @@ class DrawerController(
         val prefs = viewModel.state.value.prefs
         prepareContent(prefs)
         if (isPulling) return
-        if (!isVisible) {
+        // A slide closing is turned round where it is (slideIn starts from
+        // the current progress).
+        val turnRound = isClosing && transition == DrawerTransition.SLIDE_UP
+        isClosing = false
+        if (!isVisible || turnRound) {
             // Focus (and the keyboard it may bring) waits for the settle:
             // the IME coming up mid-slide stalls the sheet's last pixels.
             val settled = { focusOnOpen(prefs, forSearch) }
@@ -908,6 +912,16 @@ class DrawerController(
     var isPulling = false
         private set
 
+    // The sheet is sliding shut (a close, or a let-go pull settling closed).
+    // A swipe up or an open in that time catches it where it is and brings it
+    // back: they were dropped until it had gone, and the Home press after a
+    // cancelled pull did nothing.
+    var isClosing = false
+        private set
+
+    // Where the pull started: 0, or the progress of a sheet caught closing.
+    private var pullBase = 0f
+
     fun beginPull() {
         if (isPulling) return
         if (transition != DrawerTransition.SLIDE_UP) {
@@ -916,6 +930,8 @@ class DrawerController(
         }
         val prefs = viewModel.state.value.prefs
         isPulling = true
+        pullBase = if (isClosing) progress else 0f
+        isClosing = false
         prepareContent(prefs)
         val sheet = binding.drawerSheet
         sheet.animate().cancel()
@@ -924,14 +940,14 @@ class DrawerController(
         sheet.alpha = 1f
         sheet.scaleX = 1f
         sheet.scaleY = 1f
-        setProgress(0f)
+        setProgress(pullBase)
         sheet.visibility = View.VISIBLE
     }
 
     // distance = how far the finger has travelled upward since the pull began.
     fun pullTo(distance: Float) {
         if (!isPulling) return
-        setProgress((distance / sheetHeight()).coerceIn(0f, 1f))
+        setProgress((pullBase + distance / sheetHeight()).coerceIn(0f, 1f))
     }
 
     // velocityY in px/s, negative = upward. A fling decides; otherwise the
@@ -1130,6 +1146,7 @@ class DrawerController(
     // settle: the close is a let-go pull's, which comes to rest its own way.
     private fun slideOut(prefs: LauncherPrefs, instant: Boolean = false, settle: SwipeSettle? = null) {
         binding.drawerSheet.animate().cancel()
+        isClosing = !instant
         animateProgress(
             0f,
             when {
@@ -1139,6 +1156,7 @@ class DrawerController(
             },
             settle ?: android.view.animation.AccelerateInterpolator()
         ) {
+            isClosing = false
             parkSheet()
             resetSearch()
             onOpenStateChanged?.invoke(false)

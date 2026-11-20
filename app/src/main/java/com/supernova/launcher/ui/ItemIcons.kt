@@ -142,8 +142,11 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
         val late = onLate?.let { LateIcons() }
         val memberIcons = previewMembers(viewModel.folderMembers(folder.id))
             .mapNotNull { member ->
-                val icon = member.takeIf { it.itemType == ItemType.SHORTCUT }?.let(::intentItemIcon)
-                    ?: member.packageName?.let { pkg ->
+                val shortcut = member.takeIf { it.itemType == ItemType.SHORTCUT }?.let {
+                    if (onLate == null) ShortcutLook(intentItemIcon(it)) else shortcutLook(it, onLate)
+                }
+                val icon = if (member.itemType == ItemType.SHORTCUT && shortcut == null) emptySlot()
+                else shortcut?.icon ?: member.packageName?.let { pkg ->
                         member.className?.let { cls ->
                             val app = LaunchableApp(pkg, cls, member.label, member.userSerial)
                             if (late == null) {
@@ -272,6 +275,33 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
         )
     }
 
+    // A shortcut's icon (intentItemIcon) for a bind on the main thread: from
+    // a cache, or null while it renders on the icon thread, when `onLate`
+    // runs. Decoding and drawing its stored picture on every page bind used
+    // the main thread. `icon` null: the shortcut has none of its own, and
+    // the app's stands in.
+    class ShortcutLook(val icon: Drawable?)
+
+    private val shortcutLooks = android.util.LruCache<String, ShortcutLook>(SHORTCUT_LOOKS)
+
+    fun shortcutLook(item: LauncherItem, onLate: () -> Unit): ShortcutLook? {
+        val key = listOf(
+            item.id, viewModel.state.value.iconGeneration, item.iconBase64?.hashCode(), item.shortcutEdit,
+            item.customIconPack, item.customIconName, item.iconRaw, item.intentUri
+        ).joinToString("|")
+        shortcutLooks.get(key)?.let { return it }
+        IconThread.renderAll(
+            listOf {
+                val look = ShortcutLook(intentItemIcon(item))
+                shortcutLooks.put(key, look)
+                // Non-null, so onLate runs for a shortcut with no icon too.
+                look.icon ?: emptySlot()
+            },
+            onLate
+        )
+        return null
+    }
+
     // Icon for a SHORTCUT item carrying an intentUri: a launcher-action tile by
     // action, or the snapshot icon activities/legacy shortcuts stored. Null for
     // a plain app shortcut, which falls back to the app's own icon. An icon
@@ -307,5 +337,8 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
 
         // The dense preview styles (3x3, dense ring) show up to nine members.
         const val PREVIEW_MEMBERS = 9
+
+        // Shortcut icons kept: a few home screens' worth.
+        const val SHORTCUT_LOOKS = 128
     }
 }

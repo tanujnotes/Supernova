@@ -1041,7 +1041,7 @@ class LauncherActivity :
         // isVisible, not isExpanded: the sheet leaves EXPANDED the moment a
         // closing swipe starts, and the still-observing gesture detector
         // would read that swipe as the home swipe-down binding.
-        if ((::drawer.isInitialized && drawer.isVisible) ||
+        if ((::drawer.isInitialized && drawer.isVisible && !drawer.isClosing) ||
             (::search.isInitialized && search.isOpen) ||
             // Edit mode: sheet drags and chip taps must not read as gestures.
             (::editMode.isInitialized && editMode.isOpen) ||
@@ -1267,7 +1267,7 @@ class LauncherActivity :
     }
 
     private fun drawerPullAllowed(ev: MotionEvent): Boolean {
-        if (!::drawer.isInitialized || drawer.isVisible) return false
+        if (!::drawer.isInitialized || (drawer.isVisible && !drawer.isClosing)) return false
         // A press in the system's own gesture strip (gesture navigation's
         // home swipe) is the system's: the pull it started was cancelled a
         // moment later, and the sheet closing again swallowed the Home press
@@ -2700,7 +2700,9 @@ class LauncherActivity :
             feed.close()
             closed = true
         }
-        if (::drawer.isInitialized && drawer.isExpanded) {
+        // A drawer already sliding shut isn't closed by this press: its Home
+        // action (open the drawer, by default) runs and turns it round.
+        if (::drawer.isInitialized && drawer.isExpanded && !drawer.isClosing) {
             closed = true
             if (!keepDrawer) hideDrawer(instant = !animate)
         }
@@ -4646,8 +4648,10 @@ class LauncherActivity :
             ItemType.FOLDER -> itemIcons.folderPreviewDrawable(item, onLate)
             ItemType.WIDGET -> getDrawable(R.drawable.ic_widget)
             ItemType.APP -> if (app == null) getDrawable(R.drawable.ic_supernova) else appItemIcon(item, app, onLate)
-            ItemType.SHORTCUT -> itemIcons.intentItemIcon(item)
-                ?: app?.let { catalog.iconFor(it) } ?: getDrawable(R.drawable.ic_supernova)
+            ItemType.SHORTCUT -> when (val look = itemIcons.shortcutLook(item, onLate)) {
+                null -> null
+                else -> look.icon ?: app?.let { appItemIcon(item, it, onLate) } ?: getDrawable(R.drawable.ic_supernova)
+            }
         }
         return if (item.itemType == ItemType.FOLDER) {
             val count = itemIcons.folderBadgeCount(item)
