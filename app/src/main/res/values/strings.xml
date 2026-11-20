@@ -399,8 +399,6 @@
     <string name="action_launch_app">Launch app</string>
     <string name="action_launch_shortcut">Launch shortcut</string>
     <string name="assistant_unavailable">No assistant app available</string>
-    <string name="pick_shortcut">Choose a shortcut</string>
-    <string name="no_shortcuts">This app has no shortcuts</string>
 
     <string name="shape_system">System default</string>
     <string name="shape_circle">Circle</string>
@@ -1008,8 +1006,6 @@
     <string name="card_reorder">Drag to reorder</string>
     <string name="decrease">Decrease</string>
     <string name="increase">Increase</string>
-    <string name="card_featured_app">App</string>
-    <string name="card_featured_shortcut">Shortcut</string>
     <string name="card_add_action">Add action</string>
     <string name="card_menu_edit">Edit</string>
     <string name="card_menu_pin">Pin to top</string>

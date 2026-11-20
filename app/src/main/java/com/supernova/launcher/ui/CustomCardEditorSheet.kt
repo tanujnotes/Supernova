@@ -8,12 +8,10 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.widget.doAfterTextChanged
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.supernova.launcher.R
 import com.supernova.launcher.databinding.SheetCardEditorBinding
 import com.supernova.launcher.feed.CardAction
@@ -227,27 +225,30 @@ object CustomCardEditorSheet {
     ) {
         val items = draft.items
         lateinit var refresh: () -> Unit
+        // One list of apps with their icons: a tap adds the app, or one of
+        // its shortcuts when it has any. It was a text list of names, and a
+        // separate shortcut list that dead-ended on an app with none.
         fun add() {
-            val options = arrayOf(
-                activity.getString(R.string.card_featured_app),
-                activity.getString(R.string.card_featured_shortcut)
-            )
-            MaterialAlertDialogBuilder(activity)
-                .setTitle(R.string.card_add_action)
-                .setItems(options) { _, which ->
-                    val onPicked = { type: FeaturedType ->
-                        { target: String, label: String ->
-                            items.add(CardAction(type.name, target, label))
-                            refresh()
-                        }
-                    }
-                    when (which) {
-                        0 -> pickApp(activity, viewModel, onPicked(FeaturedType.APP))
-                        1 -> pickShortcut(activity, viewModel, onPicked(FeaturedType.SHORTCUT))
-                    }
+            ActionPickerSheet.showApps(activity, viewModel, activity.getString(R.string.card_add_action)) { pick ->
+                when (pick) {
+                    is ActionPick.App -> items.add(
+                        CardAction(
+                            FeaturedType.APP.name,
+                            "${pick.app.packageName}/${pick.app.className}@${pick.app.userSerial}",
+                            pick.app.label
+                        )
+                    )
+                    is ActionPick.Shortcut -> items.add(
+                        CardAction(
+                            FeaturedType.SHORTCUT.name,
+                            "${pick.app.packageName}|${pick.shortcutId}@${pick.app.userSerial}",
+                            pick.label
+                        )
+                    )
+                    else -> return@showApps
                 }
-                .setNegativeButton(R.string.cancel, null)
-                .showTracked()
+                refresh()
+            }
         }
         fun move(at: Int, anchor: View) {
             val entries = buildList<Pair<Int, () -> Unit>> {
@@ -382,57 +383,5 @@ object CustomCardEditorSheet {
             shortcutLabel != null && appLabel != null -> "$appLabel: $shortcutLabel"
             else -> shortcutLabel ?: appLabel
         }
-    }
-
-    // "pkg/cls@userSerial", mirroring the gesture LAUNCH_APP payload.
-    private fun pickApp(
-        activity: AppCompatActivity,
-        viewModel: LauncherViewModel,
-        onPicked: (target: String, label: String) -> Unit
-    ) {
-        val apps = viewModel.visibleApps()
-        if (apps.isEmpty()) return
-        MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.card_featured_app)
-            .setItems(apps.map { it.label }.toTypedArray()) { _, which ->
-                val app = apps[which]
-                onPicked("${app.packageName}/${app.className}@${app.userSerial}", app.label)
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .showTracked()
-    }
-
-    // "pkg|shortcutId@userSerial", mirroring the gesture LAUNCH_SHORTCUT
-    // payload and its two-step app -> shortcut picker.
-    private fun pickShortcut(
-        activity: AppCompatActivity,
-        viewModel: LauncherViewModel,
-        onPicked: (target: String, label: String) -> Unit
-    ) {
-        val apps = viewModel.visibleApps()
-        if (apps.isEmpty()) return
-        MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.pick_shortcut)
-            .setItems(apps.map { it.label }.toTypedArray()) { _, which ->
-                val app = apps[which]
-                val shortcuts = viewModel.shortcutsFor(app.packageName, app.userSerial)
-                if (shortcuts.isEmpty()) {
-                    Toast.makeText(activity, R.string.no_shortcuts, Toast.LENGTH_SHORT).show()
-                    return@setItems
-                }
-                val names = shortcuts.map { (it.shortLabel ?: it.longLabel ?: it.id).toString() }
-                MaterialAlertDialogBuilder(activity)
-                    .setTitle(app.label)
-                    .setItems(names.toTypedArray()) { _, index ->
-                        onPicked(
-                            "${app.packageName}|${shortcuts[index].id}@${app.userSerial}",
-                            "${app.label}: ${names[index]}"
-                        )
-                    }
-                    .setNegativeButton(R.string.cancel, null)
-                    .showTracked()
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .showTracked()
     }
 }

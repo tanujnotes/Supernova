@@ -258,9 +258,13 @@ class SearchController(
         }
     }
 
+    // The top hit's shortcuts by app, for as long as the window is open.
+    private val topHitShortcuts = HashMap<String, List<SearchResult.Shortcut>>()
+
     fun hide() {
         if (!isOpen) return
         isOpen = false
+        topHitShortcuts.clear()
         onHidden()
         val ui = overlay ?: return
         overlaySurface?.orchestrator?.cancel()
@@ -515,17 +519,22 @@ class SearchController(
         val app = (results.firstOrNull { it is SearchResult.App } as? SearchResult.App)?.app ?: return null
         if (!app.label.startsWith(query, ignoreCase = true)) return null
         val catalog = viewModel.appCatalog()
-        val shortcuts = catalog.shortcutsFor(app.packageName, app.userSerial)
-            .take(TOP_HIT_MAX_SHORTCUTS)
-            .map { shortcut ->
-                SearchResult.Shortcut(
-                    packageName = app.packageName,
-                    shortcutId = shortcut.id,
-                    label = (shortcut.shortLabel ?: shortcut.longLabel ?: shortcut.id).toString(),
-                    userSerial = app.userSerial,
-                    icon = catalog.shortcutIcon(shortcut)
-                )
-            }
+        // Asked once per app while the window is open: each keystroke used
+        // to read the app's shortcuts and their icons again, on the main
+        // thread, for the same app.
+        val shortcuts = topHitShortcuts.getOrPut("${app.userSerial}/${app.packageName}") {
+            catalog.shortcutsFor(app.packageName, app.userSerial)
+                .take(TOP_HIT_MAX_SHORTCUTS)
+                .map { shortcut ->
+                    SearchResult.Shortcut(
+                        packageName = app.packageName,
+                        shortcutId = shortcut.id,
+                        label = (shortcut.shortLabel ?: shortcut.longLabel ?: shortcut.id).toString(),
+                        userSerial = app.userSerial,
+                        icon = catalog.shortcutIcon(shortcut)
+                    )
+                }
+        }
         return SearchResultsAdapter.TopHit(app, shortcuts)
     }
 

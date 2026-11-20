@@ -64,6 +64,9 @@ object SettingsCatalogue {
         // Every plain single-choice setting: the catalogue builds the Choice
         // (its values, labels and setter) and the activity only shows it.
         val pickChoice: (Choice) -> Unit = {},
+        // Any color and its opacity (ColorSheet): the setting's title, its
+        // stored value ("" = Default), Default's color, and the write.
+        val pickColor: (Int, String, Int, (String) -> Unit) -> Unit = { _, _, _, _ -> },
         val pickIconPack: () -> Unit = {},
         val pickIconShape: () -> Unit = {},
         val resetCustomIcons: () -> Unit = {},
@@ -172,29 +175,22 @@ object SettingsCatalogue {
             visibleIf = visibleIf
         )
 
-        // Curated swatches for v1; a free hex picker arrives with theming. An
-        // unknown stored color (from a backup) reads as Default.
-        // The row shows the colour in force, its dot and its name.
+        // Any color and opacity, in the color sheet the folder plate and the
+        // style surfaces use (it had nine fixed colors). The row shows the
+        // color in force, its dot and its name: a curated one by name, any
+        // other by hex. `default` is Default's color in the sheet.
         fun color(
             @StringRes title: Int,
             current: (LauncherPrefs) -> String,
-            subtitle: (LauncherPrefs) -> CharSequence? = { context.getString(curatedFor(current(it)).first) },
-            visibleIf: (LauncherPrefs) -> Boolean = { true },
+            subtitle: (LauncherPrefs) -> CharSequence? = {
+                colorLabel(context, current(it), android.graphics.Color.WHITE)
+            },
+            default: Int = android.graphics.Color.WHITE,
             onPick: (String) -> Unit
         ): SettingItem.Row = SettingItem.Row(
             title,
             subtitle = subtitle,
-            onClick = {
-                val now = current(viewModel.state.value.prefs)
-                actions.pickChoice(
-                    Choice(
-                        title, CURATED_COLORS.map { context.getString(it.first) },
-                        CURATED_COLORS.indexOf(curatedFor(now)), { onPick(CURATED_COLORS[it].second) },
-                        swatches = CURATED_COLORS.map { swatchOf(it.second) }
-                    )
-                )
-            },
-            visibleIf = visibleIf,
+            onClick = { actions.pickColor(title, current(viewModel.state.value.prefs), default, onPick) },
             look = SettingItem.RowLook(swatch = { swatchOf(current(it)) })
         )
 
@@ -313,8 +309,21 @@ object SettingsCatalogue {
         dependsOn(R.string.icon_glass, IconGlass.fromName(SearchBarPrefs.drawerBar(it).glass) != IconGlass.OFF)
     }
 
-    private fun curatedFor(stored: String): Pair<Int, String> =
-        CURATED_COLORS.firstOrNull { it.second.equals(stored, ignoreCase = true) } ?: CURATED_COLORS.first()
+    // A stored color's name: Default, a curated color by name, any other by
+    // hex, with its opacity when it isn't solid ("Red, 50%", "#3F51B5").
+    fun colorLabel(context: Context, stored: String, default: Int): String {
+        if (stored.isEmpty()) return context.getString(R.string.color_default)
+        val color = com.supernova.launcher.ui.LabelStyler.parseColor(stored, default)
+        val rgb = color or OPAQUE
+        val named = CURATED_COLORS.firstOrNull { it.second.isNotEmpty() && it.second.toColorInt() == rgb }
+        val name = named?.let { context.getString(it.first) }
+            ?: String.format(java.util.Locale.ROOT, "#%06X", rgb and RGB)
+        val opacity = ColorSheet.percent(color)
+        return if (color == rgb) name else context.getString(R.string.color_with_opacity, name, opacity)
+    }
+
+    private const val OPAQUE = 0xFF000000.toInt()
+    private const val RGB = 0xFFFFFF
 
     // Its dot; none for Default.
     private fun swatchOf(hex: String): Int? =
@@ -1577,9 +1586,12 @@ object SettingsCatalogue {
                         if (prefs.badgeColor.isBlank() && BadgeStyle.effective(prefs) == BadgeStyle.DOTS) {
                             context.getString(R.string.badge_color_icon)
                         } else {
-                            context.getString(curatedFor(prefs.badgeColor).first)
+                            colorLabel(
+                                context, prefs.badgeColor, com.supernova.launcher.ui.BadgeDrawable.DEFAULT_BADGE_COLOR
+                            )
                         }
-                    }
+                    },
+                    default = com.supernova.launcher.ui.BadgeDrawable.DEFAULT_BADGE_COLOR
                 ) { viewModel.set(Pref.badgeColor, it) }.hiddenWhen {
                     badgesHidden(it)
                         ?: dependsOn(R.string.badge_style, BadgeStyle.effective(it) == BadgeStyle.DYNAMIC)

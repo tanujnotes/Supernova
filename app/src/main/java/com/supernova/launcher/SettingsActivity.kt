@@ -459,6 +459,14 @@ class SettingsActivity : AppCompatActivity() {
         adapter.onRowTapped = { menuAnchor = it }
 
         val actions = SettingsCatalogue.Actions(
+            pickColor = { title, current, default, onPick ->
+                val prefs = viewModel.state.value.prefs
+                val palette = com.supernova.launcher.ui.theme.PaletteFactory.resolve(
+                    this, prefs.paletteSource, prefs.paletteSeed,
+                    com.supernova.launcher.ui.theme.ThemeEngine.accentColor(this, prefs.accentColor)
+                )
+                ColorSheet(this, palette, default).show(title, current, onPick)
+            },
             pickChoice = {
                 if (it.preview != null) {
                     com.supernova.launcher.ui.settings.MotionChoiceSheet.show(this, viewModel, it)
@@ -1634,19 +1642,8 @@ class SettingsActivity : AppCompatActivity() {
 
     // A curated color by name, any other by hex, and the opacity when it
     // isn't solid: "Red", "Red, 50%", "#3F51B5".
-    private fun plateColorLabel(stored: String): String {
-        if (stored.isEmpty()) return getString(R.string.color_default)
-        val color = LabelStyler.parseColor(stored, com.supernova.launcher.ui.FolderIconDrawable.DEFAULT_PLATE_COLOR)
-        val rgb = android.graphics.Color.rgb(
-            android.graphics.Color.red(color), android.graphics.Color.green(color), android.graphics.Color.blue(color)
-        )
-        val named = SettingsCatalogue.CURATED_COLORS.firstOrNull {
-            it.second.isNotEmpty() && it.second.toColorInt() == rgb
-        }
-        val name = named?.let { getString(it.first) } ?: String.format(java.util.Locale.ROOT, "#%06X", rgb and 0xFFFFFF)
-        val opacity = ColorSheet.percent(color)
-        return if (color == rgb) name else getString(R.string.color_with_opacity, name, opacity)
-    }
+    private fun plateColorLabel(stored: String): String =
+        SettingsCatalogue.colorLabel(this, stored, com.supernova.launcher.ui.FolderIconDrawable.DEFAULT_PLATE_COLOR)
 
     private fun showLockMethodPicker() {
         val methods = listOf(LockMethod.ACCESSIBILITY, LockMethod.DEVICE_ADMIN)

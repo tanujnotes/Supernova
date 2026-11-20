@@ -192,11 +192,25 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
         nested: Boolean = true,
         onLate: (() -> Unit)? = null
     ): Drawable {
+        // A drawer folder's icon is built once for what it draws from: a tab
+        // switch built every folder's icon again, its plate painted afresh.
+        // Its plate and outline colors come from the resolved style, which
+        // the dark or light theme and the wallpaper's palette move too.
+        val state = viewModel.state.value
+        val folderLook = Styles.resolve(context, state.prefs).of(SurfaceId.FOLDER)
+        val key = "${group.hashCode()}|${members.hashCode()}|$nested|${state.iconGeneration}|" +
+            "${state.prefs.hashCode()}|${state.pausedWorkProfiles.hashCode()}|" +
+            "${viewModel.drawerGroups().hashCode()}|${folderLook.surface}|${folderLook.accent}"
+        drawerFolderIcons.get(key)?.let { return it }
         val late = onLate?.let { LateIcons() }
         val icon = drawerFolderIcon(group, members, nested, late)
-        if (late != null && onLate != null) late.start(viewModel.appCatalog(), onLate)
+        val pending = onLate != null && late?.start(viewModel.appCatalog(), onLate) == true
+        // One with members still to come is built again when they are.
+        if (!pending) drawerFolderIcons.put(key, icon)
         return icon
     }
+
+    private val drawerFolderIcons = android.util.LruCache<String, Drawable>(DRAWER_FOLDER_ICONS)
 
     private fun drawerFolderIcon(
         group: DrawerGroup,
@@ -358,6 +372,9 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
 
         // The dense preview styles (3x3, dense ring) show up to nine members.
         const val PREVIEW_MEMBERS = 9
+
+        // Drawer folder icons kept, across tabs.
+        const val DRAWER_FOLDER_ICONS = 32
 
         // Shortcut icons kept: a few home screens' worth.
         const val SHORTCUT_LOOKS = 128

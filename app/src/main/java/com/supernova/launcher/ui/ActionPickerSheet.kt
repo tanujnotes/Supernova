@@ -43,6 +43,8 @@ class ActionPickerSheet private constructor(
     private val context: Context,
     private val viewModel: LauncherViewModel,
     private val actions: List<GestureAction>,
+    // Only the Apps list, with no tabs: a feed card's apps and shortcuts.
+    private val appsOnly: Boolean,
     private val onPick: (ActionPick) -> Unit
 ) {
 
@@ -63,6 +65,19 @@ class ActionPickerSheet private constructor(
         }
         LayoutInflater.from(context).inflate(R.layout.sheet_handle, root, true)
         root.addView(TextView(context, null, 0, R.style.SheetTitle).apply { text = title })
+        val list = RecyclerView(context).apply {
+            layoutManager = LinearLayoutManager(context)
+            adapter = this@ActionPickerSheet.adapter
+        }
+        if (appsOnly) {
+            root.addView(
+                list, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, context.dp(LIST_HEIGHT_DP))
+            )
+            adapter.rows = appRows()
+            sheet.setContentView(root)
+            sheet.show()
+            return
+        }
         val tabs = TabLayout(context).apply {
             tabMode = TabLayout.MODE_FIXED
             tabGravity = TabLayout.GRAVITY_FILL
@@ -74,10 +89,6 @@ class ActionPickerSheet private constructor(
             addTab(newTab().setText(R.string.picker_tab_shortcuts))
         }
         root.addView(tabs)
-        val list = RecyclerView(context).apply {
-            layoutManager = LinearLayoutManager(context)
-            adapter = this@ActionPickerSheet.adapter
-        }
         root.addView(list, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, context.dp(LIST_HEIGHT_DP)))
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
@@ -249,6 +260,15 @@ class ActionPickerSheet private constructor(
             title: CharSequence,
             actions: List<GestureAction>,
             onPick: (ActionPick) -> Unit
-        ) = ActionPickerSheet(context, viewModel, actions, onPick).show(title)
+        ) = ActionPickerSheet(context, viewModel, actions, appsOnly = false, onPick).show(title)
+
+        // Apps alone, with icons: tapping one offers it or one of its own
+        // shortcuts, as the gesture picker's Apps tab does.
+        fun showApps(
+            context: Context,
+            viewModel: LauncherViewModel,
+            title: CharSequence,
+            onPick: (ActionPick) -> Unit
+        ) = ActionPickerSheet(context, viewModel, emptyList(), appsOnly = true, onPick).show(title)
     }
 }

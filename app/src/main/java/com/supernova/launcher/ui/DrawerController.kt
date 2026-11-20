@@ -725,8 +725,12 @@ class DrawerController(
                 // Another tab's list replaces this one outright, from its top.
                 submit(replace = true)
                 binding.drawerRecycler.scrollToPosition(0)
-                adapter.filter(binding.drawerSearch.text?.toString().orEmpty())
-                syncPages()
+                // submit() has cut the pages; only a query filters again.
+                val query = binding.drawerSearch.text?.toString().orEmpty()
+                if (query.isNotEmpty()) {
+                    adapter.filter(query)
+                    syncPages()
+                }
                 if (slide) slideInTab(direction)
             }
 
@@ -1109,6 +1113,10 @@ class DrawerController(
             view.translationY = shift
         }
         val scrim = binding.drawerScrim
+        // One color fill: its alpha needs no offscreen pass, which a
+        // full-screen view at half opacity otherwise takes every frame the
+        // drawer draws (scrolling included).
+        scrim.forceHasOverlappingRendering(false)
         scrim.alpha = DrawerOpenCurve.scrimAlpha(p)
         scrim.visibility = if (p > 0f) View.VISIBLE else View.GONE
     }
@@ -1162,6 +1170,16 @@ class DrawerController(
             resetSearch()
             onOpenStateChanged?.invoke(false)
         }
+    }
+
+    // Back with a query in the field: the query goes, and its watcher
+    // brings the full list back. True when there was one.
+    fun clearQuery(): Boolean {
+        if (binding.drawerSearch.text.isNullOrEmpty()) return false
+        binding.drawerSearch.text?.clear()
+        // From the top, as the drawer opened: the results' scroll carried over.
+        binding.drawerRecycler.scrollToPosition(0)
+        return true
     }
 
     // Clears the query once the sheet is off screen, so the next open starts
@@ -2399,6 +2417,12 @@ class DrawerController(
         RecyclerView.ViewHolder(recycler) {
 
         private val pageAdapter = newCellAdapter().also { recycler.adapter = it }
+
+        init {
+            // A page's worth of spare tiles: a page bound to another slice
+            // kept five and inflated the rest.
+            pageAdapter.sizePool(recycler.recycledViewPool, columnCount(viewModel.state.value.prefs))
+        }
 
         fun bind(items: List<Any>, columns: Int) {
             (recycler.layoutManager as GridLayoutManager).spanCount = columns

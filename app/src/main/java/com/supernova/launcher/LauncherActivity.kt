@@ -683,7 +683,9 @@ class LauncherActivity :
                 // Feed before drawer: the pane overlays the workspace, so back
                 // must close it before it can ever reach the (hidden) drawer.
                 ::feed.isInitialized && feed.isOpen -> feed.close()
-                ::drawer.isInitialized && drawer.isExpanded -> drawer.hide()
+                // A query typed in the drawer goes first: the full list
+                // comes back, and the next Back closes the drawer.
+                ::drawer.isInitialized && drawer.isExpanded -> if (!drawer.clearQuery()) drawer.hide()
                 else -> Unit
             }
         }
@@ -2594,29 +2596,26 @@ class LauncherActivity :
         if (target == wallpaperZoomTarget) return
         wallpaperZoomTarget = target
         wallpaperZoomAnimator?.cancel()
-        val manager = WallpaperManager.getInstance(this)
+        // Sent from a background thread (WallpaperOffsets): each is a binder
+        // call, per frame of the ramp. A service that throws stops the zoom.
+        val onFail: () -> Unit = {
+            wallpaperZoomBroken = true
+            wallpaperZoomAnimator?.cancel()
+        }
         if (!Animations.enabled(prefs)) {
             // Restore-to-0 still applies (a mid-open pref flip can't strand a
             // zoomed wallpaper), just without the ramp.
             wallpaperZoomValue = target
-            try {
-                method.invoke(manager, token, target)
-            } catch (_: Exception) {
-                wallpaperZoomBroken = true
-            }
+            com.supernova.launcher.ui.WallpaperOffsets.zoom(this, token, method, target, onFail)
             return
         }
         wallpaperZoomAnimator = android.animation.ValueAnimator.ofFloat(wallpaperZoomValue, target).apply {
             duration = Animations.duration(prefs, WALLPAPER_ZOOM_MS)
             addUpdateListener { animator ->
                 wallpaperZoomValue = animator.animatedValue as Float
-                try {
-                    method.invoke(manager, token, wallpaperZoomValue)
-                } catch (_: Exception) {
-                    // Some OEM wallpaper services throw; stop retrying.
-                    wallpaperZoomBroken = true
-                    cancel()
-                }
+                com.supernova.launcher.ui.WallpaperOffsets.zoom(
+                    this@LauncherActivity, token, method, wallpaperZoomValue, onFail
+                )
             }
             start()
         }
