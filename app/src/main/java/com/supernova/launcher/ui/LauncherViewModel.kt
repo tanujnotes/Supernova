@@ -1359,17 +1359,6 @@ class LauncherViewModel(
         if (state.value.prefs.drawerDefaultTab in folders) set(Pref.drawerDefaultTab, "")
     }
 
-    // Undo of that drag: the groups as before held them, and the default
-    // tab back if the drag cleared it.
-    fun revertGroups(before: List<DrawerGroup>, defaultTab: String) {
-        viewModelScope.launch {
-            preferences.updateDrawerGroups { DrawerGroupOrder.reverted(it, before) }
-        }
-        if (defaultTab.isNotEmpty() && state.value.prefs.drawerDefaultTab.isEmpty()) {
-            set(Pref.drawerDefaultTab, defaultTab)
-        }
-    }
-
     // Undo of a delete on the Drawer groups page: the group back out of
     // before, the list as it stood when it was deleted.
     fun restoreGroup(before: List<DrawerGroup>, id: String) {

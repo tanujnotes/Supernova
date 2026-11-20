@@ -507,8 +507,6 @@
     <string name="delete_tab">Delete tab</string>
     <string name="delete_folder_group">Delete folder</string>
     <string name="group_deleted">%1$s deleted</string>
-    <string name="group_now_tab">%1$s is now a tab</string>
-    <string name="group_now_folder">%1$s is now a folder</string>
     <string name="group_name_required">Enter a name</string>
     <string name="new_tab">New tab</string>
     <string name="group_settings">Group settings</string>

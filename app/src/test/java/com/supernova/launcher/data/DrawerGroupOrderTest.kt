@@ -108,13 +108,10 @@ class DrawerGroupOrderTest {
     }
 
     @Test
-    fun aTabDraggedIntoTheFoldersBecomesAFolderAndUndoPutsItBack() {
+    fun aTabDraggedIntoTheFoldersBecomesAFolder() {
         val moved =
             DrawerGroupOrder.arranged(all, listOf("Games", "Money"), listOf("Travel", "Social", "Tools"), retype)
         assertEquals(listOf("Games", "Money"), names(moved, DrawerGroupType.TAB))
         assertEquals(listOf("Travel", "Social", "Tools"), names(moved, DrawerGroupType.FOLDER))
-        val back = DrawerGroupOrder.reverted(moved, all)
-        assertEquals(listOf("Games", "Travel", "Money"), names(back, DrawerGroupType.TAB))
-        assertEquals(listOf("Social", "Tools"), names(back, DrawerGroupType.FOLDER))
     }
 }
