@@ -908,12 +908,15 @@ class LauncherRepository(private val context: Context) {
         isInstalled: (packageName: String, userSerial: Long) -> Boolean,
         // Whether this id is still bound here, to this provider: a backup of
         // this same install, with its widget still up.
-        widgetBound: (appWidgetId: Int, provider: String?) -> Boolean
+        widgetBound: (appWidgetId: Int, provider: String?) -> Boolean,
+        // Off when there is nothing to keep (an unreadable store, emptied):
+        // its empty snapshot would push a real backup out.
+        snapshotFirst: Boolean = true
     ): ImportResult {
         val payload = runCatching { json.decodeFromString<BackupPayload>(raw) }.getOrElse {
             throw com.supernova.launcher.data.imports.UnreadableBackupException("not a launcher backup")
         }
-        return restore(withRetiredFolderSort(raw, payload), currentPrefs, isInstalled, widgetBound)
+        return restore(withRetiredFolderSort(raw, payload), currentPrefs, isInstalled, widgetBound, snapshotFirst)
     }
 
     // A backup from before the folder A-Z setting was retired, taken with it
@@ -957,7 +960,8 @@ class LauncherRepository(private val context: Context) {
         payload: BackupPayload,
         currentPrefs: LauncherPrefs,
         isInstalled: (packageName: String, userSerial: Long) -> Boolean,
-        widgetBound: (appWidgetId: Int, provider: String?) -> Boolean
+        widgetBound: (appWidgetId: Int, provider: String?) -> Boolean,
+        snapshotFirst: Boolean = true
     ): ImportResult {
         val migrated = ModelMigrations.migrate(payload.model)
 
@@ -985,7 +989,9 @@ class LauncherRepository(private val context: Context) {
         // What is being replaced stays recoverable from Automatic backups, as
         // Reset's does: without that snapshot, no import. Written under the
         // lock, so no layout edit lands in between and is lost.
-        check(writeAutoBackup(currentPrefs)) { "couldn't save a backup of the current layout first" }
+        if (snapshotFirst) {
+            check(writeAutoBackup(currentPrefs)) { "couldn't save a backup of the current layout first" }
+        }
         lock.withLock {
             context.supernovaStore.edit { prefs ->
                 prefs[StoreKeys.model] = json.encodeToString(validated)

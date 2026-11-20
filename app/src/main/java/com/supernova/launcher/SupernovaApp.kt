@@ -22,6 +22,7 @@ class SupernovaApp : Application() {
         super.onCreate()
         installCrashHandler()
         Diagnostics.install(this)
+        com.supernova.launcher.data.StoreRecovery.install(this)
         applyStoredTheme()
         followLauncherAnimations()
     }
@@ -45,6 +46,11 @@ class SupernovaApp : Application() {
                 // Before the first snapshot, so the launcher's first frame is
                 // already on the grid this screen deserves.
                 preferences.applyDeviceProfileOnce(DeviceProfile.forDevice(this@SupernovaApp))
+                // An unreadable store came back empty: the newest automatic
+                // backup goes in before anything reads the settings.
+                com.supernova.launcher.data.StoreRecovery.recover(
+                    this@SupernovaApp, graph.repository, preferences, graph.catalog
+                )
                 preferences.snapshot()
             }
             ThemeEngine.applyMode(this@SupernovaApp, prefs)

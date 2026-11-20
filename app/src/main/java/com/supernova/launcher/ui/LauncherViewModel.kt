@@ -141,8 +141,9 @@ class LauncherViewModel(
 
     // A setting's write: off the main thread, fire and forget. Every plain
     // setter below is one of these.
+    // A write that fails (a full disk) is noted, not a crash on every tap.
     private fun persist(block: suspend () -> Unit) {
-        viewModelScope.launch { block() }
+        viewModelScope.launch { com.supernova.launcher.runLogged("save to the settings store") { block() } }
     }
 
     // Any one setting: viewModel.set(Pref.gridRows, 7). The settings that
