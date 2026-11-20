@@ -454,7 +454,12 @@ class DrawerController(
         val sidePad = context.dp(prefs.drawerPaddingH)
         val endPad = context.dp(prefs.drawerPaddingV)
         binding.drawerSheet.setPadding(barInsets.left, barInsets.top + liftedRow, barInsets.right, keyboardInset)
-        binding.drawerSearchResults.setPadding(0, 0, 0, context.dp(18) + listInset)
+        // The results pad past a keyboard that covers them (the field at the
+        // top): a list that nearly fit couldn't be dragged, so the drag that
+        // drops the keyboard never came and its last rows stayed under it
+        // (#284). A field at the bottom already sits the sheet above it.
+        val resultsInset = if (rowBelowList) listInset else maxOf(listInset, keyboardHeight)
+        binding.drawerSearchResults.setPadding(0, 0, 0, context.dp(18) + resultsInset)
         // clipToPadding is false, so the list scrolls under the navigation bar
         // and comes to rest above it.
         binding.drawerRecycler.setPadding(sidePad, endPad, sidePad, context.dp(18) + listInset + endPad)
@@ -676,6 +681,7 @@ class DrawerController(
                             if (viewModel.state.value.prefs.drawerAutoKeyboard) showKeyboard()
                         }
                         setProgress(1f, translate = false)
+                        if (transition != DrawerTransition.SLIDE_UP) dragInPlace(bottomSheet, 1f)
                         onOpenStateChanged?.invoke(true)
                     }
                     BottomSheetBehavior.STATE_HIDDEN -> {
@@ -703,7 +709,12 @@ class DrawerController(
                 if (state != BottomSheetBehavior.STATE_DRAGGING &&
                     state != BottomSheetBehavior.STATE_SETTLING
                 ) return
-                setProgress(slideOffset.coerceIn(0f, 1f), translate = false)
+                val open = slideOffset.coerceIn(0f, 1f)
+                if (transition == DrawerTransition.SLIDE_UP) {
+                    setProgress(open, translate = false)
+                } else {
+                    dragInPlace(bottomSheet, open)
+                }
             }
         })
         binding.drawerSearch.setOnEditorActionListener { _, actionId, _ ->
@@ -1222,6 +1233,21 @@ class DrawerController(
         progress = 0f
         applyContentAlpha(1f)
         applyHome(0f)
+    }
+
+    // Zoom and Fade close under a swipe down the way they close on Back: in
+    // place, fading (and shrinking, for Zoom) with the finger, not sliding
+    // down (#294). The behavior still moves the sheet by layout offset;
+    // the translation holds it where it was opened.
+    private fun dragInPlace(sheet: View, open: Float) {
+        val parentHeight = (sheet.parent as? View)?.height ?: return
+        val expandedTop = (parentHeight - sheet.height).coerceAtLeast(0)
+        sheet.translationY = -(sheet.top - expandedTop).toFloat()
+        sheet.alpha = open
+        val scale = if (transition == DrawerTransition.ZOOM) ZOOM_FROM + (1f - ZOOM_FROM) * open else 1f
+        sheet.scaleX = scale
+        sheet.scaleY = scale
+        setProgress(open, translate = false, content = false)
     }
 
     private fun revealInPlace(prefs: LauncherPrefs, onSettled: (() -> Unit)? = null) {

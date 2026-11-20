@@ -2118,7 +2118,7 @@ class LauncherActivity :
                 // Same as the workspace rebind: never inherit the
                 // drag-source hiding on a reused view - but an item whose
                 // drop is still settling stays hidden until it lands.
-                itemView.alpha = if (item.id == drag.settlingItemId) 0f else 1f
+                itemView.alpha = if (drag.isSettling(item.id)) 0f else 1f
                 slot.addView(
                     itemView,
                     FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)

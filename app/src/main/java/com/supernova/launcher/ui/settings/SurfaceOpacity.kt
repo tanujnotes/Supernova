@@ -20,6 +20,9 @@ object SurfaceOpacity {
     fun effective(prefs: LauncherPrefs, id: SurfaceId): Int =
         ((StyleConfig.decode(prefs.styleConfig).styleFor(id).alpha ?: pref(prefs, id)) * PERCENT).roundToInt()
 
+    // The page's slider before anything was set: Default in the sheet.
+    fun defaultPercent(id: SurfaceId): Int = (pref(LauncherPrefs(), id) * PERCENT).roundToInt()
+
     fun min(id: SurfaceId): Int = if (id == SurfaceId.DRAWER) DRAWER_MIN_PERCENT else 0
 
     // From the page's slider.

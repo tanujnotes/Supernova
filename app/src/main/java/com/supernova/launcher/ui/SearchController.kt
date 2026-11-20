@@ -342,8 +342,10 @@ class SearchController(
         binding.searchBackdrop.setOnClickListener { hide() }
 
         // The window is adjustNothing and edge-to-edge, so the panel pads
-        // itself out of the system bars; the IME is allowed to overlap, as it
-        // is in the drawer.
+        // itself out of the system bars. The keyboard overlaps the panel, but
+        // the results pad past it: a list that nearly fits can't be dragged,
+        // so the drag that drops the keyboard never came and its last rows
+        // stayed under it (#284).
         ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
             val bars = insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
@@ -355,7 +357,11 @@ class SearchController(
             )
             view.setPadding(bars.left + gutter, bars.top, bars.right + gutter, 0)
             val density = view.resources.displayMetrics.density
-            ui.searchResults.setPadding(0, 0, 0, (24 * density).toInt() + bars.bottom)
+            // The floating window stops short of the screen's bottom: only
+            // the part of the keyboard that rises past its edge covers it.
+            val windowGap = (ui.root.layoutParams as? android.view.ViewGroup.MarginLayoutParams)?.bottomMargin ?: 0
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom - windowGap
+            ui.searchResults.setPadding(0, 0, 0, (24 * density).toInt() + maxOf(bars.bottom, ime))
             insets
         }
         root.requestApplyInsets()
