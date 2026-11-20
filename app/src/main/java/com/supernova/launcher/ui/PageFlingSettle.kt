@@ -64,7 +64,7 @@ internal object PageFlingSettle {
     private fun distanceInfluence(ratio: Float): Float =
         sin((ratio - HALF) * INFLUENCE * Math.PI.toFloat() / 2f)
 
-    private val QuinticOut = Interpolator { t ->
+    val QuinticOut = Interpolator { t ->
         val u = t - 1f
         u * u * u * u * u + 1f
     }

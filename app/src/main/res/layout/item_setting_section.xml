@@ -41,7 +41,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:fontFamily="sans-serif-medium"
-            android:textColor="@color/textPrimary"
+            android:textColor="@color/settingsText"
             android:textSize="@dimen/text_body" />
 
         <TextView
@@ -49,7 +49,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_xxs"
-            android:textColor="@color/textSecondary"
+            android:textColor="@color/settingsTextSecondary"
             android:textSize="@dimen/text_secondary"
             android:visibility="gone" />
     </LinearLayout>
@@ -62,5 +62,5 @@
         android:importantForAccessibility="no"
         android:paddingHorizontal="@dimen/space_md"
         android:src="@drawable/ic_settings_chevron"
-        app:tint="@color/textSecondary" />
+        app:tint="@color/settingsTextSecondary" />
 </LinearLayout>

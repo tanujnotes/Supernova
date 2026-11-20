@@ -27,6 +27,27 @@ class WebSearchProviderTest {
     }
 
     @Test
+    fun customUrlTakesTheQueryAtItsMarkOrItsEnd() {
+        val marked = WebEngine(WebProvider.CUSTOM, "https://searx.example.org/search?q=%s&lang=en")
+        assertEquals("https://searx.example.org/search?q=a%26b&lang=en", marked.searchUrl("a&b"))
+        assertEquals("searx.example.org", marked.name)
+        val plain = WebEngine(WebProvider.CUSTOM, " https://www.startpage.com/do/search?q= ")
+        assertEquals("https://www.startpage.com/do/search?q=hello+world", plain.searchUrl("hello world"))
+        assertEquals("startpage.com", plain.name)
+    }
+
+    @Test
+    fun customWithoutAUsableUrlSearchesGoogle() {
+        for (url in listOf("", "searx.example.org/?q=%s", "ftp://example.org/%s")) {
+            val engine = WebEngine(WebProvider.CUSTOM, url)
+            assertEquals("https://www.google.com/search?q=hi", engine.searchUrl("hi"))
+            assertEquals("Google", engine.name)
+        }
+        // A fixed engine ignores a URL left over from Custom.
+        assertEquals("https://kagi.com/search?q=hi", WebEngine(WebProvider.KAGI, "https://x.org/%s").searchUrl("hi"))
+    }
+
+    @Test
     fun chipTemplatesEncodeTheQuery() {
         assertEquals("market://search?q=chess", SearchChip.PLAY_STORE.url("chess"))
         assertEquals("geo:0,0?q=pizza+near+me", SearchChip.MAPS.url("pizza near me"))
@@ -48,11 +69,11 @@ class WebSearchProviderTest {
 
     @Test
     fun providerEmitsOneWebRowAndOneChipRow() {
-        val provider = WebSearchProvider(provider = { WebProvider.BRAVE })
+        val provider = WebSearchProvider(provider = { WebEngine(WebProvider.BRAVE) })
         val results = provider.search("  query  ")
         assertEquals(
             listOf(
-                SearchResult.Web("query", WebProvider.BRAVE),
+                SearchResult.Web("query", WebEngine(WebProvider.BRAVE)),
                 SearchResult.ProviderChips("query")
             ),
             results
@@ -62,11 +83,11 @@ class WebSearchProviderTest {
     @Test
     fun noConfiguredChipsDropsTheChipRow() {
         val provider = WebSearchProvider(
-            provider = { WebProvider.GOOGLE },
+            provider = { WebEngine(WebProvider.GOOGLE) },
             chips = { emptyList() }
         )
         assertEquals(
-            listOf(SearchResult.Web("query", WebProvider.GOOGLE)),
+            listOf(SearchResult.Web("query", WebEngine(WebProvider.GOOGLE))),
             provider.search("query")
         )
     }
@@ -84,7 +105,7 @@ class WebSearchProviderTest {
 
     @Test
     fun blankQueryEmitsNothing() {
-        val provider = WebSearchProvider(provider = { WebProvider.GOOGLE })
+        val provider = WebSearchProvider(provider = { WebEngine(WebProvider.GOOGLE) })
         assertTrue(provider.search("   ").isEmpty())
     }
 }

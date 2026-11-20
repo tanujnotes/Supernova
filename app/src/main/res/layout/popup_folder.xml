@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/folderScrim"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content">
@@ -14,11 +15,19 @@
         android:orientation="vertical"
         android:padding="@dimen/space_ms">
 
+        <!-- The weight makes the grid the part that gives way when the card
+             is short of room (a window the keyboard resized): without it
+             the grid kept its height and the title row under it got none,
+             so a long folder's name could not be seen or typed into. Its
+             height stays wrap_content: the card wraps, so 0dp would fold
+             the grid away. -->
         <com.supernova.launcher.ui.FolderGridView
             android:id="@+id/folderGrid"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal" />
+            android:layout_gravity="center_horizontal"
+            android:layout_weight="1"
+            tools:ignore="InefficientWeight" />
 
         <!-- The title sits under the grid, at the foot of the card. -->
         <LinearLayout

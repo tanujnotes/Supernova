@@ -24,6 +24,7 @@ import com.supernova.launcher.ui.AnimationSpeed
 import com.supernova.launcher.ui.LaunchAnimation
 import com.supernova.launcher.ui.PopupExtraRow
 import com.supernova.launcher.ui.ScrollEffect
+import com.supernova.launcher.ui.NavBarButtons
 import com.supernova.launcher.ui.StatusBarIcons
 import com.supernova.launcher.ui.WallpaperScrollMode
 import com.supernova.launcher.data.IconGlass
@@ -107,6 +108,15 @@ object EnumLabels {
         StatusBarIcons.WALLPAPER -> R.string.status_icons_wallpaper
         StatusBarIcons.LIGHT -> R.string.status_icons_dark
         StatusBarIcons.DARK -> R.string.status_icons_light
+    }
+
+    @StringRes
+    fun of(buttons: NavBarButtons): Int = when (buttons) {
+        NavBarButtons.STATUS_BAR -> R.string.nav_buttons_status_bar
+        NavBarButtons.AUTO -> R.string.status_icons_auto
+        NavBarButtons.WALLPAPER -> R.string.status_icons_wallpaper
+        NavBarButtons.LIGHT -> R.string.status_icons_dark
+        NavBarButtons.DARK -> R.string.status_icons_light
     }
 
     @StringRes

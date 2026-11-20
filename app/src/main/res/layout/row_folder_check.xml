@@ -2,6 +2,8 @@
 <!-- Folder edit checklist row: app icon on the left, label, checkbox on the
      right (CheckedTextView draws its check mark at the end). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center_vertical"

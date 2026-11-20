@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.booleanOrNull
@@ -689,34 +691,7 @@ class LauncherRepository(private val context: Context) {
     }
 
     suspend fun removeItemsForPackage(packageName: String, userSerial: Long) {
-        mutate { current ->
-            val removedIds = current.items.filter { item ->
-                when (item.itemType) {
-                    ItemType.APP,
-                    ItemType.SHORTCUT -> item.packageName == packageName && item.userSerial == userSerial
-                    // So only the launcher's own user losing the app takes
-                    // its widgets: the work copy of an app going leaves the
-                    // personal widget alone.
-                    ItemType.WIDGET -> userSerial == ownUserSerial &&
-                        item.widgetProvider?.substringBefore('/') == packageName
-                    ItemType.FOLDER -> false
-                }
-            }.map { it.id }.toSet()
-            if (removedIds.isEmpty()) return@mutate current
-
-            val remaining = current.items.filterNot { it.id in removedIds }
-            val emptyFolderIds = remaining.filter { folder ->
-                folder.itemType == ItemType.FOLDER && remaining.none { it.folderId == folder.id }
-            }.map { it.id }.toSet()
-
-            current.copy(
-                items = remaining.filterNot { it.id in emptyFolderIds },
-                // Overrides for the removed app would otherwise accrete forever.
-                appOverrides = current.appOverrides.filterKeys {
-                    !it.startsWith("$userSerial/$packageName/")
-                }
-            )
-        }
+        mutate { current -> PackageRemoval.applied(current, packageName, userSerial, ownUserSerial) }
     }
 
     suspend fun setAppOverride(key: String, transform: (AppOverride) -> AppOverride) {
@@ -1211,15 +1186,20 @@ class LauncherRepository(private val context: Context) {
         return current.copy(items = result)
     }
 
+    // Off the main thread: callers launch on the view model's (main) scope,
+    // and DataStore runs the edit in the caller's context, so every drop,
+    // resize and edit encoded the whole layout there.
     private suspend fun mutate(block: (LauncherModel) -> LauncherModel) {
-        lock.withLock {
-            // Never over a layout this build couldn't read: an edit to the
-            // empty stand-in would replace it for good.
-            val current = decode(context.supernovaStore.data.first()[StoreKeys.model]) ?: return
-            val next = AppItemEdits.stampNew(current, LargeIcons.withSmallIconsOffDesktop(block(current)))
-            if (next == current) return
-            context.supernovaStore.edit { prefs ->
-                prefs[StoreKeys.model] = json.encodeToString(next)
+        withContext(Dispatchers.Default) {
+            lock.withLock {
+                // Never over a layout this build couldn't read: an edit to the
+                // empty stand-in would replace it for good.
+                val current = decode(context.supernovaStore.data.first()[StoreKeys.model]) ?: return@withLock
+                val next = AppItemEdits.stampNew(current, LargeIcons.withSmallIconsOffDesktop(block(current)))
+                if (next == current) return@withLock
+                context.supernovaStore.edit { prefs ->
+                    prefs[StoreKeys.model] = json.encodeToString(next)
+                }
             }
         }
     }

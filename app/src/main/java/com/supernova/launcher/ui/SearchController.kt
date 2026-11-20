@@ -228,6 +228,9 @@ class SearchController(
         onShown(!windowMode())
         showZeroState()
         loadRecentQueries()
+        // From the top, where Recent searches sit, whatever was scrolled to
+        // last time.
+        ui.searchResults.scrollToPosition(0)
         ui.root.visibility = View.VISIBLE
         ui.root.animate().cancel()
         val backdrop = binding.searchBackdrop
@@ -360,6 +363,19 @@ class SearchController(
         )
         overlaySurface = surface
 
+        // A finger drag on the results takes the keyboard down, as in the
+        // drawer, so the whole list can be read.
+        ui.searchResults.addOnScrollListener(object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(rv: androidx.recyclerview.widget.RecyclerView, newState: Int) {
+                if (newState == androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_DRAGGING &&
+                    ui.searchInput.hasFocus()
+                ) {
+                    ui.searchInput.clearFocus()
+                    imm()?.hideSoftInputFromWindow(ui.searchInput.windowToken, 0)
+                }
+            }
+        })
+
         ui.searchInput.doAfterTextChanged { text ->
             if (suppressQueryEvents) return@doAfterTextChanged
             val query = text?.toString().orEmpty()
@@ -385,7 +401,7 @@ class SearchController(
             com.supernova.launcher.search.PrivateSpaceSearchProvider(privateSpaceLabel, privateSpaceIcon),
             com.supernova.launcher.search.CardSearchProvider { viewModel.feedCards() },
             WebSearchProvider(
-                provider = { viewModel.state.value.prefs.searchWebProvider },
+                provider = { com.supernova.launcher.search.WebEngine.of(viewModel.state.value.prefs) },
                 chips = { SearchChip.decode(viewModel.state.value.prefs.searchChips) }
             )
         )
@@ -546,8 +562,8 @@ class SearchController(
                 surface.dismiss()
             }
             else -> {
-                val provider = viewModel.state.value.prefs.searchWebProvider
-                if (onOpenUri(provider.searchUrl(query), null)) surface.dismiss()
+                val engine = com.supernova.launcher.search.WebEngine.of(viewModel.state.value.prefs)
+                if (onOpenUri(engine.searchUrl(query), null)) surface.dismiss()
             }
         }
     }

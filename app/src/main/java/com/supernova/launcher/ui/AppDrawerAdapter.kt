@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.supernova.launcher.R
 import com.supernova.launcher.data.AppCatalog
 import com.supernova.launcher.data.DrawerGroup
+import com.supernova.launcher.data.IconThread
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.databinding.ItemDrawerAppBinding
 import com.supernova.launcher.databinding.ItemDrawerAppRowBinding
@@ -201,13 +202,14 @@ class AppDrawerAdapter(
         pool.setMaxRecycledViews(TYPE_FOLDER_TILE, columns.coerceAtLeast(DEFAULT_POOL))
     }
 
-    // Inflates a couple of rows of spare tiles into the pool while the main
-    // thread is idle, one tile at a time. The list's first fling otherwise
-    // inflated every row it brought in, five tiles at 2-4ms each, and
-    // dropped frames all the way down.
+    // Inflates a pool's worth of spare tiles while the main thread is idle,
+    // one tile at a time. The list's first fling otherwise inflated every
+    // row it brought in, five tiles at 2-4ms each, and dropped frames all
+    // the way down; and the first open after the process started inflated a
+    // whole screenful on the tap (#277).
     fun prefillPool(list: RecyclerView, columns: Int) {
         val pool = list.recycledViewPool
-        val target = columns * PREFILL_ROWS
+        val target = columns * POOL_ROWS
         list.doOnAttach {
             android.os.Looper.myQueue().addIdleHandler {
                 val more = list.isAttachedToWindow && pool.getRecycledViewCount(TYPE_TILE) < target
@@ -269,7 +271,10 @@ class AppDrawerAdapter(
         apps: List<LaunchableApp>,
         folders: List<FolderEntry> = emptyList(),
         foldersFirst: Boolean = true,
-        order: Order = Order.A_Z
+        order: Order = Order.A_Z,
+        // Another tab's list: a diff against the old one finds nothing to
+        // keep and only costs time (#278).
+        replace: Boolean = false
     ) {
         allEntries.clear()
         apps.mapTo(allEntries, ::Entry)
@@ -277,7 +282,7 @@ class AppDrawerAdapter(
         folderEntries.addAll(folders)
         this.foldersFirst = foldersFirst
         this.order = order
-        applyFilter()
+        applyFilter(replace)
     }
 
     // The flat, filtered list the paged style cuts its pages from.
@@ -296,7 +301,7 @@ class AppDrawerAdapter(
         applyFilter()
     }
 
-    private fun applyFilter() {
+    private fun applyFilter(replace: Boolean = false) {
         val oldItems = displayItems.toList()
         displayItems.clear()
         if (query.isBlank()) {
@@ -330,7 +335,7 @@ class AppDrawerAdapter(
         // list shows rows of its own instead (the web rows, or an empty tab's
         // message), which the diff doesn't see; fall back to a full refresh
         // there, which also rebinds an empty tab's action for the new tab.
-        if (oldItems.isEmpty() || displayItems.isEmpty()) {
+        if (replace || oldItems.isEmpty() || displayItems.isEmpty()) {
             notifyDataSetChanged()
             return
         }
@@ -412,7 +417,13 @@ class AppDrawerAdapter(
 
     // A tab with nothing in it: what to say, and the way to fill it. Null
     // leaves an empty list empty (the All tab, a search).
-    class EmptyState(val message: CharSequence, val actionLabel: CharSequence, val onAction: () -> Unit)
+    // messageColor: the drawer's own text colour, null for the theme's.
+    class EmptyState(
+        val message: CharSequence,
+        val actionLabel: CharSequence,
+        val messageColor: Int? = null,
+        val onAction: () -> Unit
+    )
 
     var emptyState: EmptyState? = null
 
@@ -550,6 +561,31 @@ class AppDrawerAdapter(
         }
     }
 
+    // A bind never renders an icon: a cached one shows at once, a missing one
+    // renders on the icon thread and lands when ready. Rendering on the bind
+    // stalled a drawer opened soon after the launcher's process started -
+    // overnight, say - for every visible tile's icon, seconds on a dense
+    // grid (#277). Until then the view keeps the app's previous icon (an
+    // icon setting changed) or shows none (recycled from another app).
+    private fun bindIcon(view: android.widget.ImageView, app: LaunchableApp) {
+        val key = "${app.userSerial}/${app.packageName}/${app.className}"
+        val cached = appCatalog.cachedIcon(app)
+        if (cached != null) {
+            view.setTag(R.id.tag_icon_app, key)
+            view.setImageDrawable(decorateIcon(cached, app))
+            return
+        }
+        if (view.getTag(R.id.tag_icon_app) != key) view.setImageDrawable(null)
+        view.setTag(R.id.tag_icon_app, key)
+        IconThread.render(appCatalog, app) { icon ->
+            // The cache wins over a render that an icon change has since
+            // evicted and redrawn.
+            if (view.getTag(R.id.tag_icon_app) == key) {
+                view.setImageDrawable(decorateIcon(appCatalog.cachedIcon(app) ?: icon, app))
+            }
+        }
+    }
+
     inner class TileHolder(private val binding: ItemDrawerAppBinding) : RecyclerView.ViewHolder(binding.root) {
         private val baseIconPx = binding.appIcon.layoutParams.width
 
@@ -561,7 +597,7 @@ class AppDrawerAdapter(
             binding.root.contentDescription = app.label
             binding.appIcon.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             applyTileFit(binding, baseIconPx)
-            binding.appIcon.setImageDrawable(decorateIcon(appCatalog.iconFor(app), app))
+            bindIcon(binding.appIcon, app)
             binding.root.setOnClickListener { onClick(it, app) }
             binding.root.setOnLongClickListener {
                 onLongPress(it, app)
@@ -578,7 +614,7 @@ class AppDrawerAdapter(
             labelPrefs?.let { LabelStyler.apply(binding.appLabel, it, onWallpaper = false, context = LabelContext.DRAWER) }
             binding.appIcon.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             sizeIcon(binding.root, binding.appIcon, baseIconPx, keepInsideTile = false)
-            binding.appIcon.setImageDrawable(decorateIcon(appCatalog.iconFor(app), app))
+            bindIcon(binding.appIcon, app)
             binding.root.setOnClickListener { onClick(it, app) }
             binding.root.setOnLongClickListener {
                 onLongPress(it, app)
@@ -660,7 +696,10 @@ class AppDrawerAdapter(
     ) {
         fun bind(state: EmptyState) {
             val box = itemView as android.widget.LinearLayout
-            (box.getChildAt(0) as android.widget.TextView).text = state.message
+            (box.getChildAt(0) as android.widget.TextView).apply {
+                text = state.message
+                setTextColor(state.messageColor ?: context.getColor(R.color.textSecondary))
+            }
             (box.getChildAt(1) as android.widget.TextView).apply {
                 text = state.actionLabel
                 setOnClickListener { state.onAction() }
@@ -674,13 +713,13 @@ class AppDrawerAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind() {
             val context = binding.root.context
-            val engine = labelPrefs?.searchWebProvider ?: com.supernova.launcher.search.WebProvider.GOOGLE
+            val engine = com.supernova.launcher.search.WebEngine.of(labelPrefs)
             val color = context.getColor(R.color.textPrimary)
             binding.resultIcon.setImageResource(R.drawable.ic_search)
             androidx.core.widget.ImageViewCompat.setImageTintList(
                 binding.resultIcon, android.content.res.ColorStateList.valueOf(color)
             )
-            binding.resultLabel.text = context.getString(R.string.search_web_for, engine.displayName, query.trim())
+            binding.resultLabel.text = context.getString(R.string.search_web_for, engine.name, query.trim())
             binding.resultLabel.setTextColor(color)
             binding.root.setOnClickListener { onWebSearch() }
         }
@@ -733,7 +772,6 @@ class AppDrawerAdapter(
         private const val PRIVATE_HEADER_KEY = "private-header"
         // Rows of spare tiles a grid keeps, and RecyclerView's own count.
         private const val POOL_ROWS = 8
-        private const val PREFILL_ROWS = 2
         private const val DEFAULT_POOL = 5
         private const val WEB_ROW_ID = -2L
         private const val EMPTY_ROW_ID = -1L

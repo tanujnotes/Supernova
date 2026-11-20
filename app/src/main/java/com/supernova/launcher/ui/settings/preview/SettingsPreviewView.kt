@@ -667,7 +667,7 @@ class SettingsPreviewView @JvmOverloads constructor(
                 resolved, R.drawable.ic_search,
                 context.getString(
                     R.string.search_web_for,
-                    prefs.searchWebProvider.displayName,
+                    com.supernova.launcher.search.WebEngine.of(prefs).name,
                     SEARCH_DEMO_QUERY
                 )
             )

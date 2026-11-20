@@ -28,6 +28,7 @@
              comes first. -->
         <com.google.android.material.appbar.AppBarLayout
             android:id="@+id/settingsAppBar"
+            android:theme="@style/ThemeOverlay.Supernova.SettingsPage"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@android:color/transparent"
@@ -49,7 +50,7 @@
                 android:paddingTop="@dimen/space_xl"
                 android:paddingBottom="@dimen/space_sm"
                 android:text="@string/settings"
-                android:textColor="@color/textPrimary"
+                android:textColor="@color/settingsText"
                 android:textSize="@dimen/text_display"
                 android:textStyle="bold"
                 android:visibility="gone"
@@ -72,7 +73,8 @@
                     android:layout_height="48dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/back"
-                    android:src="@drawable/ic_back" />
+                    android:src="@drawable/ic_back"
+                    app:tint="@color/settingsText" />
 
                 <TextView
                     android:id="@+id/settingsTitle"
@@ -84,7 +86,7 @@
                     android:layout_weight="1"
                     android:maxLines="1"
                     android:text="@string/settings_title"
-                    android:textColor="@color/textPrimary"
+                    android:textColor="@color/settingsText"
                     android:textSize="@dimen/text_headline"
                     android:textStyle="bold" />
 
@@ -101,7 +103,7 @@
                     android:importantForAutofill="no"
                     android:inputType="text"
                     android:maxLines="1"
-                    android:textColor="@color/textPrimary"
+                    android:textColor="@color/settingsText"
                     android:textSize="@dimen/text_body"
                     android:visibility="gone" />
 
@@ -112,7 +114,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/settings_search_hint"
                     android:src="@drawable/ic_search"
-                    app:tint="@color/textPrimary" />
+                    app:tint="@color/settingsText" />
             </LinearLayout>
 
             <!-- Pinned preview: section screens park their live
@@ -166,7 +168,7 @@
                         android:layout_height="24dp"
                         android:importantForAccessibility="no"
                         android:src="@drawable/ic_search"
-                        app:tint="@color/textSecondary" />
+                        app:tint="@color/settingsTextSecondary" />
 
                     <EditText
                         android:id="@+id/rootSearchInput"
@@ -180,8 +182,8 @@
                         android:importantForAutofill="no"
                         android:inputType="text"
                         android:maxLines="1"
-                        android:textColor="@color/textPrimary"
-                        android:textColorHint="@color/textSecondary"
+                        android:textColor="@color/settingsText"
+                        android:textColorHint="@color/settingsTextSecondary"
                         android:textSize="@dimen/text_body" />
                 </LinearLayout>
             </FrameLayout>
@@ -194,6 +196,7 @@
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/settingsRecycler"
+                android:theme="@style/ThemeOverlay.Supernova.SettingsPage"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"

@@ -71,6 +71,7 @@ class ColorSheet(
         custom.show(rgb ?: defaultColor)
         val dialog = Sheets.open(context)
         dialog.setContentView(binding.root)
+        dialog.setOnDismissListener { custom.remember() }
         dialog.show()
     }
 

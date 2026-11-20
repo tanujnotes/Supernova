@@ -5,7 +5,9 @@ import android.graphics.drawable.Drawable
 import android.os.Process
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.drawable.toDrawable
+import com.supernova.launcher.data.AppOverride
 import com.supernova.launcher.data.CustomShapeSpec
+import com.supernova.launcher.data.IconThread
 import com.supernova.launcher.data.DrawerGroup
 import com.supernova.launcher.data.GalleryIconCodec
 import com.supernova.launcher.data.GroupPick
@@ -103,32 +105,84 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
         return if (count > 0) badgeDrawable(icon, count) else icon
     }
 
+    // An app's icon for a bind on the main thread: from the cache, or null
+    // with its render queued on the icon thread. Folder previews, drawer
+    // folders and the drawer's top row rendered their misses right on the
+    // main thread - after a restart, or once the cache had dropped them.
+    fun cachedOrLater(app: LaunchableApp, edit: AppOverride? = null, late: LateIcons): Drawable? =
+        viewModel.appCatalog().cachedIcon(app, edit) ?: run {
+            late.add(app, edit)
+            null
+        }
+
+    // The icons a bind found missing; start() renders them on the icon
+    // thread and runs onReady (main thread) once they are in the cache, for
+    // the caller to draw again.
+    class LateIcons {
+        private val wanted = mutableListOf<Pair<LaunchableApp, AppOverride?>>()
+
+        fun add(app: LaunchableApp, edit: AppOverride?) {
+            wanted += app to edit
+        }
+
+        fun start(catalog: com.supernova.launcher.data.AppCatalog, onReady: () -> Unit) {
+            IconThread.renderAll(catalog, wanted.toList(), onReady)
+        }
+    }
+
     // A custom icon is fitted to the icon shape like any other, unless its
-    // Edit has Reshape off: then it is drawn as it is.
-    fun folderPreviewDrawable(folder: LauncherItem): Drawable {
+    // Edit has Reshape off: then it is drawn as it is. With `onLate`, member
+    // icons not yet rendered leave their place empty and render off the main
+    // thread; onLate runs once they are in, for the caller to draw it again.
+    fun folderPreviewDrawable(folder: LauncherItem, onLate: (() -> Unit)? = null): Drawable {
         customFolderIcon(
             folder.iconBase64, folder.customIconPack, folder.customIconName, folder.iconRaw, isFolder = true
         )
             ?.let { return it }
+        val late = onLate?.let { LateIcons() }
         val memberIcons = previewMembers(viewModel.folderMembers(folder.id))
             .mapNotNull { member ->
-                val icon = member.takeIf { it.itemType == ItemType.SHORTCUT }?.let(::intentItemIcon)
-                    ?: member.packageName?.let { pkg ->
+                val shortcut = member.takeIf { it.itemType == ItemType.SHORTCUT }?.let {
+                    if (onLate == null) ShortcutLook(intentItemIcon(it)) else shortcutLook(it, onLate)
+                }
+                val icon = if (member.itemType == ItemType.SHORTCUT && shortcut == null) emptySlot()
+                else shortcut?.icon ?: member.packageName?.let { pkg ->
                         member.className?.let { cls ->
-                            viewModel.appCatalog().iconFor(
-                                LaunchableApp(pkg, cls, member.label, member.userSerial), member.appEdit
-                            )
+                            val app = LaunchableApp(pkg, cls, member.label, member.userSerial)
+                            if (late == null) {
+                                viewModel.appCatalog().iconFor(app, member.appEdit)
+                            } else {
+                                cachedOrLater(app, member.appEdit, late) ?: emptySlot()
+                            }
                         }
                     }
                 PausedIcon.of(icon, viewModel.state.value, member.userSerial)
             }
+        if (late != null && onLate != null) late.start(viewModel.appCatalog(), onLate)
         return composedFolderIcon(memberIcons)
     }
 
     // A folder inside it (#229) takes its place in the preview as its own
     // icon, drawn from its apps alone (nested false): a preview never goes
-    // deeper.
-    fun drawerFolderIcon(group: DrawerGroup, members: List<LaunchableApp>, nested: Boolean = true): Drawable =
+    // deeper. `onLate` as for folderPreviewDrawable.
+    fun drawerFolderIcon(
+        group: DrawerGroup,
+        members: List<LaunchableApp>,
+        nested: Boolean = true,
+        onLate: (() -> Unit)? = null
+    ): Drawable {
+        val late = onLate?.let { LateIcons() }
+        val icon = drawerFolderIcon(group, members, nested, late)
+        if (late != null && onLate != null) late.start(viewModel.appCatalog(), onLate)
+        return icon
+    }
+
+    private fun drawerFolderIcon(
+        group: DrawerGroup,
+        members: List<LaunchableApp>,
+        nested: Boolean,
+        late: LateIcons?
+    ): Drawable =
         customFolderIcon(group.iconBase64, group.iconPack, group.iconName, group.iconRaw, isFolder = true)
             ?: composedFolderIcon(
                 previewMembers(
@@ -136,13 +190,21 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
                 ).mapNotNull { pick ->
                     when (pick) {
                         is GroupPick.App -> PausedIcon.of(
-                            viewModel.appCatalog().iconFor(pick.app), viewModel.state.value, pick.app.userSerial
+                            if (late == null) {
+                                viewModel.appCatalog().iconFor(pick.app)
+                            } else {
+                                cachedOrLater(pick.app, late = late) ?: emptySlot()
+                            },
+                            viewModel.state.value, pick.app.userSerial
                         )
                         is GroupPick.Folder ->
-                            drawerFolderIcon(pick.group, viewModel.drawerFolderApps(pick.group), nested = false)
+                            drawerFolderIcon(pick.group, viewModel.drawerFolderApps(pick.group), false, late)
                     }
                 }
             )
+
+    // A member's place in a preview while its icon renders.
+    private fun emptySlot(): Drawable = android.graphics.Color.TRANSPARENT.toDrawable()
 
     // The members a folder's preview draws: the window's own order, picked
     // as the window lays them out (FolderPreviewPick). The dense styles
@@ -213,6 +275,33 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
         )
     }
 
+    // A shortcut's icon (intentItemIcon) for a bind on the main thread: from
+    // a cache, or null while it renders on the icon thread, when `onLate`
+    // runs. Decoding and drawing its stored picture on every page bind used
+    // the main thread. `icon` null: the shortcut has none of its own, and
+    // the app's stands in.
+    class ShortcutLook(val icon: Drawable?)
+
+    private val shortcutLooks = android.util.LruCache<String, ShortcutLook>(SHORTCUT_LOOKS)
+
+    fun shortcutLook(item: LauncherItem, onLate: () -> Unit): ShortcutLook? {
+        val key = listOf(
+            item.id, viewModel.state.value.iconGeneration, item.iconBase64?.hashCode(), item.shortcutEdit,
+            item.customIconPack, item.customIconName, item.iconRaw, item.intentUri
+        ).joinToString("|")
+        shortcutLooks.get(key)?.let { return it }
+        IconThread.renderAll(
+            listOf {
+                val look = ShortcutLook(intentItemIcon(item))
+                shortcutLooks.put(key, look)
+                // Non-null, so onLate runs for a shortcut with no icon too.
+                look.icon ?: emptySlot()
+            },
+            onLate
+        )
+        return null
+    }
+
     // Icon for a SHORTCUT item carrying an intentUri: a launcher-action tile by
     // action, or the snapshot icon activities/legacy shortcuts stored. Null for
     // a plain app shortcut, which falls back to the app's own icon. An icon
@@ -248,5 +337,8 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
 
         // The dense preview styles (3x3, dense ring) show up to nine members.
         const val PREVIEW_MEMBERS = 9
+
+        // Shortcut icons kept: a few home screens' worth.
+        const val SHORTCUT_LOOKS = 128
     }
 }

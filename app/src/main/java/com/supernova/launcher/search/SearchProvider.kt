@@ -50,7 +50,7 @@ sealed class SearchResult {
     // A custom card matched by name; rendered as the full card.
     data class Card(val card: com.supernova.launcher.feed.FeedCard) : SearchResult()
 
-    data class Web(val query: String, val provider: WebProvider) : SearchResult()
+    data class Web(val query: String, val provider: WebEngine) : SearchResult()
     data class ProviderChips(val query: String) : SearchResult()
 
     companion object {

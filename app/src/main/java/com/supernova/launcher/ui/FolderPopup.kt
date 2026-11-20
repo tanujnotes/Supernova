@@ -3,10 +3,12 @@ package com.supernova.launcher.ui
 import android.content.Context
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.view.animation.PathInterpolator
 import android.widget.FrameLayout
 import android.widget.PopupWindow
@@ -67,7 +69,11 @@ class FolderPopup(private val context: Context) {
         onRename: (String) -> Unit,
         // The title row's overflow button, handed over to anchor a menu on.
         onMenu: ((View) -> Unit)? = null,
-        onDismiss: (() -> Unit)? = null
+        onDismiss: (() -> Unit)? = null,
+        // The screen y the card stays above: the dock's top, so a folder
+        // opened from the dock or the home grid never covers the dock's
+        // icons. Null leaves the whole screen to it.
+        keepAboveScreenY: Int? = null
     ): PopupWindow {
         // A drawer folder can be opened with the drawer's search keyboard up;
         // the card takes focus and would drop it a step late otherwise.
@@ -98,6 +104,7 @@ class FolderPopup(private val context: Context) {
         binding.folderTitle.setHintTextColor(androidx.core.graphics.ColorUtils.setAlphaComponent(text, HINT_ALPHA))
         binding.folderCount.setTextColor(androidx.core.graphics.ColorUtils.setAlphaComponent(text, COUNT_ALPHA))
         binding.folderEditButton.imageTintList = android.content.res.ColorStateList.valueOf(text)
+        binding.folderAction.setTextColor(text)
         binding.folderTitle.visibility = if (showTitle) View.VISIBLE else View.GONE
         if (!titleEditable) {
             binding.folderTitle.apply {
@@ -120,8 +127,23 @@ class FolderPopup(private val context: Context) {
         val gridWidth = min(columns * cellWidth, metrics.widthPixels - context.dp(48))
         val rowsNeeded = ceil(members.size / columns.toFloat()).toInt().coerceAtLeast(1)
         // Window folders cap at ~60% of the screen so long folders scroll;
-        // immersive gets most of the height.
-        val maxGridHeight = (metrics.heightPixels * if (immersive) 0.72f else 0.6f).toInt()
+        // immersive gets most of the height. Over the dock, no more than
+        // the room above it (less the title row and the card's padding,
+        // estimated: the card isn't measured yet).
+        val screenTop = IntArray(2).also(anchor.rootView::getLocationOnScreen)[1]
+        val roomAboveDock = keepAboveScreenY?.let { y ->
+            y - screenTop - context.dp(STATUS_ROOM_DP) - context.dp(DOCK_GAP_DP) - 2 * context.dp(CARD_MARGIN_DP) -
+                context.dp(if (showTitle) CARD_CHROME_DP else CARD_PADDING_DP)
+        }
+        val maxGridHeight = minOf(
+            (metrics.heightPixels * if (immersive) 0.72f else 0.6f).toInt(),
+            roomAboveDock ?: Int.MAX_VALUE
+        ).coerceAtLeast(context.dp(MIN_GRID_DP))
+        // A full-screen card centres between the bars and, over the dock,
+        // above it.
+        val dockClearance = keepAboveScreenY?.let { y ->
+            screenTop + anchor.rootView.height - y + context.dp(DOCK_GAP_DP)
+        } ?: 0
         adapter.cellWidthPx = gridWidth / columns
 
         when (scroll) {
@@ -192,8 +214,15 @@ class FolderPopup(private val context: Context) {
             // animations are disabled.
             animationStyle = if (animate) com.supernova.launcher.R.style.FolderPopupAnimation else 0
             // Below Android 11 a resizing window is what reports the keyboard
-            // at all; the card is lifted clear of it below either way.
-            softInputMode = android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+            // at all; the card is lifted clear of it below either way. From
+            // 11 the keyboard arrives as an inset, so the window keeps its
+            // size: resized, it squeezed a long full-screen card into the
+            // space above the keyboard, centred on the middle of its grid.
+            softInputMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING
+            } else {
+                android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+            }
         }
 
         // The root always fills the window so the card can expand from the
@@ -253,8 +282,16 @@ class FolderPopup(private val context: Context) {
                 card.translationY = target
             }
         }
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { root, insets ->
             imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            if (immersive) {
+                // The scrim runs behind the bars (layOutBehindBars); the card
+                // centres in what is left between them.
+                val bars = insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+                )
+                root.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, dockClearance))
+            }
             clearKeyboard()
             insets
         }
@@ -316,11 +353,14 @@ class FolderPopup(private val context: Context) {
                 // Wide enough for the card's own shadow to fade out inside
                 // the window rather than being cut off against its edge; a
                 // material shadow reaches about twice the card's elevation.
-                val margin = context.dp(20)
+                val margin = context.dp(CARD_MARGIN_DP)
                 val left = (anchorAt[0] - rootAt[0] + (anchor.width - card.width) / 2)
                     .coerceIn(margin, (binding.root.width - card.width - margin).coerceAtLeast(margin))
+                // Its bottom stays above the dock, when there is one.
+                val bottom = keepAboveScreenY?.let { y -> y - rootAt[1] - context.dp(DOCK_GAP_DP) }
+                    ?.coerceAtMost(binding.root.height - margin) ?: (binding.root.height - margin)
                 val top = (anchorAt[1] - rootAt[1] + (anchor.height - card.height) / 2)
-                    .coerceIn(margin, (binding.root.height - card.height - margin).coerceAtLeast(margin))
+                    .coerceIn(margin, (bottom - card.height).coerceAtLeast(margin))
                 card.translationX = left.toFloat()
                 restingY = top.toFloat()
                 card.translationY = restingY
@@ -328,8 +368,41 @@ class FolderPopup(private val context: Context) {
             startExpand(card)
         }
 
+        if (immersive) layOutInScreen(popup, binding.root)
         popup.showAtLocation(anchor, Gravity.CENTER, 0, 0)
+        if (immersive) layOutBehindBars(binding.root)
         return popup
+    }
+
+    // A popup window fits inside the system bars by default, so the
+    // full-screen scrim stopped at them and transparent bars showed the
+    // undimmed wallpaper as two bright bands (#256). These let the window
+    // run under the bars; the insets listener pads the card back clear.
+    @Suppress("DEPRECATION")
+    private fun layOutInScreen(popup: PopupWindow, root: View) {
+        popup.isClippingEnabled = false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) popup.setIsLaidOutInScreen(true)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            // Before insets types, the layout flags are what reach the nav bar.
+            root.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+        }
+    }
+
+    // From Android 11 the window's own fit-insets types decide, and
+    // PopupWindow has no setter for them: clear them on the shown window's
+    // params, which PopupWindow.update() edits in place and so keeps.
+    private fun layOutBehindBars(root: View) {
+        val decor = root.rootView
+        val params = decor.layoutParams as? WindowManager.LayoutParams ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            params.setFitInsetsTypes(0)
+            params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+        } else {
+            params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
+        context.getSystemService(WindowManager::class.java)?.updateViewLayout(decor, params)
     }
 
 
@@ -441,6 +514,18 @@ class FolderPopup(private val context: Context) {
 
         // Room left between the card's title row and the keyboard's top.
         private const val KEYBOARD_GAP_DP = 12
+        // A window card's distance from the screen's edges, wide enough for
+        // its shadow to fade out inside the window.
+        private const val CARD_MARGIN_DP = 20
+        // Between a card and the dock it stays above.
+        private const val DOCK_GAP_DP = 8
+        // Estimates for sizing the grid above the dock before the card is
+        // measured: the status bar, the title row with the card's padding,
+        // the padding alone, and the least grid left to scroll in.
+        private const val STATUS_ROOM_DP = 48
+        private const val CARD_CHROME_DP = 88
+        private const val CARD_PADDING_DP = 32
+        private const val MIN_GRID_DP = 96
 
         // Material fast-out-slow-in out, and its accelerating counterpart
         // for collapsing back into the icon.

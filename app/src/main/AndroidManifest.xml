@@ -97,6 +97,7 @@
         <activity
             android:name=".SettingsActivity"
             android:exported="false"
+            android:windowSoftInputMode="adjustResize"
             android:label="@string/settings_launcher_label"
             android:launchMode="singleTask"
             android:taskAffinity="${applicationId}.settings" />
@@ -168,13 +169,16 @@
              redelivers) and drops the open drawer/folder/edit mode - so the
              activity keeps itself and re-lays the chrome out instead.
              uiMode, density, fontScale and locale are deliberately NOT here:
-             those change resolved resources, and a real re-create is right. -->
+             those change resolved resources, and a real re-create is right.
+             resumeWhilePausing: a Home press shows the launcher without
+             waiting for the app it leaves to finish pausing, as Launcher3. -->
         <activity
             android:name=".LauncherActivity"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard|navigation"
             android:windowSoftInputMode="adjustNothing"
             android:exported="true"
             android:launchMode="singleTask"
+            android:resumeWhilePausing="true"
             android:stateNotNeeded="true"
             android:taskAffinity="">
             <intent-filter>

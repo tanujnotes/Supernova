@@ -143,7 +143,12 @@ object CustomCardEditorSheet {
         }
 
         bindHeight(activity, binding, draft)
-        bindItems(activity, viewModel, binding, draft, refreshPreview)
+        // An apps-and-shortcuts card saves once it holds one: empty, it was
+        // a blank plate in the feed.
+        bindItems(activity, viewModel, binding, draft) {
+            refreshPreview()
+            binding.cardSave.isEnabled = widget || draft.items.isNotEmpty()
+        }
 
         // ---- Buttons ----
         binding.cardRemove.visibility = if (existing == null) View.GONE else View.VISIBLE
@@ -293,6 +298,8 @@ object CustomCardEditorSheet {
         foreground = AppCompatResources.getDrawable(context, R.drawable.ripple_icon)
         minimumHeight = context.dp(44)
         setPaddingRelative(context.dp(if (icon != null) 8 else 14), 0, 0, 0)
+        // An app icon's shadow falls outside it.
+        clipChildren = false
         contentDescription = label
         setOnClickListener(onTap)
         if (icon != null) {

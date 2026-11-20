@@ -182,7 +182,13 @@ object PageTransformers {
     }
 
     private fun tablet(page: View, position: Float) {
-        page.cameraDistance = FLIP_CAMERA_DISTANCE * page.resources.displayMetrics.density
+        // Close enough for the tilt to read as depth: at the flips' far
+        // camera a 20 degree turn only narrowed the page a little, and
+        // Tablet looked like None. Measured in page widths (the camera
+        // works in 72 units an inch), so a preview's small pages tilt as
+        // deep as the home screen's.
+        val dpi = page.resources.displayMetrics.densityDpi
+        page.cameraDistance = page.width * TABLET_CAMERA_PAGES * dpi / CAMERA_UNITS_PER_INCH
         page.pivotX = page.width / 2f
         page.pivotY = page.height / 2f
         page.rotationY = -TABLET_ANGLE * position
@@ -278,6 +284,8 @@ object PageTransformers {
     private const val SIMPLE_PARALLAX = 0.15f
     private const val CARD_SHRINK = 0.06f
     private const val TABLET_ANGLE = 20f
+    private const val TABLET_CAMERA_PAGES = 1.5f
+    private const val CAMERA_UNITS_PER_INCH = 72f
     private const val IN_OUT_DEPTH = 0.3f
     private const val GLASS_SCALE = 0.08f
     private const val ZOOM_FADE_DEPTH = 0.25f

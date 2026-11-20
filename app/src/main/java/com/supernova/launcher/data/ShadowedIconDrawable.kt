@@ -18,7 +18,7 @@ import android.graphics.drawable.Drawable
 // Not a BitmapDrawable on purpose: toBitmap() hands a BitmapDrawable's bitmap
 // straight back, which would put the shadow inside the picture and shrink
 // the icon in it (a drag picture, a work-profile badge).
-class ShadowedIconDrawable(val bitmap: Bitmap, private val margin: Int) : Drawable() {
+class ShadowedIconDrawable(val bitmap: Bitmap, val margin: Int) : Drawable() {
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val iconSize = bitmap.width - 2 * margin

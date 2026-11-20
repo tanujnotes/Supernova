@@ -15,7 +15,8 @@ import com.supernova.launcher.databinding.ItemGroupRowBinding
 import com.supernova.launcher.databinding.ItemSettingGroupLabelBinding
 
 // The Drawer groups page's list. A drag moves a row here first, with the tab
-// bar preview following, and the page stores the order when it is dropped.
+// bar preview following, and the page stores the order (and any group moved
+// to the other card) when it is dropped.
 class GroupListAdapter(
     private val icons: GroupIcons,
     private val listener: Listener
@@ -47,25 +48,36 @@ class GroupListAdapter(
         diff.dispatchUpdatesTo(this)
     }
 
-    // One type's groups, in the order the list shows them now.
+    // The card a row sits on now: the kind whose New row is the next below
+    // it (each card ends with one). A row dragged across keeps its old type
+    // until it is dropped, so its card, not its type, says where it went.
+    fun cardType(position: Int): DrawerGroupType? =
+        (rows.drop(position.coerceAtLeast(0)).firstOrNull { it is GroupListRow.Add } as? GroupListRow.Add)?.type
+
+    // One card's groups, in the order the list shows them now.
     fun ids(type: DrawerGroupType): List<String> =
-        rows.filterIsInstance<GroupListRow.Group>().filter { it.group.type == type }.map { it.group.id }
+        rows.indices.filter { rows[it] is GroupListRow.Group && cardType(it) == type }
+            .map { (rows[it] as GroupListRow.Group).group.id }
 
     // A dragged row passing another: they trade places, and the preview's
-    // tabs follow.
+    // tabs follow. Passed onto the other card (over its first row going
+    // down, its New row going up), it goes in just before that row: the top
+    // of the folders, or the foot of the tabs.
     fun move(from: Int, to: Int) {
+        val crossing = cardType(from) != cardType(to)
+        val at = if (crossing && from < to) to - 1 else to
         val moved = rows.toMutableList()
-        moved.add(to, moved.removeAt(from))
-        val at = moved.indexOfFirst { it is GroupListRow.Preview }
-        val preview = moved.getOrNull(at) as? GroupListRow.Preview
+        moved.add(at, moved.removeAt(from))
         rows = moved
-        notifyItemMoved(from, to)
-        val tabs = moved.filterIsInstance<GroupListRow.Group>().map { it.group }
-            .filter { it.type == DrawerGroupType.TAB }
+        notifyItemMoved(from, at)
+        val index = moved.indexOfFirst { it is GroupListRow.Preview }
+        val preview = moved.getOrNull(index) as? GroupListRow.Preview ?: return
+        val tabs = moved.indices.filter { moved[it] is GroupListRow.Group && cardType(it) == DrawerGroupType.TAB }
+            .map { (moved[it] as GroupListRow.Group).group }
         val ids = tabs.map { it.id }
-        if (preview != null && preview.tabIds != ids) {
-            rows = moved.also { it[at] = preview.copy(tabs = tabs.map { tab -> tab.name }, tabIds = ids) }
-            notifyItemChanged(at)
+        if (preview.tabIds != ids) {
+            rows = moved.also { it[index] = preview.copy(tabs = tabs.map { tab -> tab.name }, tabIds = ids) }
+            notifyItemChanged(index)
         }
     }
 

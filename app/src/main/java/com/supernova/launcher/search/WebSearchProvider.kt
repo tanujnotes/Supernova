@@ -10,13 +10,30 @@ enum class WebProvider(val displayName: String) {
     GOOGLE("Google"),
     DUCKDUCKGO("DuckDuckGo"),
     BRAVE("Brave"),
-    BING("Bing");
+    BING("Bing"),
+    ECOSIA("Ecosia"),
+    STARTPAGE("Startpage"),
+    QWANT("Qwant"),
+    YAHOO("Yahoo"),
+    YANDEX("Yandex"),
+    KAGI("Kagi"),
+
+    // A search URL the user typed (searchWebCustomUrl): see WebEngine.
+    CUSTOM("Custom");
 
     fun searchUrl(query: String): String = when (this) {
         GOOGLE -> "https://www.google.com/search?q=${encodeQuery(query)}"
         DUCKDUCKGO -> "https://duckduckgo.com/?q=${encodeQuery(query)}"
         BRAVE -> "https://search.brave.com/search?q=${encodeQuery(query)}"
         BING -> "https://www.bing.com/search?q=${encodeQuery(query)}"
+        ECOSIA -> "https://www.ecosia.org/search?q=${encodeQuery(query)}"
+        STARTPAGE -> "https://www.startpage.com/do/search?q=${encodeQuery(query)}"
+        QWANT -> "https://www.qwant.com/?q=${encodeQuery(query)}"
+        YAHOO -> "https://search.yahoo.com/search?p=${encodeQuery(query)}"
+        YANDEX -> "https://yandex.com/search/?text=${encodeQuery(query)}"
+        KAGI -> "https://kagi.com/search?q=${encodeQuery(query)}"
+        // Only reached without a usable URL: WebEngine reads the typed one.
+        CUSTOM -> GOOGLE.searchUrl(query)
     }
 
     // Its name in the store and in a backup, read back leniently.
@@ -24,6 +41,46 @@ enum class WebProvider(val displayName: String) {
 
     companion object {
         fun fromName(name: String): WebProvider = Names.parse(name)
+    }
+}
+
+// The web search as set: the engine, or for Custom the URL the user typed,
+// with %s where the query goes (or the query added at the end). A Custom
+// without a usable URL searches Google.
+data class WebEngine(val provider: WebProvider, val customUrl: String = "") {
+
+    private val custom: String? =
+        customUrl.trim().takeIf { provider == WebProvider.CUSTOM && isUsableUrl(it) }
+
+    // The engine's name, for "Search <name> for ...": a Custom one goes by
+    // its site.
+    val name: String
+        get() {
+            val site = custom?.let { runCatching { java.net.URI(it.replace(QUERY_MARK, "q")).host }.getOrNull() }
+            return site?.removePrefix("www.") ?: when (provider) {
+                WebProvider.CUSTOM -> WebProvider.GOOGLE.displayName
+                else -> provider.displayName
+            }
+        }
+
+    fun searchUrl(query: String): String {
+        val url = custom ?: return provider.searchUrl(query)
+        val encoded = encodeQuery(query)
+        return if (QUERY_MARK in url) url.replace(QUERY_MARK, encoded) else url + encoded
+    }
+
+    companion object {
+        const val QUERY_MARK = "%s"
+
+        fun of(prefs: com.supernova.launcher.data.LauncherPrefs?): WebEngine =
+            WebEngine(prefs?.searchWebProvider ?: WebProvider.GOOGLE, prefs?.searchWebCustomUrl.orEmpty())
+
+        // An http or https address with a host.
+        fun isUsableUrl(url: String): Boolean {
+            // %s is no valid URI escape: stand a letter in for it first.
+            val uri = runCatching { java.net.URI(url.trim().replace(QUERY_MARK, "q")) }.getOrNull() ?: return false
+            return (uri.scheme == "https" || uri.scheme == "http") && !uri.host.isNullOrEmpty()
+        }
     }
 }
 
@@ -96,7 +153,7 @@ private fun encodeQuery(query: String): String = URLEncoder.encode(query, "UTF-8
 // Always offers the fallback: one "search the web" row plus the chip row.
 // The provider is read per query so a settings change applies immediately.
 class WebSearchProvider(
-    private val provider: () -> WebProvider,
+    private val provider: () -> WebEngine,
     // Empty (the user unticked every chip) drops the row rather than drawing
     // an empty scroller.
     private val chips: () -> List<SearchChip> = { SearchChip.defaults }

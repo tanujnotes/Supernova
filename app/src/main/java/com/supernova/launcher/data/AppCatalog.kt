@@ -35,6 +35,10 @@ class AppCatalog(
     private val userManager = context.getSystemService(UserManager::class.java)
     private val pm = context.packageManager
     private val iconRenderer = IconRenderer(context)
+    private val dynamicIcons = DynamicAppIcons(
+        pm,
+        context.getSystemService(android.app.ActivityManager::class.java).launcherLargeIconDensity
+    )
     private var iconShape: IconShape = IconShape.SYSTEM
     // Decoded once per pref change; render never re-parses the JSON.
     private var customShapeSpec: CustomShapeSpec? = null
@@ -78,10 +82,9 @@ class AppCatalog(
     // shared and mutated during render, and pre-warm runs off the main thread.
     private val renderLock = Any()
     private val waiters = IconWaiters()
-    private var changeCallback: LauncherApps.Callback? = null
-    // One listener per live view model; the system callback behind them is
-    // registered once and stays for as long as any of them does.
-    private val changeListeners = java.util.concurrent.CopyOnWriteArraySet<(AppChange) -> Unit>()
+    private val appChanges = AppChanges(launcherApps, ::serialFor)
+    private val profiles = ProfileState(launcherApps, userManager, ::serialFor)
+    private val diskIcons = IconDiskCache(context)
 
     fun listLaunchableApps(): List<LaunchableApp> {
         val infoCache = mutableMapOf<String, LauncherActivityInfo>()
@@ -90,7 +93,7 @@ class AppCatalog(
         val apps = launcherApps.profiles.flatMap { user ->
             val serial = serialFor(user)
             val isPrivate = user == privateUser
-            val isWork = user != self && !isPrivate && isWorkUser(user)
+            val isWork = user != self && !isPrivate && profiles.isWorkUser(user)
             // A locked private space shows nothing anywhere, search included.
             if (isPrivate && userManager.isQuietModeEnabled(user)) return@flatMap emptyList()
             launcherApps.getActivityList(null, user).map { info ->
@@ -120,13 +123,14 @@ class AppCatalog(
         if (changed.isEmpty()) return
         changed.forEach {
             iconCache.remove(it)
+            iconCache.remove("$it$LARGE_KEY")
             dominantColors.remove(it)
         }
         // A pack calendar icon is cached under its own day key, and a shape
         // change (or Reset custom icons) left the old one showing until the
         // day turned.
         val calendarKeys = iconCache.snapshot().keys.filter { key ->
-            changed.any { key.startsWith("$it@cal") }
+            changed.any { key.startsWith("$it@cal") || key.startsWith("$it$LARGE_KEY@cal") }
         }
         calendarKeys.forEach(iconCache::remove)
         overrides = next
@@ -150,7 +154,7 @@ class AppCatalog(
     private fun appIconDrawable(name: String): Drawable? {
         val app = AppIconSource.appOf(name) ?: return null
         return userForSerial(app.userSerial)?.let { user ->
-            resolveActivity(app.packageName, app.className, user)?.getIcon(0)
+            appOwnIcon(app.packageName, app.className, user)
         }
     }
 
@@ -161,60 +165,162 @@ class AppCatalog(
     // A placed copy's icon: with an icon of its own (LauncherItem.appEdit,
     // see AppItemEdits) drawn from that, cached under the edit; else the
     // app's, as the drawer draws it.
-    fun iconFor(app: LaunchableApp, itemEdit: AppOverride?): Drawable? {
-        val own = itemEdit?.takeIf { with(AppItemEdits) { it.hasIcon() } } ?: return iconFor(app)
-        return waiters.ahead { renderIcon(app, own.copy(customLabel = null, hideLabel = false)) }
+    // `large`: the copy for a Large icon (2x2), sharp at twice the size;
+    // only those render at that resolution, not every icon in the cache.
+    fun iconFor(app: LaunchableApp, itemEdit: AppOverride?, large: Boolean = false): Drawable? {
+        val own = ownIcon(itemEdit)
+        if (own == null && !large) return iconFor(app)
+        return waiters.ahead { renderIcon(app, own, large = large) }
     }
 
+    // As iconFor, but only from the cache: never renders, safe on the main
+    // thread.
+    fun cachedIcon(app: LaunchableApp, itemEdit: AppOverride?, large: Boolean = false): Drawable? {
+        val own = ownIcon(itemEdit)
+        if (own == null && !large) return cachedIcon(app)
+        return renderIcon(app, own, cachedOnly = true, large = large)
+    }
+
+    // A placed copy's icon edit, keyed by what draws it, or null for none.
+    private fun ownIcon(itemEdit: AppOverride?): AppOverride? =
+        itemEdit?.takeIf { with(AppItemEdits) { it.hasIcon() } }?.copy(customLabel = null, hideLabel = false)
+
+    // An app's icon if it is already rendered, else null: never renders, so
+    // it is safe on the main thread. The drawer binds with this and renders
+    // the misses off it (IconThread) - a launcher restarted overnight opened
+    // its first drawer with every visible icon drawn on the tap (#277).
+    fun cachedIcon(app: LaunchableApp): Drawable? = renderIcon(app, null, cachedOnly = true)
+
     // `own` is a placed copy's icon edit, which stands in for the app's.
-    private fun renderIcon(app: LaunchableApp, own: AppOverride?): Drawable? {
+    // `large`: the copy a Large icon (2x2) draws, at its own resolution.
+    private fun renderIcon(
+        app: LaunchableApp,
+        own: AppOverride?,
+        cachedOnly: Boolean = false,
+        large: Boolean = false
+    ): Drawable? {
         val appKey = "${app.userSerial}/${app.packageName}/${app.className}"
-        val cacheKey = if (own == null) appKey else "$appKey#${own.hashCode()}"
-        iconCache.get(cacheKey)?.let { return it }
+        val baseKey = (if (own == null) appKey else "$appKey#${own.hashCode()}") + if (large) LARGE_KEY else ""
+        // A cached icon is found before anything asks the system: every
+        // drawer tile and home icon bind comes through here on the main
+        // thread, and the resolve below is a binder call when the app isn't
+        // in the enumeration yet. An icon is cached under its own key, or a
+        // date icon under today's (yesterday's no longer matches).
+        (iconCache.get(baseKey) ?: iconCache.get("$baseKey@cal${today()}"))?.let { return it }
+        if (cachedOnly) return null
         val user = userForSerial(app.userSerial) ?: return null
+        // An app's own date icon (#266) is cached under the day too, so the
+        // day rollover's sweep of "@cal" keys draws it afresh.
+        val info = resolveActivity(app.packageName, app.className, user)
+        val dated = info?.let(dynamicIcons::has) == true
+        val cacheKey = if (dated) "$baseKey@cal${today()}" else baseKey
+        iconCache.get(cacheKey)?.let { return it }
 
         synchronized(renderLock) {
             // A pre-warm may have rendered it while we waited for the lock.
             iconCache.get(cacheKey)?.let { return it }
-
-            val override = own ?: overrides[appKey]
-            val variant = override?.iconVariant
-
-            // Dynamic calendar icons: an isolated day-keyed cache entry, so the
-            // date is always current and no normal icon key is touched. Falls
-            // through to the standard icon when the pack has no entry for today.
-            // Only for an app whose icon the user left alone - a photo, a pack
-            // icon or a variant picked in Edit used to be ignored for it - and
-            // drawn as the pack's own art, the way its other themed icons are,
-            // not on the iconback and cut by the mask meant for unthemed ones.
-            val iconEdited = override?.iconBase64 != null || override?.iconDrawableName != null || variant != null
-            if (!iconEdited && iconPacks.hasCalendar(app.packageName, app.className)) {
-                val day = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH)
-                val calKey = "$cacheKey@cal$day"
-                iconCache.get(calKey)?.let { return it }
-                val calendar = iconPacks.calendarDrawable(app.packageName, app.className, day)
-                if (calendar != null) {
-                    val rendered = runLogged("render calendar icon") {
-                        iconRenderer.render(calendar, null, shapeFor(override), customShapeSpec, IconGlass.OFF)
-                    }.getOrNull()
-                    if (rendered != null) {
-                        val badged = runLogged("badge icon for its profile") {
-                            pm.getUserBadgedIcon(rendered, user)
-                        }.getOrNull() ?: rendered
-                        iconCache.put(calKey, badged)
-                        return badged
-                    }
-                }
+            val job = RenderJob(app, own, user, cacheKey, dated, info)
+            if (!large) return renderLocked(job)
+            val normal = iconRenderer.resolutionScale
+            iconRenderer.resolutionScale = largeResolution
+            try {
+                return renderLocked(job)
+            } finally {
+                iconRenderer.resolutionScale = normal
             }
-
-            val rendered = drawEdited(app, user, override) ?: return null
-            if (own == null) dominantColorOf(IconRenderer.bitmapOf(rendered))?.let { dominantColors[cacheKey] = it }
-            val icon = runLogged("badge icon for its profile") {
-                pm.getUserBadgedIcon(rendered, user)
-            }.getOrNull() ?: return null
-            iconCache.put(cacheKey, icon)
-            return icon
         }
+    }
+
+    // One icon to render: the app, a placed copy's own edit, its profile,
+    // and the cache entry it goes into.
+    private class RenderJob(
+        val app: LaunchableApp,
+        val own: AppOverride?,
+        val user: UserHandle,
+        val cacheKey: String,
+        val dated: Boolean,
+        val info: LauncherActivityInfo?
+    ) {
+        val appKey = "${app.userSerial}/${app.packageName}/${app.className}"
+    }
+
+    // renderIcon's render, under renderLock, into the job's cache entry.
+    private fun renderLocked(job: RenderJob): Drawable? {
+        val override = job.own ?: overrides[job.appKey]
+        val ready = packCalendarIcon(job, override) ?: storedIcon(job, override)
+        return ready ?: drawEdited(job.app, job.user, override)?.let { rendered ->
+            storeIcon(job, override, rendered)
+            if (job.own == null && LARGE_KEY !in job.cacheKey) {
+                dominantColorOf(IconRenderer.bitmapOf(rendered))?.let { dominantColors[job.appKey] = it }
+            }
+            runLogged("badge icon for its profile") { pm.getUserBadgedIcon(rendered, job.user) }
+                .getOrNull()?.also { iconCache.put(job.cacheKey, it) }
+        }
+    }
+
+    // A rendered icon from the disk cache (IconDiskCache), badged and in
+    // memory as a render's would be; null when there is none to use. Date
+    // icons change by the day and never go there.
+    private fun storedIcon(job: RenderJob, override: AppOverride?): Drawable? {
+        val stamp = diskStamp(job, override)?.takeUnless { job.dated } ?: return null
+        return diskIcons.read(diskSignature(), job.cacheKey, stamp)?.let { stored ->
+            if (job.own == null && LARGE_KEY !in job.cacheKey) {
+                dominantColorOf(IconRenderer.bitmapOf(stored))?.let { dominantColors[job.appKey] = it }
+            }
+            (runLogged("badge icon for its profile") { pm.getUserBadgedIcon(stored, job.user) }.getOrNull() ?: stored)
+                .also { iconCache.put(job.cacheKey, it) }
+        }
+    }
+
+    private fun storeIcon(job: RenderJob, override: AppOverride?, rendered: Drawable) {
+        if (job.dated) return
+        diskStamp(job, override)?.let { diskIcons.write(diskSignature(), job.cacheKey, it, rendered) }
+    }
+
+    // What one icon was drawn from: the app's installed package (its path
+    // moves, or its file changes, with every update), its edits, the
+    // resolution, and the themed colors where they reach it. Null when the
+    // app's package can't be read: then it isn't kept.
+    private fun diskStamp(job: RenderJob, override: AppOverride?): String? {
+        val sourceDir = job.info?.applicationInfo?.sourceDir ?: return null
+        val themed = themedIcons || override?.iconVariant == "THEMED"
+        return "$sourceDir|${java.io.File(sourceDir).lastModified()}|${override?.hashCode()}|" +
+            "${iconRenderer.resolutionScale}|" + (if (themed) "$themedIconBg/$themedIconFg" else "")
+    }
+
+    // Every setting the icons share; a change starts a new disk folder.
+    private fun diskSignature(): String =
+        "$DISK_FORMAT|${context.resources.displayMetrics.densityDpi}|$iconShape|${customShapeSpec?.encode()}|" +
+            "${iconRenderer.reshapeLegacy}|${iconRenderer.shadow}|${iconRenderer.glass}|$themedIcons|" +
+            "$themedIconsAutogen|${iconPacks.loadedPack()}|$packStamp"
+
+    // The loaded pack's own install time: an updated pack draws afresh.
+    private var packStamp = 0L
+
+    // Dynamic calendar icons: an isolated day-keyed cache entry, so the
+    // date is always current and no normal icon key is touched. Null (the
+    // standard icon) when the pack has no entry for today. Only for an app
+    // whose icon the user left alone - a photo, a pack icon or a variant
+    // picked in Edit used to be ignored for it - and drawn as the pack's own
+    // art, the way its other themed icons are, not on the iconback and cut by
+    // the mask meant for unthemed ones.
+    private fun packCalendarIcon(job: RenderJob, override: AppOverride?): Drawable? {
+        val app = job.app
+        val iconEdited = override?.iconBase64 != null || override?.iconDrawableName != null ||
+            override?.iconVariant != null
+        if (iconEdited || !iconPacks.hasCalendar(app.packageName, app.className)) return null
+        val day = today()
+        val calKey = if (job.dated) job.cacheKey else "${job.cacheKey}@cal$day"
+        return iconCache.get(calKey) ?: iconPacks.calendarDrawable(app.packageName, app.className, day)
+            ?.let { calendar ->
+                runLogged("render calendar icon") {
+                    iconRenderer.renderPackArt(calendar, shapeFor(override), customShapeSpec)
+                }.getOrNull()
+            }
+            ?.let { rendered ->
+                (runLogged("badge icon for its profile") { pm.getUserBadgedIcon(rendered, job.user) }.getOrNull()
+                    ?: rendered).also { iconCache.put(calKey, it) }
+            }
     }
 
     // An app's icon as it would look with `override` saved, for Edit's
@@ -271,12 +377,12 @@ class AppCatalog(
             ownIcon = pickedAppIcon && mono == null
         } else if (variant == "ORIGINAL") {
             // The app's own icon with no pack plate and no shape clip.
-            source = resolveActivity(app.packageName, app.className, user)?.getIcon(0) ?: return null
+            source = appOwnIcon(app.packageName, app.className, user) ?: return null
             decoration = null
         } else if (variant == "THEMED") {
             // Force the system monochrome look for just this app.
             val mono = monochromeThemedIcon(app.packageName, app.className, user, force = true)
-            source = mono ?: resolveActivity(app.packageName, app.className, user)?.getIcon(0) ?: return null
+            source = mono ?: appOwnIcon(app.packageName, app.className, user) ?: return null
             decoration = if (mono == null) iconPacks.decoration(packComponent) else null
         } else {
             // A themed icon from the active pack already looks final; only
@@ -284,9 +390,11 @@ class AppCatalog(
             val themed = iconPacks.themedIcon(app.packageName, app.className)
             // Pack theming wins; else the system monochrome layer when the
             // themed-icons pref is on; else the raw icon with pack plate.
-            val mono = if (themed == null) monochromeThemedIcon(app.packageName, app.className, user) else null
-            source = themed ?: mono ?: resolveActivity(app.packageName, app.className, user)?.getIcon(0)
-                ?: return null
+            // The app's icon is loaded once: with Themed icons off the
+            // monochrome look is null, and it was loaded a second time.
+            val own = if (themed == null) appOwnIcon(app.packageName, app.className, user) else null
+            val mono = own?.let { themedIcon(it, force = false) }
+            source = themed ?: mono ?: own ?: return null
             decoration = if (themed == null && mono == null) iconPacks.decoration(packComponent) else null
             finishedArt = themed != null
             ownIcon = themed == null && mono == null && decoration == null
@@ -298,6 +406,7 @@ class AppCatalog(
             when {
                 gallery != null -> pickedPicture(gallery.bitmap, effectiveShape)
                 ownIcon -> iconRenderer.renderOwnIcon(source, effectiveShape, customShapeSpec, glass)
+                finishedArt -> iconRenderer.renderPackArt(source, effectiveShape, customShapeSpec)
                 else -> iconRenderer.render(source, decoration, effectiveShape, customShapeSpec, glass)
             }
         }.getOrNull()
@@ -310,49 +419,8 @@ class AppCatalog(
         return dominantColors["$userSerial/$packageName/$className"]
     }
 
-    // Cheap dominant color: downsample to 8x8 and average the saturated
-    // pixels, falling back to every opaque pixel for grayscale icons. Also
-    // the Circle launch animation's color.
-    fun dominantColorOf(bitmap: android.graphics.Bitmap?): Int? {
-        bitmap ?: return null
-        val sample = android.graphics.Bitmap.createScaledBitmap(bitmap, 8, 8, true)
-        var r = 0L
-        var g = 0L
-        var b = 0L
-        var saturated = 0
-        var fr = 0L
-        var fg = 0L
-        var fb = 0L
-        var opaque = 0
-        val hsv = FloatArray(3)
-        for (y in 0 until 8) {
-            for (x in 0 until 8) {
-                val pixel = sample.getPixel(x, y)
-                if ((pixel ushr 24) < 128) continue
-                fr += (pixel shr 16) and 0xFF
-                fg += (pixel shr 8) and 0xFF
-                fb += pixel and 0xFF
-                opaque++
-                android.graphics.Color.colorToHSV(pixel, hsv)
-                if (hsv[1] >= 0.35f && hsv[2] >= 0.15f) {
-                    r += (pixel shr 16) and 0xFF
-                    g += (pixel shr 8) and 0xFF
-                    b += pixel and 0xFF
-                    saturated++
-                }
-            }
-        }
-        sample.recycle()
-        return when {
-            saturated > 0 -> android.graphics.Color.rgb(
-                (r / saturated).toInt(), (g / saturated).toInt(), (b / saturated).toInt()
-            )
-            opaque > 0 -> android.graphics.Color.rgb(
-                (fr / opaque).toInt(), (fg / opaque).toInt(), (fb / opaque).toInt()
-            )
-            else -> null
-        }
-    }
+    // The Circle launch animation's and the motion previews' color.
+    fun dominantColorOf(bitmap: android.graphics.Bitmap?): Int? = DominantColor.of(bitmap)
 
     // Renders every app's icon into the cache off the main thread, so binds
     // become cache-hit-only. Safe to call repeatedly; hits return instantly.
@@ -372,6 +440,7 @@ class AppCatalog(
         // the first has warmed.
         if (iconPacks.isLoaded(packageName)) return
         iconPacks.load(packageName)
+        packStamp = packageName?.let { runCatching { pm.getPackageInfo(it, 0).lastUpdateTime }.getOrNull() } ?: 0L
         iconCache.evictAll()
         dominantColors.clear()
     }
@@ -380,6 +449,7 @@ class AppCatalog(
     // been updated since it was parsed, and every icon renders afresh.
     fun clearIconCache() = synchronized(renderLock) {
         iconPacks.reload()
+        diskIcons.clear()
         iconCache.evictAll()
         dominantColors.clear()
     }
@@ -410,26 +480,51 @@ class AppCatalog(
     // the palette; a change evicts the icon cache like any other icon pref.
     // Day rollover: drop the day-keyed calendar entries so the next bind
     // re-renders today's date. Cheap - only calendar apps have such keys.
-    fun onDayChanged() = synchronized(renderLock) {
+    // True when there were any, so date icons have to redraw.
+    fun onDayChanged(): Boolean = synchronized(renderLock) {
         val stale = iconCache.snapshot().keys.filter { it.contains("@cal") }
         stale.forEach { iconCache.remove(it) }
+        stale.isNotEmpty()
     }
 
+    // True when cached icons were dropped, so the screen has to redraw.
+    //
+    // With Themed icons off before and after, the colors only reach icons
+    // set to Themed one by one in Edit: only those go. The colors follow the
+    // dark or light theme, so a system theme switch (with Schedule or Auto,
+    // the first use each morning and evening) used to drop every icon and
+    // render them all again, the home screen's on the main thread.
     fun applyThemedIcons(
         enabled: Boolean,
         background: Int,
         foreground: Int,
         autogen: Boolean = false
-    ) = synchronized(renderLock) {
+    ): Boolean = synchronized(renderLock) {
         if (enabled == themedIcons && background == themedIconBg && foreground == themedIconFg &&
             autogen == themedIconsAutogen
-        ) return
+        ) return false
+        val wasEnabled = themedIcons
         themedIcons = enabled
         themedIconBg = background
         themedIconFg = foreground
         themedIconsAutogen = autogen
+        if (!wasEnabled && !enabled) return evictForcedThemed()
         iconCache.evictAll()
         dominantColors.clear()
+        true
+    }
+
+    // The icons drawn Themed whatever the switch: apps set to Themed in
+    // Edit, and placed copies with an icon edit of their own ("#" keys,
+    // few, and their edit may be Themed). Called under renderLock.
+    private fun evictForcedThemed(): Boolean {
+        val forced = overrides.filterValues { it.iconVariant == "THEMED" }.keys
+        val stale = iconCache.snapshot().keys.filter { key ->
+            '#' in key || forced.any { key == it || key.startsWith("$it@") || key.startsWith("$it$LARGE_KEY") }
+        }
+        stale.forEach(iconCache::remove)
+        forced.forEach(dominantColors::remove)
+        return stale.isNotEmpty()
     }
 
     private fun monochromeThemedIcon(
@@ -437,7 +532,16 @@ class AppCatalog(
         className: String,
         user: UserHandle,
         force: Boolean = false
-    ): Drawable? = resolveActivity(packageName, className, user)?.getIcon(0)?.let { themedIcon(it, force) }
+    ): Drawable? = appOwnIcon(packageName, className, user)?.let { themedIcon(it, force) }
+
+    // The icon an app ships for its launcher entry: today's date icon for
+    // one that has them (Google Calendar), else its launcher icon.
+    private fun appOwnIcon(packageName: String, className: String, user: UserHandle): Drawable? {
+        val info = resolveActivity(packageName, className, user) ?: return null
+        return dynamicIcons.forDay(info, today()) ?: info.getIcon(0)
+    }
+
+    private fun today(): Int = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH)
 
     // An icon's themed look (API 33+), when Themed icons is on or `force`
     // asks for it; null when it is left as it is. Autogen (D8): one that
@@ -471,6 +575,15 @@ class AppCatalog(
         iconRenderer.resolutionScale = scale
         iconCache.evictAll()
         dominantColors.clear()
+    }
+
+    // Large icons' resolution: only their own copies go when it moves.
+    @Volatile private var largeResolution: Float = 1f
+
+    fun applyLargeIconResolution(scale: Float) = synchronized(renderLock) {
+        if (largeResolution == scale) return
+        largeResolution = scale
+        iconCache.snapshot().keys.filter { LARGE_KEY in it }.forEach(iconCache::remove)
     }
 
     // The display's density changed (Display size): every cached icon was
@@ -552,7 +665,7 @@ class AppCatalog(
             renderPickedAppIcon(source)
         } else {
             runLogged("render pack drawable") {
-                iconRenderer.render(source, null, iconShape, customShapeSpec, IconGlass.OFF)
+                iconRenderer.renderPackArt(source, iconShape, customShapeSpec)
             }.getOrNull()
         }
     }
@@ -705,82 +818,22 @@ class AppCatalog(
     fun isUninstalled(packageName: String, userSerial: Long): Boolean =
         userForSerial(userSerial)?.let { InstalledApps.isGone(launcherApps, userManager, packageName, it) } == true
 
-    // The private space profile (Android 15+), seen only while this is the
-    // default home app and holds ACCESS_HIDDEN_PROFILES.
-    fun privateSpaceUser(): UserHandle? {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) return null
-        return runCatching {
-            launcherApps.profiles.firstOrNull { user ->
-                launcherApps.getLauncherUserInfo(user)?.userType == UserManager.USER_TYPE_PROFILE_PRIVATE
-            }
-        }.getOrNull()
-    }
+    // The private space and work profiles (ProfileState).
+    fun privateSpaceUser(): UserHandle? = profiles.privateSpaceUser()
 
-    fun hasPrivateSpace(): Boolean = privateSpaceUser() != null
+    fun hasPrivateSpace(): Boolean = profiles.privateSpaceUser() != null
 
-    fun privateSpace(): PrivateSpace? {
-        val user = privateSpaceUser() ?: return null
-        val locked = runCatching { userManager.isQuietModeEnabled(user) }.getOrDefault(true)
-        // The system's "Hide private space when locked": the entry point
-        // goes too while it is locked.
-        val entryHidden = Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA && runCatching {
-            launcherApps.getLauncherUserInfo(user)?.userConfig
-                ?.getBoolean(LauncherUserInfo.PRIVATE_SPACE_ENTRYPOINT_HIDDEN) == true
-        }.getOrDefault(false)
-        return PrivateSpace(serialFor(user), locked, entryHidden)
-    }
+    fun privateSpace(): PrivateSpace? = profiles.privateSpace()
 
-    // Locking takes effect at once; unlocking asks for the space's own
-    // lock first, through the system's prompt.
-    fun setPrivateSpaceLocked(locked: Boolean): Boolean {
-        val user = privateSpaceUser() ?: return false
-        return runLogged("lock private space") { userManager.requestQuietModeEnabled(locked, user) }.getOrDefault(false)
-    }
+    fun setPrivateSpaceLocked(locked: Boolean): Boolean = profiles.setPrivateSpaceLocked(locked)
 
-    private fun workUsers(): List<UserHandle> = runCatching {
-        val self = android.os.Process.myUserHandle()
-        WorkProfiles.workUsers(launcherApps.profiles, self, privateSpaceUser(), ::isWorkUser)
-    }.getOrDefault(emptyList())
+    fun pausedWorkProfiles(): Set<Long> = profiles.pausedWorkProfiles()
 
-    // A managed profile, not a clone one (dual apps). Android 15 on says
-    // which; before it, the user id tells the OEM clones apart (a
-    // UserHandle's hash is its user id).
-    private fun isWorkUser(user: UserHandle): Boolean {
-        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            runCatching { launcherApps.getLauncherUserInfo(user)?.userType }.getOrNull()
-        } else {
-            null
-        }
-        return WorkProfiles.isWork(type, user.hashCode())
-    }
+    fun setWorkPaused(paused: Boolean) = profiles.setWorkPaused(paused)
 
-    private fun isPaused(user: UserHandle): Boolean =
-        runCatching { userManager.isQuietModeEnabled(user) }.getOrDefault(false)
+    fun privateSpaceSettings(): IntentSender? = profiles.privateSpaceSettings()
 
-    // The serials of the work profiles whose apps are paused.
-    fun pausedWorkProfiles(): Set<Long> =
-        workUsers().filter(::isPaused).mapTo(mutableSetOf(), ::serialFor)
-
-    // Pausing takes effect at once; turning work apps on may ask for the
-    // work profile's own lock first, through the system's prompt.
-    fun setWorkPaused(paused: Boolean) {
-        WorkProfiles.toToggle(workUsers(), ::isPaused, paused).forEach { user ->
-            runLogged("pause work apps") { userManager.requestQuietModeEnabled(paused, user) }
-        }
-    }
-
-    // Android 16 on; Android 15 offers launchers no way in.
-    fun privateSpaceSettings(): IntentSender? {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.BAKLAVA) return null
-        return runCatching { launcherApps.privateSpaceSettingsIntent }.getOrNull()
-    }
-
-    // The app store, opened to install into the private space.
-    fun privateSpaceInstall(): IntentSender? {
-        val user = privateSpaceUser()
-        if (user == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) return null
-        return runCatching { launcherApps.getAppMarketActivityIntent(null, user) }.getOrNull()
-    }
+    fun privateSpaceInstall(): IntentSender? = profiles.privateSpaceInstall()
 
     fun userForSerial(serial: Long): UserHandle? {
         usersBySerial[serial]?.let { return it }
@@ -789,47 +842,9 @@ class AppCatalog(
         return user
     }
 
-    fun registerAppChangeListener(onChange: (AppChange) -> Unit) {
-        changeListeners += onChange
-        if (changeCallback != null) return
-        val callback = object : LauncherApps.Callback() {
-            override fun onPackageRemoved(packageName: String, user: UserHandle) {
-                dispatch(AppChange.Removed(packageName, serialFor(user)))
-            }
+    fun registerAppChangeListener(onChange: (AppChange) -> Unit) = appChanges.register(onChange)
 
-            override fun onPackageAdded(packageName: String, user: UserHandle) {
-                dispatch(AppChange.Added(packageName, serialFor(user)))
-            }
-
-            // The callbacks run on the main thread, and the render lock can
-            // be held there for a whole icon pack read: invalidating is left
-            // to the listener, off the main thread (invalidatePackages).
-            override fun onPackageChanged(packageName: String, user: UserHandle) {
-                dispatch(AppChange.Updated(serialFor(user), listOf(packageName)))
-            }
-
-            override fun onPackagesAvailable(packageNames: Array<out String>, user: UserHandle, replacing: Boolean) {
-                dispatch(AppChange.Updated(serialFor(user), packageNames.toList()))
-            }
-
-            override fun onPackagesUnavailable(packageNames: Array<out String>, user: UserHandle, replacing: Boolean) {
-                dispatch(AppChange.Updated(serialFor(user)))
-            }
-        }
-        changeCallback = callback
-        launcherApps.registerCallback(callback, Handler(Looper.getMainLooper()))
-    }
-
-    fun unregisterAppChangeListener(onChange: (AppChange) -> Unit) {
-        changeListeners -= onChange
-        if (changeListeners.isNotEmpty()) return
-        changeCallback?.let(launcherApps::unregisterCallback)
-        changeCallback = null
-    }
-
-    private fun dispatch(change: AppChange) {
-        changeListeners.forEach { it(change) }
-    }
+    fun unregisterAppChangeListener(onChange: (AppChange) -> Unit) = appChanges.unregister(onChange)
 
     private fun resolveActivity(packageName: String, className: String, user: UserHandle): LauncherActivityInfo? {
         activityInfoByKey["${serialFor(user)}/$packageName/$className"]?.let { return it }
@@ -840,7 +855,12 @@ class AppCatalog(
             .firstOrNull { it.componentName.className == className }
     }
 
-    private fun serialFor(user: UserHandle): Long = userManager.getSerialNumberForUser(user)
+    // A user's serial never changes while it exists; asking UserManager is
+    // a binder call (Android 14 and below), once per icon resolve before.
+    private val serialsByUser = java.util.concurrent.ConcurrentHashMap<UserHandle, Long>()
+
+    private fun serialFor(user: UserHandle): Long =
+        serialsByUser.getOrPut(user) { userManager.getSerialNumberForUser(user) }
 
     // An app's icons render again after an update or removal, from the app
     // as it is now: its cached icons go, and so does its enumerated activity
@@ -852,6 +872,7 @@ class AppCatalog(
         packageNames.forEach { packageName ->
             val marker = "/$packageName/"
             activityInfoByKey = activityInfoByKey.filterKeys { !it.contains(marker) }
+            dynamicIcons.forget(packageName)
             iconCache.snapshot().keys.filter { it.contains(marker) }.forEach(iconCache::remove)
             dominantColors.keys.filter { it.contains(marker) }.forEach(dominantColors::remove)
             // An app wearing this app's icon (picked in Edit) draws it afresh too.
@@ -880,6 +901,12 @@ class AppCatalog(
     }
 
     companion object {
+        // Bumped when a render changes how an icon looks for the same
+        // settings, so the disk cache starts over.
+        const val DISK_FORMAT = 1
+
+        // Marks a Large icon's copy in a cache key.
+        const val LARGE_KEY = "^large"
 
         // The size charged for a cached icon that reports none of its own.
         private const val FALLBACK_ICON_PX = 192

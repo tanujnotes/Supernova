@@ -4,8 +4,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
 
-// The Drawer groups page: a drag reorders one type's groups, and Undo puts a
-// deleted group back.
+// The Drawer groups page: a drag reorders one type's groups or carries one
+// to the other kind, and Undo puts a deleted group back.
 class DrawerGroupOrderTest {
 
     private val games = DrawerGroup("Games", setOf("0/a/A"), order = 0)
@@ -87,5 +87,34 @@ class DrawerGroupOrderTest {
         val restored = DrawerGroupOrder.restored(listOf(games, social), listOf(holder, social, twin), "#twin")
         assertEquals(listOf("Social", "Social"), restored.filter { it.type == DrawerGroupType.FOLDER }.map { it.name })
         assertEquals(holder.members, restored.single { it.id == "Games" }.members)
+    }
+    private val retype = { group: DrawerGroup, type: DrawerGroupType -> group.copy(type = type, smart = false) }
+
+    @Test
+    fun aFolderDraggedIntoTheTabsBecomesATabWhereItWasDropped() {
+        val held = social.copy(members = social.members + TabFolders.keyOf("Tools"), smart = true)
+        val moved = DrawerGroupOrder.arranged(
+            listOf(games, held, travel, tools, money),
+            listOf("Games", "Social", "Travel", "Money"),
+            listOf("Tools"),
+            retype
+        )
+        assertEquals(listOf("Games", "Social", "Travel", "Money"), names(moved, DrawerGroupType.TAB))
+        assertEquals(listOf("Tools"), names(moved, DrawerGroupType.FOLDER))
+        val social = moved.single { it.name == "Social" }
+        assertFalse(social.smart)
+        // The folder it held is now a folder in the tab.
+        assertEquals(held.members, social.members)
+    }
+
+    @Test
+    fun aTabDraggedIntoTheFoldersBecomesAFolderAndUndoPutsItBack() {
+        val moved =
+            DrawerGroupOrder.arranged(all, listOf("Games", "Money"), listOf("Travel", "Social", "Tools"), retype)
+        assertEquals(listOf("Games", "Money"), names(moved, DrawerGroupType.TAB))
+        assertEquals(listOf("Travel", "Social", "Tools"), names(moved, DrawerGroupType.FOLDER))
+        val back = DrawerGroupOrder.reverted(moved, all)
+        assertEquals(listOf("Games", "Travel", "Money"), names(back, DrawerGroupType.TAB))
+        assertEquals(listOf("Social", "Tools"), names(back, DrawerGroupType.FOLDER))
     }
 }

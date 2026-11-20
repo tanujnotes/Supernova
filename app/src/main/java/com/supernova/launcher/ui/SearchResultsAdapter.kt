@@ -514,8 +514,18 @@ class SearchResultsAdapter(
         private val binding: ItemSearchCalcBinding
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(result: SearchResult.Calculation) {
+            // On the cards' colours, as the top hit is: the theme's text
+            // could vanish on a restyled panel.
+            // Until a style is applied the layout's own colours stand.
             binding.calcExpression.text = result.expression
             binding.calcResult.text = result.display
+            if (cardTextColor != 0) {
+                (binding.root.background?.mutate() as? android.graphics.drawable.GradientDrawable)?.setColor(cardColor)
+                binding.calcExpression.setTextColor(
+                    androidx.core.graphics.ColorUtils.setAlphaComponent(cardTextColor, CALC_EXPRESSION_ALPHA)
+                )
+                binding.calcResult.setTextColor(cardTextColor)
+            }
             binding.root.setOnClickListener { callbacks.onCopyCalculation(result.display) }
         }
     }
@@ -604,7 +614,7 @@ class SearchResultsAdapter(
             binding.resultIcon.setImageResource(R.drawable.ic_search)
             tintIcon()
             binding.resultLabel.text =
-                binding.root.context.getString(R.string.search_web_for, web.provider.displayName, web.query)
+                binding.root.context.getString(R.string.search_web_for, web.provider.name, web.query)
             binding.root.setOnClickListener { callbacks.onWeb(web) }
         }
 
@@ -744,5 +754,7 @@ class SearchResultsAdapter(
         const val TYPE_SHORTCUTS = 9
         const val TYPE_DIVIDER = 10
         const val TYPE_RECENT_HEADER = 11
+        // The calculator's expression, a step back from its result.
+        const val CALC_EXPRESSION_ALPHA = 0xB3
     }
 }

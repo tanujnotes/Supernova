@@ -10,5 +10,5 @@
     android:letterSpacing="0.015"
     android:paddingHorizontal="@dimen/space_md"
     android:paddingBottom="@dimen/space_sm"
-    android:textColor="@color/textSecondary"
+    android:textColor="@color/settingsTextSecondary"
     android:textSize="@dimen/text_secondary" />

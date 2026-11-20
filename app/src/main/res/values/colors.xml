@@ -6,6 +6,13 @@
     <color name="drawerBackground">#FFFFFF</color>
     <color name="textPrimary">#11161D</color>
     <color name="textSecondary">#B011161D</color>
+    <!-- The settings pages' text: the theme's until the Settings style sets
+         Text, which overrides these at runtime (CustomAccent.textColors). -->
+    <color name="settingsText">@color/textPrimary</color>
+    <color name="settingsTextSecondary">@color/textSecondary</color>
+    <color name="settingsPageDivider">@color/settingsDivider</color>
+    <color name="settingsPageStepBg">@color/settingsStepBg</color>
+    <color name="settingsPageHighlight">@color/rippleHighlight</color>
 
     <!-- Drawn over the wallpaper, never over an app surface: stays light in
          both themes so labels survive a dark wallpaper in light mode. -->

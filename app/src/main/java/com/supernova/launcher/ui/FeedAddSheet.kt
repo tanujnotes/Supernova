@@ -44,6 +44,11 @@ object FeedAddSheet {
         }
         ready(binding.readyMedia, binding.readyMediaSwitch, prefs.feedShowMedia) {
             viewModel.set(Pref.feedShowMedia, it)
+            if (it) {
+                PermissionPrompts.explainNotificationAccess(
+                    activity, com.supernova.launcher.R.string.notification_access_media
+                )
+            }
         }
         ready(binding.readyCalendar, binding.readyCalendarSwitch, prefs.feedShowCalendar) {
             viewModel.set(Pref.feedShowCalendar, it)

@@ -7,5 +7,5 @@
     android:layout_height="wrap_content"
     android:lineSpacingExtra="2sp"
     android:paddingHorizontal="@dimen/space_md"
-    android:textColor="@color/textSecondary"
+    android:textColor="@color/settingsTextSecondary"
     android:textSize="@dimen/text_secondary" />

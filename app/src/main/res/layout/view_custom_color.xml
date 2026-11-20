@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Custom color, under the Fixed colors row of the style and color sheets:
+     a hue slider under the section's label, a Shade slider, a hex field and the last few
+     custom colors. Every change applies as it is made. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_md"
+        android:text="@string/custom_color_title"
+        android:textColor="@color/textSecondary"
+        android:textSize="@dimen/text_secondary" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="44dp">
+
+        <View
+            android:id="@+id/customHueTrack"
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:layout_gravity="center_vertical"
+            android:importantForAccessibility="no" />
+
+        <SeekBar
+            android:id="@+id/customHueSeek"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@null"
+            android:contentDescription="@string/color_hue"
+            android:max="359"
+            android:paddingHorizontal="14dp" />
+    </FrameLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_xs"
+        android:labelFor="@id/customShadeSeek"
+        android:text="@string/color_shade"
+        android:textColor="@color/textSecondary"
+        android:textSize="@dimen/text_secondary" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="44dp">
+
+        <View
+            android:id="@+id/customShadeTrack"
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:layout_gravity="center_vertical"
+            android:importantForAccessibility="no" />
+
+        <SeekBar
+            android:id="@+id/customShadeSeek"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@null"
+            android:paddingHorizontal="14dp" />
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/customHexBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_xs" />
+
+    <TextView
+        android:id="@+id/customRecentLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_md"
+        android:text="@string/color_recent"
+        android:textColor="@color/textSecondary"
+        android:textSize="@dimen/text_secondary" />
+
+    <LinearLayout
+        android:id="@+id/customRecentRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_sm"
+        android:orientation="horizontal" />
+</LinearLayout>

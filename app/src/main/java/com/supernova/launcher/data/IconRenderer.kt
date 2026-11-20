@@ -158,7 +158,8 @@ class IconRenderer(context: Context) {
     }
 
     // An app's own icon, left as it comes. A legacy one that is a tile of its
-    // own takes the icon shape at full size, as an adaptive icon does;
+    // own takes the icon shape at full size, as an adaptive icon does, and a
+    // disc of its own is drawn whole at that size (see legacyDisc);
     // rescaling it as a glyph left it smaller than the icons around it, and
     // overfilling a chosen shape cropped its art. A legacy logo is kept
     // whole on a plate of that shape (see legacyLogo). A pack's art, a picked picture
@@ -174,11 +175,38 @@ class IconRenderer(context: Context) {
             val mask = shapePath ?: glassPainter.systemMask(AdaptiveIconDrawable(Color.BLACK.toDrawable(), null), size)
             // Auto with the system shape only resizes, as render does.
             val plated = shapePath != null || reshapeLegacy == ReshapeLegacy.ON
-            legacyTile(picture, mask) ?: if (plated) legacyLogo(picture, mask) else null
+            legacyTile(picture, mask) ?: legacyDisc(picture, mask)
+                ?: if (plated) legacyLogo(picture, mask) else null
         } else {
             null
         }
         return reshaped ?: render(source, null, shape, customShape, glass)
+    }
+
+    // A pack's own art. It is finished as the pack made it, so Reshape legacy
+    // leaves it alone: its resizing shrank it, and its light plate hid white
+    // line art. In a chosen shape, art that is one solid body (a tile, a disc,
+    // a plate with its logo) takes the shape as before; art drawn on nothing
+    // (line art, a glyph) is drawn whole, since the shape's overfill and clip
+    // cut its outer lines away.
+    fun renderPackArt(source: Drawable, shape: IconShape, customShape: CustomShapeSpec?): Drawable {
+        val asMade = source !is AdaptiveIconDrawable && (shape == IconShape.SYSTEM || !solid(source))
+        if (!asMade) return render(source, null, shape, customShape, IconGlass.OFF)
+        val bitmap = createBitmap(iconSizePx, iconSizePx)
+        drawBase(Canvas(bitmap), source, 1f, hasBack = false)
+        return if (shadow) withShadow(bitmap) else bitmap.toDrawable(resources)
+    }
+
+    // Whether the drawable, drawn at the icon's size, is one solid body.
+    private fun solid(source: Drawable): Boolean {
+        val size = iconSizePx
+        val picture = createBitmap(size, size)
+        source.setBounds(0, 0, size, size)
+        source.draw(Canvas(picture))
+        val pixels = IntArray(size * size)
+        picture.getPixels(pixels, 0, size, 0, 0, size, size)
+        picture.recycle()
+        return PictureFrame.solid(pixels, size)
     }
 
     // The tile of a legacy icon cut to the icon's shape; null for one with no
@@ -192,6 +220,18 @@ class IconRenderer(context: Context) {
         // on a rounder tile isn't cropped more than it has to be.
         val cover = PictureFrame.reach(maskPixels(mask, size), size) / PictureFrame.boxReach(pixels, size, box)
         return filledMask(picture, box, mask, cover.coerceAtLeast(1f))
+    }
+
+    // A legacy icon that is a disc of its own, drawn whole across the
+    // icon's width inside its shape, as big as the icons beside it. As a
+    // logo it sat at 72% of them, so at any icon size it looked a size
+    // behind (#231). Null for one that isn't a disc.
+    private fun legacyDisc(picture: Bitmap, mask: Path): Drawable? {
+        val size = iconSizePx
+        val pixels = IntArray(size * size)
+        picture.getPixels(pixels, 0, size, 0, 0, size, size)
+        val box = PictureFrame.disc(pixels, size) ?: return null
+        return filledMask(picture, box, mask, 1f)
     }
 
     // A legacy logo: whole, at the uniform size, on a plate cut to the

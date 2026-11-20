@@ -88,6 +88,12 @@ object DialogField {
         // TextInputLayout only draws its box over a field with no background
         // of its own.
         input.background = null
+        // The outlined box draws no inner space of its own for a plain
+        // EditText, and the platform padding went with the background:
+        // without this the text sits on the border.
+        val padH = context.dp(FIELD_PAD_H_DP)
+        val padV = context.dp(FIELD_PAD_V_DP)
+        input.setPaddingRelative(padH, padV, padH, padV)
         // Names of apps, folders, groups and cards: nothing an autofill
         // service has an answer for.
         input.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
@@ -127,6 +133,9 @@ object DialogField {
             )
         }
     }
+
+    private const val FIELD_PAD_H_DP = 16
+    private const val FIELD_PAD_V_DP = 14
 }
 
 private fun Context.themeColor(attr: Int): Int {

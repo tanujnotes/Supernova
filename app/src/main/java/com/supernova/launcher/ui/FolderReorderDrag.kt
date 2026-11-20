@@ -8,7 +8,6 @@ import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import androidx.core.graphics.drawable.toBitmap
 import androidx.core.view.doOnPreDraw
 import androidx.recyclerview.widget.RecyclerView
 import com.supernova.launcher.R
@@ -69,7 +68,8 @@ class FolderReorderDrag(
         val picture = iconPicture(anchor.findViewById(R.id.icon))
         if (item == null || picture == null) return false
         layer.begin(
-            picture.first, grabRawX, grabRawY, picture.second, PICKUP_SCALE, Animations.duration(prefs(), PICKUP_MS)
+            picture.bitmap, grabRawX, grabRawY, picture.source, PICKUP_SCALE,
+            Animations.duration(prefs(), PICKUP_MS), picture.outset
         )
         itemId = item.id
         pickedUpOrder = adapter.members.map { it.id }
@@ -202,12 +202,16 @@ class FolderReorderDrag(
     }
 }
 
-// The icon's picture at the size it is seen, and where it is on screen.
-private fun iconPicture(icon: ImageView?): Pair<Bitmap, Rect>? {
+// The icon's picture at the size it is seen, with room for its shadow
+// (iconPictureWithRoom), and where it is on screen.
+private class IconPicture(val bitmap: Bitmap, val source: Rect, val outset: Int)
+
+private fun iconPicture(icon: ImageView?): IconPicture? {
     val source = icon?.screenRect()?.takeIf { it.width() > 0 && it.height() > 0 }
     val drawable = icon?.drawable
     if (source == null || drawable == null) return null
-    return runCatching { drawable.toBitmap(source.width(), source.height()) }.getOrNull()?.let { it to source }
+    return runCatching { iconPictureWithRoom(drawable, source.width(), source.height()) }.getOrNull()
+        ?.let { (bitmap, outset) -> IconPicture(bitmap, source, outset) }
 }
 
 // The tile under a finger, matched by layout bounds: a tile sliding to its

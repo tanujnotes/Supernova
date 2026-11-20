@@ -130,8 +130,6 @@ class LiveDragController(
         // The room a desktop icon needs at its own size, which a smaller
         // cell shrinks it to fit (WorkspaceCanvas.IconFit).
         fun desktopIconNeedPx(prefs: LauncherPrefs): android.util.Size
-        // The same for an icon `span` cells a side (a large icon).
-        fun desktopIconNeedPx(prefs: LauncherPrefs, span: Int): android.util.Size
         fun dockIconBoxPx(prefs: LauncherPrefs): Int
         fun dockIconTopInsetPx(): Int
         fun desktopIconBasePx(): Int
@@ -727,7 +725,8 @@ class LiveDragController(
 
     private val dragLayer: DragLayer get() = binding.dragLayer
 
-    private class DragPicture(val bitmap: Bitmap, val source: Rect?)
+    // `outset`: room round an icon's picture for its shadow (iconPictureWithRoom).
+    private class DragPicture(val bitmap: Bitmap, val source: Rect?, val outset: Int = 0)
 
     // Runs inside the still-active long-press touch stream, of this window or
     // of the window the item was pressed in (routeItemGesture). False when
@@ -783,7 +782,8 @@ class LiveDragController(
         dragLayer.begin(
             picture.bitmap, grabX, grabY, lifted?.let(::roundedRect) ?: picture.source,
             if (isWidgetPayload(payload)) 1f else DRAG_PICKUP_SCALE,
-            Animations.duration(prefs, DRAG_PICKUP_MS)
+            Animations.duration(prefs, DRAG_PICKUP_MS),
+            picture.outset
         )
         // The picture is what is seen now; the source can vanish.
         anchor.alpha = 0f
@@ -840,7 +840,10 @@ class LiveDragController(
                 ?: (payload as? DragPayload.DrawerShortcut)
                     ?.let { host.installedApp(it.packageName, it.userSerial) }
                     ?.let { viewModel.appCatalog().iconFor(it) }
-                    ?.let { DragPicture(it.toBitmap(minSize, minSize), null) }
+                    ?.let { icon ->
+                        val (bitmap, outset) = iconPictureWithRoom(icon, minSize, minSize)
+                        DragPicture(bitmap, null, outset)
+                    }
         }
         is DragPayload.ExistingItem -> {
             val item = itemById(payload.itemId)
@@ -918,7 +921,8 @@ class LiveDragController(
         val w = rect.width().coerceAtLeast(1)
         val h = rect.height().coerceAtLeast(1)
         val grow = (minSize.toFloat() / max(w, h)).coerceAtLeast(1f)
-        return DragPicture(drawable.toBitmap((w * grow).toInt(), (h * grow).toInt()), rect)
+        val (bitmap, outset) = iconPictureWithRoom(drawable, (w * grow).toInt(), (h * grow).toInt())
+        return DragPicture(bitmap, rect, outset)
     }
 
     // The page can move under a finger that holds still: the desktop drifts
@@ -1277,9 +1281,9 @@ class LiveDragController(
         // A widget let go over the dock: findDragTarget keeps it off the dock,
         // and the fly-back alone didn't say why.
         val overDock = binding.dockBar.isShown && binding.dockBar.screenRect().contains(rawX.toInt(), rawY.toInt())
-        if (isWidgetPayload(payload) && overDock) {
-            android.widget.Toast.makeText(context, R.string.widget_not_in_dock, android.widget.Toast.LENGTH_SHORT)
-                .show()
+        if (overDock && !dockable(payload)) {
+            val why = if (isWidgetPayload(payload)) R.string.widget_not_in_dock else R.string.shortcut_not_in_dock
+            android.widget.Toast.makeText(context, why, android.widget.Toast.LENGTH_SHORT).show()
         }
         // Nowhere to land: an item flies back to where it came from; a drawer
         // app or a picker widget has no home on screen and just fades. An app
@@ -1404,12 +1408,14 @@ class LiveDragController(
         // A large icon lands on the 2x2 cells the hover outlined, at its
         // own size: it brings its own view.
         val (span, cells) = largeIconCells(payload, p)
-        val need = host.desktopIconNeedPx(prefs, span)
-        val fit = iconFitScale(
-            cellSize(canvas.width, prefs.gridCols) * span, cellSize(canvas.height, prefs.gridRows) * span,
-            need.width, need.height
+        val need = host.desktopIconNeedPx(prefs)
+        val iconCellW = cellSize(canvas.width, prefs.gridCols)
+        val iconCellH = cellSize(canvas.height, prefs.gridRows)
+        val fit = iconFitScale(iconCellW, iconCellH, need.width, need.height)
+        val box = largeIconBoxPx(
+            span, iconCellW, iconCellH, (host.desktopIconBoxPx(prefs) * fit).roundToInt(),
+            (context.dp(ICON_ITEM_PADDING_DP) * fit).roundToInt()
         )
-        val box = (host.desktopIconBoxPx(prefs) * span * fit).roundToInt()
         val item = desktopItemFrame(prefs, box, fit)
         val centerX = cells?.let { (it.left + it.right) / 2f / prefs.gridCols } ?: p[2]
         val centerY = cells?.let { (it.top + it.bottom) / 2f / prefs.gridRows } ?: p[3]

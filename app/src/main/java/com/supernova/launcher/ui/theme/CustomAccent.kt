@@ -25,12 +25,42 @@ object CustomAccent {
         return Styles.resolve(context, prefs).of(SurfaceId.SETTINGS).accent or OPAQUE
     }
 
-    // Rewrites the Custom overlay's colours in this activity's resources
-    // (Android 11+, through Material's resources-loader override); false
-    // where that isn't possible, and the nearest curated accent stands in.
+    // The Settings style's Text as an opaque colour, or null when unset (#281).
+    fun settingsText(context: Context, prefs: LauncherPrefs): Int? {
+        val spec = StyleConfig.decode(prefs.styleConfig).styleFor(SurfaceId.SETTINGS).text
+        if (spec.isDefault) return null
+        return Styles.resolve(context, prefs).of(SurfaceId.SETTINGS).text or OPAQUE
+    }
+
+    // The settings pages' own text colours (settingsText, its muted
+    // settingsTextSecondary, hairlines and washes) for a styled Text, else the
+    // theme's. Always written: an override outlives the activity's recreate,
+    // so going back to Default has to put the theme's colours back. Dialogs
+    // and sheets keep textPrimary: the Settings Background doesn't reach them.
+    fun textColors(context: Context, text: Int?): Map<Int, Int> {
+        fun tint(alpha: Int, fallback: Int) =
+            if (text == null) context.getColor(fallback) else (alpha shl ALPHA_SHIFT) or (text and RGB)
+        return mapOf(
+            R.color.settingsText to (text ?: context.getColor(R.color.textPrimary)),
+            R.color.settingsTextSecondary to tint(SECONDARY_ALPHA, R.color.textSecondary),
+            R.color.settingsPageDivider to tint(DIVIDER_ALPHA, R.color.settingsDivider),
+            R.color.settingsPageStepBg to tint(WASH_ALPHA, R.color.settingsStepBg),
+            R.color.settingsPageHighlight to tint(WASH_ALPHA, R.color.rippleHighlight)
+        )
+    }
+
+    // Rewrites the given colours in this activity's resources (Android 11+,
+    // through Material's resources-loader override); false where that isn't
+    // possible.
     @android.annotation.SuppressLint("RestrictedApi")
-    fun override(activity: Activity, accent: Int): Boolean {
+    fun override(activity: Activity, colors: Map<Int, Int>): Boolean {
         val override = ColorResourcesOverride.getInstance() ?: return false
+        return runCatching { override.applyIfPossible(activity, colors) }.getOrDefault(false)
+    }
+
+    // The Custom overlay's colours for an accent; where they can't be
+    // applied, the nearest curated accent stands in.
+    fun accentColors(activity: Activity, accent: Int): Map<Int, Int> {
         val night = activity.resources.configuration.uiMode and
             Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
         // On dark raised surfaces the curated accents' text tints sit 40%
@@ -45,16 +75,11 @@ object CustomAccent {
         } else {
             ON_LIGHT_ACCENT
         }
-        return runCatching {
-            override.applyIfPossible(
-                activity,
-                mapOf(
-                    R.color.accentCustom to accent,
-                    R.color.accentCustomText to raised,
-                    R.color.onAccentCustom to onAccent
-                )
-            )
-        }.getOrDefault(false)
+        return mapOf(
+            R.color.accentCustom to accent,
+            R.color.accentCustomText to raised,
+            R.color.onAccentCustom to onAccent
+        )
     }
 
     private fun readableOnWhite(accent: Int): Int {
@@ -81,6 +106,12 @@ object CustomAccent {
     }
 
     private const val OPAQUE = 0xFF000000.toInt()
+    private const val RGB = 0x00FFFFFF
+    private const val ALPHA_SHIFT = 24
+    // textSecondary's alpha (B3 in dark, B0 in light).
+    private const val SECONDARY_ALPHA = 0xB3
+    private const val DIVIDER_ALPHA = 0x1F
+    private const val WASH_ALPHA = 0x1A
     private const val RAISED_LIFT = 0.4f
     private const val GREY_SATURATION = 0.12f
     private const val TEXT_CONTRAST = 3.0

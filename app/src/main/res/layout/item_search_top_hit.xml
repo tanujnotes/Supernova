@@ -2,6 +2,8 @@
 <!-- Top hit: the best app match as a card - big icon, name, an app
      info gear - and, under a hairline, the app's shortcuts as pills. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="@dimen/space_md"
@@ -14,6 +16,8 @@
 
     <LinearLayout
         android:id="@+id/topHitRow"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?attr/selectableItemBackground"

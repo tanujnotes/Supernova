@@ -78,6 +78,31 @@ class PictureFrameTest {
     }
 
     @Test
+    fun aRoundLegacyIconIsADisc() {
+        assertNotNull(PictureFrame.disc(picture { x, y -> inDisc(x, y, size * 0.46f) }, size))
+    }
+
+    @Test
+    fun aSquareTileIsNoDisc() {
+        assertNull(PictureFrame.disc(roundedSquare(margin = 8, radius = 16), size))
+    }
+
+    @Test
+    fun aSmallDiscOrARingIsNoDisc() {
+        assertNull(PictureFrame.disc(picture { x, y -> inDisc(x, y, size / 3f) }, size))
+        assertNull(PictureFrame.disc(picture { x, y -> inDisc(x, y, size / 2f) && !inDisc(x, y, size / 4f) }, size))
+    }
+
+    @Test
+    fun aShieldIsNoDisc() {
+        val shield = picture { x, y ->
+            val dx = kotlin.math.abs(x + 0.5f - size / 2f)
+            y >= 4 && y < size - 4 && dx <= (size / 2f - 4) * minOf(1f, (size - y) / (size * 0.5f))
+        }
+        assertNull(PictureFrame.disc(shield, size))
+    }
+
+    @Test
     fun aHexagonIsNoTile() {
         val hexagon = picture { x, y ->
             val dy = kotlin.math.abs(y + 0.5f - size / 2f)

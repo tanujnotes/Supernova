@@ -39,7 +39,7 @@ internal class ShortcutIcons(
             photo != null -> pickedPicture(photo, shape)
             icon == null -> null
             AppIconSource.isAppIcon(pack) -> renderer.renderOwnIcon(icon, shape, customShape, glass)
-            else -> renderer.render(icon, null, shape, customShape, IconGlass.OFF)
+            else -> renderer.renderPackArt(icon, shape, customShape)
         }
     }
 

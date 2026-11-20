@@ -14,6 +14,7 @@
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="128dp"
+        android:clipChildren="false"
         android:layout_marginHorizontal="@dimen/space_lg"
         android:layout_marginBottom="@dimen/space_sm"
         android:background="@drawable/bg_settings_preview">

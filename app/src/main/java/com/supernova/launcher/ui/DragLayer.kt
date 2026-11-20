@@ -4,12 +4,40 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.ColorFilter
+import android.graphics.Paint
+import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.graphics.RectF
+import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
+import androidx.core.graphics.createBitmap
+import kotlin.math.max
+import kotlin.math.roundToInt
+
+// An icon's picture for the drag layer, `width` x `height`, with room all
+// round for what it draws outside itself: a launcher icon's shadow falls
+// past its bounds (ShadowedIconDrawable), and toBitmap() at the icon's own
+// size cut it off at the bottom. The room is the second value, for
+// DragLayer.begin's `outset`.
+internal fun iconPictureWithRoom(drawable: Drawable, width: Int, height: Int): Pair<Bitmap, Int> {
+    val outset = (max(width, height) * ICON_PICTURE_ROOM_FRACTION).roundToInt()
+    val bitmap = createBitmap(width + 2 * outset, height + 2 * outset)
+    // A copy: the drawable on screen keeps its bounds.
+    val copy = drawable.constantState?.newDrawable()?.mutate() ?: drawable
+    val bounds = Rect(copy.bounds)
+    copy.setBounds(outset, outset, outset + width, outset + height)
+    copy.draw(Canvas(bitmap))
+    if (copy === drawable) copy.bounds = bounds
+    return bitmap to outset
+}
+
+// A tenth a side: a shadow is about 3dp past a 48dp icon.
+internal const val ICON_PICTURE_ROOM_FRACTION = 0.1f
 
 // The launcher's own drag layer, the way Launcher3 does it: a
 // full-window overlay that carries a picture of the picked-up item under the
@@ -51,45 +79,56 @@ class DragLayer @JvmOverloads constructor(
     // Picks up `bitmap` at the finger. `source` is the screen rect the bitmap
     // was drawn from (the icon image, the widget frame), so the picture starts
     // exactly over it; null centres the picture on the finger. `scale` is the
-    // enlargement while dragging, reached over `durationMs`.
-    fun begin(bitmap: Bitmap, fingerRawX: Float, fingerRawY: Float, source: Rect?, scale: Float, durationMs: Long) {
+    // enlargement while dragging, reached over `durationMs`. `outset` is room
+    // round the picture in `bitmap` (iconPictureWithRoom), drawn past its
+    // edges: the picture is the bitmap less it, for every size and place.
+    @Suppress("LongParameterList")
+    fun begin(
+        bitmap: Bitmap,
+        fingerRawX: Float,
+        fingerRawY: Float,
+        source: Rect?,
+        scale: Float,
+        durationMs: Long,
+        outset: Int = 0
+    ) {
         cancel()
         getLocationOnScreen(origin)
-        bitmapWidth = bitmap.width
-        bitmapHeight = bitmap.height
+        bitmapWidth = bitmap.width - 2 * outset
+        bitmapHeight = bitmap.height - 2 * outset
         liveScale = scale
         val fingerX = fingerRawX - origin[0]
         val fingerY = fingerRawY - origin[1]
         if (source != null && source.width() > 0 && source.height() > 0) {
             // The bitmap may not be the source's size (a drawer row's icon is
             // drawn at workspace size); hold the same relative point.
-            grabX = (fingerRawX - source.left) / source.width() * bitmap.width
-            grabY = (fingerRawY - source.top) / source.height() * bitmap.height
+            grabX = (fingerRawX - source.left) / source.width() * bitmapWidth
+            grabY = (fingerRawY - source.top) / source.height() * bitmapHeight
         } else {
-            grabX = bitmap.width / 2f
-            grabY = bitmap.height / 2f
+            grabX = bitmapWidth / 2f
+            grabY = bitmapHeight / 2f
         }
-        grabX = grabX.coerceIn(0f, bitmap.width.toFloat())
-        grabY = grabY.coerceIn(0f, bitmap.height.toFloat())
+        grabX = grabX.coerceIn(0f, bitmapWidth.toFloat())
+        grabY = grabY.coerceIn(0f, bitmapHeight.toFloat())
         // A picture drawn larger than what it was lifted from (a search pill's
         // small icon, drawn at desktop size) starts at the source's size, over
         // it, and grows with the pickup. So does one taken over from a
         // folder's own drag, already lifted, whatever its size there.
-        val startScale = if (source != null && source.width() > 0 && source.width() != bitmap.width) {
-            source.width() / bitmap.width.toFloat()
+        val startScale = if (source != null && source.width() > 0 && source.width() != bitmapWidth) {
+            source.width() / bitmapWidth.toFloat()
         } else {
             1f
         }
 
         val view = ImageView(context).apply {
-            setImageBitmap(bitmap)
+            if (outset > 0) setImageDrawable(OutsetPicture(bitmap, outset)) else setImageBitmap(bitmap)
             elevation = SHADOW_DP * resources.displayMetrics.density
             pivotX = grabX
             pivotY = grabY
             x = fingerX - grabX
             y = fingerY - grabY
         }
-        addView(view, LayoutParams(bitmap.width, bitmap.height))
+        addView(view, LayoutParams(bitmapWidth, bitmapHeight))
         dragView = view
         if (durationMs > 0) {
             view.scaleX = startScale
@@ -191,4 +230,41 @@ class DragLayer @JvmOverloads constructor(
         const val SHADOW_DP = 10f
         const val CONSUME_SCALE = 0.25f
     }
+}
+
+// A picture with `outset` px of room round it in `bitmap` (iconPictureWithRoom):
+// its size is the picture's, and it draws the room past its bounds, scaled
+// with it. The drag layer doesn't clip its children, so a shadow there shows.
+private class OutsetPicture(private val bitmap: Bitmap, private val outset: Int) : Drawable() {
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private val innerWidth = bitmap.width - 2 * outset
+    private val innerHeight = bitmap.height - 2 * outset
+    private val target = RectF()
+
+    override fun getIntrinsicWidth(): Int = innerWidth
+
+    override fun getIntrinsicHeight(): Int = innerHeight
+
+    override fun draw(canvas: Canvas) {
+        val scaleX = bounds.width().toFloat() / innerWidth
+        val scaleY = bounds.height().toFloat() / innerHeight
+        target.set(
+            bounds.left - outset * scaleX, bounds.top - outset * scaleY,
+            bounds.right + outset * scaleX, bounds.bottom + outset * scaleY
+        )
+        canvas.drawBitmap(bitmap, null, target, paint)
+    }
+
+    override fun setAlpha(alpha: Int) {
+        paint.alpha = alpha
+        invalidateSelf()
+    }
+
+    override fun setColorFilter(colorFilter: ColorFilter?) {
+        paint.colorFilter = colorFilter
+        invalidateSelf()
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
 }

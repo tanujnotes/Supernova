@@ -95,6 +95,15 @@ object TabFolders {
     }
 }
 
+// Where a drawer folder can be put from its own page (#238): any tab, and
+// any other folder that can hold it (TabFolders.canHold), in the order given.
+object FolderPlaces {
+    fun of(folder: DrawerGroup, groups: List<DrawerGroup>): List<DrawerGroup> {
+        val folders = groups.filter { it.type == DrawerGroupType.FOLDER }
+        return groups.filter { it.type == DrawerGroupType.TAB || TabFolders.canHold(it, folder, folders) }
+    }
+}
+
 // A row in a drawer group's Select apps: an app, or a drawer folder a tab
 // or another folder can hold. Also a drawer folder's contents, in its card.
 sealed interface GroupPick {

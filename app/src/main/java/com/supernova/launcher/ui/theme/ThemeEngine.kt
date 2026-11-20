@@ -143,11 +143,14 @@ object ThemeEngine {
     // Call before setContentView.
     fun applySettingsAccent(activity: Activity, prefs: com.supernova.launcher.data.LauncherPrefs): Int {
         val custom = CustomAccent.settingsAccent(activity, prefs)
+        // The Settings style's Text rides the same override (#281).
+        val text = CustomAccent.textColors(activity, CustomAccent.settingsText(activity, prefs))
         if (custom == null) {
+            CustomAccent.override(activity, text)
             applyAccent(activity, prefs.accentColor)
             return accentColor(activity, prefs.accentColor)
         }
-        val overlay = if (CustomAccent.override(activity, custom)) {
+        val overlay = if (CustomAccent.override(activity, text + CustomAccent.accentColors(activity, custom))) {
             R.style.ThemeOverlay_Supernova_Custom
         } else {
             CustomAccent.nearest(activity, custom).overlayRes

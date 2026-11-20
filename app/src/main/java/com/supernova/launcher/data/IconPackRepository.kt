@@ -69,6 +69,8 @@ class IconPackRepository(private val context: Context) {
     @Synchronized
     fun isLoaded(packageName: String?): Boolean = packageName == loadedPackage
 
+    fun loadedPack(): String? = loadedPackage
+
     fun reload() {
         val pack = loadedPackage ?: return
         loadedPackage = null
@@ -253,8 +255,12 @@ class IconPackRepository(private val context: Context) {
                 parser.close()
             }
         }
-        // Some packs ship their xml as a raw asset instead of a compiled resource.
-        val stream = runCatching { resources.assets.open("$name.xml") }.getOrNull() ?: return null
+        // Some packs ship their xml uncompiled instead: as an asset, or in
+        // res/raw (the generated packs of icon pack maker apps).
+        val rawId = resources.getIdentifier(name, "raw", packageName)
+        val stream = runCatching { resources.assets.open("$name.xml") }.getOrNull()
+            ?: rawId.takeIf { it != 0 }?.let { id -> runCatching { resources.openRawResource(id) }.getOrNull() }
+            ?: return null
         return stream.use { input ->
             val parser = runCatching {
                 android.util.Xml.newPullParser().apply { setInput(input, null) }
@@ -263,6 +269,9 @@ class IconPackRepository(private val context: Context) {
         }
     }
 
+    // A pack names its drawables in appfilter; another app's resources can
+    // only be looked up by name.
+    @android.annotation.SuppressLint("DiscouragedApi")
     private fun drawableByName(name: String, resources: Resources? = packResources): Drawable? {
         val res = resources ?: return null
         val pkg = loadedPackage ?: return null

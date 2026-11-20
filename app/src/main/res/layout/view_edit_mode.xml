@@ -9,32 +9,41 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <ImageView
-        android:id="@+id/editHomeMarker"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
+    <!-- The marker and Remove page centred as a pair, a clear gap between
+         them; the marker alone is centred where Remove page is gone (#253). -->
+    <LinearLayout
+        android:id="@+id/editPageButtons"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_gravity="top|center_horizontal"
         android:layout_marginTop="@dimen/space_sm"
-        android:background="@drawable/bg_edit_marker"
-        android:contentDescription="@string/edit_home_page"
-        android:elevation="6dp"
-        android:padding="@dimen/space_ms"
-        android:src="@drawable/ic_edit_home" />
+        android:orientation="horizontal">
 
-    <ImageView
-        android:id="@+id/editRemovePage"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
-        android:layout_gravity="top|center_horizontal"
-        android:layout_marginStart="64dp"
-        android:layout_marginTop="@dimen/space_sm"
-        android:background="@drawable/bg_edit_marker"
-        android:contentDescription="@string/remove_page"
-        android:elevation="6dp"
-        android:padding="@dimen/space_md"
-        android:src="@drawable/ic_menu_remove"
-        android:visibility="gone"
-        app:tint="#FF11161D" />
+        <ImageView
+            android:id="@+id/editHomeMarker"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:background="@drawable/bg_edit_marker"
+            android:contentDescription="@string/edit_home_page"
+            android:elevation="6dp"
+            android:padding="@dimen/space_ms"
+            android:src="@drawable/ic_edit_home" />
+
+        <ImageView
+            android:id="@+id/editRemovePage"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_marginStart="32dp"
+            android:background="@drawable/bg_edit_marker"
+            android:contentDescription="@string/remove_page"
+            android:elevation="6dp"
+            android:padding="@dimen/space_md"
+            android:src="@drawable/ic_menu_remove"
+            android:visibility="gone"
+            app:tint="#FF11161D" />
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/editChips"

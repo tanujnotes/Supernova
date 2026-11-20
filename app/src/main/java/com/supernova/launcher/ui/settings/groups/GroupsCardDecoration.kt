@@ -40,7 +40,7 @@ class GroupsCardDecoration(context: Context, private val adapter: GroupListAdapt
     )
     private val cardPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val bandPaint = Paint().apply { color = context.getColor(R.color.settingsBand) }
-    private val dividerPaint = Paint().apply { color = context.getColor(R.color.settingsDivider) }
+    private val dividerPaint = Paint().apply { color = context.getColor(R.color.settingsPageDivider) }
     private val slice = RectF()
     private val path = Path()
     private val radii = FloatArray(RADII_SIZE)

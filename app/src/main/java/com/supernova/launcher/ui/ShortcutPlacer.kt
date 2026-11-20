@@ -108,6 +108,12 @@ class ShortcutPlacer(
         }
     }
 
+    // The app answered with nothing that can be placed: said, as the
+    // swipe-action picker says it, rather than nothing happening.
+    private fun unusable() {
+        android.widget.Toast.makeText(activity, R.string.shortcut_unusable, android.widget.Toast.LENGTH_SHORT).show()
+    }
+
     private fun handleCreateShortcutResult(data: Intent, cell: DropCell?) {
         // Newer apps return a pinnable shortcut request; accepting it pins the
         // shortcut to us, so it launches reliably through startShortcut.
@@ -127,13 +133,16 @@ class ShortcutPlacer(
                     ?.getSerialNumberForUser(shortcut.userHandle) ?: 0L
                 val owner = LaunchableApp(shortcut.`package`, shortcut.activity?.className.orEmpty(), label, serial)
                 addPinnedShortcut(owner, shortcut.id, label, icon64, cell)
+            } else {
+                unusable()
             }
             return
         }
 
         // Legacy result: an intent to fire plus a name and an optional icon.
         @Suppress("DEPRECATION")
-        val shortcutIntent = data.getParcelableExtra<Intent>(Intent.EXTRA_SHORTCUT_INTENT) ?: return
+        val shortcutIntent = data.getParcelableExtra<Intent>(Intent.EXTRA_SHORTCUT_INTENT)
+            ?: return unusable()
         val name = data.getStringExtra(Intent.EXTRA_SHORTCUT_NAME).orEmpty()
         addIntentItem(
             shortcutIntent.toUri(Intent.URI_INTENT_SCHEME), name, extractLegacyShortcutIcon(data), cell

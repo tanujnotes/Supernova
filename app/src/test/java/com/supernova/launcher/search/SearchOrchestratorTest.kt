@@ -25,7 +25,7 @@ class SearchOrchestratorTest {
         }
     }
 
-    private fun webResult(query: String) = SearchResult.Web(query, WebProvider.GOOGLE)
+    private fun webResult(query: String) = SearchResult.Web(query, WebEngine(WebProvider.GOOGLE))
 
     private fun calcResult(query: String) = SearchResult.Calculation(query, "42")
 

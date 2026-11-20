@@ -11,6 +11,7 @@ import com.supernova.launcher.ui.LabelFont
 import com.supernova.launcher.ui.LaunchAnimation
 import com.supernova.launcher.ui.PopupMenuStyle
 import com.supernova.launcher.ui.ScrollEffect
+import com.supernova.launcher.ui.NavBarButtons
 import com.supernova.launcher.ui.StatusBarIcons
 import com.supernova.launcher.ui.theme.PaletteSourceMode
 import kotlinx.serialization.json.Json
@@ -121,6 +122,7 @@ class BackupRoundTripTest {
         launchAnimation = LaunchAnimation.SLIDE_UP,
         hideStatusBar = true,
         darkStatusIcons = StatusBarIcons.LIGHT,
+        navBarButtons = NavBarButtons.DARK,
         transparentNav = false,
         homeRotation = true,
         homeOrientation = "LANDSCAPE",

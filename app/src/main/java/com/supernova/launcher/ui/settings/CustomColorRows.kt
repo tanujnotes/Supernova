@@ -7,92 +7,124 @@ import android.text.Editable
 import android.text.InputFilter
 import android.text.InputType
 import android.text.TextWatcher
-import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
-import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.SeekBar
-import android.widget.TextView
-import androidx.annotation.StringRes
+import androidx.core.content.edit
+import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toDrawable
+import androidx.core.view.isVisible
 import com.supernova.launcher.R
+import com.supernova.launcher.databinding.ViewCustomColorBinding
+import com.supernova.launcher.ui.DialogField
 import com.supernova.launcher.ui.dp
 import java.util.Locale
 
-// Any color: Hue, Saturation and Brightness sliders on tracks that show
-// where each one goes, and a hex field (RRGGBB, or AARRGGBB to set the
-// opacity too). The HSV values are kept here so a slider never jumps as
-// the color rounds through RGB.
+// Any color, under the Fixed colors row of the style and color sheets: a
+// Color slider (hue), a Shade slider (dark to light in that hue), a hex
+// field (RRGGBB, or AARRGGBB to set the opacity too) and the last few custom
+// colors. Each change goes to onColor as it is made; the sheet's own strip
+// is the preview.
 class CustomColorRows(
     private val context: Context,
-    private val container: LinearLayout,
-    // A color from the sliders or the field: opaque RGB, and an alpha (0-255)
-    // when the hex had one.
+    private val container: ViewGroup,
+    // Opaque RGB, and an alpha (0-255) when the hex had one.
     private val onColor: (rgb: Int, alpha: Int?) -> Unit
 ) {
-    private val hsv = FloatArray(HSV_SIZE)
-    private val hue = SliderRow(R.string.color_hue, HUE_STEPS)
-    private val saturation = SliderRow(R.string.color_saturation, LEVEL_STEPS)
-    private val brightness = SliderRow(R.string.color_brightness, LEVEL_STEPS)
+    private val binding = ViewCustomColorBinding.inflate(LayoutInflater.from(context), container, true)
     private val hex = EditText(context)
+
+    // Hue 0-360, saturation and lightness 0-1. Kept here so a slider never
+    // jumps as the color rounds through RGB.
+    private val hsl = FloatArray(HSL_SIZE)
     private var updating = false
 
+    // The last color made here, kept for Recent when the sheet closes.
+    private var made: Int? = null
+
+    private val color: Int get() = ColorUtils.HSLToColor(hsl) or OPAQUE
+
     init {
-        container.visibility = View.VISIBLE
-        container.addView(TextView(context).apply {
-            setText(R.string.color_custom)
-            setTextColor(context.getColor(R.color.textSecondary))
-            textSize = LABEL_SP
-        }, LinearLayout.LayoutParams(WRAP, WRAP).apply { topMargin = context.dp(LABEL_TOP_DP) })
-        hue.track.background = GradientDrawable(
-            GradientDrawable.Orientation.LEFT_RIGHT,
+        container.isVisible = true
+        binding.customHueTrack.background = track(
             IntArray(HUE_STOPS) { Color.HSVToColor(floatArrayOf(it * FULL_HUE / (HUE_STOPS - 1), 1f, 1f)) }
-        ).apply { cornerRadius = context.dp(TRACK_DP).toFloat() }
-        listOf(hue, saturation, brightness).forEach { it.attach() }
-        addHexRow()
+        )
+        binding.customShadeSeek.max = SHADE_MAX - SHADE_MIN
+        listOf(binding.customHueSeek, binding.customShadeSeek).forEach { seek ->
+            seek.progressDrawable = Color.TRANSPARENT.toDrawable()
+            // A white knob that reads on any part of either track.
+            seek.thumb = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.WHITE)
+                setStroke(context.dp(THUMB_RING_DP), THUMB_RING)
+                setSize(context.dp(THUMB_DP), context.dp(THUMB_DP))
+            }
+            seek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                    if (fromUser && !updating) fromSliders(seekBar === binding.customHueSeek)
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
+                override fun onStopTrackingTouch(seekBar: SeekBar) = Unit
+            })
+        }
+        addHexField()
+        showRecent()
     }
 
     // Shows a color picked elsewhere (a swatch, Default, the stored value).
     fun show(rgb: Int) {
-        Color.colorToHSV(rgb, hsv)
-        render(rgb)
+        ColorUtils.colorToHSL(rgb or OPAQUE, hsl)
+        render()
     }
 
-    private fun render(rgb: Int) {
+    // The sheet is closing: the last color made here joins Recent.
+    fun remember() {
+        val rgb = made ?: return
+        val list = (listOf(rgb) + readRecent().filter { it != rgb }).take(RECENT_COUNT)
+        runCatching {
+            prefs.edit {
+                putString(KEY_RECENT, list.joinToString(",") { String.format(Locale.ROOT, "%06X", it and RGB_MASK) })
+            }
+        }
+    }
+
+    private fun track(colors: IntArray) =
+        GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, colors)
+            .apply { cornerRadius = context.dp(TRACK_RADIUS_DP).toFloat() }
+
+    private fun render() {
+        val shadeAt = { lightness: Float -> ColorUtils.HSLToColor(floatArrayOf(hsl[0], hsl[1], lightness)) }
         updating = true
-        hue.seek.progress = Math.round(hsv[0])
-        saturation.seek.progress = Math.round(hsv[1] * LEVEL_STEPS)
-        brightness.seek.progress = Math.round(hsv[2] * LEVEL_STEPS)
-        saturation.track.background = gradient(
-            Color.HSVToColor(floatArrayOf(hsv[0], 0f, hsv[2])), Color.HSVToColor(floatArrayOf(hsv[0], 1f, hsv[2]))
+        binding.customHueSeek.progress = Math.round(hsl[0]).coerceIn(0, MAX_HUE)
+        binding.customShadeSeek.progress =
+            (Math.round(hsl[2] * PERCENT) - SHADE_MIN).coerceIn(0, SHADE_MAX - SHADE_MIN)
+        binding.customShadeTrack.background = track(
+            intArrayOf(shadeAt(SHADE_MIN / PERCENT), shadeAt(HALF), shadeAt(SHADE_MAX / PERCENT))
         )
-        brightness.track.background = gradient(Color.BLACK, Color.HSVToColor(floatArrayOf(hsv[0], hsv[1], 1f)))
-        if (!hex.hasFocus()) hex.setText(String.format(Locale.ROOT, "%06X", rgb and RGB_MASK))
+        if (!hex.hasFocus()) hex.setText(String.format(Locale.ROOT, "%06X", color and RGB_MASK))
         updating = false
     }
 
-    private fun gradient(start: Int, end: Int) =
-        GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(start, end))
-            .apply { cornerRadius = context.dp(TRACK_DP).toFloat() }
-
-    private fun fromSliders() {
-        hsv[0] = hue.seek.progress.toFloat()
-        hsv[1] = saturation.seek.progress / LEVEL_STEPS.toFloat()
-        hsv[2] = brightness.seek.progress / LEVEL_STEPS.toFloat()
-        val rgb = Color.HSVToColor(hsv)
-        hex.clearFocus()
-        render(rgb)
-        onColor(rgb, null)
+    private fun apply(alpha: Int?) {
+        render()
+        made = color
+        onColor(color, alpha)
     }
 
-    private fun addHexRow() {
-        val row = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        row.addView(rowName(R.string.color_hex), LinearLayout.LayoutParams(context.dp(NAME_DP), WRAP))
+    private fun fromSliders(hueMoved: Boolean) {
+        hsl[0] = binding.customHueSeek.progress.toFloat()
+        hsl[2] = (binding.customShadeSeek.progress + SHADE_MIN) / PERCENT
+        // A grey has no hue to show: moving Color gives it some.
+        if (hueMoved && hsl[1] < GREY) hsl[1] = PICKED_SATURATION
+        hex.clearFocus()
+        apply(null)
+    }
+
+    private fun addHexField() {
         hex.apply {
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS or
                 InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
@@ -100,9 +132,8 @@ class CustomColorRows(
                 val kept = source.subSequence(start, end).filter { it.isDigit() || it.uppercaseChar() in 'A'..'F' }
                 if (kept.length == end - start) null else kept
             })
-            hint = context.getString(R.string.palette_seed_hint)
+            hint = context.getString(R.string.color_hex)
             setSingleLine()
-            textSize = HEX_SP
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
@@ -111,84 +142,84 @@ class CustomColorRows(
                 }
             })
         }
-        row.addView(hex, LinearLayout.LayoutParams(0, WRAP, 1f))
-        container.addView(row, LinearLayout.LayoutParams(MATCH, WRAP))
+        // Flush with the sliders: the wrap brings a dialog's own sides.
+        val field = DialogField.wrap(hex).apply { setPadding(0, paddingTop, 0, paddingBottom) }
+        binding.customHexBox.addView(
+            field,
+            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        )
     }
 
     private fun fromHex(text: String) {
         val value = text.toLongOrNull(HEX_RADIX) ?: return
-        val (rgb, alpha) = when (text.length) {
-            RGB_DIGITS -> (value.toInt() or OPAQUE) to null
-            ARGB_DIGITS -> (value.toInt() or OPAQUE) to (value.toInt() ushr ALPHA_SHIFT)
+        val alpha = when (text.length) {
+            RGB_DIGITS -> null
+            ARGB_DIGITS -> value.toInt() ushr ALPHA_SHIFT
             else -> return
         }
-        Color.colorToHSV(rgb, hsv)
-        render(rgb)
-        onColor(rgb, alpha)
+        ColorUtils.colorToHSL(value.toInt() or OPAQUE, hsl)
+        apply(alpha)
     }
 
-    private fun rowName(@StringRes name: Int) = TextView(context).apply {
-        setText(name)
-        setTextColor(context.getColor(R.color.textPrimary))
-        textSize = NAME_SP
-    }
-
-    // A name, then the slider over its gradient track.
-    private inner class SliderRow(@StringRes private val name: Int, max: Int) {
-        val track = View(context)
-        val seek = SeekBar(context).apply {
-            this.max = max
-            progressDrawable = Color.TRANSPARENT.toDrawable()
-            setPadding(context.dp(THUMB_DP), 0, context.dp(THUMB_DP), 0)
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                    if (fromUser && !updating) fromSliders()
+    // The last few custom colors, newest first; none yet hides the row.
+    private fun showRecent() {
+        val recent = readRecent()
+        binding.customRecentLabel.isVisible = recent.isNotEmpty()
+        binding.customRecentRow.isVisible = recent.isNotEmpty()
+        val size = context.dp(SWATCH_DP)
+        recent.forEach { rgb ->
+            val dot = View(context).apply {
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(rgb)
+                    setStroke(context.dp(1), context.getColor(R.color.settingsDivider))
                 }
-
-                override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
-                override fun onStopTrackingTouch(seekBar: SeekBar) = Unit
-            })
-        }
-
-        fun attach() {
-            val row = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
+                contentDescription = String.format(Locale.ROOT, "#%06X", rgb and RGB_MASK)
+                setOnClickListener {
+                    ColorUtils.colorToHSL(rgb, hsl)
+                    hex.clearFocus()
+                    apply(null)
+                }
             }
-            row.addView(rowName(name), LinearLayout.LayoutParams(context.dp(NAME_DP), WRAP))
-            val frame = FrameLayout(context)
-            frame.addView(track, FrameLayout.LayoutParams(MATCH, context.dp(TRACK_DP)).apply {
-                gravity = Gravity.CENTER_VERTICAL
-                marginStart = context.dp(THUMB_DP)
-                marginEnd = context.dp(THUMB_DP)
+            binding.customRecentRow.addView(dot, LinearLayout.LayoutParams(size, size).apply {
+                marginEnd = context.dp(SWATCH_GAP_DP)
             })
-            frame.addView(seek, FrameLayout.LayoutParams(MATCH, context.dp(ROW_DP)))
-            row.addView(frame, LinearLayout.LayoutParams(0, WRAP, 1f))
-            container.addView(row, LinearLayout.LayoutParams(MATCH, WRAP))
         }
     }
+
+    private val prefs get() = context.getSharedPreferences(STATE_PREFS, Context.MODE_PRIVATE)
+
+    private fun readRecent(): List<Int> = runCatching {
+        prefs.getString(KEY_RECENT, "").orEmpty().split(',').mapNotNull { entry ->
+            entry.toLongOrNull(HEX_RADIX)?.toInt()?.or(OPAQUE)
+        }
+    }.getOrDefault(emptyList())
 
     private companion object {
-        const val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT
-        const val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
-        const val HSV_SIZE = 3
-        const val HUE_STEPS = 360
-        const val FULL_HUE = 360f
+        const val HSL_SIZE = 3
         const val HUE_STOPS = 7
-        const val LEVEL_STEPS = 100
-        const val TRACK_DP = 8
-        const val THUMB_DP = 12
-        const val ROW_DP = 40
-        const val NAME_DP = 96
-        const val LABEL_TOP_DP = 14
-        const val LABEL_SP = 14f
-        const val NAME_SP = 16f
-        const val HEX_SP = 16f
+        const val FULL_HUE = 360f
+        const val MAX_HUE = 359
+        const val SHADE_MIN = 4
+        const val SHADE_MAX = 96
+        const val PERCENT = 100f
+        const val HALF = 0.5f
+        const val GREY = 0.08f
+        const val PICKED_SATURATION = 0.55f
+        const val TRACK_RADIUS_DP = 12
+        const val THUMB_DP = 28
+        const val THUMB_RING_DP = 3
+        const val THUMB_RING = 0x66000000
+        const val SWATCH_DP = 40
+        const val SWATCH_GAP_DP = 10
+        const val RECENT_COUNT = 5
         const val HEX_RADIX = 16
         const val RGB_DIGITS = 6
         const val ARGB_DIGITS = 8
         const val RGB_MASK = 0xFFFFFF
         const val OPAQUE = 0xFF000000.toInt()
         const val ALPHA_SHIFT = 24
+        const val STATE_PREFS = "custom_color_state"
+        const val KEY_RECENT = "recent"
     }
 }

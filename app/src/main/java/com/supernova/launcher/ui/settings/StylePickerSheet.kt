@@ -94,10 +94,6 @@ object StylePickerSheet {
             binding.root.removeCallbacks(persistLater)
             binding.root.postDelayed(persistLater, CUSTOM_SAVE_DELAY_MS)
         }
-        dialog.setOnDismissListener {
-            if (binding.root.removeCallbacks(persistLater)) persist()
-            onDismiss()
-        }
 
         fun activeSpec(): ColorSpec = when (slot) {
             Slot.SURFACE -> style.surface
@@ -267,6 +263,11 @@ object StylePickerSheet {
                 binding.opacityValue.text = context.getString(R.string.opacity_percent, percent)
                 applyOpacity(percent)
             }
+        }
+        dialog.setOnDismissListener {
+            if (binding.root.removeCallbacks(persistLater)) persist()
+            custom.remember()
+            onDismiss()
         }
 
         if (surfaceId in OPACITY_SURFACES) {

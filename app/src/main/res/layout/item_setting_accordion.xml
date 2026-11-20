@@ -18,7 +18,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:textColor="@color/textPrimary"
+        android:textColor="@color/settingsText"
         android:textSize="@dimen/text_body"
         android:textStyle="bold" />
 
@@ -30,5 +30,5 @@
         android:importantForAccessibility="no"
         android:paddingHorizontal="@dimen/space_ms"
         android:src="@drawable/ic_chevron_down"
-        app:tint="@color/textSecondary" />
+        app:tint="@color/settingsTextSecondary" />
 </LinearLayout>

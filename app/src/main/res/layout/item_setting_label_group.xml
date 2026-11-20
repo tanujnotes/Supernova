@@ -42,7 +42,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:fontFamily="sans-serif-medium"
-                    android:textColor="@color/textPrimary"
+                    android:textColor="@color/settingsText"
                     android:textSize="@dimen/text_body" />
 
                 <TextView
@@ -52,7 +52,7 @@
                     android:layout_marginTop="@dimen/space_xxs"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:textColor="@color/textSecondary"
+                    android:textColor="@color/settingsTextSecondary"
                     android:textSize="@dimen/text_secondary" />
             </LinearLayout>
 
@@ -63,13 +63,13 @@
                 android:layout_marginStart="@dimen/space_sm"
                 android:importantForAccessibility="no"
                 android:src="@drawable/ic_chevron_down"
-                app:tint="@color/textSecondary" />
+                app:tint="@color/settingsTextSecondary" />
         </LinearLayout>
 
         <View
             android:layout_width="1dp"
             android:layout_height="32dp"
-            android:background="@color/settingsDivider" />
+            android:background="@color/settingsPageDivider" />
 
         <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/labelSwitch"
@@ -109,7 +109,7 @@
                     android:layout_weight="1"
                     android:fontFamily="sans-serif-medium"
                     android:text="@string/label_card_size"
-                    android:textColor="@color/textPrimary"
+                    android:textColor="@color/settingsText"
                     android:textSize="@dimen/text_body" />
 
                 <TextView
@@ -117,7 +117,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="44dp"
-                    android:textColor="@color/textSecondary"
+                    android:textColor="@color/settingsTextSecondary"
                     android:textSize="@dimen/text_secondary" />
             </LinearLayout>
 
@@ -132,11 +132,12 @@
                     android:id="@+id/labelSizeDown"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
-                    android:background="@drawable/bg_step_circle"
+                    android:background="@drawable/bg_settings_step_circle"
                     android:contentDescription="@string/stepper_decrease"
                     android:padding="@dimen/space_ms"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/ic_step_minus" />
+                    android:src="@drawable/ic_step_minus"
+                    app:tint="@color/settingsText" />
 
                 <SeekBar
                     android:id="@+id/labelSizeSeek"
@@ -150,11 +151,12 @@
                     android:id="@+id/labelSizeUp"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
-                    android:background="@drawable/bg_step_circle"
+                    android:background="@drawable/bg_settings_step_circle"
                     android:contentDescription="@string/stepper_increase"
                     android:padding="@dimen/space_ms"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/ic_step_plus" />
+                    android:src="@drawable/ic_step_plus"
+                    app:tint="@color/settingsText" />
             </LinearLayout>
         </LinearLayout>
 
@@ -162,7 +164,7 @@
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginStart="@dimen/space_md"
-            android:background="@color/settingsDivider" />
+            android:background="@color/settingsPageDivider" />
 
         <LinearLayout
             android:id="@+id/labelFontBox"
@@ -182,7 +184,7 @@
                 android:layout_weight="1"
                 android:fontFamily="sans-serif-medium"
                 android:text="@string/label_card_font"
-                android:textColor="@color/textPrimary"
+                android:textColor="@color/settingsText"
                 android:textSize="@dimen/text_body" />
 
             <TextView
@@ -193,7 +195,7 @@
                 android:ellipsize="end"
                 android:maxWidth="160dp"
                 android:maxLines="1"
-                android:textColor="@color/textSecondary"
+                android:textColor="@color/settingsTextSecondary"
                 android:textSize="@dimen/text_secondary" />
 
             <ImageView
@@ -203,14 +205,14 @@
                 android:importantForAccessibility="no"
                 android:paddingHorizontal="@dimen/space_md"
                 android:src="@drawable/ic_settings_chevron"
-                app:tint="@color/textSecondary" />
+                app:tint="@color/settingsTextSecondary" />
         </LinearLayout>
 
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginStart="@dimen/space_md"
-            android:background="@color/settingsDivider" />
+            android:background="@color/settingsPageDivider" />
 
         <LinearLayout
             android:id="@+id/labelShadowCell"
@@ -229,7 +231,7 @@
                 android:layout_weight="1"
                 android:fontFamily="sans-serif-medium"
                 android:text="@string/label_card_shadow"
-                android:textColor="@color/textPrimary"
+                android:textColor="@color/settingsText"
                 android:textSize="@dimen/text_body" />
 
             <androidx.appcompat.widget.SwitchCompat
@@ -246,7 +248,7 @@
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginStart="@dimen/space_md"
-            android:background="@color/settingsDivider" />
+            android:background="@color/settingsPageDivider" />
 
         <LinearLayout
             android:id="@+id/labelSingleLineCell"
@@ -265,7 +267,7 @@
                 android:layout_weight="1"
                 android:fontFamily="sans-serif-medium"
                 android:text="@string/label_card_single_line"
-                android:textColor="@color/textPrimary"
+                android:textColor="@color/settingsText"
                 android:textSize="@dimen/text_body" />
 
             <androidx.appcompat.widget.SwitchCompat

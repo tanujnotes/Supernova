@@ -13,8 +13,11 @@ import kotlin.math.hypot
 // tap, double-tap swipes, pinch, two-finger rotate) and reports which Gesture
 // fired; binding to actions is the caller's job.
 //
-// Contract: this detector observes the dispatchTouchEvent stream and NEVER
-// consumes events - drags, page swipes and icon taps keep working underneath.
+// Contract: this detector observes the dispatchTouchEvent stream and consumes
+// nothing - drags, page swipes and icon taps keep working underneath - with
+// one exception: a swipe up or down it runs as the finger moves, which
+// takeSwipedMidStream() reports once, for the caller to take the rest of the
+// stream.
 class HomeGestureDetector(
     context: Context,
     private val onGesture: (Gesture) -> Boolean,
@@ -190,6 +193,7 @@ class HomeGestureDetector(
                 }
             }
             MotionEvent.ACTION_MOVE -> {
+                if (fireVerticalSwipeOnMove(event)) swipedMidStream = true
                 if (twoFingerTracking && event.pointerCount == 2 && !rotateHandled && !pinchHandled) {
                     val delta = normalizedDegrees(pointerAngle(event) - rotateStartAngle)
                     val distance = pointerDistance(event)
@@ -248,6 +252,33 @@ class HomeGestureDetector(
         if (up) suppressUp = true
         if (down) suppressDown = true
         if (sideways) suppressSideways = true
+    }
+
+    private var swipedMidStream = false
+
+    // Off for a press in the system's gesture strip: the system takes that
+    // swipe a moment later, and running it mid-move would beat it there.
+    // Its lift still decides as before. Set by the caller before each down.
+    var moveSwipesAllowed = true
+
+    // True once after a swipe up or down ran mid-stream: the caller cancels
+    // the views under it and keeps the rest of the stream from them.
+    fun takeSwipedMidStream(): Boolean = swipedMidStream.also { swipedMidStream = false }
+
+    // A swipe up or down runs as the finger crosses the swipe distance, not
+    // on the lift: the shade then follows the finger's motion at once, and the
+    // views under it are cancelled, so a widget or icon the swipe ended on
+    // isn't tapped as well. True when it ran.
+    private fun fireVerticalSwipeOnMove(event: MotionEvent): Boolean {
+        val dx = event.x - swipeDownX
+        val dy = event.y - swipeDownY
+        val up = dy < 0
+        val swiped = moveSwipesAllowed && swipeTracking && event.pointerCount == 1 && !doubleTapActive &&
+            abs(dy) >= minSwipeDistance && abs(dy) > abs(dx) * DIRECTION_BIAS &&
+            !(if (up) suppressUp else suppressDown) && !pageOwnsLift(dx)
+        if (!swiped) return false
+        swipeTracking = false
+        return onGesture(if (up) Gesture.SWIPE_UP else Gesture.SWIPE_DOWN)
     }
 
     private fun fireSwipeIfAny(event: MotionEvent) {

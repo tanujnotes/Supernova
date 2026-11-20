@@ -113,9 +113,9 @@ class OnboardingActivity : AppCompatActivity() {
     private var afterHomeRole: (() -> Unit)? = null
 
     // The backup brought its own home screen and settings: nothing is left
-    // to set up.
+    // to set up but making it the home app, as the last page would.
     private val backup = com.supernova.launcher.ui.BackupTransfer(
-        this, { viewModel }, onImported = { finishOnboarding(askAnimations = false) }
+        this, { viewModel }, onImported = { askHomeRoleThen { finishOnboarding(askAnimations = false) } }
     )
 
     private val requestHomeRole =
@@ -690,7 +690,7 @@ class OnboardingActivity : AppCompatActivity() {
             mini.set(rows, cols)
             column.addView(mini, LinearLayout.LayoutParams(dp(GRID_W_DP), dp(GRID_H_DP)))
             column.addView(TextView(this).apply {
-                text = getString(R.string.onboarding_grid_size, cols, rows)
+                text = getString(R.string.onboarding_grid_size, rows, cols)
                 setTextColor(getColor(R.color.onboardingSummary))
                 textSize = SMALL_SP
             }, tiles.wrap().apply { topMargin = dp(OnboardingTiles.GAP_DP) })
