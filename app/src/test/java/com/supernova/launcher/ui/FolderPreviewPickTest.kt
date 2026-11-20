@@ -39,8 +39,13 @@ class FolderPreviewPickTest {
             apps.take(9),
             FolderPreviewPick.shown(apps, 4, FolderPreviewStyle.LINE, prioritizeFirst = false, limit = 9)
         )
+    }
+
+    // A first app drawn large shows four: it and the next three (#289).
+    @Test
+    fun prioritizedFirstTakesFour() {
         assertEquals(
-            apps.take(9),
+            apps.take(4),
             FolderPreviewPick.shown(apps, 4, FolderPreviewStyle.GRID, prioritizeFirst = true, limit = 9)
         )
     }

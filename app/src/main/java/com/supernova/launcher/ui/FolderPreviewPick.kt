@@ -14,6 +14,8 @@ object FolderPreviewPick {
         prioritizeFirst: Boolean,
         limit: Int
     ): List<T> {
+        // A first app drawn large shows it and the next three, no more: it
+        // used to ask for nine icons and draw four (#289).
         val side = when {
             prioritizeFirst -> 0
             style == FolderPreviewStyle.GRID -> GRID_SIDE
@@ -22,12 +24,15 @@ object FolderPreviewPick {
         }
         // A window no wider than the tile, or a folder the tile holds whole,
         // reads straight into it.
-        if (side == 0 || windowColumns <= side || members.size <= side * side) return members.take(limit)
+        if (side == 0 || windowColumns <= side || members.size <= side * side) {
+            return members.take(if (prioritizeFirst) PRIORITIZED else limit)
+        }
         return members.filterIndexed { index, _ ->
             index % windowColumns < side && index / windowColumns < side
         }
     }
 
+    private const val PRIORITIZED = 4
     private const val GRID_SIDE = 2
     private const val GRID_3X3_SIDE = 3
 }

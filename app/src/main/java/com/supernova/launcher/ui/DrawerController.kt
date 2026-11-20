@@ -45,8 +45,9 @@ class DrawerController(
     private val onGlobalSearch: () -> Unit,
     // FOLDER-type groups: icon composition and tap handling live in the
     // activity, which owns FolderPopup and the icon pipeline.
-    // The last argument runs once member icons it had to leave out are in.
-    private val buildFolderIcon: (DrawerGroup, List<LaunchableApp>, () -> Unit) -> Drawable,
+    // The last argument runs once member icons it had to leave out are in;
+    // null draws every member now.
+    private val buildFolderIcon: (DrawerGroup, List<LaunchableApp>, (() -> Unit)?) -> Drawable,
     // A drawer folder's badge (its members' summed count), applied at bind
     // so a count moving needs no new composition.
     private val decorateFolderIcon: (Drawable, List<LaunchableApp>) -> Drawable = { icon, _ -> icon },
@@ -1469,7 +1470,14 @@ class DrawerController(
     }
 
     private var refreshQueued = false
+    private var frequentRowLate = false
     private var lateIconsQueued = false
+
+    // A rebuild for late icons: whatever is still missing then is drawn at
+    // once, so it can't ask again. When the cache couldn't hold every
+    // folder's icons (more members with Prioritize first icon), each round
+    // missed again and the folders redrew without end (#289).
+    private var lateRebuild = false
 
     // A drawer folder's member icons came in after its icon was built: the
     // list is built again, now from the cache, once for a burst of them.
@@ -1480,10 +1488,15 @@ class DrawerController(
             lateIconsQueued = false
             if (!populated) return@post
             if (isVisible || isPulling) {
-                submit()
+                lateRebuild = true
+                try {
+                    submit()
+                } finally {
+                    lateRebuild = false
+                }
             } else {
+                // Closed: the next open builds it, from a warmer cache.
                 needsRefresh = true
-                refreshWhenIdle()
             }
         }
     }
@@ -1661,7 +1674,9 @@ class DrawerController(
             if (!viewModel.drawerFolderHasContent(group)) {
                 null
             } else {
-                AppDrawerAdapter.FolderEntry(group, buildFolderIcon(group, members, ::onLateIcons), members)
+                AppDrawerAdapter.FolderEntry(
+                    group, buildFolderIcon(group, members, ::onLateIcons.takeUnless { lateRebuild }), members
+                )
             }
         }
         // On the main list a folder's apps leave the flat list and live inside
@@ -1754,15 +1769,22 @@ class DrawerController(
         // Icons not rendered yet come in off the main thread, and the row
         // is built again once they are.
         val catalog = viewModel.appCatalog()
-        val missing = apps.filter { catalog.cachedIcon(it) == null }
-        IconThread.renderAll(catalog, missing.map { it to null }) {
-            frequentRowKey = null
-            updateFrequentRow()
+        val lateRound = frequentRowLate
+        frequentRowLate = false
+        if (!lateRound) {
+            val missing = apps.filter { catalog.cachedIcon(it) == null }
+            IconThread.renderAll(catalog, missing.map { it to null }) {
+                frequentRowKey = null
+                frequentRowLate = true
+                updateFrequentRow()
+            }
         }
         val entries = apps.map { app ->
             FrequentAppsRowView.Entry(
                 app.label,
-                decorateIcon(catalog.cachedIcon(app), app),
+                // The round after late icons draws any still missing now,
+                // so it can't ask again (#289).
+                decorateIcon(catalog.cachedIcon(app) ?: catalog.iconFor(app).takeIf { lateRound }, app),
                 onLongPress = { view -> onAppLongPress(view, app) }
             ) { view ->
                 onAppClick(view, app)
