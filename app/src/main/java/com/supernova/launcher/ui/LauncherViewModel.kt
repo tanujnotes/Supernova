@@ -319,6 +319,7 @@ class LauncherViewModel(
             // install's auto-add and smart-folder placement both run their
             // own fresh lookups rather than waiting on appsFlow.
             requestRefresh(immediate = false)
+            SearchMarks.forget()
             when (change) {
                 is AppChange.Removed -> {
                     viewModelScope.launch(Dispatchers.Default) { catalog.invalidatePackages(listOf(change.packageName)) }

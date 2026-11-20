@@ -56,18 +56,32 @@ object SearchMarks {
         ) { onTap(chip) }
     }
 
+    // Rendered marks, by chip and the renderer's look: the row rebinds on
+    // every keystroke, and loading and rendering each provider's icon again
+    // was most of a keystroke's main-thread time. A null value is a provider
+    // that isn't installed. Cleared when apps change (forget).
+    private val rendered = HashMap<String, Drawable.ConstantState?>()
+
+    fun forget() = synchronized(rendered) { rendered.clear() }
+
     private fun markFor(
         context: Context,
         chip: SearchChip,
         renderer: IconRenderer,
         accentColor: Int
     ): Drawable {
-        val installed = chip.iconPackage?.let { pkg ->
-            runCatching { context.packageManager.getApplicationIcon(pkg) }.getOrNull()
+        val key = "${chip.name}|${renderer.iconSizePx}|${renderer.shadow}|${renderer.glass}|${renderer.reshapeLegacy}"
+        val known = synchronized(rendered) { key in rendered }
+        val installed = if (known) {
+            synchronized(rendered) { rendered[key] }?.newDrawable(context.resources)
+        } else {
+            renderInstalled(context, chip, renderer).also { mark ->
+                // A mark that can't be copied is rendered again next time.
+                val state = mark?.constantState
+                if (mark == null || state != null) synchronized(rendered) { rendered[key] = state }
+            }
         }
-        // Circles regardless of the icon-shape pref: these read as buttons in a
-        // row of their own, not as launcher icons.
-        if (installed != null) return renderer.render(installed, shape = IconShape.CIRCLE)
+        if (installed != null) return installed
         val label = context.getString(labelOf(chip))
         return MonogramDrawable(
             label.take(1).uppercase(),
@@ -75,4 +89,11 @@ object SearchMarks {
             accentColor.takeIf { it != 0 } ?: context.getColor(R.color.textPrimary)
         )
     }
+
+    // Circles regardless of the icon-shape pref: these read as buttons in a
+    // row of their own, not as launcher icons.
+    private fun renderInstalled(context: Context, chip: SearchChip, renderer: IconRenderer): Drawable? =
+        chip.iconPackage
+            ?.let { pkg -> runCatching { context.packageManager.getApplicationIcon(pkg) }.getOrNull() }
+            ?.let { renderer.render(it, shape = IconShape.CIRCLE) }
 }
