@@ -1,0 +1,10 @@
+A faster launcher, live previews for effects, and more colour and icon fixes.
+
+- Faster start, drawer and icons: less work on the main thread
+- Live previews for page effects and app animations
+- Custom colour sheet with sliders, hex and recent colours
+- Drag drawer groups between tabs and folders
+- Up to 5 dock pages; navigation bar button colour
+- More search engines, including a custom URL
+- Calendar apps' date icons follow the day
+- Fixed clipped icon shadows and icon pack art
