@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 import androidx.annotation.StringRes
+import androidx.core.content.edit
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.supernova.launcher.R
 import com.supernova.launcher.data.LauncherPrefs
@@ -100,7 +101,7 @@ object PermissionPrompts {
             }
             return
         }
-        asked.edit().putBoolean(permission, true).apply()
+        asked.edit { putBoolean(permission, true) }
         ask()
     }
 

@@ -24,11 +24,11 @@ class DynamicAppIcons(private val pm: PackageManager, private val iconDensity: I
             val res = pm.getResourcesForApplication(info.applicationInfo)
             val array = res.obtainTypedArray(arrayId)
             val id = try {
-                array.getResourceId(dayOfMonth - 1, Resources.ID_NULL)
+                array.getResourceId(dayOfMonth - 1, NO_RESOURCE)
             } finally {
                 array.recycle()
             }
-            if (id == Resources.ID_NULL) null else res.getDrawableForDensity(id, iconDensity, null)
+            if (id == NO_RESOURCE) null else res.getDrawableForDensity(id, iconDensity, null)
         }.getOrNull()
     }
 
@@ -50,5 +50,7 @@ class DynamicAppIcons(private val pm: PackageManager, private val iconDensity: I
 
     private companion object {
         const val META_SUFFIX = ".dynamic_icons"
+        // Resources.ID_NULL, which lint holds to API 29 (minSdk is 28).
+        const val NO_RESOURCE = 0
     }
 }

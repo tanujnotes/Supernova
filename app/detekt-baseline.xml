@@ -194,14 +194,7 @@
     <ID>LoopWithTooManyJumpStatements:WorkspaceDrops.kt$WorkspaceDrops$for</ID>
     <ID>LoopWithTooManyJumpStatements:WorkspaceGeometry.kt$WorkspaceGeometry$for</ID>
     <ID>MagicNumber:Animations.kt$AnimationSpeed.FAST$0.5f</ID>
-    <ID>MagicNumber:AppCatalog.kt$AppCatalog$0.15f</ID>
-    <ID>MagicNumber:AppCatalog.kt$AppCatalog$0.35f</ID>
-    <ID>MagicNumber:AppCatalog.kt$AppCatalog$0xFF</ID>
     <ID>MagicNumber:AppCatalog.kt$AppCatalog$1024</ID>
-    <ID>MagicNumber:AppCatalog.kt$AppCatalog$128</ID>
-    <ID>MagicNumber:AppCatalog.kt$AppCatalog$16</ID>
-    <ID>MagicNumber:AppCatalog.kt$AppCatalog$24</ID>
-    <ID>MagicNumber:AppCatalog.kt$AppCatalog$3</ID>
     <ID>MagicNumber:AppCatalog.kt$AppCatalog$4</ID>
     <ID>MagicNumber:AppCatalog.kt$AppCatalog$64</ID>
     <ID>MagicNumber:AppCatalog.kt$AppCatalog$8</ID>
@@ -317,7 +310,6 @@
     <ID>MagicNumber:DrawerController.kt$DrawerController$250</ID>
     <ID>MagicNumber:DrawerController.kt$DrawerController$3</ID>
     <ID>MagicNumber:DrawerController.kt$DrawerController$4f</ID>
-    <ID>MagicNumber:DrawerController.kt$DrawerController.&lt;no name provided&gt;$1.5f</ID>
     <ID>MagicNumber:DrawerController.kt$DrawerController.DrawerPagerAdapter$4</ID>
     <ID>MagicNumber:DrawerOpenCurve.kt$DrawerOpenCurve$0.7f</ID>
     <ID>MagicNumber:FastScrollerView.kt$FastScrollerView$16f</ID>
@@ -787,7 +779,6 @@
     <ID>ReturnCount:DragPayload.kt$internal fun LauncherItem.toLaunchableApp(): LaunchableApp?</ID>
     <ID>ReturnCount:DrawerController.kt$DrawerController$private fun columnCount(prefs: LauncherPrefs): Int</ID>
     <ID>ReturnCount:DrawerController.kt$DrawerController$private fun updateFrequentRow()</ID>
-    <ID>ReturnCount:DrawerController.kt$DrawerController.&lt;no name provided&gt;$override fun onFling( e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float ): Boolean</ID>
     <ID>ReturnCount:DrawerController.kt$DrawerController.&lt;no name provided&gt;$override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean</ID>
     <ID>ReturnCount:FastScrollerView.kt$FastScrollerView$@Suppress("ClickableViewAccessibility") override fun onTouchEvent(event: MotionEvent): Boolean</ID>
     <ID>ReturnCount:FeedCardRoutes.kt$FeedCardRoutes$private fun iconForCardTarget(target: String): Drawable?</ID>
@@ -798,10 +789,10 @@
     <ID>ReturnCount:HomeGestureDetector.kt$HomeGestureDetector$private fun fireSwipeIfAny(event: MotionEvent)</ID>
     <ID>ReturnCount:HomeSwipeClassifier.kt$HomeSwipeClassifier$fun classify( dx: Float, dy: Float, minDistance: Float, bias: Float, canScroll: (direction: Int) -&gt; Boolean ): Gesture?</ID>
     <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$@Synchronized fun load(packageName: String?)</ID>
+    <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$@android.annotation.SuppressLint("DiscouragedApi") private fun drawableByName(name: String, resources: Resources? = packResources): Drawable?</ID>
     <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$fun decoration(component: String? = null): IconPackDecoration?</ID>
     <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$fun themedIcon(packageName: String, className: String): Drawable?</ID>
     <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$private fun &lt;T&gt; readPackXml( resources: Resources, packageName: String, name: String, block: (XmlPullParser) -&gt; T ): T?</ID>
-    <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$private fun drawableByName(name: String, resources: Resources? = packResources): Drawable?</ID>
     <ID>ReturnCount:IconPackRepository.kt$IconPackRepository$private fun normalizeComponent(raw: String): String?</ID>
     <ID>ReturnCount:IconRenderer.kt$IconRenderer$private fun drawableToBitmap(drawable: Drawable): Bitmap</ID>
     <ID>ReturnCount:IconRenderer.kt$IconRenderer$private fun normalized(bitmap: Bitmap): Bitmap</ID>

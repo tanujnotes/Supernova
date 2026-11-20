@@ -940,7 +940,10 @@ class LauncherActivity :
 
     private fun redrawForNewDay() {
         iconsDrawnFor = java.time.LocalDate.now()
-        viewModel.appCatalog().onDayChanged()
+        // Only date icons change with the day. Without any, there is
+        // nothing to redraw: this rebound every page on the morning's first
+        // return home.
+        if (!viewModel.appCatalog().onDayChanged()) return
         workspaceAdapter.invalidateAll()
         // onDayChanged evicts the calendar icons without touching the
         // prefs, the model or the icon generation, so the dock's
@@ -962,6 +965,7 @@ class LauncherActivity :
 
     override fun onStart() {
         super.onStart()
+        MainStallWatch.start()
         startedSinceResume = true
         widgets.startListening()
         val filter = android.content.IntentFilter().apply {
@@ -983,6 +987,7 @@ class LauncherActivity :
         if (!viewModel.state.value.prefs.dockRememberPosition) showMainDockPage(animate = false)
         widgets.stopListening()
         runCatching { unregisterReceiver(dateChangeReceiver) }
+        MainStallWatch.stop()
         super.onStop()
     }
 
@@ -1356,16 +1361,14 @@ class LauncherActivity :
         val token = binding.root.windowToken ?: return
         val pages = workspaceAdapter.realPageCount
         val offset = mode.offset(scrollPosition, pages)
-        runLogged("set wallpaper offset steps") {
-            val manager = WallpaperManager.getInstance(this)
-            // Steps depend only on the page count; sending them per scroll
-            // frame was a binder call per frame.
-            if (pages != lastWallpaperPages) {
-                lastWallpaperPages = pages
-                manager.setWallpaperOffsetSteps(if (pages <= 1) 0f else 1f / (pages - 1), 0f)
-            }
-            manager.setWallpaperOffsets(token, offset, 0f)
+        // Steps depend only on the page count, so they go only when it moves.
+        val step = if (pages != lastWallpaperPages) {
+            lastWallpaperPages = pages
+            if (pages <= 1) 0f else 1f / (pages - 1)
+        } else {
+            null
         }
+        com.supernova.launcher.ui.WallpaperOffsets.send(this, token, offset, step)
     }
 
     private fun setupDrawer() {
@@ -4738,6 +4741,9 @@ class LauncherActivity :
         if (!claimsUp && !claimsDown) return
         var startY = 0f
         var startX = 0f
+        // The swipe ran: the rest of the stream is the icon's, so the lift
+        // can't also tap it.
+        var swiped = false
         val hold = inFolder?.let { FolderTileSwipeHold(view, claimsUp, claimsDown) }
         view.setOnTouchListener { v, event ->
             // In an open folder the grid is held off until the finger has
@@ -4747,28 +4753,38 @@ class LauncherActivity :
                 MotionEvent.ACTION_DOWN -> {
                     startY = event.rawY
                     startX = event.rawX
+                    swiped = false
                     // An open folder's window never feeds the home detector
                     // or the drawer pull.
                     if (hold == null) claimHomeSwipe(claimsUp, claimsDown)
                 }
-                MotionEvent.ACTION_UP -> {
+                // Decided as the finger crosses the home swipe's distance,
+                // not on the lift: waiting for the lift needed twice that
+                // distance, and a short flick still inside the icon read
+                // as a tap, a slow one as a long-press.
+                // The lift too, for a flick whose last move fell just short.
+                MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP -> if (!swiped) {
                     val up = iconSwipeAt(event.rawX - startX, startY - event.rawY, claimsUp, claimsDown)
                     if (up != null) {
+                        swiped = true
                         runIconSwipe(v, event, item, up, inFolder)
-                        return@setOnTouchListener true
                     }
                 }
             }
-            false
+            swiped
         }
     }
 
     // The lift's swipe on an icon: true up, false down, null for neither.
     // dy is the finger's rise.
-    private fun iconSwipeAt(dx: Float, dy: Float, claimsUp: Boolean, claimsDown: Boolean): Boolean? = when {
-        claimsUp && dy > dp(48) && dy > abs(dx) -> true
-        claimsDown && -dy > dp(48) && -dy > abs(dx) -> false
-        else -> null
+    // The home swipes' own distance (HomeGestureDetector.minSwipeDistance).
+    private fun iconSwipeAt(dx: Float, dy: Float, claimsUp: Boolean, claimsDown: Boolean): Boolean? {
+        val min = gestureDetector.minSwipeDistance
+        return when {
+            claimsUp && dy >= min && dy > abs(dx) -> true
+            claimsDown && -dy >= min && -dy > abs(dx) -> false
+            else -> null
+        }
     }
 
     private fun claimHomeSwipe(claimsUp: Boolean, claimsDown: Boolean) {
@@ -4793,9 +4809,9 @@ class LauncherActivity :
         inFolder: (() -> Unit)?
     ) {
         val opensOnSwipe = item.itemType == ItemType.FOLDER && item.swipeToOpen
-        // The lift never reaches the icon's own handler, so its press state
-        // and pending long-press are cancelled by hand; a folder opening in
-        // place would keep the ripple.
+        // The rest of the stream never reaches the icon's own handler, so its
+        // press state and pending long-press are cancelled by hand; a folder
+        // opening in place would keep the ripple.
         val cancel = MotionEvent.obtain(event)
         cancel.action = MotionEvent.ACTION_CANCEL
         v.onTouchEvent(cancel)

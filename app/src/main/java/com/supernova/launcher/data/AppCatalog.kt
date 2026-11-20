@@ -179,14 +179,19 @@ class AppCatalog(
     // `own` is a placed copy's icon edit, which stands in for the app's.
     private fun renderIcon(app: LaunchableApp, own: AppOverride?, cachedOnly: Boolean = false): Drawable? {
         val appKey = "${app.userSerial}/${app.packageName}/${app.className}"
+        val baseKey = if (own == null) appKey else "$appKey#${own.hashCode()}"
+        // A cached icon is found before anything asks the system: every
+        // drawer tile and home icon bind comes through here on the main
+        // thread, and the resolve below is a binder call when the app isn't
+        // in the enumeration yet. An icon is cached under its own key, or a
+        // date icon under today's (yesterday's no longer matches).
+        (iconCache.get(baseKey) ?: iconCache.get("$baseKey@cal${today()}"))?.let { return it }
+        if (cachedOnly) return null
         val user = userForSerial(app.userSerial) ?: return null
         // An app's own date icon (#266) is cached under the day too, so the
         // day rollover's sweep of "@cal" keys draws it afresh.
         val dated = resolveActivity(app.packageName, app.className, user)?.let(dynamicIcons::has) == true
-        val baseKey = if (own == null) appKey else "$appKey#${own.hashCode()}"
         val cacheKey = if (dated) "$baseKey@cal${today()}" else baseKey
-        // A pack's calendar icon lives under its own day key.
-        if (cachedOnly) return iconCache.get(cacheKey) ?: iconCache.get("$cacheKey@cal${today()}")
         iconCache.get(cacheKey)?.let { return it }
 
         synchronized(renderLock) {
@@ -300,9 +305,11 @@ class AppCatalog(
             val themed = iconPacks.themedIcon(app.packageName, app.className)
             // Pack theming wins; else the system monochrome layer when the
             // themed-icons pref is on; else the raw icon with pack plate.
-            val mono = if (themed == null) monochromeThemedIcon(app.packageName, app.className, user) else null
-            source = themed ?: mono ?: appOwnIcon(app.packageName, app.className, user)
-                ?: return null
+            // The app's icon is loaded once: with Themed icons off the
+            // monochrome look is null, and it was loaded a second time.
+            val own = if (themed == null) appOwnIcon(app.packageName, app.className, user) else null
+            val mono = own?.let { themedIcon(it, force = false) }
+            source = themed ?: mono ?: own ?: return null
             decoration = if (themed == null && mono == null) iconPacks.decoration(packComponent) else null
             finishedArt = themed != null
             ownIcon = themed == null && mono == null && decoration == null
@@ -327,49 +334,8 @@ class AppCatalog(
         return dominantColors["$userSerial/$packageName/$className"]
     }
 
-    // Cheap dominant color: downsample to 8x8 and average the saturated
-    // pixels, falling back to every opaque pixel for grayscale icons. Also
-    // the Circle launch animation's color.
-    fun dominantColorOf(bitmap: android.graphics.Bitmap?): Int? {
-        bitmap ?: return null
-        val sample = android.graphics.Bitmap.createScaledBitmap(bitmap, 8, 8, true)
-        var r = 0L
-        var g = 0L
-        var b = 0L
-        var saturated = 0
-        var fr = 0L
-        var fg = 0L
-        var fb = 0L
-        var opaque = 0
-        val hsv = FloatArray(3)
-        for (y in 0 until 8) {
-            for (x in 0 until 8) {
-                val pixel = sample.getPixel(x, y)
-                if ((pixel ushr 24) < 128) continue
-                fr += (pixel shr 16) and 0xFF
-                fg += (pixel shr 8) and 0xFF
-                fb += pixel and 0xFF
-                opaque++
-                android.graphics.Color.colorToHSV(pixel, hsv)
-                if (hsv[1] >= 0.35f && hsv[2] >= 0.15f) {
-                    r += (pixel shr 16) and 0xFF
-                    g += (pixel shr 8) and 0xFF
-                    b += pixel and 0xFF
-                    saturated++
-                }
-            }
-        }
-        sample.recycle()
-        return when {
-            saturated > 0 -> android.graphics.Color.rgb(
-                (r / saturated).toInt(), (g / saturated).toInt(), (b / saturated).toInt()
-            )
-            opaque > 0 -> android.graphics.Color.rgb(
-                (fr / opaque).toInt(), (fg / opaque).toInt(), (fb / opaque).toInt()
-            )
-            else -> null
-        }
-    }
+    // The Circle launch animation's and the motion previews' color.
+    fun dominantColorOf(bitmap: android.graphics.Bitmap?): Int? = DominantColor.of(bitmap)
 
     // Renders every app's icon into the cache off the main thread, so binds
     // become cache-hit-only. Safe to call repeatedly; hits return instantly.
@@ -427,26 +393,51 @@ class AppCatalog(
     // the palette; a change evicts the icon cache like any other icon pref.
     // Day rollover: drop the day-keyed calendar entries so the next bind
     // re-renders today's date. Cheap - only calendar apps have such keys.
-    fun onDayChanged() = synchronized(renderLock) {
+    // True when there were any, so date icons have to redraw.
+    fun onDayChanged(): Boolean = synchronized(renderLock) {
         val stale = iconCache.snapshot().keys.filter { it.contains("@cal") }
         stale.forEach { iconCache.remove(it) }
+        stale.isNotEmpty()
     }
 
+    // True when cached icons were dropped, so the screen has to redraw.
+    //
+    // With Themed icons off before and after, the colors only reach icons
+    // set to Themed one by one in Edit: only those go. The colors follow the
+    // dark or light theme, so a system theme switch (with Schedule or Auto,
+    // the first use each morning and evening) used to drop every icon and
+    // render them all again, the home screen's on the main thread.
     fun applyThemedIcons(
         enabled: Boolean,
         background: Int,
         foreground: Int,
         autogen: Boolean = false
-    ) = synchronized(renderLock) {
+    ): Boolean = synchronized(renderLock) {
         if (enabled == themedIcons && background == themedIconBg && foreground == themedIconFg &&
             autogen == themedIconsAutogen
-        ) return
+        ) return false
+        val wasEnabled = themedIcons
         themedIcons = enabled
         themedIconBg = background
         themedIconFg = foreground
         themedIconsAutogen = autogen
+        if (!wasEnabled && !enabled) return evictForcedThemed()
         iconCache.evictAll()
         dominantColors.clear()
+        true
+    }
+
+    // The icons drawn Themed whatever the switch: apps set to Themed in
+    // Edit, and placed copies with an icon edit of their own ("#" keys,
+    // few, and their edit may be Themed). Called under renderLock.
+    private fun evictForcedThemed(): Boolean {
+        val forced = overrides.filterValues { it.iconVariant == "THEMED" }.keys
+        val stale = iconCache.snapshot().keys.filter { key ->
+            '#' in key || forced.any { key == it || key.startsWith("$it@") }
+        }
+        stale.forEach(iconCache::remove)
+        forced.forEach(dominantColors::remove)
+        return stale.isNotEmpty()
     }
 
     private fun monochromeThemedIcon(
@@ -866,7 +857,12 @@ class AppCatalog(
             .firstOrNull { it.componentName.className == className }
     }
 
-    private fun serialFor(user: UserHandle): Long = userManager.getSerialNumberForUser(user)
+    // A user's serial never changes while it exists; asking UserManager is
+    // a binder call (Android 14 and below), once per icon resolve before.
+    private val serialsByUser = java.util.concurrent.ConcurrentHashMap<UserHandle, Long>()
+
+    private fun serialFor(user: UserHandle): Long =
+        serialsByUser.getOrPut(user) { userManager.getSerialNumberForUser(user) }
 
     // An app's icons render again after an update or removal, from the app
     // as it is now: its cached icons go, and so does its enumerated activity

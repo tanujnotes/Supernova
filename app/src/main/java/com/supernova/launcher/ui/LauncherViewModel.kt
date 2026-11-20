@@ -237,7 +237,9 @@ class LauncherViewModel(
                 appliedShadow = prefs.iconShadow
                 appliedGlass = prefs.iconGlass
                 appliedThemedSig = themedSig
-                withContext(Dispatchers.Default) {
+                // A themed-color change that dropped no icon (Themed icons
+                // off) has nothing to redraw.
+                val redraw = withContext(Dispatchers.Default) {
                     if (packChanged) catalog.applyIconPack(prefs.iconPack)
                     if (shapeChanged) {
                         catalog.applyIconShape(
@@ -251,10 +253,12 @@ class LauncherViewModel(
                         catalog.applyIconGlass(prefs.iconGlass)
                     }
                     if (resolutionChanged) catalog.applyIconResolution(resolution)
-                    if (themedChanged) {
+                    val themedEvicted = themedChanged && run {
                         val (bg, fg) = themedIconColors(prefs)
                         catalog.applyThemedIcons(prefs.themedIcons, bg, fg, prefs.themedIconsAutogen)
                     }
+                    themedEvicted || packChanged || shapeChanged || normalizeChanged || shadowChanged ||
+                        glassChanged || resolutionChanged
                 }
                 // The first emission is the startup configuration: it applies
                 // it and stops there, leaving the enumeration, the warm and
@@ -264,7 +268,7 @@ class LauncherViewModel(
                 val firstConfig = !prefsApplied
                 prefsApplied = true
                 signalConfigAppliedIfReady()
-                if (!firstConfig) {
+                if (!firstConfig && redraw) {
                     requestRefresh(immediate = true)
                     iconGeneration.value += 1
                 }
@@ -595,11 +599,11 @@ class LauncherViewModel(
             val signature = themedIconSignature(prefs)
             if (signature == appliedThemedSig) return@launch
             appliedThemedSig = signature
-            withContext(Dispatchers.Default) {
+            val evicted = withContext(Dispatchers.Default) {
                 val (bg, fg) = themedIconColors(prefs)
                 catalog.applyThemedIcons(prefs.themedIcons, bg, fg, prefs.themedIconsAutogen)
             }
-            iconGeneration.value += 1
+            if (evicted) iconGeneration.value += 1
         }
     }
 
@@ -1006,8 +1010,14 @@ class LauncherViewModel(
     fun visibleApps(): List<LaunchableApp> {
         val current = state.value
         val hidden = current.prefs.hiddenApps
+        // Launch counts only order the usage sorts: keyed on them always,
+        // every app launch re-sorted the whole list at the next open.
+        val sort = current.prefs.drawerSort
+        val byUsage = sort == com.supernova.launcher.ui.DrawerSort.MOST_USED ||
+            sort == com.supernova.launcher.ui.DrawerSort.RECENTLY_USED
         val inputs = listOf(
-            current.apps, hidden, current.model.appOverrides, current.prefs.drawerSort, launchCounts, recentLaunches,
+            current.apps, hidden, current.model.appOverrides, sort,
+            launchCounts.takeIf { byUsage }, recentLaunches.takeIf { byUsage },
             java.util.Locale.getDefault()
         )
         visibleAppsMemo?.takeIf { it.matches(inputs) }?.let { return it.value.first }

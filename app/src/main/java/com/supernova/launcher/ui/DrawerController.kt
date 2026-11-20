@@ -112,6 +112,8 @@ class DrawerController(
     private var needsRefresh = false
     // A badge moved while the sheet was closed; the next open rebinds rows.
     private var badgesStale = false
+    // Icons re-rendered while the sheet was closed; the list rebinds.
+    private var iconsStale = false
     // The field's Date button, if on; each open brings it up to today.
     private var dateButton: android.widget.TextView? = null
     private var suppressFilterEvents = false
@@ -804,15 +806,16 @@ class DrawerController(
             populated = true
             needsRefresh = false
             submit()
-            // submit() diffs by app, and an app whose badge moved is the same
-            // app: its row would keep the old badge until recycled.
-            if (badgesStale) {
-                badgesStale = false
-                notifyContentChanged()
-            }
         } else {
             // Launch counts move between opens without a state emission.
             updateFrequentRow()
+        }
+        // submit() diffs by app, and an app whose badge or icon moved is the
+        // same app: its row would keep the old one until recycled.
+        if (badgesStale || iconsStale) {
+            badgesStale = false
+            iconsStale = false
+            notifyContentChanged()
         }
         // By default the drawer reopens at the top; the remember pref keeps the
         // previous scroll (the sheet is only hidden, never torn down).
@@ -1406,7 +1409,14 @@ class DrawerController(
         if (pausedChanged) frequentRowKey = null
         val iconsChanged = state.iconGeneration != lastIconGeneration || pausedChanged
         lastIconGeneration = state.iconGeneration
-        if (populated) {
+        if (populated && !isVisible && !isPulling) {
+            // Closed: nothing shows, so the rebuild waits for an idle moment
+            // (or the next open, if that comes first). Every settings and
+            // layout write used to rebuild the whole list right here.
+            needsRefresh = true
+            if (iconsChanged) iconsStale = true
+            refreshWhenIdle()
+        } else if (populated) {
             submit()
             // The app list is unchanged when only an override moved, so DiffUtil
             // won't rebind; force it so the re-rendered icons show immediately.
@@ -1438,6 +1448,31 @@ class DrawerController(
         }
     }
 
+    private var refreshQueued = false
+
+    // A closed drawer's rebuild after a state change, in the main thread's
+    // next idle moment, so an open finds it done. New icons rebind every row,
+    // as onState's own refresh does.
+    @android.annotation.SuppressLint("NotifyDataSetChanged")
+    private fun refreshWhenIdle() {
+        if (refreshQueued) return
+        refreshQueued = true
+        android.os.Looper.myQueue().addIdleHandler {
+            refreshQueued = false
+            val closed = !isVisible && !isPulling
+            if (populated && needsRefresh && closed) {
+                needsRefresh = false
+                submit()
+                if (iconsStale) {
+                    iconsStale = false
+                    adapter.notifyDataSetChanged()
+                }
+                syncPages()
+            }
+            false
+        }
+    }
+
     fun notifyContentChanged() {
         adapter.notifyDataSetChanged()
         syncPages()
@@ -1456,7 +1491,7 @@ class DrawerController(
         if (isVisible) {
             notifyContentChanged()
         } else {
-            needsRefresh = true
+            // Only the rows' badges: the list itself is unchanged.
             badgesStale = true
         }
     }

@@ -21,6 +21,8 @@ import kotlin.math.sin
 // launcher's own (Circle, Adaptive icon) are drawn to their curves
 // (LaunchStage). It shows what each style asks for: a phone's own system
 // may play its own open animation instead (One UI does for most).
+// Built in code with its icons, never from a layout.
+@android.annotation.SuppressLint("ViewConstructor")
 class LaunchPreviewView(
     context: Context,
     icons: List<Drawable>,

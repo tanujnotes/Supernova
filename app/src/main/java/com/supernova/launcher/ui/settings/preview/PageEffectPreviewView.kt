@@ -13,6 +13,8 @@ import com.supernova.launcher.ui.ScrollEffect
 // The Page scroll effect picker's preview (#260): two mini home pages in a
 // real ViewPager2 with the real PageTransformers, swiped back and forth on
 // a loop by a fake drag, so each effect looks as it does on the home screen.
+// Built in code with its icons, never from a layout.
+@android.annotation.SuppressLint("ViewConstructor")
 class PageEffectPreviewView(
     context: Context,
     icons: List<Drawable>,

@@ -267,6 +267,9 @@ class IconPackRepository(private val context: Context) {
         }
     }
 
+    // A pack names its drawables in appfilter; another app's resources can
+    // only be looked up by name.
+    @android.annotation.SuppressLint("DiscouragedApi")
     private fun drawableByName(name: String, resources: Resources? = packResources): Drawable? {
         val res = resources ?: return null
         val pkg = loadedPackage ?: return null
