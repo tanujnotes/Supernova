@@ -848,8 +848,15 @@ class LauncherActivity :
                 carries(item)
             }
 
-        workspaceAdapter.invalidatePagesWith(::affected)
-        if (viewModel.dockItems().any(::affected)) {
+        // Redrawn in place: the icon's view stays, with a press on it.
+        val pages = binding.workspacePager.getChildAt(0) as? androidx.recyclerview.widget.RecyclerView
+        if (pages != null) {
+            workspaceAdapter.redrawItemsWith(pages, ::affected, ::redrawItemView)
+        } else {
+            workspaceAdapter.invalidatePagesWith(::affected)
+        }
+        val dockHits = viewModel.dockItems().filter(::affected)
+        if (dockHits.isNotEmpty() && !redrawDockItems(dockHits)) {
             renderDock(viewModel.state.value, force = true)
         }
         drawer.onBadgeChanged()
@@ -1026,16 +1033,7 @@ class LauncherActivity :
         if (::drag.isInitialized && drag.routeGesture(ev, window = null)) return true
         // An active drawer pull owns the stream until the finger lifts; it
         // runs before the visibility gate below, which the pull itself trips.
-        if (drawerPullActive) {
-            drawerPullVelocity?.addMovement(ev)
-            when (ev.actionMasked) {
-                MotionEvent.ACTION_MOVE -> drawer.pullTo(drawerPullDownY - ev.y)
-                MotionEvent.ACTION_UP -> finishDrawerPull(cancelled = false)
-                MotionEvent.ACTION_CANCEL -> finishDrawerPull(cancelled = true)
-                else -> Unit
-            }
-            return true
-        }
+        if (drawerPullActive) return continueDrawerPull(ev)
         // Edit mode offers Resize too: a drag on that frame's edge is the frame's,
         // unless the press is on what edit mode puts over the page.
         val framedInEditMode = ::editMode.isInitialized && editMode.isOpen && !editMode.pressOnChrome(ev)
@@ -1079,6 +1077,7 @@ class LauncherActivity :
             // dock swipes stay out of it like they do for drawer/search.
             if (feed.isOpen) return super.dispatchTouchEvent(ev)
         }
+        if (heldBySwipe(ev)) return true
         // A widget scrolling its own content owns the vertical stream. The
         // detector observes without consuming, so otherwise a drag inside a
         // list widget also read as the home swipe-up/down binding and fired
@@ -1097,11 +1096,67 @@ class LauncherActivity :
             cancel.recycle()
             return true
         }
-        // Gestures observe every event but never consume them, so drags,
-        // page swipes and icon taps keep working underneath.
+        // Gestures observe every event without consuming it, so drags, page
+        // swipes and icon taps keep working underneath - until a swipe up or
+        // down runs mid-stream: the views are cancelled and it takes the rest.
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) gestureDetector.moveSwipesAllowed = !inGestureStrip(ev)
         gestureDetector.onTouchEvent(ev)
+        if (gestureDetector.takeSwipedMidStream()) return takeStreamForSwipe(ev)
         trackDockSwipe(ev)
         return super.dispatchTouchEvent(ev)
+    }
+
+    // The drawer pull's stream, from the move that started it to the lift.
+    private fun continueDrawerPull(ev: MotionEvent): Boolean {
+        drawerPullVelocity?.addMovement(ev)
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_MOVE -> drawer.pullTo(drawerPullDownY - ev.y)
+            MotionEvent.ACTION_UP -> finishDrawerPull(cancelled = false)
+            MotionEvent.ACTION_CANCEL -> finishDrawerPull(cancelled = true)
+            else -> Unit
+        }
+        return true
+    }
+
+    // A home swipe ran mid-stream: the views under the finger are cancelled
+    // and the rest of the stream is held from them (heldBySwipe).
+    private fun takeStreamForSwipe(ev: MotionEvent): Boolean {
+        swipeOwnsStream = true
+        val cancel = MotionEvent.obtain(ev)
+        cancel.action = MotionEvent.ACTION_CANCEL
+        super.dispatchTouchEvent(cancel)
+        gestureDetector.onTouchEvent(cancel)
+        cancel.recycle()
+        return true
+    }
+
+    // Set while a home swipe that ran mid-stream owns the rest of it.
+    private var swipeOwnsStream = false
+
+    // The rest of a stream a home swipe ran in is the swipe's: true to drop
+    // the event. A new press also finishes a nearly settled page first.
+    private fun heldBySwipe(ev: MotionEvent): Boolean {
+        val held = swipeOwnsStream && ev.actionMasked != MotionEvent.ACTION_DOWN
+        if (!held || ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL) {
+            swipeOwnsStream = false
+        }
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) finishPageSettleForPress()
+        return held
+    }
+
+    // A press while a page swipe is still settling: the pager would take it
+    // as a new drag, so a tap on an icon as the page came to rest did
+    // nothing. Close to rest, the page is put there and the press is a
+    // press, as Launcher3 does.
+    private fun finishPageSettleForPress() {
+        val pager = binding.workspacePager
+        val pages = pager.getChildAt(0) as? androidx.recyclerview.widget.RecyclerView
+        val nearRest = pages != null &&
+            pager.scrollState == androidx.viewpager2.widget.ViewPager2.SCROLL_STATE_SETTLING &&
+            abs(pages.computeHorizontalScrollOffset() - pager.currentItem * pages.width) <= dp(SETTLE_TAP_THROUGH_DP)
+        if (!nearRest) return
+        pages?.stopScroll()
+        pager.setCurrentItem(pager.currentItem, false)
     }
 
     // A quick horizontal flick across the dock switches dock pages. Observed,
@@ -1112,7 +1167,7 @@ class LauncherActivity :
     private fun trackDrawerPull(ev: MotionEvent): Boolean {
         when (ev.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                drawerPullArmed = drawerPullAllowed()
+                drawerPullArmed = drawerPullAllowed(ev)
                 if (drawerPullArmed) {
                     drawerPullDownX = ev.x
                     drawerPullDownY = ev.y
@@ -1203,8 +1258,21 @@ class LauncherActivity :
         return false
     }
 
-    private fun drawerPullAllowed(): Boolean {
+    // A press in the bottom strip where the system always takes a swipe
+    // (gesture navigation's home bar); never with button navigation.
+    private fun inGestureStrip(ev: MotionEvent): Boolean {
+        val inset = ViewCompat.getRootWindowInsets(binding.root)
+            ?.getInsets(WindowInsetsCompat.Type.mandatorySystemGestures())?.bottom ?: 0
+        return inset > 0 && ev.y >= binding.root.height - inset
+    }
+
+    private fun drawerPullAllowed(ev: MotionEvent): Boolean {
         if (!::drawer.isInitialized || drawer.isVisible) return false
+        // A press in the system's own gesture strip (gesture navigation's
+        // home swipe) is the system's: the pull it started was cancelled a
+        // moment later, and the sheet closing again swallowed the Home press
+        // that followed.
+        if (inGestureStrip(ev)) return false
         if (::feed.isInitialized && feed.isOpen) return false
         if (::search.isInitialized && search.isOpen) return false
         if (::editMode.isInitialized && editMode.isOpen) return false
@@ -1391,7 +1459,9 @@ class LauncherActivity :
                 hideDrawer()
                 search.open()
             },
-            buildFolderIcon = itemIcons::drawerFolderIcon,
+            buildFolderIcon = { group, members, onLate ->
+                itemIcons.drawerFolderIcon(group, members, onLate = onLate)
+            },
             decorateFolderIcon = itemIcons::withFolderBadge,
             onFolderClick = { view, group, members -> showDrawerFolderPopup(view, group, members) },
             onFolderLongPress = ::longPressDrawerFolder,
@@ -4565,35 +4635,88 @@ class LauncherActivity :
 
     override fun state(): LauncherUiState = viewModel.state.value
 
+    // A home or dock item's icon with its badge. An app's icon, or a
+    // folder's member, still to be rendered is left out (an app's draws
+    // nothing yet), rendered on the icon thread, and `onLate` runs on the
+    // main thread once it is in. A bind used to render it right there.
+    private fun itemIcon(item: LauncherItem, onLate: () -> Unit): android.graphics.drawable.Drawable? {
+        val app = item.toLaunchableApp()
+        val catalog = viewModel.appCatalog()
+        val icon = when (item.itemType) {
+            ItemType.FOLDER -> itemIcons.folderPreviewDrawable(item, onLate)
+            ItemType.WIDGET -> getDrawable(R.drawable.ic_widget)
+            ItemType.APP -> if (app == null) getDrawable(R.drawable.ic_supernova) else appItemIcon(item, app, onLate)
+            ItemType.SHORTCUT -> itemIcons.intentItemIcon(item)
+                ?: app?.let { catalog.iconFor(it) } ?: getDrawable(R.drawable.ic_supernova)
+        }
+        return if (item.itemType == ItemType.FOLDER) {
+            val count = itemIcons.folderBadgeCount(item)
+            if (count > 0 && icon != null) itemIcons.badgeDrawable(icon, count) else icon
+        } else {
+            itemIcons.withBadge(icon, item.packageName, item.className, item.userSerial)
+        }
+    }
+
+    // An item view's icon drawn again where it is (a badge moved).
+    private fun redrawItemView(view: View, item: LauncherItem) {
+        if (item.itemType == ItemType.WIDGET) return
+        runCatching { ItemIconBinding.bind(view) }.getOrNull()?.let { redrawItemIcon(it, item) }
+    }
+
+    // The dock's views for these items redrawn in place; false when one of
+    // them isn't found, for the caller to build the dock again.
+    private fun redrawDockItems(items: List<LauncherItem>): Boolean {
+        val wanted = items.associateBy { it.id }
+        val found = HashSet<String>()
+        fun walk(view: View) {
+            wanted[view.getTag(R.id.tag_item_id)]?.let {
+                redrawItemView(view, it)
+                found += it.id
+                return
+            }
+            if (view is ViewGroup) for (index in 0 until view.childCount) walk(view.getChildAt(index))
+        }
+        walk(binding.dockBar)
+        return found.size == wanted.size
+    }
+
+    // A placed app's icon from the cache (its Large copy for a Large icon),
+    // or null with the render queued.
+    private fun appItemIcon(
+        item: LauncherItem,
+        app: LaunchableApp,
+        onLate: () -> Unit
+    ): android.graphics.drawable.Drawable? {
+        val catalog = viewModel.appCatalog()
+        val large = item.isLargeIcon
+        return catalog.cachedIcon(app, item.appEdit, large) ?: run {
+            com.supernova.launcher.data.IconThread.renderAll(
+                listOf { catalog.iconFor(app, item.appEdit, large) }, onLate
+            )
+            null
+        }
+    }
+
+    // A late icon is in: drawn on the view, if it still shows this item.
+    private fun redrawItemIcon(binding: ItemIconBinding, item: LauncherItem) {
+        if (binding.root.getTag(R.id.tag_item_id) != item.id) return
+        binding.icon.setImageDrawable(itemIcon(item) {})
+    }
+
     override fun viewForItem(item: LauncherItem): View {
         if (item.itemType == ItemType.WIDGET) {
             return widgets.buildWidgetView(item).also { itemMoves.attachWidget(it, item.id) }
         }
 
         val iconBinding = ItemIconBinding.inflate(LayoutInflater.from(this))
-        val app = item.toLaunchableApp()
-
-        val icon = when (item.itemType) {
-            ItemType.FOLDER -> itemIcons.folderPreviewDrawable(item)
-            ItemType.WIDGET -> getDrawable(R.drawable.ic_widget)
-            ItemType.APP -> app?.let { viewModel.appCatalog().iconFor(it, item.appEdit) }
-                ?: getDrawable(R.drawable.ic_supernova)
-            ItemType.SHORTCUT -> itemIcons.intentItemIcon(item)
-                ?: app?.let { viewModel.appCatalog().iconFor(it) } ?: getDrawable(R.drawable.ic_supernova)
-        }
+        // Icons not rendered yet draw in once they are, off the main thread.
+        iconBinding.icon.setImageDrawable(itemIcon(item) { redrawItemIcon(iconBinding, item) })
 
         val prefs = viewModel.state.value.prefs
         val override = viewModel.overrideFor(item)
         val inDock = item.container == ContainerType.DOCK
         val labelVisible = (if (inDock) prefs.dockLabels else prefs.showLabels) &&
             !(override?.hideLabel ?: false)
-        val badged = if (item.itemType == ItemType.FOLDER) {
-            val count = itemIcons.folderBadgeCount(item)
-            if (count > 0 && icon != null) itemIcons.badgeDrawable(icon, count) else icon
-        } else {
-            itemIcons.withBadge(icon, item.packageName, item.className, item.userSerial)
-        }
-        iconBinding.icon.setImageDrawable(badged)
         if (inDock) {
             // The dock splits a fixed width dockCount ways, so scaleX/scaleY
             // here drew outside the slot and was clipped by it. Sizing the box
@@ -5078,6 +5201,8 @@ class LauncherActivity :
         private const val OVER_OVERLAYS_ELEVATION_DP = 18f
         // Above the Desktop previews scrim (24dp).
         private const val OVER_PREVIEWS_ELEVATION_DP = 26f
+        // How close to rest a settling page lets a press through as a press.
+        private const val SETTLE_TAP_THROUGH_DP = 48
 
         // The icon box and item padding item_icon declares, and the padding a
         // dock icon column keeps around it instead. Kept here because the

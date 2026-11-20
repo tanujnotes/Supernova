@@ -19,6 +19,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.tabs.TabLayout
 import com.supernova.launcher.R
 import com.supernova.launcher.data.DrawerGroup
+import com.supernova.launcher.data.IconThread
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.runLogged
@@ -44,7 +45,8 @@ class DrawerController(
     private val onGlobalSearch: () -> Unit,
     // FOLDER-type groups: icon composition and tap handling live in the
     // activity, which owns FolderPopup and the icon pipeline.
-    private val buildFolderIcon: (DrawerGroup, List<LaunchableApp>) -> Drawable,
+    // The last argument runs once member icons it had to leave out are in.
+    private val buildFolderIcon: (DrawerGroup, List<LaunchableApp>, () -> Unit) -> Drawable,
     // A drawer folder's badge (its members' summed count), applied at bind
     // so a count moving needs no new composition.
     private val decorateFolderIcon: (Drawable, List<LaunchableApp>) -> Drawable = { icon, _ -> icon },
@@ -1449,6 +1451,24 @@ class DrawerController(
     }
 
     private var refreshQueued = false
+    private var lateIconsQueued = false
+
+    // A drawer folder's member icons came in after its icon was built: the
+    // list is built again, now from the cache, once for a burst of them.
+    private fun onLateIcons() {
+        if (lateIconsQueued) return
+        lateIconsQueued = true
+        binding.root.post {
+            lateIconsQueued = false
+            if (!populated) return@post
+            if (isVisible || isPulling) {
+                submit()
+            } else {
+                needsRefresh = true
+                refreshWhenIdle()
+            }
+        }
+    }
 
     // A closed drawer's rebuild after a state change, in the main thread's
     // next idle moment, so an open finds it done. New icons rebind every row,
@@ -1623,7 +1643,7 @@ class DrawerController(
             if (!viewModel.drawerFolderHasContent(group)) {
                 null
             } else {
-                AppDrawerAdapter.FolderEntry(group, buildFolderIcon(group, members), members)
+                AppDrawerAdapter.FolderEntry(group, buildFolderIcon(group, members, ::onLateIcons), members)
             }
         }
         // On the main list a folder's apps leave the flat list and live inside
@@ -1713,10 +1733,18 @@ class DrawerController(
         frequentRowKey = key
         // Long-pressed, each is a drawer icon like any other: its menu, and a
         // drag to the home screen.
+        // Icons not rendered yet come in off the main thread, and the row
+        // is built again once they are.
+        val catalog = viewModel.appCatalog()
+        val missing = apps.filter { catalog.cachedIcon(it) == null }
+        IconThread.renderAll(catalog, missing.map { it to null }) {
+            frequentRowKey = null
+            updateFrequentRow()
+        }
         val entries = apps.map { app ->
             FrequentAppsRowView.Entry(
                 app.label,
-                decorateIcon(viewModel.appCatalog().iconFor(app), app),
+                decorateIcon(catalog.cachedIcon(app), app),
                 onLongPress = { view -> onAppLongPress(view, app) }
             ) { view ->
                 onAppClick(view, app)

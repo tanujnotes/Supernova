@@ -58,7 +58,8 @@ class SupernovaNotificationListener : NotificationListenerService() {
     override fun onListenerConnected() {
         super.onListenerConnected()
         connected = true
-        refresh()
+        handler.removeCallbacks(refreshRunnable)
+        handler.post(refreshRunnable)
     }
 
     override fun onListenerDisconnected() {
@@ -81,8 +82,10 @@ class SupernovaNotificationListener : NotificationListenerService() {
 
     // Each refresh reads every active notification back over binder, so a
     // burst of posts (a group and its children, a sync) is read once, a
-    // moment after it settles, instead of once per notification.
-    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    // moment after it settles, instead of once per notification. On a thread
+    // of its own: on the main thread a stream of updates (a download, a
+    // timer) took its time from the launcher's frames and touches.
+    private val handler = android.os.Handler(refreshThread.looper)
     private val refreshRunnable = Runnable { refresh() }
 
     private fun scheduleRefresh() {
@@ -180,6 +183,11 @@ class SupernovaNotificationListener : NotificationListenerService() {
 
         @Volatile
         private var connected = false
+
+        // One for the process: the system may rebind the service.
+        private val refreshThread by lazy {
+            android.os.HandlerThread("notification-badges").apply { start() }
+        }
 
         private val state = MutableStateFlow(BadgeState())
         val badgeState: StateFlow<BadgeState> = state

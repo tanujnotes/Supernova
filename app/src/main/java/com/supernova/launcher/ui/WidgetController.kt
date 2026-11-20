@@ -619,6 +619,11 @@ class WidgetController(
             // Glance-based widget. The application context has no factory.
             appWidgetHost.createView(activity.applicationContext, widgetId, info)
         }.getOrNull() ?: return null
+        // Each update's layout inflates off the main thread and is then
+        // applied on it, as Launcher3 hosts them. Without an executor every
+        // update inflated on the main thread, and the updates queued while
+        // away all landed in onStart, on the Home press.
+        hostView.setExecutor(WIDGET_INFLATION)
         applyWidgetCornerRadius(hostView)
         return hostView
     }
@@ -1008,5 +1013,12 @@ class WidgetController(
         // The dim behind the padding dialog, which previews on the home screen.
         private const val PREVIEW_DIALOG_DIM = 0.15f
         private const val FALLBACK_PADDING_DP = 8
+
+        // One thread for every host view's inflation, shared by the activity
+        // instances a recreate makes.
+        private val WIDGET_INFLATION: java.util.concurrent.Executor =
+            java.util.concurrent.Executors.newSingleThreadExecutor { task ->
+                Thread(task, "widget-inflate").apply { isDaemon = true }
+            }
     }
 }

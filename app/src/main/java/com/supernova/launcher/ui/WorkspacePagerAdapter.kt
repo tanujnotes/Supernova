@@ -305,6 +305,39 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
         }
     }
 
+    // A badge moved: the icons of matching items on the pages in view are
+    // redrawn in place by `redraw`, and only the copies not attached (cached,
+    // or never bound) are marked to rebind as they come back. Rebinding the
+    // attached page re-inflated every icon on it per notification, and a
+    // press on one of them was cancelled as its view went.
+    fun redrawItemsWith(
+        recycler: RecyclerView,
+        matches: (LauncherItem) -> Boolean,
+        redraw: (View, LauncherItem) -> Unit
+    ) {
+        if (!bindable) return
+        val hits = host.state().model.items
+            .filter { it.container == ContainerType.WORKSPACE && it.itemType != ItemType.WIDGET && matches(it) }
+        if (hits.isEmpty()) return
+        val byId = hits.associateBy { it.id }
+        val attached = HashSet<Int>()
+        for (index in 0 until recycler.childCount) {
+            val page = recycler.getChildAt(index)
+            val position = recycler.getChildAdapterPosition(page)
+            val canvas = page.findViewById<ViewGroup>(R.id.workspaceCanvas)
+            if (position == RecyclerView.NO_POSITION || canvas == null) continue
+            attached += position
+            for (child in 0 until canvas.childCount) {
+                val view = canvas.getChildAt(child)
+                byId[view.getTag(R.id.tag_item_id)]?.let { redraw(view, it) }
+            }
+        }
+        hits.map { it.page }.distinct().forEach { page ->
+            val copies = if (looping) listOf(page, page + span, page + span * 2) else listOf(page)
+            copies.filterNot { it in attached }.forEach(::notifyItemChanged)
+        }
+    }
+
     private fun pageSignature(state: LauncherUiState, page: Int): String {
         val pageItems = WorkspaceGeometry.fitted(state.model, state.prefs.gridCols, state.prefs.gridRows).items
             .filter { it.container == ContainerType.WORKSPACE && it.page == page }

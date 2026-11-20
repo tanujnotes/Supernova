@@ -42,7 +42,6 @@ import com.supernova.launcher.data.PrefSpec
 import com.supernova.launcher.data.PrivateSpace
 import com.supernova.launcher.data.TabFolders
 import com.supernova.launcher.data.WorkspaceGeometry
-import com.supernova.launcher.data.isLargeIcon
 import com.supernova.launcher.data.imports.BackupFiles
 import com.supernova.launcher.data.imports.LayoutConverter
 import com.supernova.launcher.data.imports.PickedBackup
@@ -206,11 +205,7 @@ class LauncherViewModel(
             }
         }
         viewModelScope.launch {
-            // A large icon draws at twice the desktop size, so the icons
-            // render for it while there is one.
-            val largeIcons = repository.modelFlow.map { model -> model.items.any { it.isLargeIcon } }
-                .distinctUntilChanged()
-            preferences.flow.combine(largeIcons) { prefs, large -> prefs to large }.collect { (prefs, large) ->
+            preferences.flow.collect { prefs ->
                 WorkspaceGeometry.allowWidgetOverlap = prefs.widgetOverlap
                 WorkspaceGeometry.allowPlacementOverlap = prefs.overlapWhenPlacing
                 val packChanged = prefs.iconPack != appliedIconPack
@@ -222,14 +217,17 @@ class LauncherViewModel(
                 val glassChanged = prefs.iconGlass != appliedGlass
                 val themedSig = themedIconSignature(prefs)
                 val themedChanged = themedSig != appliedThemedSig
-                val resolution = iconResolution(prefs, large)
+                val resolution = iconResolution(prefs)
                 val resolutionChanged = resolution != appliedResolution
+                val largeResolution = largeIconResolution(prefs, resolution)
+                val largeResolutionChanged = largeResolution != appliedLargeResolution
                 val changes = listOf(
                     packChanged, shapeChanged, normalizeChanged, shadowChanged,
-                    glassChanged, themedChanged, resolutionChanged
+                    glassChanged, themedChanged, resolutionChanged, largeResolutionChanged
                 )
                 if (changes.none { it }) return@collect
                 appliedResolution = resolution
+                appliedLargeResolution = largeResolution
                 appliedIconPack = prefs.iconPack
                 appliedIconShape = prefs.iconShape
                 appliedIconShapeCustom = prefs.iconShapeCustom
@@ -253,12 +251,13 @@ class LauncherViewModel(
                         catalog.applyIconGlass(prefs.iconGlass)
                     }
                     if (resolutionChanged) catalog.applyIconResolution(resolution)
+                    if (largeResolutionChanged) catalog.applyLargeIconResolution(largeResolution)
                     val themedEvicted = themedChanged && run {
                         val (bg, fg) = themedIconColors(prefs)
                         catalog.applyThemedIcons(prefs.themedIcons, bg, fg, prefs.themedIconsAutogen)
                     }
                     themedEvicted || packChanged || shapeChanged || normalizeChanged || shadowChanged ||
-                        glassChanged || resolutionChanged
+                        glassChanged || resolutionChanged || largeResolutionChanged
                 }
                 // The first emission is the startup configuration: it applies
                 // it and stops there, leaving the enumeration, the warm and
@@ -549,19 +548,29 @@ class LauncherViewModel(
     }
 
     private var appliedResolution = 0f
+    private var appliedLargeResolution = 0f
 
     // The largest icon size any surface draws at, rounded up to a fifth so a
     // size slider's drag re-renders at a few steps rather than every tick.
-    private fun iconResolution(prefs: com.supernova.launcher.data.LauncherPrefs, largeIcons: Boolean): Float {
+    // A Large icon's copy is rendered on its own (largeIconResolution); one
+    // on the home screen used to raise every icon to it, so the cache held a
+    // fifth as many.
+    private fun iconResolution(prefs: com.supernova.launcher.data.LauncherPrefs): Float {
         val scales = listOf(
-            if (largeIcons) prefs.iconScale * LARGE_ICON_RESOLUTION else prefs.iconScale,
+            prefs.iconScale,
             if (prefs.dockMatchDesktop) prefs.iconScale else prefs.dockIconScale,
             if (prefs.drawerMatchDesktop) prefs.iconScale else prefs.drawerIconScale,
             if (prefs.folderMatchDesktop) prefs.iconScale else prefs.folderIconScale
         )
-        val cap = if (largeIcons) LARGE_ICON_RESOLUTION else MAX_ICON_RESOLUTION
-        val largest = scales.maxOrNull()?.coerceIn(1f, cap) ?: 1f
+        val largest = scales.maxOrNull()?.coerceIn(1f, MAX_ICON_RESOLUTION) ?: 1f
         return kotlin.math.ceil(largest * 5f - 0.001f) / 5f
+    }
+
+    // A Large icon fills its 2x2 block, about two and a half times the
+    // desktop size, rounded up to a fifth as iconResolution is.
+    private fun largeIconResolution(prefs: com.supernova.launcher.data.LauncherPrefs, normal: Float): Float {
+        val large = (prefs.iconScale * LARGE_ICON_RESOLUTION).coerceIn(1f, LARGE_ICON_RESOLUTION)
+        return maxOf(normal, kotlin.math.ceil(large * 5f - 0.001f) / 5f)
     }
 
     // Called as the launcher's activity is created: a Display size change
