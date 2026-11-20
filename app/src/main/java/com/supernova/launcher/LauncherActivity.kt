@@ -2100,6 +2100,9 @@ class LauncherActivity :
                 // slots evenly, so padding here only narrowed the label - the
                 // reason "Chrome" used to render as "Chro".
                 setPadding(0, dp(DOCK_SLOT_PADDING_V_DP), 0, dp(DOCK_SLOT_PADDING_V_DP))
+                // A corner badge (#250) reaches past its tile.
+                clipChildren = false
+                clipToPadding = false
                 // An empty slot takes its own taps, so they don't fall
                 // through to whatever lies behind the dock.
                 isClickable = true

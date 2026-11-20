@@ -3,7 +3,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/transparent">
+    android:background="@android:color/transparent"
+    android:clipChildren="false">
+
+    <!-- clipChildren off: a corner badge (#250) on a dock icon reaches above
+         the dock's top edge. -->
 
     <!-- Optional status/nav contrast scrims: behind all content, over the
          wallpaper (the wallpaper renders behind the window). -->
@@ -41,6 +45,8 @@
         android:id="@+id/dockBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:layout_gravity="bottom"
         android:layout_margin="@dimen/space_ms"
         android:background="@android:color/transparent"

@@ -300,6 +300,8 @@
     <string name="badge_corner_radius">Corner radius</string>
     <string name="badge_outline">Outline</string>
     <string name="badge_position">Badge position</string>
+    <string name="badge_on_corner">Badge on the corner</string>
+    <string name="badge_on_corner_summary">Half outside the icon, so it covers less of it</string>
     <string name="badge_size">Badge size</string>
     <string name="badge_test">Test notification badge</string>
     <string name="badge_test_summary">Post a notification to badge the Settings icon</string>
@@ -549,7 +551,8 @@
     <string name="about_whats_new_none">No release notes in this build.</string>
     <string name="about_report_issue">Report an issue</string>
     <string name="about_report_issue_summary">Opens a new issue on GitHub</string>
-    <string name="about_report_issue_body">\n\n---\nSupernova %1$s, Android %2$s (API %3$d), %4$s</string>
+    <string name="about_report_issue_body">\n\n---\n%1$s</string>
+    <string name="about_device_details">Supernova %1$s, Android %2$s (API %3$d), %4$s</string>
     <string name="about_no_browser">No app here opens links</string>
     <string name="about_source">Source code</string>
     <string name="about_source_url" translatable="false">https://github.com/tanujnotes/Supernova</string>
@@ -1080,6 +1083,7 @@
     <string name="quick_start">Quick start</string>
     <string name="quick_start_subtitle">Run the first-run setup again</string>
     <string name="restart_supernova">Restart Supernova</string>
+    <string name="restart_supernova_subtitle">Close and reopen the launcher</string>
     <string name="restart_launcher_q">Restart Supernova?</string>
     <string name="restart_launcher_message">Settings and the home screen close and open again. Nothing is lost.</string>
     <string name="restart">Restart</string>

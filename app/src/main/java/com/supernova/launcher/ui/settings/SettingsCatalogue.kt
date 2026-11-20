@@ -1624,6 +1624,12 @@ object SettingsCatalogue {
                     R.string.badge_position, BadgePosition.entries,
                     { it.badgePosition }, { EnumLabels.of(it) }
                 ) { viewModel.set(Pref.badgePosition, it) }.hiddenWhen(badgesHidden),
+                SettingItem.Toggle(
+                    R.string.badge_on_corner,
+                    get = { it.badgeOnCorner },
+                    set = { viewModel.set(Pref.badgeOnCorner, it) },
+                    subtitle = R.string.badge_on_corner_summary
+                ).hiddenWhen(badgesHidden),
                 SettingItem.Slider(
                     R.string.badge_size,
                     min = 60, max = 160,
@@ -1835,9 +1841,11 @@ object SettingsCatalogue {
                     R.string.about_version,
                     subtitle = { SupernovaApp.versionLabel(context) },
                     onClick = {},
-                    // Information only: no ripple, no chevron.
+                    // Information only: no chevron, and a tap does nothing.
                     look = SettingItem.RowLook(tappable = false)
-                ),
+                    // The version and the phone's details on the clipboard,
+                    // for a report started on GitHub (#279).
+                ).onLongPress { AboutLinks.copyDeviceDetails(context) },
                 SettingItem.Row(
                     R.string.about_whats_new,
                     subtitle = { context.getString(R.string.about_whats_new_summary) },

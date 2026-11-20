@@ -534,15 +534,7 @@ class SettingsActivity : AppCompatActivity() {
                         .putExtra(com.supernova.launcher.onboarding.OnboardingActivity.EXTRA_RERUN, true)
                 )
             },
-            restartLauncher = {
-                // It closes Settings and the home screen at once: asked first.
-                MaterialAlertDialogBuilder(this)
-                    .setTitle(R.string.restart_launcher_q)
-                    .setMessage(R.string.restart_launcher_message)
-                    .setPositiveButton(R.string.restart) { _, _ -> restartLauncher() }
-                    .setNegativeButton(R.string.cancel, null)
-                    .show()
-            },
+            restartLauncher = ::confirmRestart,
             showCrashLog = ::showCrashLog,
             onBadgesEnabled = {
                 com.supernova.launcher.ui.PermissionPrompts
@@ -977,8 +969,19 @@ class SettingsActivity : AppCompatActivity() {
                 }
                 members.forEach { add(sectionLink(it)) }
             }
+            add(restartLink())
         }
     }
+
+    // Last in the App card, under Labs (#293): a launcher is hard to
+    // restart from outside, so the root list offers it directly.
+    private fun restartLink(): SettingItem.SectionLink =
+        SettingItem.SectionLink(
+            R.string.restart_supernova,
+            icon = R.drawable.ic_settings_restart,
+            subtitle = { getString(R.string.restart_supernova_subtitle) },
+            onClick = ::confirmRestart
+        )
 
     private fun sectionLink(s: SettingsSection): SettingItem.SectionLink =
         SettingItem.SectionLink(
@@ -1043,6 +1046,10 @@ class SettingsActivity : AppCompatActivity() {
         if (!previews.isTracking) {
             val view = paneView ?: com.supernova.launcher.ui.settings.preview.SettingsPreviewView(this).also {
                 paneView = it
+                // As item_setting_preview.xml has it: a corner badge
+                // reaches above its icon's row (#250).
+                it.clipChildren = false
+                it.clipToPadding = false
                 binding.previewPane.addView(
                     it,
                     // Centred in its card, however short the preview is.
@@ -1931,6 +1938,16 @@ class SettingsActivity : AppCompatActivity() {
     // ProcessPhoenix-style restart: schedule the launcher's MAIN/HOME intent
     // a beat from now, then hard-exit the process. recreate() only rebuilds
     // one activity; a real restart needs a fresh process.
+    // It closes Settings and the home screen at once: asked first.
+    private fun confirmRestart() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.restart_launcher_q)
+            .setMessage(R.string.restart_launcher_message)
+            .setPositiveButton(R.string.restart) { _, _ -> restartLauncher() }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
     private fun restartLauncher() {
         runLogged("restart launcher") {
             val intent = Intent(this, LauncherActivity::class.java)

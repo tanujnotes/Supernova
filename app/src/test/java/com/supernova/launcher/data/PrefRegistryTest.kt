@@ -222,7 +222,7 @@ class PrefRegistryTest {
         drawer_labels:B folder_labels:B icon_normalize:B reshape_legacy:S icon_shadow:B
         icon_glass:S icon_swipe_indicator:B themed_icons:B themed_icons_autogen:B lock_method:S
         badge_color:S badge_position:S badge_scale:F badge_text_color:S badge_corner_radius:I
-        badge_outline:B folder_preview_style:S folder_prioritize_first:B folder_columns:I
+        badge_outline:B badge_on_corner:B folder_preview_style:S folder_prioritize_first:B folder_columns:I
         folder_close_on_launch:B folder_icon_scale:F folder_match_desktop:B
         folder_show_name:B folder_show_count:B folder_mode:S folder_shadow:B folder_scroll:S
         folder_icon_shape:S folder_icon_outline:B folder_match_window_color:B

@@ -31,7 +31,8 @@ class BadgeLook(private val prefs: LauncherPrefs, private val density: Float) {
             scale = prefs.badgeScale,
             textColor = LabelStyler.parseColor(prefs.badgeTextColor, BadgeDrawable.DEFAULT_TEXT_COLOR),
             cornerFraction = prefs.badgeCornerRadius / BadgeLimits.CORNER_ROUND.toFloat(),
-            outline = prefs.badgeOutline
+            outline = prefs.badgeOutline,
+            onCorner = prefs.badgeOnCorner
         )
         return BadgeDrawable(icon, count, spec, density, face)
     }

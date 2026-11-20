@@ -348,6 +348,8 @@ data class LauncherPrefs(
     val badgeCornerRadius: Int = BadgeLimits.CORNER_ROUND,
     // A thin dark ring around every badge (Outline).
     val badgeOutline: Boolean = true,
+    // The badge centred near the icon's corner, half outside it (#250).
+    val badgeOnCorner: Boolean = false,
     val folderPreviewStyle: FolderPreviewStyle = FolderPreviewStyle.GRID,
     // Draw the first member large in the preview, remaining members small.
     val folderPrioritizeFirst: Boolean = false,

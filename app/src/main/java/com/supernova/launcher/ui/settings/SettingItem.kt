@@ -125,7 +125,15 @@ sealed class SettingItem {
         val titleText: CharSequence? = null,
         val look: RowLook = RowLook()
     ) : SettingItem() {
-        fun withLook(look: RowLook): Row = Row(title, subtitle, onClick, visibleIf, titleText, look)
+        // A long press, for a row that also offers it (About's version
+        // copies the device details, #279); null for none.
+        var onLongClick: (() -> Unit)? = null
+            private set
+
+        fun withLook(look: RowLook): Row =
+            Row(title, subtitle, onClick, visibleIf, titleText, look).also { it.onLongClick = onLongClick }
+
+        fun onLongPress(action: () -> Unit): Row = apply { onLongClick = action }
     }
 
     // How a Row dresses in its card: the icon in its leading tile, 0 for

@@ -1823,7 +1823,7 @@ class DrawerController(
             prefs.labelSingleLine, prefs.labelConfig, prefs.drawerLabels,
             prefs.badges, prefs.badgeStyle, prefs.badgeCounts, prefs.badgeApps,
             prefs.badgeColor, prefs.badgePosition, prefs.badgeScale, prefs.badgeTextColor,
-            prefs.badgeCornerRadius, prefs.badgeOutline
+            prefs.badgeCornerRadius, prefs.badgeOutline, prefs.badgeOnCorner
         ).joinToString("/")
 
     // A launch was recorded while open - most often from the drawer itself,
