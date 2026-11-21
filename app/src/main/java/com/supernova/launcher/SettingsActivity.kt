@@ -19,6 +19,7 @@ import androidx.core.graphics.toColorInt
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.core.widget.doAfterTextChanged
@@ -1019,7 +1020,20 @@ class SettingsActivity : AppCompatActivity() {
             shownPage = page
             binding.settingsAppBar.setExpanded(true, false)
             binding.settingsRecycler.scrollToPosition(0)
+            showPageWhole()
         }
+    }
+
+    // A new page lands in one frame with its header and preview. The rows
+    // keep stable ids, so the item animator would fade the old page's rows
+    // out and only then fade the new ones in, a beat behind the rest (#292).
+    // It sits out that one layout, then follows the launcher's switch again
+    // (#312); accordions and switches still animate.
+    private fun showPageWhole() {
+        val list = binding.settingsRecycler
+        if (list.itemAnimator == null) return
+        list.itemAnimator = null
+        list.doOnNextLayout { list.followLauncherAnimations(viewModel.state.value.prefs) }
     }
 
     // Leading icons for the root list.
