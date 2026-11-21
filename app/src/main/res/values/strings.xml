@@ -832,6 +832,7 @@
     <string name="search_web_for">Search %1$s for “%2$s”</string>
     <string name="search_demo_calc">12 × 8 = 96</string>
     <string name="search_demo_shortcut">App shortcut</string>
+    <string name="preview_popup_notification">2 new messages</string>
     <string name="search_demo_contact">Contact</string>
     <string name="search_demo_folder">Folder</string>
     <string name="copied_to_clipboard">Copied to clipboard</string>

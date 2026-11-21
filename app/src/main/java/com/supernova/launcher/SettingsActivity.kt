@@ -1078,7 +1078,7 @@ class SettingsActivity : AppCompatActivity() {
         binding.previewPane.clipToOutline = true
         binding.previewPane.showsWallpaper =
             preview.kind == PreviewKind.HOME || preview.kind == PreviewKind.SEARCH_BAR ||
-            preview.kind == PreviewKind.DRAWER
+            preview.kind == PreviewKind.DRAWER || preview.kind == PreviewKind.DOCK
         // Same guard as the in-list holder: never rebuild mid slider drag.
         if (!previews.isTracking) {
             val view = paneView ?: com.supernova.launcher.ui.settings.preview.SettingsPreviewView(this).also {

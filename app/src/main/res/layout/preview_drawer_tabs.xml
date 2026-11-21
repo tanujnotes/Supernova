@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The App drawer preview's tab bar: drawerTabs in activity_launcher.xml,
+     whose text appearance and padding have no setters to copy them by. -->
+<com.google.android.material.tabs.TabLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/transparent"
+    android:importantForAccessibility="noHideDescendants"
+    app:tabGravity="start"
+    app:tabIndicator="@drawable/tab_indicator_drawer"
+    app:tabIndicatorFullWidth="false"
+    app:tabIndicatorHeight="3dp"
+    app:tabMinWidth="48dp"
+    app:tabMode="scrollable"
+    app:tabPaddingEnd="12dp"
+    app:tabPaddingStart="12dp"
+    app:tabRippleColor="@android:color/transparent"
+    app:tabTextAppearance="@style/TextAppearance.Supernova.DrawerTab" />
