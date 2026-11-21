@@ -942,6 +942,8 @@
     <string name="nav_bar_buttons">Navigation bar button color</string>
     <string name="nav_buttons_status_bar">Same as status bar</string>
     <string name="home_button_main_page_only">Only on the home page</string>
+    <string name="home_return_default_page">Return to default page</string>
+    <string name="home_return_default_page_summary">Home from an app or after the screen turns off goes to the default page</string>
 
     <!-- Phase 7: feed page -->
     <string name="settings_section_feed">Feed</string>

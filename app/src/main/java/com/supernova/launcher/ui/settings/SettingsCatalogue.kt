@@ -1781,6 +1781,12 @@ object SettingsCatalogue {
                     val action = HomeButtonAction.effective(it.homeButtonAction, it.homeSearch)
                     dependsOn(R.string.home_button_action, action == GestureAction.NONE)
                 },
+                SettingItem.Toggle(
+                    R.string.home_return_default_page,
+                    get = { it.homeReturnToDefaultPage },
+                    set = { viewModel.set(Pref.homeReturnToDefaultPage, it) },
+                    subtitle = R.string.home_return_default_page_summary
+                ),
                 SettingItem.Header(R.string.action_lock_screen),
                 SettingItem.Row(
                     R.string.lock_method,

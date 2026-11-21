@@ -991,11 +991,13 @@ class LauncherActivity :
 
     // Screen off: close everything over the home screen, so unlocking lands on
     // the home screen rather than on whatever was open when the screen went
-    // dark, as Launcher3 does. The page stays where it was (#317).
+    // dark, as Launcher3 does. The page stays where it was (#317), unless
+    // Return to default page is on.
     private val screenOffReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: android.content.Context, intent: Intent) {
             privateSpaceCard.cancelPending()
-            resetToHome(animate = false, keepDrawer = drawerKeptBehindLaunch, keepPage = true)
+            val keepPage = !viewModel.state.value.prefs.homeReturnToDefaultPage
+            resetToHome(animate = false, keepDrawer = drawerKeptBehindLaunch, keepPage = keepPage)
             if (drawerKeptBehindLaunch && ::drawer.isInitialized) drawer.resetPosition()
         }
     }
@@ -2768,7 +2770,8 @@ class LauncherActivity :
         // land here: one made on the home screen itself, and one made in another
         // app to get back to it. Only the first is a home press "on" the
         // launcher, and only it goes to the default page; from an app home
-        // comes back on the page the user left (#317).
+        // comes back on the page the user left (#317), unless Return to
+        // default page is on.
         val cameFromBackground = startedSinceResume
         val onHome = pressedOnHome(intent)
         val keepDrawerOpen = keepDrawerForHomePress(cameFromBackground)
@@ -2790,11 +2793,14 @@ class LauncherActivity :
         // With animations off (the launcher's or the system's) home lands
         // at once instead of scrolling past every page in between (#123).
         // From another app the launcher wasn't showing: whatever it closes
-        // closes at once (#292), and the page stays put.
-        val scroll = Animations.scrollPages(viewModel.state.value.prefs) && !cameFromBackground
+        // closes at once (#292), and the page stays put, or with Return to
+        // default page on lands on the default page at once, as Launcher3's
+        // does: scrolled, a slow return showed the pages in between (#292).
+        val keepPage = keepPageForHomePress(onHome, promptClosed)
+        val scroll = Animations.scrollPages(viewModel.state.value.prefs) && !cameFromBackground &&
+            !movesPageUnseen(onHome, keepPage)
         // A folder card the same swipe closed on its first touch (#110), read
         // after the reset, whose own closes don't count twice.
-        val keepPage = promptClosed || !onHome
         val closed = com.supernova.launcher.ui.OpenDialogs.dismissAll(this) or
             resetToHome(animate = scroll, keepDrawer = keepDrawerOpen, keepPage = keepPage) or
             cardSwipeClose.takeFor(SystemClock.uptimeMillis()) or promptClosed
@@ -2828,6 +2834,16 @@ class LauncherActivity :
         !startedSinceResume && hasWindowFocus() &&
             SystemClock.uptimeMillis() - focusGainedAt > HOME_FOCUS_SETTLE_MS &&
             intent.flags and Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT == 0
+
+    // Whether a home press leaves the page where it is: one that only closed
+    // the private space's unlock prompt does, and so does one made in another
+    // app unless Return to default page is on (#317).
+    private fun keepPageForHomePress(onHome: Boolean, promptClosed: Boolean): Boolean =
+        promptClosed || (!onHome && !viewModel.state.value.prefs.homeReturnToDefaultPage)
+
+    // A page change the user didn't ask for on the home screen itself (Return
+    // to default page), made at once rather than scrolled.
+    private fun movesPageUnseen(onHome: Boolean, keepPage: Boolean): Boolean = !onHome && !keepPage
 
     // Whether a home press spares the drawer. drawerAutoClose off keeps a
     // drawer that stayed open behind a launched app open on return home, when

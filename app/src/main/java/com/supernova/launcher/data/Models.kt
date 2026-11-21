@@ -470,6 +470,9 @@ data class LauncherPrefs(
     // runs the action (the behavior before this pref existed). Off runs the
     // action straight away, wherever the workspace was.
     val homeButtonOnMainPage: Boolean = true,
+    // On (the default): Home from an app, from recents or the screen turning
+    // off goes to the default page. Off keeps the page the user left (#317).
+    val homeReturnToDefaultPage: Boolean = true,
     // Desktop/drawer search bar configuration as one JSON document (see
     // ui/SearchBarConfig); "" = defaults (no desktop bar, local drawer filter).
     val searchBarConfig: String = "",

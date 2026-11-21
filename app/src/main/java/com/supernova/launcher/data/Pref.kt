@@ -312,6 +312,7 @@ object Pref {
     val homeSearch = bool("home_search")
     val homeButtonAction = text("home_button_action")
     val homeButtonOnMainPage = bool("home_button_on_main_page")
+    val homeReturnToDefaultPage = bool("home_return_to_default_page")
     val searchBarConfig = text("search_bar_config")
     val popupNotifications = bool("popup_notifications")
     val popupCardBg = bool("popup_card_bg")
