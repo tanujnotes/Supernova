@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The search field over a picker sheet's list: the widget sheet's field,
+     without its glyph. No saved state, as with drawerSearch. -->
+<EditText xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="@dimen/space_md"
+    android:layout_marginTop="@dimen/space_xs"
+    android:layout_marginBottom="@dimen/space_ms"
+    android:background="@drawable/bg_search_card"
+    android:hint="@string/search_apps"
+    android:importantForAutofill="no"
+    android:imeOptions="actionSearch"
+    android:inputType="text"
+    android:maxLines="1"
+    android:paddingHorizontal="@dimen/space_ml"
+    android:paddingVertical="@dimen/space_md"
+    android:saveEnabled="false"
+    android:textColor="@color/textPrimary"
+    android:textColorHint="@color/textSecondary"
+    android:textSize="@dimen/text_body" />

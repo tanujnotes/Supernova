@@ -9,11 +9,16 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
+import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.withStyledAttributes
+import androidx.core.view.updateLayoutParams
+import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -21,6 +26,7 @@ import com.google.android.material.tabs.TabLayout
 import com.supernova.launcher.R
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.gesture.GestureAction
+import com.supernova.launcher.search.AppMatcher
 import com.supernova.launcher.ui.settings.EnumLabels
 
 // What the action picker hands back. A Legacy pick still has to run the
@@ -70,12 +76,7 @@ class ActionPickerSheet private constructor(
             adapter = this@ActionPickerSheet.adapter
         }
         if (appsOnly) {
-            root.addView(
-                list, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, context.dp(LIST_HEIGHT_DP))
-            )
-            adapter.rows = appRows()
-            sheet.setContentView(root)
-            sheet.show()
+            showSearchableApps(root, list)
             return
         }
         val tabs = TabLayout(context).apply {
@@ -102,6 +103,59 @@ class ActionPickerSheet private constructor(
         adapter.rows = rowsFor(0)
         sheet.setContentView(root)
         sheet.show()
+    }
+
+    // The apps under a search field, as Select apps has: typing narrows the
+    // list with the drawer's matching, clearing brings every app back. The
+    // keyboard waits for a tap on the field, and the window shrinks over it
+    // with the list, as the Activities picker's does.
+    private fun showSearchableApps(root: LinearLayout, list: RecyclerView) {
+        val all = appRows()
+        val search = LayoutInflater.from(context).inflate(R.layout.sheet_picker_search, root, false) as EditText
+        val empty = TextView(context).apply {
+            setTextColor(context.getColor(R.color.textSecondary))
+            textSize = LABEL_SP
+            gravity = Gravity.CENTER
+            val gutter = context.dp(ROW_GUTTER_DP)
+            setPadding(gutter, 0, gutter, 0)
+            visibility = View.GONE
+        }
+        val match = ViewGroup.LayoutParams.MATCH_PARENT
+        val frame = FrameLayout(context).apply {
+            addView(list, FrameLayout.LayoutParams(match, match))
+            addView(empty, FrameLayout.LayoutParams(match, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER))
+        }
+        val listHeight = context.dp(LIST_HEIGHT_DP)
+        root.addView(search)
+        root.addView(frame, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, listHeight))
+        search.doAfterTextChanged { text ->
+            val query = text?.toString()?.trim().orEmpty()
+            adapter.rows = if (query.isEmpty()) all else AppMatcher.filter(all, query) { it.label.toString() }
+            list.scrollToPosition(0)
+            empty.text = context.getString(R.string.widget_search_no_matches, query)
+            empty.visibility = if (adapter.rows.isEmpty()) View.VISIBLE else View.GONE
+        }
+        // The keyboard's Search key just puts it away: the list is the answer.
+        search.setOnEditorActionListener { view, _, _ ->
+            view.hideKeyboardForWindow()
+            true
+        }
+        adapter.rows = all
+        sheet.setContentView(root)
+        fitAboveKeyboard(root, frame, listHeight)
+        sheet.show()
+    }
+
+    private fun fitAboveKeyboard(root: View, frame: View, listHeight: Int) {
+        sheet.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        val parent = sheet.findViewById<View>(com.google.android.material.R.id.coordinator) ?: return
+        parent.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            if (bottom - top == oldBottom - oldTop) return@addOnLayoutChangeListener
+            val chrome = root.height - frame.height
+            val fits = (bottom - top - chrome - context.dp(KEYBOARD_GAP_DP))
+                .coerceIn(context.dp(MIN_TYPING_LIST_DP), listHeight)
+            if (frame.layoutParams.height != fits) frame.post { frame.updateLayoutParams { height = fits } }
+        }
     }
 
     private fun rowsFor(tab: Int): List<Row> = when (tab) {
@@ -253,6 +307,8 @@ class ActionPickerSheet private constructor(
         private const val ICON_DP = 40
         private const val LABEL_GAP_DP = 20
         private const val LABEL_SP = 16f
+        private const val KEYBOARD_GAP_DP = 24
+        private const val MIN_TYPING_LIST_DP = 120
 
         fun show(
             context: Context,
