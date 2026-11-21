@@ -33,7 +33,6 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.supernova.launcher.HomeRole
 import com.supernova.launcher.R
 import com.supernova.launcher.appGraph
@@ -109,20 +108,17 @@ class OnboardingActivity : AppCompatActivity() {
     // the shape's).
     private var liveText: Pair<TextView, (LauncherPrefs) -> CharSequence>? = null
 
-    // What Set as my home screen does once the default-home prompt answers.
-    private var afterHomeRole: (() -> Unit)? = null
-
     // The backup brought its own home screen and settings: nothing is left
     // to set up but making it the home app, as the last page would.
     private val backup = com.supernova.launcher.ui.BackupTransfer(
         this, { viewModel }, onImported = { askHomeRoleThen { finishOnboarding(askAnimations = false) } }
     )
 
+    // What Set as my home screen does once the default-home prompt answers
+    // waits in OnboardingHomeHandover, which the home screen can answer too.
     private val requestHomeRole =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            val then = afterHomeRole
-            afterHomeRole = null
-            then?.invoke()
+            OnboardingHomeHandover.answered(this)?.invoke()
         }
 
     // A choice just tapped, as the settings will be once its write lands:
@@ -761,18 +757,22 @@ class OnboardingActivity : AppCompatActivity() {
             then()
             return
         }
-        afterHomeRole = then
+        OnboardingHomeHandover.asked(this, then)
         runLogged("ask for home role") { requestHomeRole.launch(request) }.onFailure {
-            afterHomeRole = null
-            then()
+            OnboardingHomeHandover.answered(this)?.invoke()
         }
+    }
+
+    private fun finishRun() {
+        finish()
+        OnboardingHomeHandover.finished(this)
     }
 
     // askAnimations: false once answered, and for a restored backup, which
     // brings its own animation setting.
     private fun finishOnboarding(askAnimations: Boolean = true) {
         if (isRerun) {
-            finish()
+            finishRun()
             return
         }
         if (askAnimations && AnimationScale.systemAnimationsOff(this)) {
@@ -790,25 +790,16 @@ class OnboardingActivity : AppCompatActivity() {
                 viewModel.seedDefaultLayout()
                 viewModel.markOnboardingComplete()
             }
-            finish()
+            finishRun()
         }
     }
 
-    // The phone's animations are off. From here on the launcher's own follow
-    // only its Disable animations switch, so the first run asks once which
-    // way that starts.
+    // AnimationsQuestion, on the home screen when it finished this run.
     private fun askAnimationsThen(then: () -> Unit) {
-        val answer = { off: Boolean ->
+        AnimationsQuestion.ask(OnboardingHomeHandover.dialogHost(this) ?: this) { off ->
             viewModel.setAll(listOf(PrefWrite(Pref.disableAnimations, off)))
             then()
         }
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.onboarding_animations_title)
-            .setMessage(R.string.onboarding_animations_message)
-            .setPositiveButton(R.string.onboarding_animations_keep) { _, _ -> answer(false) }
-            .setNegativeButton(R.string.onboarding_animations_off) { _, _ -> answer(true) }
-            .setCancelable(false)
-            .show()
     }
 
     private fun night(): Boolean = ThemeEngine.isNight(this, prefs)

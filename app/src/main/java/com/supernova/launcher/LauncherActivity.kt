@@ -652,6 +652,8 @@ class LauncherActivity :
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        liveLaunchers.removeAll { it.get() == null }
+        liveLaunchers += java.lang.ref.WeakReference(this)
         window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
         viewModel.onDisplayDensity(resources.displayMetrics.densityDpi)
         appliedAccent = viewModel.state.value.prefs.accentColor
@@ -874,6 +876,14 @@ class LauncherActivity :
     // on every launcher create, so pressing Home mid-wizard isn't a trap: it
     // simply re-opens next launch.
     private fun maybeShowOnboarding() {
+        if (startedAsHome()) {
+            // The first run that just made this the home app finishes from
+            // here, rather than this opening a second; the launcher it was
+            // opened over goes once its writes are in.
+            val handover = com.supernova.launcher.onboarding.OnboardingHomeHandover
+            if (handover.finishForHome(this, ::closeOtherLaunchers)) return
+            closeOtherLaunchers()
+        }
         lifecycleScope.launch {
             if (!viewModel.onboardingDone()) {
                 val predates = viewModel.hasModelItems() && !viewModel.defaultLayoutSeeded()
@@ -888,6 +898,19 @@ class LauncherActivity :
             }
             maybePromptDefaultHome()
         }
+    }
+
+    private fun startedAsHome(): Boolean = intent?.hasCategory(Intent.CATEGORY_HOME) == true
+
+    // Opened from another launcher's icon, this runs in an ordinary task;
+    // once it becomes the home app, the system starts the home screen in a
+    // task of its own, and the first copy stayed alive behind it, with its
+    // own view model, for as long as the process lived. The home copy closes
+    // it as it starts.
+    private fun closeOtherLaunchers() {
+        liveLaunchers.mapNotNull { it.get() }
+            .filter { it !== this && !it.isFinishing && !it.startedAsHome() }
+            .forEach { it.finishAndRemoveTask() }
     }
 
     private fun maybePromptDefaultHome() {
@@ -924,6 +947,7 @@ class LauncherActivity :
         }
 
     override fun onDestroy() {
+        liveLaunchers.removeAll { it.get() == null || it.get() === this }
         // A recreate (a theme flip, an accent change) can come with the feed
         // showing; its media and calendar listeners are registered with the
         // system and would keep this activity alive for good.
@@ -5204,6 +5228,10 @@ class LauncherActivity :
     }
 
     companion object {
+        // Every live launcher activity, for closeOtherLaunchers. Main thread
+        // only.
+        private val liveLaunchers = mutableListOf<java.lang.ref.WeakReference<LauncherActivity>>()
+
         // Settings' Add card → Widget: pick and bind one onto a new feed card.
         const val EXTRA_ADD_FEED_WIDGET = "extra_add_feed_widget"
 
