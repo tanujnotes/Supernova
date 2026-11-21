@@ -1543,9 +1543,16 @@ class LiveDragController(
         }
     }
 
+    // A cancelled animator stays at its last frame, so every view it rocked
+    // is straightened here, not just those on the pages showing now: a
+    // widget's view is kept and reused across rebinds, and one off the
+    // showing pages when the drag ended kept its tilt until a restart (#316).
     private fun stopIconWiggle() {
         if (wiggleAnimators.isEmpty()) return
-        wiggleAnimators.forEach { it.cancel() }
+        wiggleAnimators.forEach { animator ->
+            animator.cancel()
+            ((animator as? android.animation.ObjectAnimator)?.target as? View)?.rotation = 0f
+        }
         wiggleAnimators.clear()
         forEachWorkspaceIcon { _, view -> view.rotation = 0f }
     }
