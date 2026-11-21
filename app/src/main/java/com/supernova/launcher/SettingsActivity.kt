@@ -57,6 +57,7 @@ import com.supernova.launcher.ui.FolderPreviewStyle
 import com.supernova.launcher.ui.LabelStyler
 import com.supernova.launcher.ui.LauncherViewModel
 import com.supernova.launcher.ui.dp
+import com.supernova.launcher.ui.followLauncherAnimations
 import com.supernova.launcher.ui.settings.ColorSheet
 import com.supernova.launcher.ui.settings.EnumLabels
 import com.supernova.launcher.ui.settings.PreviewController
@@ -693,6 +694,7 @@ class SettingsActivity : AppCompatActivity() {
                         // otherwise open the stale, empty section.
                         if (!searchActive) render()
                     }
+                    binding.settingsRecycler.followLauncherAnimations(state.prefs)
                     adapter.updatePrefs(state.prefs)
                     groupsPane?.refresh()
                     bindPreviewPane(currentSection)
