@@ -145,7 +145,7 @@ class AppCatalog(
     // an app's own icon for an AppIconSource pick.
     fun packDrawable(packPackage: String, drawableName: String): Drawable? = runCatching {
         if (AppIconSource.isAppIcon(packPackage)) return@runCatching appIconDrawable(drawableName)
-        val res = pm.getResourcesForApplication(packPackage)
+        val res = iconPacks.resourcesFor(packPackage) ?: return@runCatching null
         val id = res.getIdentifier(drawableName, "drawable", packPackage)
         if (id == 0) null else res.getDrawable(id, null)
     }.getOrNull()
@@ -292,7 +292,7 @@ class AppCatalog(
     private fun diskSignature(): String =
         "$DISK_FORMAT|${context.resources.displayMetrics.densityDpi}|$iconShape|${customShapeSpec?.encode()}|" +
             "${iconRenderer.reshapeLegacy}|${iconRenderer.shadow}|${iconRenderer.glass}|$themedIcons|" +
-            "$themedIconsAutogen|${iconPacks.loadedPack()}|$packStamp"
+            "$themedIconsAutogen|${iconPacks.loadedPack()}|$packStamp|${iconPacks.themeKey()}"
 
     // The loaded pack's own install time: an updated pack draws afresh.
     private var packStamp = 0L
@@ -443,6 +443,17 @@ class AppCatalog(
         packStamp = packageName?.let { runCatching { pm.getPackageInfo(it, 0).lastUpdateTime }.getOrNull() } ?: 0L
         iconCache.evictAll()
         dominantColors.clear()
+    }
+
+    // The launcher turned dark or light (#288). True when the icons were
+    // dropped: only a pack with night icons changes, and every icon then
+    // draws again from its other half. Before the pack is loaded this only
+    // sets the mode the load reads it in.
+    fun applyNight(night: Boolean): Boolean = synchronized(renderLock) {
+        if (!iconPacks.setNight(night)) return false
+        iconCache.evictAll()
+        dominantColors.clear()
+        true
     }
 
     // Labs' Clear icon cache: the pack is read again, since it may have

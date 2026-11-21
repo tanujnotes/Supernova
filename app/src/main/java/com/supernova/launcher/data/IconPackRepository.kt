@@ -3,9 +3,13 @@ package com.supernova.launcher.data
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.content.res.Resources
 import android.graphics.drawable.Drawable
+import android.util.DisplayMetrics
+import android.util.TypedValue
 import com.supernova.launcher.runLogged
 import org.xmlpull.v1.XmlPullParser
 
@@ -37,6 +41,16 @@ class IconPackRepository(private val context: Context) {
     private var backDrawables: List<Drawable> = emptyList()
     private var uponDrawable: Drawable? = null
     private var iconScale: Float = 1f
+
+    // Dark or light, as the launcher is: day/night packs ship their dark
+    // icons as -night resources (drawables, or the colours their vectors
+    // use), so the pack is read through a configuration of our own rather
+    // than the process's, which is the system's and can change under a
+    // render. Set before load and on every theme flip (setNight).
+    @Volatile private var night: Boolean = false
+    // Whether the loaded pack's icons look different by night: only then
+    // does a theme flip throw the icons away (see setNight).
+    private var followsNight: Boolean = false
 
     // The pack's own app label, for anywhere a raw package name would be
     // shown to a user. Falls back to the package name when the pack has been
@@ -77,29 +91,62 @@ class IconPackRepository(private val context: Context) {
         load(pack)
     }
 
+    // The launcher turned dark or light. True when the loaded pack's icons
+    // change with it: its resources are opened afresh for the new mode, and
+    // the caller has to draw every icon again. A pack with no night
+    // resources keeps its icons, so a theme flip costs it nothing.
+    @Synchronized
+    fun setNight(value: Boolean): Boolean {
+        val changed = value != night
+        night = value
+        val resources = loadedPackage?.takeIf { changed && followsNight }?.let(::openResources) ?: return false
+        packResources = resources
+        loadDecoration()
+        return true
+    }
+
+    // The pack's plates, drawn from its resources as they now are.
+    private fun loadDecoration() {
+        backDrawables = backNames.mapNotNull { drawableByName(it) }
+        maskDrawable = maskName?.let { drawableByName(it) }
+        uponDrawable = uponName?.let { drawableByName(it) }
+    }
+
+    // What the loaded pack's icons were drawn under, for the disk cache's
+    // signature: the mode for a day/night pack, else nothing.
+    fun themeKey(): String = if (followsNight) (if (night) "night" else "day") else ""
+
+    // Another package's resources under the launcher's dark or light; the
+    // loaded pack's are kept, for the per-app picks drawn from it.
+    fun resourcesFor(packageName: String): Resources? =
+        packResources?.takeIf { packageName == loadedPackage } ?: openResources(packageName)
+
+    // The package manager's copy follows the system's mode instead.
+    private fun openResources(packageName: String): Resources? = runCatching {
+        val base = context.resources.configuration
+        val config = Configuration(base).apply {
+            uiMode = (uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
+                if (night) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
+        }
+        context.createPackageContext(packageName, 0).createConfigurationContext(config).resources
+    }.getOrNull() ?: runCatching { pm.getResourcesForApplication(packageName) }.getOrNull()
+
     @Synchronized
     fun load(packageName: String?) {
         if (packageName == loadedPackage) return
-        componentMap = emptyMap()
-        packageFallback = emptyMap()
-        calendarMap = emptyMap()
-        packResources = null
-        maskDrawable = null
-        backDrawables = emptyList()
-        uponDrawable = null
-        iconScale = 1f
+        forget()
         loadedPackage = packageName
         if (packageName.isNullOrBlank()) return
 
-        val resources = runCatching { pm.getResourcesForApplication(packageName) }.getOrNull() ?: return
+        val resources = openResources(packageName) ?: return
         packResources = resources
 
         val map = mutableMapOf<String, String>()
         val byPackage = mutableMapOf<String, String>()
         val calendars = mutableMapOf<String, String>()
         val backs = mutableListOf<String>()
-        var maskName: String? = null
-        var uponName: String? = null
+        var mask: String? = null
+        var upon: String? = null
 
         readAppFilter(resources, packageName) { parser -> runLogged("parse icon pack $packageName") {
             while (parser.next() != XmlPullParser.END_DOCUMENT) {
@@ -123,8 +170,8 @@ class IconPackRepository(private val context: Context) {
                         }
                     }
                     "iconback" -> parser.getAttributeValue(null, "img1")?.let { backs.add(it) }
-                    "iconmask" -> maskName = parser.getAttributeValue(null, "img1")
-                    "iconupon" -> uponName = parser.getAttributeValue(null, "img1")
+                    "iconmask" -> mask = parser.getAttributeValue(null, "img1")
+                    "iconupon" -> upon = parser.getAttributeValue(null, "img1")
                     "scale" -> iconScale = parser.getAttributeValue(null, "factor")?.toFloatOrNull() ?: 1f
                 }
             }
@@ -133,10 +180,111 @@ class IconPackRepository(private val context: Context) {
         componentMap = map
         packageFallback = byPackage
         calendarMap = calendars
-        backDrawables = backs.mapNotNull { drawableByName(it) }
-        maskDrawable = maskName?.let { drawableByName(it) }
-        uponDrawable = uponName?.let { drawableByName(it) }
+        backNames = backs
+        maskName = mask
+        uponName = upon
+        decodeDensity = bitmapDensity(map.values, resources)
+        loadDecoration()
+        followsNight = declaresNight(packageName) ||
+            (backDrawables + listOfNotNull(maskDrawable, uponDrawable)).any(::changesByNight) ||
+            sampleChangesByNight(map.values, resources)
     }
+
+    // Nothing loaded: what load starts from.
+    private fun forget() {
+        componentMap = emptyMap()
+        packageFallback = emptyMap()
+        calendarMap = emptyMap()
+        packResources = null
+        maskDrawable = null
+        backDrawables = emptyList()
+        uponDrawable = null
+        backNames = emptyList()
+        maskName = null
+        uponName = null
+        followsNight = false
+        decodeDensity = 0
+        iconScale = 1f
+    }
+
+    private var backNames: List<String> = emptyList()
+    private var maskName: String? = null
+    private var uponName: String? = null
+
+    // The flag day/night packs put in their manifest (on the application or
+    // the activity launchers find them by). Not every pack has it.
+    private fun declaresNight(packageName: String): Boolean = runCatching {
+        @Suppress("DEPRECATION")
+        val info = pm.getPackageInfo(packageName, PackageManager.GET_META_DATA or PackageManager.GET_ACTIVITIES)
+        val bundles = listOfNotNull(info.applicationInfo?.metaData) +
+            info.activities.orEmpty().mapNotNull { it.metaData }
+        bundles.any { it.containsKey(NIGHT_FLAG) }
+    }.getOrDefault(false)
+
+    // Packs without the flag: a few of its icons, spread over the appfilter,
+    // asked whether they vary by night - a -night drawable, or a vector
+    // whose colours have -night values, both report it.
+    @android.annotation.SuppressLint("DiscouragedApi")
+    private fun sampleChangesByNight(names: Collection<String>, resources: Resources): Boolean {
+        val distinct = names.distinct()
+        if (distinct.isEmpty()) return false
+        val step = (distinct.size / NIGHT_SAMPLES).coerceAtLeast(1)
+        return distinct.indices.step(step).take(NIGHT_SAMPLES).any { index ->
+            val id = resources.getIdentifier(distinct[index], "drawable", loadedPackage)
+            id != 0 && decode(resources, id)?.let(::changesByNight) == true
+        }
+    }
+
+    // The density the pack's bitmaps are decoded at: the bucket they ship
+    // in, so the decoder doesn't resample each one to the screen's density
+    // (#288: a pack of xxxhdpi-only art on a 450 dpi phone spent three times
+    // as long resampling each icon as decoding it). The icon is scaled to
+    // its size when it is drawn anyway. 0, the screen's own, for packs of
+    // vectors or nodpi art, which aren't resampled.
+    private var decodeDensity = 0
+
+    // A few of the pack's icons, followed to the bitmaps they draw (an
+    // adaptive icon's layers, a <bitmap>'s src), and the bucket those are in
+    // when asked for the highest.
+    @android.annotation.SuppressLint("DiscouragedApi")
+    private fun bitmapDensity(names: Collection<String>, resources: Resources): Int {
+        val value = TypedValue()
+        val found = names.asSequence().distinct().take(DENSITY_SAMPLES).flatMap { name ->
+            val id = resources.getIdentifier(name, "drawable", loadedPackage)
+            if (id == 0) emptySequence() else sequenceOf(id) + xmlReferences(resources, id, value)
+        }.mapNotNull { id ->
+            runCatching { resources.getValueForDensity(id, DisplayMetrics.DENSITY_XXXHIGH, value, true) }
+                .getOrNull() ?: return@mapNotNull null
+            val file = value.string?.toString().orEmpty()
+            value.density.takeIf { file.endsWith(".png") || file.endsWith(".webp") || file.endsWith(".jpg") }
+        }.filter { it in 1 until TypedValue.DENSITY_NONE }
+        return found.maxOrNull() ?: 0
+    }
+
+    // The resources an xml drawable points at, one level down.
+    private fun xmlReferences(resources: Resources, id: Int, value: TypedValue): Sequence<Int> {
+        val isXml = runCatching { resources.getValue(id, value, true) }.isSuccess &&
+            value.string?.endsWith(".xml") == true
+        if (!isXml) return emptySequence()
+        val refs = mutableListOf<Int>()
+        runCatching {
+            resources.getXml(id).use { parser ->
+                while (parser.next() != XmlPullParser.END_DOCUMENT) {
+                    if (parser.eventType != XmlPullParser.START_TAG) continue
+                    for (i in 0 until parser.attributeCount) {
+                        parser.getAttributeResourceValue(i, 0).takeIf { it != 0 }?.let(refs::add)
+                    }
+                }
+            }
+        }
+        return refs.asSequence()
+    }
+
+    private fun decode(resources: Resources, id: Int): Drawable? =
+        runCatching { resources.getDrawableForDensity(id, decodeDensity, null) }.getOrNull()
+
+    private fun changesByNight(drawable: Drawable): Boolean =
+        drawable.changingConfigurations and ActivityInfo.CONFIG_UI_MODE != 0
 
     fun themedIcon(packageName: String, className: String): Drawable? {
         val resources = packResources ?: return null
@@ -183,8 +331,7 @@ class IconPackRepository(private val context: Context) {
     // generic icons no app maps to; a few packs name it drawables.xml), else
     // the appfilter entries.
     fun listDrawables(packageName: String): List<String> {
-        val resources = runCatching { pm.getResourcesForApplication(packageName) }.getOrNull()
-            ?: return emptyList()
+        val resources = resourcesFor(packageName) ?: return emptyList()
         val names = linkedSetOf<String>()
         val collect: (XmlPullParser) -> Unit = { parser ->
             runLogged("read icon pack drawable list") {
@@ -210,8 +357,7 @@ class IconPackRepository(private val context: Context) {
     // of the picker's grid. Reads the pack's appfilter without touching the
     // loaded-pack state, so it works for any pack, applied or not.
     fun matchesFor(packPackage: String, packageName: String, className: String): List<String> {
-        val resources = runCatching { pm.getResourcesForApplication(packPackage) }.getOrNull()
-            ?: return emptyList()
+        val resources = resourcesFor(packPackage) ?: return emptyList()
         val entries = mutableListOf<Pair<String, String>>()
         readAppFilter(resources, packPackage) { parser ->
             runLogged("read icon pack matches") {
@@ -277,12 +423,21 @@ class IconPackRepository(private val context: Context) {
         val pkg = loadedPackage ?: return null
         val id = res.getIdentifier(name, "drawable", pkg)
         if (id == 0) return null
-        return runCatching { res.getDrawable(id, null) }.getOrNull()
+        return decode(res, id)
     }
 
     companion object {
         // The pack's own icon list, under the names packs ship it as.
         private val DRAWABLE_LISTS = listOf("drawable", "drawables")
+
+        // Manifest meta-data a pack sets when its icons differ by night.
+        const val NIGHT_FLAG = "org.icontheme.CHANGES_WITH_DARK_MODE"
+
+        // How many of a flagless pack's icons are tried for night variants.
+        private const val NIGHT_SAMPLES = 12
+
+        // How many of a pack's icons are followed to find its bitmaps' density.
+        private const val DENSITY_SAMPLES = 6
 
         // Pack convention: the icon for day N is `prefix` + N (1..31).
         fun calendarDrawableName(prefix: String, dayOfMonth: Int): String = "$prefix$dayOfMonth"
