@@ -855,7 +855,8 @@ object SettingsCatalogue {
                     step = 2,
                     get = { it.drawerPaddingH },
                     set = { viewModel.set(Pref.drawerPaddingH, it) },
-                    display = { context.getString(R.string.padding_dp_value, it) }
+                    display = { context.getString(R.string.padding_dp_value, it) },
+                    preview = { p, v -> p.copy(drawerPaddingH = v) }
                 ),
                 SettingItem.Slider(
                     R.string.drawer_padding_v,

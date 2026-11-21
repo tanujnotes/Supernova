@@ -56,16 +56,15 @@
                 android:visibility="gone"
                 app:layout_scrollFlags="scroll" />
 
-            <!-- A section's toolbar: 24dp under the status bar, a 56dp row
+            <!-- A section's toolbar: a 56dp row right under the status bar,
                  with its buttons 4dp in from the sides. -->
             <LinearLayout
                 android:id="@+id/settingsToolbar"
                 android:layout_width="match_parent"
-                android:layout_height="80dp"
+                android:layout_height="56dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="@dimen/space_xs"
-                android:paddingTop="@dimen/space_lg">
+                android:paddingHorizontal="@dimen/space_xs">
 
                 <ImageButton
                     android:id="@+id/backButton"

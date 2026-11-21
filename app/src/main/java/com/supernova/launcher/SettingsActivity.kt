@@ -352,10 +352,18 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private var imeBottom = 0
+    private var navBottom = 0
     private var listBottomPadding = 0
 
+    // The list clears whatever covers its foot: the keyboard where it rises
+    // above the tab bar, or, on a section page with no tab bar, the
+    // navigation bar or the keyboard, whichever is taller.
     private fun applyImePadding() {
-        val covered = (imeBottom - binding.settingsTabs.height).coerceAtLeast(0)
+        val covered = if (binding.settingsTabs.isVisible) {
+            (imeBottom - binding.settingsTabs.height).coerceAtLeast(0)
+        } else {
+            maxOf(imeBottom, navBottom)
+        }
         val padding = listBottomPadding + covered
         if (binding.settingsRecycler.paddingBottom != padding) {
             binding.settingsRecycler.updatePadding(bottom = padding)
@@ -442,7 +450,13 @@ class SettingsActivity : AppCompatActivity() {
                 if (child === binding.settingsTabs) {
                     child.updatePadding(bottom = bottom + bars.bottom)
                 }
+                // Section pages have no tab bar to take the navigation bar,
+                // so the Drawer groups page keeps clear of it itself.
+                if (child === binding.groupsPane) {
+                    child.updatePadding(bottom = bottom + if (binding.settingsTabs.isVisible) 0 else bars.bottom)
+                }
             }
+            navBottom = bars.bottom
             imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
             applyImePadding()
             insets
@@ -560,7 +574,7 @@ class SettingsActivity : AppCompatActivity() {
             onFeedContactsEnabled = ::requestFeedContactsIfNeeded,
             editCard = { card ->
                 com.supernova.launcher.ui.CustomCardEditorSheet
-                    .show(this, viewModel, card, undoAnchor = binding.settingsTabs)
+                    .show(this, viewModel, card, undoAnchor = binding.settingsTabs.takeIf { it.isVisible })
             },
             openNotificationAccess = {
                 com.supernova.launcher.ui.PermissionPrompts.openNotificationAccessWithHelp(this)
@@ -579,7 +593,7 @@ class SettingsActivity : AppCompatActivity() {
                     },
                     onShortcuts = {
                         com.supernova.launcher.ui.CustomCardEditorSheet
-                            .show(this, viewModel, null, undoAnchor = binding.settingsTabs)
+                            .show(this, viewModel, null, undoAnchor = binding.settingsTabs.takeIf { it.isVisible })
                     },
                     requestCalendar = ::requestFeedCalendarIfNeeded,
                     requestContacts = ::requestFeedContactsIfNeeded
@@ -1010,6 +1024,12 @@ class SettingsActivity : AppCompatActivity() {
         binding.rootTitle.setText(if (currentTab == Tab.STYLE) R.string.style_tab else R.string.settings)
         binding.rootSearch.isVisible = root
         binding.settingsToolbar.isVisible = !root
+        // The Settings/Style tabs belong to the two root lists; a section
+        // page gives their room to its list, and Back leads to them (#283).
+        if (binding.settingsTabs.isVisible != root) {
+            binding.settingsTabs.isVisible = root
+            ViewCompat.requestApplyInsets(binding.root)
+        }
         if (!root && binding.rootSearchInput.hasFocus()) {
             binding.rootSearchInput.clearFocus()
             getSystemService(InputMethodManager::class.java)
@@ -1057,7 +1077,8 @@ class SettingsActivity : AppCompatActivity() {
         // Clipped to its rounded card, the wallpaper's hole included.
         binding.previewPane.clipToOutline = true
         binding.previewPane.showsWallpaper =
-            preview.kind == PreviewKind.HOME || preview.kind == PreviewKind.SEARCH_BAR
+            preview.kind == PreviewKind.HOME || preview.kind == PreviewKind.SEARCH_BAR ||
+            preview.kind == PreviewKind.DRAWER
         // Same guard as the in-list holder: never rebuild mid slider drag.
         if (!previews.isTracking) {
             val view = paneView ?: com.supernova.launcher.ui.settings.preview.SettingsPreviewView(this).also {
@@ -1077,6 +1098,11 @@ class SettingsActivity : AppCompatActivity() {
                 )
             }
             previews.attach(view, preview.kind)
+            // A preview that paints its own surface fills the card, its
+            // minimum height included; the others sit inside its padding.
+            val pad = if (view.fillsPane) 0 else resources.getDimensionPixelSize(R.dimen.space_sm)
+            binding.previewPane.setPadding(binding.previewPane.paddingLeft, pad, binding.previewPane.paddingRight, pad)
+            view.minimumHeight = if (view.fillsPane) binding.previewPane.minimumHeight else 0
         }
         return true
     }
