@@ -324,6 +324,11 @@ object StylePickerSheet {
                 binding.slotGroup, binding.stripText, binding.stripAccent, binding.contrastRow
             ).forEach { it.visibility = android.view.View.GONE }
         }
+        if (surfaceId == SurfaceId.DOCK) {
+            // The dock's Text colours its labels on a plate; nothing on it
+            // takes an accent.
+            listOf(binding.slotAccent, binding.stripAccent).forEach { it.visibility = android.view.View.GONE }
+        }
         if (surfaceId in BAR_SURFACES) {
             if (barGlassOn(surfaceId, prefs)) {
                 binding.styleGlassNote.visibility = android.view.View.VISIBLE
