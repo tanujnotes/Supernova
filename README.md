@@ -2,7 +2,11 @@
 
 #### Infinitely Customizable Android Homescreen.
 
-You can import your settings from other launchers to get started quickly.
+All the features you love from other launchers, without the things you hate.
+
+**No ads. No tracking. Free and open source, forever.**
+
+Import your settings from Lawnchair, Nova or Smart Launcher to get started quickly.
 
 [<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
     alt="Get it on F-Droid"
