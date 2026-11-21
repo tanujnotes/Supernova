@@ -2612,11 +2612,11 @@ class DrawerController(
         fun withAlpha(color: Int, alpha: Int): Int = androidx.core.graphics.ColorUtils.setAlphaComponent(color, alpha)
         // Repeats of the real page list that stand in for a wrap-around.
         const val INFINITE_LOOPS = 200
-        const val TRANSITION_MS = 200L
-        const val SLIDE_MS = 240L
+        const val TRANSITION_MS = DrawerOpenCurve.IN_PLACE_MS
+        const val SLIDE_MS = DrawerOpenCurve.SLIDE_MS
         // The search window's plate opens in 160 ms; the desktop goes with it.
         const val SEARCH_HOLD_MS = 160L
-        const val ZOOM_FROM = 0.92f
+        const val ZOOM_FROM = DrawerOpenCurve.ZOOM_FROM
         const val PULL_TO_SEARCH_DP = 56f
     }
 }

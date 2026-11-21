@@ -26,6 +26,14 @@ object DrawerOpenCurve {
     const val CONTENT_FADE_END = 0.7f
     const val SCRIM_MAX = 0.5f
 
+    // The animated opens and closes, before the Animation speed pref: the
+    // slide, and Zoom and Fade, which play in place.
+    const val SLIDE_MS = 240L
+    const val IN_PLACE_MS = 200L
+    // Zoom comes in from twice its size, as if from in front of the
+    // screen, and leaves the same way, on every open and close.
+    const val ZOOM_FROM = 2f
+
     fun homeAlpha(progress: Float): Float {
         val t = (progress / HOME_FADE_END).coerceIn(0f, 1f)
         // Convex: a quarter of the desktop goes in the first 5% of travel.

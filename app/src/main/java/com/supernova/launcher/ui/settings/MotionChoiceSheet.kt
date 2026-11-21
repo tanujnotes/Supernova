@@ -13,11 +13,12 @@ import com.supernova.launcher.R
 import com.supernova.launcher.databinding.SheetMotionChoiceBinding
 import com.supernova.launcher.ui.LauncherViewModel
 import com.supernova.launcher.ui.Sheets
+import com.supernova.launcher.ui.settings.preview.DrawerPreviewView
 import com.supernova.launcher.ui.settings.preview.LaunchPreviewView
 import com.supernova.launcher.ui.settings.preview.MotionPreviewParts
 import com.supernova.launcher.ui.settings.preview.PageEffectPreviewView
 
-// The picker for a motion setting (#260): the option in force plays on a
+// The picker for a motion setting (#260, #294): the option in force plays on a
 // loop in a mini home screen above the list, and a tap on another option
 // picks it and plays it there, the sheet staying up to try the next. A tap
 // on the preview plays it again from the start.
@@ -73,26 +74,8 @@ object MotionChoiceSheet {
         box.clipToOutline = true
 
         // Which option to play: by index into the same order as the labels.
-        val play: (Int) -> Unit
-        val replay: () -> Unit
-        when (preview) {
-            is ChoicePreview.PageEffect -> {
-                val view = PageEffectPreviewView(activity, icons, columns)
-                box.addView(view, fill())
-                play = { ChoicePreview.PageEffect.values.getOrNull(it)?.let(view::show) }
-                replay = view::replay
-            }
-            is ChoicePreview.Launch -> {
-                val color = icons.getOrNull(1)?.let { icon ->
-                    val copy = icon.constantState?.newDrawable(activity.resources)?.mutate() ?: icon
-                    viewModel.appCatalog().dominantColorOf(copy.toBitmap(SAMPLE_SIZE, SAMPLE_SIZE))
-                } ?: activity.getColor(R.color.textSecondary)
-                val view = LaunchPreviewView(activity, icons, columns, color)
-                box.addView(view, fill())
-                play = { ChoicePreview.Launch.values.getOrNull(it)?.let(view::show) }
-                replay = view::replay
-            }
-        }
+        val (view, play, replay) = previewFor(activity, viewModel, preview, icons, columns)
+        box.addView(view, fill())
         box.setOnClickListener { replay() }
 
         val group = binding.motionOptions
@@ -120,6 +103,33 @@ object MotionChoiceSheet {
 
         sheet.setContentView(binding.root)
         sheet.show()
+    }
+
+    // The preview view for `preview`, how to play an option on it (by
+    // index) and how to play it again.
+    private fun previewFor(
+        activity: Activity,
+        viewModel: LauncherViewModel,
+        preview: ChoicePreview<*>,
+        icons: List<android.graphics.drawable.Drawable>,
+        columns: Int
+    ): Triple<View, (Int) -> Unit, () -> Unit> = when (preview) {
+        is ChoicePreview.PageEffect -> {
+            val view = PageEffectPreviewView(activity, icons, columns)
+            Triple(view, { i: Int -> ChoicePreview.PageEffect.values.getOrNull(i)?.let(view::show) }, view::replay)
+        }
+        is ChoicePreview.Launch -> {
+            val color = icons.getOrNull(1)?.let { icon ->
+                val copy = icon.constantState?.newDrawable(activity.resources)?.mutate() ?: icon
+                viewModel.appCatalog().dominantColorOf(copy.toBitmap(SAMPLE_SIZE, SAMPLE_SIZE))
+            } ?: activity.getColor(R.color.textSecondary)
+            val view = LaunchPreviewView(activity, icons, columns, color)
+            Triple(view, { i: Int -> ChoicePreview.Launch.values.getOrNull(i)?.let(view::show) }, view::replay)
+        }
+        is ChoicePreview.Drawer -> {
+            val view = DrawerPreviewView(activity, viewModel.state.value.prefs, icons, columns)
+            Triple(view, { i: Int -> ChoicePreview.Drawer.values.getOrNull(i)?.let(view::show) }, view::replay)
+        }
     }
 
     private fun fill() =
