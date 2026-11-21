@@ -1047,10 +1047,12 @@ class SettingsActivity : AppCompatActivity() {
             binding.settingsTabs.isVisible = root
             ViewCompat.requestApplyInsets(binding.root)
         }
-        if (!root && binding.rootSearchInput.hasFocus()) {
+        // A page opened from the main list takes the keyboard down, whether
+        // or not the pill still holds focus (a tap on a row can take it
+        // first). A section's own search brings it back up after this.
+        if (!root && !searchActive) {
             binding.rootSearchInput.clearFocus()
-            getSystemService(InputMethodManager::class.java)
-                ?.hideSoftInputFromWindow(binding.rootSearchInput.windowToken, 0)
+            hideKeyboardIfShown()
         }
         val page = currentTab to section?.title
         if (page != shownPage) {
