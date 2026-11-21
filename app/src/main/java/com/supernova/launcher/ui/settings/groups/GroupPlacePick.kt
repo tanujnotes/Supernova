@@ -11,7 +11,7 @@ import com.supernova.launcher.ui.LauncherViewModel
 
 // A drawer folder page's Put it in row (#238): the tabs and folders the
 // folder sits in, and a tick list of every tab and every folder that can
-// hold it without a loop. OK stores the ticks that changed, as the tab's or
+// hold it without a loop, each folder with where it sits (#285). OK stores the ticks that changed, as the tab's or
 // folder's own Select apps would; the page binds again from what is stored.
 class GroupPlacePick(
     private val binding: PageGroupEditBinding,
@@ -36,11 +36,15 @@ class GroupPlacePick(
         val pick = GroupPick.Folder(folder)
         val saved = places.map { viewModel.isPicked(pick, it) }.toBooleanArray()
         val ticks = saved.copyOf()
+        val groups = viewModel.drawerGroups()
         val labels = places.map { place ->
-            val type = context.getString(
-                if (place.type == DrawerGroupType.TAB) R.string.group_type_tab else R.string.folder
-            )
-            "${place.name} · $type"
+            val where = when {
+                place.type == DrawerGroupType.TAB -> context.getString(R.string.group_type_tab)
+                else -> FolderPlaces.paths(place, groups).takeIf { it.isNotEmpty() }
+                    ?.let { context.getString(R.string.group_folder_in, it.joinToString(", ")) }
+                    ?: context.getString(R.string.folder)
+            }
+            "${place.name} · $where"
         }.toTypedArray()
         MaterialAlertDialogBuilder(context)
             .setTitle(R.string.group_put_in)

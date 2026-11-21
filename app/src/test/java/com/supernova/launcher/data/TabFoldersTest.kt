@@ -135,4 +135,34 @@ class TabFoldersTest {
         assertEquals(listOf(work, tools), FolderPlaces.of(trips, all))
         assertEquals(listOf(work, travel, trips, tools), FolderPlaces.of(maps, all))
     }
+
+    @Test
+    fun placesListTabsBeforeFolders() {
+        val google = folder("Google")
+        val work = tab("Work")
+        val photos = folder("Photos")
+        assertEquals(listOf(work, google), FolderPlaces.of(photos, listOf(google, work, photos)))
+    }
+
+    @Test
+    fun pathsTellSameNamedFoldersApart() {
+        val photos = folder("Photos")
+        val inner = DrawerGroup("Google", setOf(TabFolders.keyOf(photos.id)), id = "g2", type = DrawerGroupType.FOLDER)
+        val google = DrawerGroup("Google", setOf(), id = "g1", type = DrawerGroupType.FOLDER)
+        val other = tab("Other", TabFolders.keyOf("g1"), TabFolders.keyOf("g2"))
+        val work = tab("Work", TabFolders.keyOf("g2"))
+        val loose = folder("Games")
+        val all = listOf(other, work, google, inner, photos, loose)
+        assertEquals(listOf("Other"), FolderPlaces.paths(google, all))
+        assertEquals(listOf("Other", "Work"), FolderPlaces.paths(inner, all))
+        assertEquals(listOf("Other › Google"), FolderPlaces.paths(photos, all))
+        assertEquals(emptyList<String>(), FolderPlaces.paths(loose, all))
+    }
+
+    @Test
+    fun pathsStopAtALoop() {
+        val a = DrawerGroup("A", setOf(TabFolders.keyOf("b")), id = "a", type = DrawerGroupType.FOLDER)
+        val b = DrawerGroup("B", setOf(TabFolders.keyOf("a")), id = "b", type = DrawerGroupType.FOLDER)
+        assertEquals(listOf("B"), FolderPlaces.paths(a, listOf(a, b)))
+    }
 }
