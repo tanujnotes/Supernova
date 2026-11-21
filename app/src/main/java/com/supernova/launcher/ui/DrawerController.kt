@@ -656,6 +656,20 @@ class DrawerController(
             add = { addOnWindowFocusChangeListener(focusWatch) },
             remove = { removeOnWindowFocusChangeListener(focusWatch) },
         )
+        // The behavior hangs its own keyboard animation on the sheet at its
+        // first layout, and that sets the sheet's translation on every frame
+        // the keyboard moves: to nothing here, as the sheet keeps clear of
+        // the keyboard by padding (its insets listener). It wiped the
+        // translation that holds Zoom and Fade in place, so the drawer shook
+        // under a swipe down that dropped the keyboard. A layout pass mid
+        // drag gets the hold re-applied too, before the frame draws.
+        binding.drawerSheet.addOnLayoutChangeListener { sheet, _, _, _, _, _, _, _, _ ->
+            if (!sheetImeCallbackCleared) {
+                sheetImeCallbackCleared = true
+                androidx.core.view.ViewCompat.setWindowInsetsAnimationCallback(sheet, null)
+            }
+            if (transition != DrawerTransition.SLIDE_UP && isInPlaceDragging()) holdInPlace(sheet)
+        }
         behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 if (suppressExpandCallback && newState == BottomSheetBehavior.STATE_EXPANDED) {
@@ -1240,14 +1254,28 @@ class DrawerController(
     // down (#294). The behavior still moves the sheet by layout offset;
     // the translation holds it where it was opened.
     private fun dragInPlace(sheet: View, open: Float) {
-        val parentHeight = (sheet.parent as? View)?.height ?: return
-        val expandedTop = (parentHeight - sheet.height).coerceAtLeast(0)
-        sheet.translationY = -(sheet.top - expandedTop).toFloat()
+        holdInPlace(sheet)
         sheet.alpha = open
         val scale = if (transition == DrawerTransition.ZOOM) ZOOM_FROM + (1f - ZOOM_FROM) * open else 1f
         sheet.scaleX = scale
         sheet.scaleY = scale
         setProgress(open, translate = false, content = false)
+    }
+
+    // Cancels the behavior's layout offset, so the sheet stays where it was
+    // opened while the finger drags it.
+    private fun holdInPlace(sheet: View) {
+        val parentHeight = (sheet.parent as? View)?.height ?: return
+        val expandedTop = (parentHeight - sheet.height).coerceAtLeast(0)
+        sheet.translationY = -(sheet.top - expandedTop).toFloat()
+    }
+
+    private var sheetImeCallbackCleared = false
+
+    private fun isInPlaceDragging(): Boolean {
+        val state = behavior.state
+        return isVisible && !isPulling && progressAnimator == null &&
+            (state == BottomSheetBehavior.STATE_DRAGGING || state == BottomSheetBehavior.STATE_SETTLING)
     }
 
     private fun revealInPlace(prefs: LauncherPrefs, onSettled: (() -> Unit)? = null) {
