@@ -27,6 +27,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.supernova.launcher.data.CornerCut
 import com.supernova.launcher.data.CustomIcons
@@ -322,48 +323,67 @@ class SettingsActivity : AppCompatActivity() {
     private fun landedFromDrawer(): Boolean =
         cameFromDrawer && onGroupsPage() && groupsPane?.editing == drawerLanding
 
+    // Back with the keyboard up only takes the keyboard down; the next Back
+    // leaves the page. The callback can sit above the keyboard's own: it is
+    // re-registered whenever search turns it on, after the keyboard opened.
     private val backCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
-            val parent = currentSection?.title?.let(subPageParents::get)
-            when {
-                searchActive -> setSearchActive(false)
-                // Opened from a drawer tab's or folder's menu: back from the
-                // page it landed on goes back to the drawer (#247).
-                landedFromDrawer() -> finish()
-                // The Style tab opened from its row in the list: back to that
-                // row, as from any section.
-                styleFromList && currentTab == Tab.STYLE && currentSection == null -> {
-                    selectTab(Tab.SETTINGS)
-                    scrollRootTo(R.string.style_tab)
-                }
-                // From a group's own page back to the groups.
-                onGroupsPage() && groupsPane?.handleBack() == true -> Unit
-                // Back onto the row that opened the page, not the top.
-                parent != null -> navigateTo(parent, currentSection?.title ?: 0, flash = false)
-                else -> {
-                    val left = currentSection?.title
-                    currentSection = null
-                    render()
-                    // The root list comes back on the section just left.
-                    left?.let(::scrollRootTo)
-                }
+            if (hideKeyboardIfShown()) return
+            navigateBack()
+        }
+    }
+
+    private fun hideKeyboardIfShown(): Boolean {
+        val shown = ViewCompat.getRootWindowInsets(binding.root)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+        if (shown) hideSearchKeyboard()
+        return shown
+    }
+
+    // Takes the keyboard down from whichever search field has it; the query
+    // and its results stay.
+    private fun hideSearchKeyboard() {
+        val imm = getSystemService(InputMethodManager::class.java)
+        listOf(binding.rootSearchInput, binding.settingsSearchInput).forEach { field ->
+            if (field.hasFocus()) field.clearFocus()
+        }
+        imm?.hideSoftInputFromWindow(binding.root.windowToken, 0)
+    }
+
+    private fun navigateBack() {
+        val parent = currentSection?.title?.let(subPageParents::get)
+        when {
+            searchActive -> setSearchActive(false)
+            // Opened from a drawer tab's or folder's menu: back from the
+            // page it landed on goes back to the drawer (#247).
+            landedFromDrawer() -> finish()
+            // The Style tab opened from its row in the list: back to that
+            // row, as from any section.
+            styleFromList && currentTab == Tab.STYLE && currentSection == null -> {
+                selectTab(Tab.SETTINGS)
+                scrollRootTo(R.string.style_tab)
+            }
+            // From a group's own page back to the groups.
+            onGroupsPage() && groupsPane?.handleBack() == true -> Unit
+            // Back onto the row that opened the page, not the top.
+            parent != null -> navigateTo(parent, currentSection?.title ?: 0, flash = false)
+            else -> {
+                val left = currentSection?.title
+                currentSection = null
+                render()
+                // The root list comes back on the section just left.
+                left?.let(::scrollRootTo)
             }
         }
     }
 
-    private var imeBottom = 0
     private var navBottom = 0
     private var listBottomPadding = 0
 
-    // The list clears whatever covers its foot: the keyboard where it rises
-    // above the tab bar, or, on a section page with no tab bar, the
-    // navigation bar or the keyboard, whichever is taller.
-    private fun applyImePadding() {
-        val covered = if (binding.settingsTabs.isVisible) {
-            (imeBottom - binding.settingsTabs.height).coerceAtLeast(0)
-        } else {
-            maxOf(imeBottom, navBottom)
-        }
+    // A section page has no tab bar to take the navigation bar, so its list
+    // keeps clear of it itself. The keyboard is left to cover the list: a
+    // drag on the list takes it down.
+    private fun applyListBottomPadding() {
+        val covered = if (binding.settingsTabs.isVisible) 0 else navBottom
         val padding = listBottomPadding + covered
         if (binding.settingsRecycler.paddingBottom != padding) {
             binding.settingsRecycler.updatePadding(bottom = padding)
@@ -457,19 +477,16 @@ class SettingsActivity : AppCompatActivity() {
                 }
             }
             navBottom = bars.bottom
-            imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-            applyImePadding()
+            applyListBottomPadding()
             insets
         }
-        // The keyboard covers the tab bar and the bottom of the list (the window
-        // is edge-to-edge, so nothing resizes for it): the list takes the part
-        // of the keyboard that rises above the tab bar as extra bottom padding,
-        // so its last row scrolls up clear of the keyboard and the padding
-        // goes again when it closes. The tab bar's height can land after the
-        // insets, hence the layout listener.
-        binding.settingsTabs.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
-            if (bottom - top != oldBottom - oldTop) applyImePadding()
-        }
+        // A finger drag on the list takes the keyboard down, as in the
+        // drawer and home search, so the results under it can be read.
+        binding.settingsRecycler.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(rv: RecyclerView, newState: Int) {
+                if (newState == RecyclerView.SCROLL_STATE_DRAGGING) hideKeyboardIfShown()
+            }
+        })
         previews = PreviewController(viewModel)
         adapter = SettingsAdapter(previews)
         adapter.onRowTapped = { menuAnchor = it }
@@ -647,7 +664,7 @@ class SettingsActivity : AppCompatActivity() {
             }
         )
         binding.backButton.setOnClickListener {
-            if (searchActive || currentSection != null) backCallback.handleOnBackPressed() else finish()
+            if (searchActive || currentSection != null) navigateBack() else finish()
         }
         onBackPressedDispatcher.addCallback(this, backCallback)
         binding.settingsSearchButton.setOnClickListener { setSearchActive(!searchActive) }

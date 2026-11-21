@@ -89,11 +89,14 @@
                     android:textSize="@dimen/text_headline"
                     android:textStyle="bold" />
 
-                <!-- Section search: swapped in for the title while active. -->
+                <!-- Section search: swapped in for the title while active. The
+                     row's full height, so a tap anywhere on it brings the
+                     keyboard back after a scroll took it down. -->
                 <EditText
                     android:id="@+id/settingsSearchInput"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical|start"
                     android:layout_marginStart="@dimen/space_sm"
                     android:layout_weight="1"
                     android:background="@android:color/transparent"
