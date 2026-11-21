@@ -354,6 +354,10 @@ class LauncherActivity :
     // the time onNewIntent runs - the Lifecycle state is STARTED either way,
     // because the temporary pause has already been dispatched.
     private var startedSinceResume = false
+
+    // When the launcher's window last gained focus (uptime ms): a home press
+    // only counts as made on the home screen once it has held focus a moment.
+    private var focusGainedAt = 0L
     private var appliedScrollEffect: ScrollEffect? = null
 
     // X of the last touch-down, in window coordinates - dispatchTouchEvent
@@ -652,6 +656,8 @@ class LauncherActivity :
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        liveLaunchers.removeAll { it.get() == null }
+        liveLaunchers += java.lang.ref.WeakReference(this)
         window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
         viewModel.onDisplayDensity(resources.displayMetrics.densityDpi)
         appliedAccent = viewModel.state.value.prefs.accentColor
@@ -874,6 +880,14 @@ class LauncherActivity :
     // on every launcher create, so pressing Home mid-wizard isn't a trap: it
     // simply re-opens next launch.
     private fun maybeShowOnboarding() {
+        if (startedAsHome()) {
+            // The first run that just made this the home app finishes from
+            // here, rather than this opening a second; the launcher it was
+            // opened over goes once its writes are in.
+            val handover = com.supernova.launcher.onboarding.OnboardingHomeHandover
+            if (handover.finishForHome(this, ::closeOtherLaunchers)) return
+            closeOtherLaunchers()
+        }
         lifecycleScope.launch {
             if (!viewModel.onboardingDone()) {
                 val predates = viewModel.hasModelItems() && !viewModel.defaultLayoutSeeded()
@@ -888,6 +902,19 @@ class LauncherActivity :
             }
             maybePromptDefaultHome()
         }
+    }
+
+    private fun startedAsHome(): Boolean = intent?.hasCategory(Intent.CATEGORY_HOME) == true
+
+    // Opened from another launcher's icon, this runs in an ordinary task;
+    // once it becomes the home app, the system starts the home screen in a
+    // task of its own, and the first copy stayed alive behind it, with its
+    // own view model, for as long as the process lived. The home copy closes
+    // it as it starts.
+    private fun closeOtherLaunchers() {
+        liveLaunchers.mapNotNull { it.get() }
+            .filter { it !== this && !it.isFinishing && !it.startedAsHome() }
+            .forEach { it.finishAndRemoveTask() }
     }
 
     private fun maybePromptDefaultHome() {
@@ -924,6 +951,7 @@ class LauncherActivity :
         }
 
     override fun onDestroy() {
+        liveLaunchers.removeAll { it.get() == null || it.get() === this }
         // A recreate (a theme flip, an accent change) can come with the feed
         // showing; its media and calendar listeners are registered with the
         // system and would keep this activity alive for good.
@@ -961,13 +989,15 @@ class LauncherActivity :
         drawer.notifyContentChanged()
     }
 
-    // Screen off: put the home screen back to its default page with everything
-    // closed, so unlocking lands on the home screen rather than on whatever was
-    // open when the screen went dark, as Launcher3 does.
+    // Screen off: close everything over the home screen, so unlocking lands on
+    // the home screen rather than on whatever was open when the screen went
+    // dark, as Launcher3 does. The page stays where it was (#317), unless
+    // Return to default page is on.
     private val screenOffReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: android.content.Context, intent: Intent) {
             privateSpaceCard.cancelPending()
-            resetToHome(animate = false, keepDrawer = drawerKeptBehindLaunch)
+            val keepPage = !viewModel.state.value.prefs.homeReturnToDefaultPage
+            resetToHome(animate = false, keepDrawer = drawerKeptBehindLaunch, keepPage = keepPage)
             if (drawerKeptBehindLaunch && ::drawer.isInitialized) drawer.resetPosition()
         }
     }
@@ -2039,6 +2069,7 @@ class LauncherActivity :
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) focusGainedAt = SystemClock.uptimeMillis()
         // A launched app can restore the status bar; re-hide on return.
         if (hasFocus && viewModel.state.value.prefs.hideStatusBar) {
             applyStatusBarVisibility(true)
@@ -2663,7 +2694,8 @@ class LauncherActivity :
     // Everything the home screen can have standing over its default page:
     // menus, popups, edit mode, the page previews, a widget resize frame, the
     // feed, the drawer, search and move mode - then the page itself. Two
-    // callers: the home press, and the screen turning off.
+    // callers: the home press, and the screen turning off (which keeps the
+    // page, as does a press made in another app).
     //
     // Returns whether any of it was actually open, which the home press needs
     // to tell a press with a job to do from a second press with none.
@@ -2733,12 +2765,15 @@ class LauncherActivity :
             cards.addWidget()
             return
         }
-        // Home press re-delivers MAIN/HOME to the singleTask instance: reset to
-        // the default page with drawer and menus closed, like every launcher does.
-        // cameFromBackground separates the two presses that land here: one made
-        // on the home screen itself, and one made in another app to get back to
-        // it. Only the first is a home press "on" the launcher.
+        // Home press re-delivers MAIN/HOME to the singleTask instance: drawer
+        // and menus close. cameFromBackground separates the two presses that
+        // land here: one made on the home screen itself, and one made in another
+        // app to get back to it. Only the first is a home press "on" the
+        // launcher, and only it goes to the default page; from an app home
+        // comes back on the page the user left (#317), unless Return to
+        // default page is on.
         val cameFromBackground = startedSinceResume
+        val onHome = pressedOnHome(intent)
         val keepDrawerOpen = keepDrawerForHomePress(cameFromBackground)
         // Read before the reset moves the pager off it.
         // The dock counts too: a press on home with the dock on a side page
@@ -2757,19 +2792,22 @@ class LauncherActivity :
         val promptClosed = privateSpaceCard.cancelPending()
         // With animations off (the launcher's or the system's) home lands
         // at once instead of scrolling past every page in between (#123).
-        // From another app the launcher wasn't showing: it lands on its page
-        // at once, as Launcher3's does. Scrolled, a slow return showed the
-        // pages in between, widgets and all (#292).
-        val scroll = Animations.scrollPages(viewModel.state.value.prefs) && !cameFromBackground
+        // From another app the launcher wasn't showing: whatever it closes
+        // closes at once (#292), and the page stays put, or with Return to
+        // default page on lands on the default page at once, as Launcher3's
+        // does: scrolled, a slow return showed the pages in between (#292).
+        val keepPage = keepPageForHomePress(onHome, promptClosed)
+        val scroll = Animations.scrollPages(viewModel.state.value.prefs) && !cameFromBackground &&
+            !movesPageUnseen(onHome, keepPage)
         // A folder card the same swipe closed on its first touch (#110), read
         // after the reset, whose own closes don't count twice.
         val closed = com.supernova.launcher.ui.OpenDialogs.dismissAll(this) or
-            resetToHome(animate = scroll, keepDrawer = keepDrawerOpen, keepPage = promptClosed) or
+            resetToHome(animate = scroll, keepDrawer = keepDrawerOpen, keepPage = keepPage) or
             cardSwipeClose.takeFor(SystemClock.uptimeMillis()) or promptClosed
         // A press on the home screen itself also slides the dock back to its
         // main page. One made in another app leaves it, unless onStop already
         // put it there (Remember position off).
-        if (!cameFromBackground && !promptClosed) showMainDockPage(animate = scroll)
+        if (onHome && !promptClosed) showMainDockPage(animate = scroll)
         // The double-home action: pressing home when there was nothing to
         // close and nowhere to scroll runs the configured action instead of
         // no-opping. homeButtonAction supersedes the legacy homeSearch flag
@@ -2781,11 +2819,31 @@ class LauncherActivity :
         // closing - a drag in flight included.
         val prefs = viewModel.state.value.prefs
         val reachedHome = wasOnDefaultPage || !prefs.homeButtonOnMainPage
-        if (!cameFromBackground && reachedHome && !closed && !drag.isActive) {
+        if (onHome && reachedHome && !closed && !drag.isActive) {
             val action = HomeButtonAction.effective(prefs.homeButtonAction, prefs.homeSearch)
             if (action != GestureAction.NONE) actions.run(GestureBinding(action))
         }
     }
+
+    // A home press made on the home screen: the launcher was in front, with
+    // its window focused for a moment, and no bring to front: a swipe home from the
+    // system's recents screen sends more home intents after the launcher has
+    // resumed but before it has focus, which went to the default page and ran
+    // the home-button action (#317).
+    private fun pressedOnHome(intent: Intent): Boolean =
+        !startedSinceResume && hasWindowFocus() &&
+            SystemClock.uptimeMillis() - focusGainedAt > HOME_FOCUS_SETTLE_MS &&
+            intent.flags and Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT == 0
+
+    // Whether a home press leaves the page where it is: one that only closed
+    // the private space's unlock prompt does, and so does one made in another
+    // app unless Return to default page is on (#317).
+    private fun keepPageForHomePress(onHome: Boolean, promptClosed: Boolean): Boolean =
+        promptClosed || (!onHome && !viewModel.state.value.prefs.homeReturnToDefaultPage)
+
+    // A page change the user didn't ask for on the home screen itself (Return
+    // to default page), made at once rather than scrolled.
+    private fun movesPageUnseen(onHome: Boolean, keepPage: Boolean): Boolean = !onHome && !keepPage
 
     // Whether a home press spares the drawer. drawerAutoClose off keeps a
     // drawer that stayed open behind a launched app open on return home, when
@@ -5204,6 +5262,10 @@ class LauncherActivity :
     }
 
     companion object {
+        // Every live launcher activity, for closeOtherLaunchers. Main thread
+        // only.
+        private val liveLaunchers = mutableListOf<java.lang.ref.WeakReference<LauncherActivity>>()
+
         // Settings' Add card → Widget: pick and bind one onto a new feed card.
         const val EXTRA_ADD_FEED_WIDGET = "extra_add_feed_widget"
 
@@ -5214,6 +5276,9 @@ class LauncherActivity :
         // How long a folder member action waits for its change to be saved.
         private const val FOLDER_SAVE_WAIT_MS = 1_000L
         private const val PAGE_REBIND_WAIT_MS = 100L
+        // How long the window must have held focus for a home press to count
+        // as made on the home screen.
+        private const val HOME_FOCUS_SETTLE_MS = 100L
 
         // Undo snackbar lifetime after a removal.
         private const val UNDO_DURATION_MS = 4000

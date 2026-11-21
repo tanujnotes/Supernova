@@ -520,13 +520,17 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
                     (child.parent as? ViewGroup)?.removeView(child)
                 }
                 // A reused view (cached widget host) may still carry the
-                // drag-source hiding or a reorder-preview offset; the rebind
-                // is authoritative that the item lives here, so it always
-                // lands visible and unshifted - unless its drop is still in
-                // flight, in which case the drag layer reveals it.
+                // drag-source hiding, a reorder-preview offset or a drag
+                // wiggle's tilt; the rebind is authoritative that the item
+                // lives here, so it always lands visible, upright and
+                // unshifted - unless its drop is still in flight, in which
+                // case the drag layer reveals it.
                 child.alpha = if (host.isSettling(item.id)) 0f else 1f
                 child.translationX = 0f
                 child.translationY = 0f
+                child.rotation = 0f
+                child.scaleX = 1f
+                child.scaleY = 1f
                 child.setTag(R.id.tag_item_id, item.id)
                 child.setTag(R.id.tag_preview_base, null)
 

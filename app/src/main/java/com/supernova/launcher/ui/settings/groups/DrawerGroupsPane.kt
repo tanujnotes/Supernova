@@ -15,6 +15,7 @@ import com.supernova.launcher.databinding.PaneDrawerGroupsBinding
 import com.supernova.launcher.ui.GroupChecklist
 import com.supernova.launcher.ui.ItemIcons
 import com.supernova.launcher.ui.LauncherViewModel
+import com.supernova.launcher.ui.followLauncherAnimations
 
 // The Drawer groups page: the tabs and folders in two cards under a preview
 // of the tab bar, each group opening on a page of its own. It stands in for
@@ -94,6 +95,7 @@ class DrawerGroupsPane(
 
     fun refresh() {
         if (!container.isVisible || dragging) return
+        binding.groupsList.followLauncherAnimations(viewModel.state.value.prefs)
         val id = editing
         val group = id?.let { wanted -> viewModel.drawerGroups().firstOrNull { it.id == wanted } }
         val onGroup = binding.groupEdit.root.isVisible

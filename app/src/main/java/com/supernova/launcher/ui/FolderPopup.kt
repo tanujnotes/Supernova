@@ -118,13 +118,12 @@ class FolderPopup(private val context: Context) {
 
         val immersive = mode == FolderMode.IMMERSIVE
         val metrics = context.resources.displayMetrics
-        val cellWidth = cellWidthPx(context, adapter.iconScale)
         val columns = columnsFor(context, members.size, columnsOverride, immersive, adapter.iconScale)
 
         // Cells are wide enough for a typical label at 12sp, and the grid
         // width is fixed so GridLayoutManager centres each tile in its span
         // instead of packing wrap_content tiles against the left edge.
-        val gridWidth = min(columns * cellWidth, metrics.widthPixels - context.dp(48))
+        val gridWidth = gridWidthPx(context, columns, adapter.iconScale)
         val rowsNeeded = ceil(members.size / columns.toFloat()).toInt().coerceAtLeast(1)
         // Window folders cap at ~60% of the screen so long folders scroll;
         // immersive gets most of the height. Over the dock, no more than
@@ -468,6 +467,15 @@ class FolderPopup(private val context: Context) {
         // label.
         private fun cellWidthPx(context: Context, iconScale: Float): Int =
             (context.dp(CELL_WIDTH_DP) * iconScale.coerceAtLeast(1f)).toInt()
+
+        // The member grid's width: a cell per column, as wide as the icon
+        // size needs, held inside the screen. The settings preview draws
+        // its window at this width too.
+        fun gridWidthPx(context: Context, columns: Int, iconScale: Float): Int =
+            min(
+                columns * cellWidthPx(context, iconScale),
+                context.resources.displayMetrics.widthPixels - context.dp(48)
+            )
 
         // How many columns a folder of `count` apps opens with. The preview
         // asks too, to show the window's top-left corner.

@@ -236,7 +236,7 @@ class PrefRegistryTest {
         search_contact_cards:B search_cards:B search_calculator:B search_hidden_apps:B
         search_history:B search_private_keyboard:B search_query_shortcuts:B search_bar_widget_id:I
         search_bar_widget_provider:S search_chips:S home_search:B home_button_action:S
-        home_button_on_main_page:B search_bar_config:S popup_notifications:B popup_card_bg:B
+        home_button_on_main_page:B home_return_to_default_page:B search_bar_config:S popup_notifications:B popup_card_bg:B
         popup_group_shortcuts:B popup_action_icons:B popup_style:S popup_items_home:S
         popup_items_drawer:S drop_targets:B undo_remove:B disable_animations:B animation_speed:S
         launch_animation:S hide_status_bar:B dark_status_icons:S transparent_nav:B

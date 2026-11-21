@@ -24,8 +24,15 @@ object AppMatcher {
 
     // A filtered list (drawer, Select apps): typo matches only when nothing
     // matches better, so "calc" lists Calculator without Calendar.
-    fun <T> filter(items: List<T>, query: String, label: (T) -> String): List<T> {
-        val found = items.mapNotNull { item -> match(label(item), query)?.let { item to it.tier } }
+    fun <T> filter(items: List<T>, query: String, label: (T) -> String): List<T> =
+        filterAny(items, query) { listOf(label(it)) }
+
+    // The same, for items with more than one name (a shortcut screen and its
+    // app): an item ranks by its best-matching name.
+    fun <T> filterAny(items: List<T>, query: String, labels: (T) -> List<String>): List<T> {
+        val found = items.mapNotNull { item ->
+            labels(item).mapNotNull { match(it, query)?.tier }.minOrNull()?.let { item to it }
+        }
         val exact = found.filter { it.second < TIER_TYPO }
         return (exact.ifEmpty { found }).map { it.first }
     }

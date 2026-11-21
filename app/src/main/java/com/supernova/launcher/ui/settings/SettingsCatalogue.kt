@@ -766,8 +766,8 @@ object SettingsCatalogue {
                     set = { viewModel.set(Pref.drawerSortButtons, it) },
                     subtitle = R.string.drawer_sort_buttons_summary
                 ),
-                rows.choice(
-                    R.string.drawer_transition, com.supernova.launcher.ui.DrawerTransition.entries,
+                motionRows.choice(
+                    R.string.drawer_transition, ChoicePreview.Drawer,
                     { it.drawerTransition }, { EnumLabels.of(it) }
                 ) { viewModel.set(Pref.drawerTransition, it) }.blockedWhen(animationsOff),
                 SettingItem.Row(
@@ -855,7 +855,8 @@ object SettingsCatalogue {
                     step = 2,
                     get = { it.drawerPaddingH },
                     set = { viewModel.set(Pref.drawerPaddingH, it) },
-                    display = { context.getString(R.string.padding_dp_value, it) }
+                    display = { context.getString(R.string.padding_dp_value, it) },
+                    preview = { p, v -> p.copy(drawerPaddingH = v) }
                 ),
                 SettingItem.Slider(
                     R.string.drawer_padding_v,
@@ -1379,7 +1380,8 @@ object SettingsCatalogue {
                     step = 5,
                     get = { (it.folderIconScale * 100f).roundToInt() },
                     set = { viewModel.set(Pref.folderIconScale, it / 100f) },
-                    display = { context.getString(R.string.opacity_percent, it) }
+                    display = { context.getString(R.string.opacity_percent, it) },
+                    preview = { p, v -> p.copy(folderIconScale = v / 100f) }
                 ).hiddenWhen { needsOff(R.string.dock_match_desktop, it.folderMatchDesktop) }.nested(),
                 SettingItem.Toggle(
                     R.string.folder_labels,
@@ -1426,7 +1428,16 @@ object SettingsCatalogue {
                             ).encode()
                         )
                     },
-                    display = { context.getString(R.string.padding_dp_value, it) }
+                    display = { context.getString(R.string.padding_dp_value, it) },
+                    preview = { p, v ->
+                        val config = com.supernova.launcher.ui.theme.StyleConfig.decode(p.styleConfig)
+                        val folder = com.supernova.launcher.ui.theme.SurfaceId.FOLDER
+                        p.copy(
+                            styleConfig = config.with(
+                                folder, config.styleFor(folder).copy(cornerRadii = List(4) { v.toFloat() })
+                            ).encode()
+                        )
+                    }
                 ),
                 rows.choice(
                     R.string.folder_mode, FolderMode.entries,
@@ -1636,7 +1647,8 @@ object SettingsCatalogue {
                     step = 5,
                     get = { (it.badgeScale * 100f).roundToInt() },
                     set = { viewModel.set(Pref.badgeScale, it / 100f) },
-                    display = { context.getString(R.string.opacity_percent, it) }
+                    display = { context.getString(R.string.opacity_percent, it) },
+                    preview = { p, v -> p.copy(badgeScale = v / 100f) }
                 ).hiddenWhen(badgesHidden),
                 // Test notification badge: a badge to look at without
                 // waiting for a message.
@@ -1769,6 +1781,12 @@ object SettingsCatalogue {
                     val action = HomeButtonAction.effective(it.homeButtonAction, it.homeSearch)
                     dependsOn(R.string.home_button_action, action == GestureAction.NONE)
                 },
+                SettingItem.Toggle(
+                    R.string.home_return_default_page,
+                    get = { it.homeReturnToDefaultPage },
+                    set = { viewModel.set(Pref.homeReturnToDefaultPage, it) },
+                    subtitle = R.string.home_return_default_page_summary
+                ),
                 SettingItem.Header(R.string.action_lock_screen),
                 SettingItem.Row(
                     R.string.lock_method,

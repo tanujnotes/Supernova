@@ -97,7 +97,6 @@
         <activity
             android:name=".SettingsActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustResize"
             android:label="@string/settings_launcher_label"
             android:launchMode="singleTask"
             android:taskAffinity="${applicationId}.settings" />

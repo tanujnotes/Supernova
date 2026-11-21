@@ -9,6 +9,9 @@ object IconFitRoom {
     // A desktop page's canvas, px.
     @Volatile var desktopWidthPx = 0
     @Volatile var desktopHeightPx = 0
+    // The page padding (desktopPadding prefs) around that canvas, px.
+    @Volatile var desktopMarginHPx = 0
+    @Volatile var desktopMarginVPx = 0
 
     // The drawer grid's list height, px, without its padding.
     @Volatile var drawerHeightPx = 0
@@ -30,6 +33,17 @@ object IconFitRoom {
         val width = desktopWidthPx
         val height = desktopHeightPx
         if (width <= 0 || height <= 0) return null
+        return cellSize(width, cols) to cellSize(height, rows)
+    }
+
+    // The cell the same grid would have under other page padding: the
+    // Home screen preview shows a padding bar's value before the desktop
+    // lays itself out again.
+    fun desktopCell(cols: Int, rows: Int, marginHPx: Int, marginVPx: Int): Pair<Int, Int>? {
+        val width = desktopWidthPx + 2 * (desktopMarginHPx - marginHPx)
+        val height = desktopHeightPx + 2 * (desktopMarginVPx - marginVPx)
+        val laidOut = desktopWidthPx > 0 && desktopHeightPx > 0
+        if (!laidOut || width <= 0 || height <= 0) return null
         return cellSize(width, cols) to cellSize(height, rows)
     }
 

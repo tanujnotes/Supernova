@@ -96,11 +96,38 @@ object TabFolders {
 }
 
 // Where a drawer folder can be put from its own page (#238): any tab, and
-// any other folder that can hold it (TabFolders.canHold), in the order given.
+// any other folder that can hold it (TabFolders.canHold); tabs first, each
+// kind in the order given.
 object FolderPlaces {
+    private const val STEP = " › "
+
     fun of(folder: DrawerGroup, groups: List<DrawerGroup>): List<DrawerGroup> {
         val folders = groups.filter { it.type == DrawerGroupType.FOLDER }
         return groups.filter { it.type == DrawerGroupType.TAB || TabFolders.canHold(it, folder, folders) }
+            .sortedBy { it.type != DrawerGroupType.TAB }
+    }
+
+    // Where a folder sits (#285), so folders with the same name can be told
+    // apart: one path per tab or folder holding it, outermost first ("Other",
+    // "Other › Google"). A parent folder held in several places shows its
+    // first; empty for a folder no tab or folder holds.
+    fun paths(folder: DrawerGroup, groups: List<DrawerGroup>): List<String> =
+        parents(folder, groups).map { pathTo(it, groups, mutableSetOf(folder.id)) }
+
+    private fun parents(folder: DrawerGroup, groups: List<DrawerGroup>): List<DrawerGroup> {
+        val key = TabFolders.keyOf(folder.id)
+        return groups.filter { it.id != folder.id && key in it.members }
+            .sortedBy { it.type != DrawerGroupType.TAB }
+    }
+
+    // A loop a backup brought in stops at a folder already on the path.
+    private fun pathTo(group: DrawerGroup, groups: List<DrawerGroup>, seen: MutableSet<String>): String {
+        val outer = if (group.type == DrawerGroupType.TAB || !seen.add(group.id)) {
+            null
+        } else {
+            parents(group, groups).firstOrNull { it.id !in seen }
+        }
+        return if (outer == null) group.name else pathTo(outer, groups, seen) + STEP + group.name
     }
 }
 

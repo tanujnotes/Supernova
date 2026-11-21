@@ -3,6 +3,7 @@ package com.supernova.launcher.ui.settings
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import com.supernova.launcher.data.LauncherPrefs
+import com.supernova.launcher.ui.DrawerTransition
 import com.supernova.launcher.ui.LaunchAnimation
 import com.supernova.launcher.ui.ScrollEffect
 
@@ -246,4 +247,5 @@ class Choice(
 sealed class ChoicePreview<T>(val values: List<T>) {
     object PageEffect : ChoicePreview<ScrollEffect>(ScrollEffect.entries)
     object Launch : ChoicePreview<LaunchAnimation>(LaunchAnimation.entries)
+    object Drawer : ChoicePreview<DrawerTransition>(DrawerTransition.entries)
 }

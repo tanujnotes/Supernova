@@ -436,6 +436,13 @@ class SupernovaPopupMenu(
     // list style runs the full width of the screen, and a menu pinned to that
     // row's leading edge opens nowhere near the finger that opened it. Callers
     // with no touch to point at pass nothing and get the anchor's edge.
+    // The menu as built, never shown: the Icons & labels preview draws it
+    // beside its icons.
+    fun previewView(): View {
+        balanceActionStrips()
+        return popup.contentView
+    }
+
     fun show(anchor: View, touchX: Float? = null): SupernovaPopupMenu {
         // Before measuring: a menu long-pressed out of the drawer or the
         // search overlay opens with the keyboard up otherwise.

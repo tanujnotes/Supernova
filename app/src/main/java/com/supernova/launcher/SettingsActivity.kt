@@ -19,6 +19,7 @@ import androidx.core.graphics.toColorInt
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.core.widget.doAfterTextChanged
@@ -26,6 +27,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.supernova.launcher.data.CornerCut
 import com.supernova.launcher.data.CustomIcons
@@ -57,6 +59,7 @@ import com.supernova.launcher.ui.FolderPreviewStyle
 import com.supernova.launcher.ui.LabelStyler
 import com.supernova.launcher.ui.LauncherViewModel
 import com.supernova.launcher.ui.dp
+import com.supernova.launcher.ui.followLauncherAnimations
 import com.supernova.launcher.ui.settings.ColorSheet
 import com.supernova.launcher.ui.settings.EnumLabels
 import com.supernova.launcher.ui.settings.PreviewController
@@ -320,40 +323,67 @@ class SettingsActivity : AppCompatActivity() {
     private fun landedFromDrawer(): Boolean =
         cameFromDrawer && onGroupsPage() && groupsPane?.editing == drawerLanding
 
+    // Back with the keyboard up only takes the keyboard down; the next Back
+    // leaves the page. The callback can sit above the keyboard's own: it is
+    // re-registered whenever search turns it on, after the keyboard opened.
     private val backCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
-            val parent = currentSection?.title?.let(subPageParents::get)
-            when {
-                searchActive -> setSearchActive(false)
-                // Opened from a drawer tab's or folder's menu: back from the
-                // page it landed on goes back to the drawer (#247).
-                landedFromDrawer() -> finish()
-                // The Style tab opened from its row in the list: back to that
-                // row, as from any section.
-                styleFromList && currentTab == Tab.STYLE && currentSection == null -> {
-                    selectTab(Tab.SETTINGS)
-                    scrollRootTo(R.string.style_tab)
-                }
-                // From a group's own page back to the groups.
-                onGroupsPage() && groupsPane?.handleBack() == true -> Unit
-                // Back onto the row that opened the page, not the top.
-                parent != null -> navigateTo(parent, currentSection?.title ?: 0, flash = false)
-                else -> {
-                    val left = currentSection?.title
-                    currentSection = null
-                    render()
-                    // The root list comes back on the section just left.
-                    left?.let(::scrollRootTo)
-                }
+            if (hideKeyboardIfShown()) return
+            navigateBack()
+        }
+    }
+
+    private fun hideKeyboardIfShown(): Boolean {
+        val shown = ViewCompat.getRootWindowInsets(binding.root)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+        if (shown) hideSearchKeyboard()
+        return shown
+    }
+
+    // Takes the keyboard down from whichever search field has it; the query
+    // and its results stay.
+    private fun hideSearchKeyboard() {
+        val imm = getSystemService(InputMethodManager::class.java)
+        listOf(binding.rootSearchInput, binding.settingsSearchInput).forEach { field ->
+            if (field.hasFocus()) field.clearFocus()
+        }
+        imm?.hideSoftInputFromWindow(binding.root.windowToken, 0)
+    }
+
+    private fun navigateBack() {
+        val parent = currentSection?.title?.let(subPageParents::get)
+        when {
+            searchActive -> setSearchActive(false)
+            // Opened from a drawer tab's or folder's menu: back from the
+            // page it landed on goes back to the drawer (#247).
+            landedFromDrawer() -> finish()
+            // The Style tab opened from its row in the list: back to that
+            // row, as from any section.
+            styleFromList && currentTab == Tab.STYLE && currentSection == null -> {
+                selectTab(Tab.SETTINGS)
+                scrollRootTo(R.string.style_tab)
+            }
+            // From a group's own page back to the groups.
+            onGroupsPage() && groupsPane?.handleBack() == true -> Unit
+            // Back onto the row that opened the page, not the top.
+            parent != null -> navigateTo(parent, currentSection?.title ?: 0, flash = false)
+            else -> {
+                val left = currentSection?.title
+                currentSection = null
+                render()
+                // The root list comes back on the section just left.
+                left?.let(::scrollRootTo)
             }
         }
     }
 
-    private var imeBottom = 0
+    private var navBottom = 0
     private var listBottomPadding = 0
 
-    private fun applyImePadding() {
-        val covered = (imeBottom - binding.settingsTabs.height).coerceAtLeast(0)
+    // A section page has no tab bar to take the navigation bar, so its list
+    // keeps clear of it itself. The keyboard is left to cover the list: a
+    // drag on the list takes it down.
+    private fun applyListBottomPadding() {
+        val covered = if (binding.settingsTabs.isVisible) 0 else navBottom
         val padding = listBottomPadding + covered
         if (binding.settingsRecycler.paddingBottom != padding) {
             binding.settingsRecycler.updatePadding(bottom = padding)
@@ -440,20 +470,23 @@ class SettingsActivity : AppCompatActivity() {
                 if (child === binding.settingsTabs) {
                     child.updatePadding(bottom = bottom + bars.bottom)
                 }
+                // Section pages have no tab bar to take the navigation bar,
+                // so the Drawer groups page keeps clear of it itself.
+                if (child === binding.groupsPane) {
+                    child.updatePadding(bottom = bottom + if (binding.settingsTabs.isVisible) 0 else bars.bottom)
+                }
             }
-            imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-            applyImePadding()
+            navBottom = bars.bottom
+            applyListBottomPadding()
             insets
         }
-        // The keyboard covers the tab bar and the bottom of the list (the window
-        // is edge-to-edge, so nothing resizes for it): the list takes the part
-        // of the keyboard that rises above the tab bar as extra bottom padding,
-        // so its last row scrolls up clear of the keyboard and the padding
-        // goes again when it closes. The tab bar's height can land after the
-        // insets, hence the layout listener.
-        binding.settingsTabs.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
-            if (bottom - top != oldBottom - oldTop) applyImePadding()
-        }
+        // A finger drag on the list takes the keyboard down, as in the
+        // drawer and home search, so the results under it can be read.
+        binding.settingsRecycler.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(rv: RecyclerView, newState: Int) {
+                if (newState == RecyclerView.SCROLL_STATE_DRAGGING) hideKeyboardIfShown()
+            }
+        })
         previews = PreviewController(viewModel)
         adapter = SettingsAdapter(previews)
         adapter.onRowTapped = { menuAnchor = it }
@@ -558,7 +591,7 @@ class SettingsActivity : AppCompatActivity() {
             onFeedContactsEnabled = ::requestFeedContactsIfNeeded,
             editCard = { card ->
                 com.supernova.launcher.ui.CustomCardEditorSheet
-                    .show(this, viewModel, card, undoAnchor = binding.settingsTabs)
+                    .show(this, viewModel, card, undoAnchor = binding.settingsTabs.takeIf { it.isVisible })
             },
             openNotificationAccess = {
                 com.supernova.launcher.ui.PermissionPrompts.openNotificationAccessWithHelp(this)
@@ -577,7 +610,7 @@ class SettingsActivity : AppCompatActivity() {
                     },
                     onShortcuts = {
                         com.supernova.launcher.ui.CustomCardEditorSheet
-                            .show(this, viewModel, null, undoAnchor = binding.settingsTabs)
+                            .show(this, viewModel, null, undoAnchor = binding.settingsTabs.takeIf { it.isVisible })
                     },
                     requestCalendar = ::requestFeedCalendarIfNeeded,
                     requestContacts = ::requestFeedContactsIfNeeded
@@ -631,7 +664,7 @@ class SettingsActivity : AppCompatActivity() {
             }
         )
         binding.backButton.setOnClickListener {
-            if (searchActive || currentSection != null) backCallback.handleOnBackPressed() else finish()
+            if (searchActive || currentSection != null) navigateBack() else finish()
         }
         onBackPressedDispatcher.addCallback(this, backCallback)
         binding.settingsSearchButton.setOnClickListener { setSearchActive(!searchActive) }
@@ -693,6 +726,7 @@ class SettingsActivity : AppCompatActivity() {
                         // otherwise open the stale, empty section.
                         if (!searchActive) render()
                     }
+                    binding.settingsRecycler.followLauncherAnimations(state.prefs)
                     adapter.updatePrefs(state.prefs)
                     groupsPane?.refresh()
                     bindPreviewPane(currentSection)
@@ -1007,17 +1041,38 @@ class SettingsActivity : AppCompatActivity() {
         binding.rootTitle.setText(if (currentTab == Tab.STYLE) R.string.style_tab else R.string.settings)
         binding.rootSearch.isVisible = root
         binding.settingsToolbar.isVisible = !root
-        if (!root && binding.rootSearchInput.hasFocus()) {
+        // The Settings/Style tabs belong to the two root lists; a section
+        // page gives their room to its list, and Back leads to them (#283).
+        if (binding.settingsTabs.isVisible != root) {
+            binding.settingsTabs.isVisible = root
+            ViewCompat.requestApplyInsets(binding.root)
+        }
+        // A page opened from the main list takes the keyboard down, whether
+        // or not the pill still holds focus (a tap on a row can take it
+        // first). A section's own search brings it back up after this.
+        if (!root && !searchActive) {
             binding.rootSearchInput.clearFocus()
-            getSystemService(InputMethodManager::class.java)
-                ?.hideSoftInputFromWindow(binding.rootSearchInput.windowToken, 0)
+            hideKeyboardIfShown()
         }
         val page = currentTab to section?.title
         if (page != shownPage) {
             shownPage = page
             binding.settingsAppBar.setExpanded(true, false)
             binding.settingsRecycler.scrollToPosition(0)
+            showPageWhole()
         }
+    }
+
+    // A new page lands in one frame with its header and preview. The rows
+    // keep stable ids, so the item animator would fade the old page's rows
+    // out and only then fade the new ones in, a beat behind the rest (#292).
+    // It sits out that one layout, then follows the launcher's switch again
+    // (#312); accordions and switches still animate.
+    private fun showPageWhole() {
+        val list = binding.settingsRecycler
+        if (list.itemAnimator == null) return
+        list.itemAnimator = null
+        list.doOnNextLayout { list.followLauncherAnimations(viewModel.state.value.prefs) }
     }
 
     // Leading icons for the root list.
@@ -1041,7 +1096,8 @@ class SettingsActivity : AppCompatActivity() {
         // Clipped to its rounded card, the wallpaper's hole included.
         binding.previewPane.clipToOutline = true
         binding.previewPane.showsWallpaper =
-            preview.kind == PreviewKind.HOME || preview.kind == PreviewKind.SEARCH_BAR
+            preview.kind == PreviewKind.HOME || preview.kind == PreviewKind.SEARCH_BAR ||
+            preview.kind == PreviewKind.DRAWER || preview.kind == PreviewKind.DOCK
         // Same guard as the in-list holder: never rebuild mid slider drag.
         if (!previews.isTracking) {
             val view = paneView ?: com.supernova.launcher.ui.settings.preview.SettingsPreviewView(this).also {
@@ -1061,6 +1117,11 @@ class SettingsActivity : AppCompatActivity() {
                 )
             }
             previews.attach(view, preview.kind)
+            // A preview that paints its own surface fills the card, its
+            // minimum height included; the others sit inside its padding.
+            val pad = if (view.fillsPane) 0 else resources.getDimensionPixelSize(R.dimen.space_sm)
+            binding.previewPane.setPadding(binding.previewPane.paddingLeft, pad, binding.previewPane.paddingRight, pad)
+            view.minimumHeight = if (view.fillsPane) binding.previewPane.minimumHeight else 0
         }
         return true
     }

@@ -56,16 +56,15 @@
                 android:visibility="gone"
                 app:layout_scrollFlags="scroll" />
 
-            <!-- A section's toolbar: 24dp under the status bar, a 56dp row
+            <!-- A section's toolbar: a 56dp row right under the status bar,
                  with its buttons 4dp in from the sides. -->
             <LinearLayout
                 android:id="@+id/settingsToolbar"
                 android:layout_width="match_parent"
-                android:layout_height="80dp"
+                android:layout_height="56dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="@dimen/space_xs"
-                android:paddingTop="@dimen/space_lg">
+                android:paddingHorizontal="@dimen/space_xs">
 
                 <ImageButton
                     android:id="@+id/backButton"
@@ -90,11 +89,14 @@
                     android:textSize="@dimen/text_headline"
                     android:textStyle="bold" />
 
-                <!-- Section search: swapped in for the title while active. -->
+                <!-- Section search: swapped in for the title while active. The
+                     row's full height, so a tap anywhere on it brings the
+                     keyboard back after a scroll took it down. -->
                 <EditText
                     android:id="@+id/settingsSearchInput"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical|start"
                     android:layout_marginStart="@dimen/space_sm"
                     android:layout_weight="1"
                     android:background="@android:color/transparent"

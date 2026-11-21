@@ -502,6 +502,7 @@
     <string name="group_folder_icon_change">Change</string>
     <string name="group_put_in">Put it in</string>
     <string name="group_put_in_nowhere">No tab or folder</string>
+    <string name="group_folder_in">Folder in %1$s</string>
     <string name="group_more_apps">+%d</string>
     <string name="group_default_tab_summary">The drawer opens on this tab</string>
     <string name="delete_tab">Delete tab</string>
@@ -831,6 +832,7 @@
     <string name="search_web_for">Search %1$s for “%2$s”</string>
     <string name="search_demo_calc">12 × 8 = 96</string>
     <string name="search_demo_shortcut">App shortcut</string>
+    <string name="preview_popup_notification">2 new messages</string>
     <string name="search_demo_contact">Contact</string>
     <string name="search_demo_folder">Folder</string>
     <string name="copied_to_clipboard">Copied to clipboard</string>
@@ -940,6 +942,8 @@
     <string name="nav_bar_buttons">Navigation bar button color</string>
     <string name="nav_buttons_status_bar">Same as status bar</string>
     <string name="home_button_main_page_only">Only on the home page</string>
+    <string name="home_return_default_page">Return to default page</string>
+    <string name="home_return_default_page_summary">Home from an app or after the screen turns off goes to the default page</string>
 
     <!-- Phase 7: feed page -->
     <string name="settings_section_feed">Feed</string>
@@ -1024,9 +1028,10 @@
     <string name="onboarding_welcome_to">Welcome to</string>
     <string name="onboarding_tagline">Infinitely customizable home screen</string>
     <string name="onboarding_design_home">Design my home screen</string>
-    <string name="onboarding_restore_backup">Restore backup</string>
-    <string name="onboarding_skip_setup">Skip setup</string>
-    <string name="onboarding_skip_hint">To skip setting up Supernova, tap \'Skip setup\'</string>
+    <string name="onboarding_import_lead">Coming from another launcher?</string>
+    <string name="onboarding_import_action"><u>Import your settings</u></string>
+    <string name="onboarding_privacy_line">Supernova collects no data. Nothing leaves your phone.</string>
+    <string name="onboarding_privacy_link"><u>Privacy policy</u></string>
     <string name="onboarding_animations_title">Launcher animations</string>
     <string name="onboarding_animations_message">Your phone\'s animations are turned off. Supernova\'s animations have their own switch. Keep them on? You can change this later in Settings.</string>
     <string name="onboarding_animations_keep">Keep on</string>
