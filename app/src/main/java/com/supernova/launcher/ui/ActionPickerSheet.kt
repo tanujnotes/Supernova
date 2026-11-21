@@ -54,7 +54,14 @@ class ActionPickerSheet private constructor(
     private val onPick: (ActionPick) -> Unit
 ) {
 
-    private class Row(val icon: Drawable?, val label: CharSequence, val onClick: () -> Unit)
+    // keys: what a search matches - the label, plus the app's name for a
+    // shortcut screen.
+    private class Row(
+        val icon: Drawable?,
+        val label: CharSequence,
+        val keys: List<String> = listOf(label.toString()),
+        val onClick: () -> Unit
+    )
 
     private val sheet = Sheets.open(context)
     private val adapter = RowAdapter(context.getColor(R.color.textPrimary))
@@ -75,10 +82,15 @@ class ActionPickerSheet private constructor(
             layoutManager = LinearLayoutManager(context)
             adapter = this@ActionPickerSheet.adapter
         }
+        val search = LayoutInflater.from(context).inflate(R.layout.sheet_picker_search, root, false) as EditText
+        root.addView(search)
         if (appsOnly) {
-            showSearchableApps(root, list)
+            showSearchable(root, search, list) { appRows() }
             return
         }
+        // The search sits over the tabs and narrows whichever one is showing;
+        // a tab switch keeps the query. Each tab's rows are built once.
+        search.setHint(R.string.search_hint)
         val tabs = TabLayout(context).apply {
             tabMode = TabLayout.MODE_FIXED
             tabGravity = TabLayout.GRAVITY_FILL
@@ -90,28 +102,30 @@ class ActionPickerSheet private constructor(
             addTab(newTab().setText(R.string.picker_tab_shortcuts))
         }
         root.addView(tabs)
-        root.addView(list, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, context.dp(LIST_HEIGHT_DP)))
+        val built = arrayOfNulls<List<Row>>(TAB_COUNT)
+        val refilter = showSearchable(root, search, list) {
+            val tab = tabs.selectedTabPosition.coerceAtLeast(0)
+            built[tab] ?: rowsFor(tab).also { built[tab] = it }
+        }
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                adapter.rows = rowsFor(tab.position)
-                list.scrollToPosition(0)
-            }
+            override fun onTabSelected(tab: TabLayout.Tab) = refilter()
 
             override fun onTabUnselected(tab: TabLayout.Tab) = Unit
             override fun onTabReselected(tab: TabLayout.Tab) = Unit
         })
-        adapter.rows = rowsFor(0)
-        sheet.setContentView(root)
-        sheet.show()
     }
 
-    // The apps under a search field, as Select apps has: typing narrows the
-    // list with the drawer's matching, clearing brings every app back. The
+    // Rows under a search field, as Select apps has: typing narrows the list
+    // with the drawer's matching, clearing brings every row back. The
     // keyboard waits for a tap on the field, and the window shrinks over it
-    // with the list, as the Activities picker's does.
-    private fun showSearchableApps(root: LinearLayout, list: RecyclerView) {
-        val all = appRows()
-        val search = LayoutInflater.from(context).inflate(R.layout.sheet_picker_search, root, false) as EditText
+    // with the list, as the Activities picker's does. Returns the re-filter,
+    // for when the rows themselves change (a tab switch).
+    private fun showSearchable(
+        root: LinearLayout,
+        search: EditText,
+        list: RecyclerView,
+        rows: () -> List<Row>
+    ): () -> Unit {
         val empty = TextView(context).apply {
             setTextColor(context.getColor(R.color.textSecondary))
             textSize = LABEL_SP
@@ -126,24 +140,26 @@ class ActionPickerSheet private constructor(
             addView(empty, FrameLayout.LayoutParams(match, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER))
         }
         val listHeight = context.dp(LIST_HEIGHT_DP)
-        root.addView(search)
         root.addView(frame, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, listHeight))
-        search.doAfterTextChanged { text ->
-            val query = text?.toString()?.trim().orEmpty()
-            adapter.rows = if (query.isEmpty()) all else AppMatcher.filter(all, query) { it.label.toString() }
+        val refilter = {
+            val query = search.text?.toString()?.trim().orEmpty()
+            val all = rows()
+            adapter.rows = if (query.isEmpty()) all else AppMatcher.filterAny(all, query) { it.keys }
             list.scrollToPosition(0)
             empty.text = context.getString(R.string.widget_search_no_matches, query)
             empty.visibility = if (adapter.rows.isEmpty()) View.VISIBLE else View.GONE
         }
+        search.doAfterTextChanged { refilter() }
         // The keyboard's Search key just puts it away: the list is the answer.
         search.setOnEditorActionListener { view, _, _ ->
             view.hideKeyboardForWindow()
             true
         }
-        adapter.rows = all
+        refilter()
         sheet.setContentView(root)
         fitAboveKeyboard(root, frame, listHeight)
         sheet.show()
+        return refilter
     }
 
     private fun fitAboveKeyboard(root: View, frame: View, listHeight: Int) {
@@ -221,7 +237,8 @@ class ActionPickerSheet private constructor(
             .let { labelled -> com.supernova.launcher.data.LabelOrder.sorted(labelled) { (_, label) -> label } }
             .map { (info, label) ->
                 val component = ComponentName(info.activityInfo.packageName, info.activityInfo.name)
-                Row(runCatching { info.loadIcon(pm) }.getOrNull(), label) {
+                val appName = runCatching { info.activityInfo.applicationInfo.loadLabel(pm).toString() }.getOrNull()
+                Row(runCatching { info.loadIcon(pm) }.getOrNull(), label, listOfNotNull(label, appName)) {
                     picked(ActionPick.Legacy(component, label))
                 }
             }
@@ -309,6 +326,7 @@ class ActionPickerSheet private constructor(
         private const val LABEL_SP = 16f
         private const val KEYBOARD_GAP_DP = 24
         private const val MIN_TYPING_LIST_DP = 120
+        private const val TAB_COUNT = 3
 
         fun show(
             context: Context,
