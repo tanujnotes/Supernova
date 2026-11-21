@@ -1,0 +1,10 @@
+Settings show what they change, and Home can keep your page.
+
+- New Return to default page switch: turn it off and Home keeps your page
+- Settings previews follow every setting on their page
+- Light and dark icon packs follow the theme
+- Zoom drawer opens from twice its size, with a live preview
+- Search in the action and card app pickers
+- Setup no longer restarts after choosing Supernova
+- Fixed widgets staying tilted after a drag
+- Fixed settings controls turning white
