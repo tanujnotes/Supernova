@@ -82,6 +82,7 @@
          text, the progress segments' track, and the summaries. -->
     <color name="onboardingBackground">#0E1014</color>
     <color name="onboardingText">#DBFFFFFF</color>
+    <color name="onboardingTextQuiet">#9EFFFFFF</color>
     <color name="onboardingTrack">#38FFFFFF</color>
     <color name="onboardingSummary">#B8FFFFFF</color>
 </resources>

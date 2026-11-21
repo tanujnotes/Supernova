@@ -20,7 +20,6 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -51,6 +50,7 @@ import com.supernova.launcher.ui.AnimationScale
 import com.supernova.launcher.ui.LabelFont
 import com.supernova.launcher.ui.LauncherViewModel
 import com.supernova.launcher.ui.WideScreen
+import com.supernova.launcher.ui.settings.AboutLinks
 import com.supernova.launcher.ui.settings.EnumLabels
 import com.supernova.launcher.ui.settings.preview.MiniGridView
 import com.supernova.launcher.ui.theme.AccentColor
@@ -70,8 +70,8 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.random.Random
 
-// The first-run wizard. A welcome page (Design my homescreen, Restore
-// backup, Skip setup), then six choices - a starting look, a colour, the
+// The first-run wizard. A welcome page (the import line, Design my home
+// screen, the privacy policy), then six choices - a starting look, a colour, the
 // icons' shape and finish, how much a page holds, and the app names - each
 // a few tiles under a live preview of the home screen over the real
 // wallpaper, and last the finished home with Set as my home screen. Every
@@ -145,8 +145,10 @@ class OnboardingActivity : AppCompatActivity() {
         setUpPreview()
 
         binding.onboardingWelcome.welcomeGetStarted.setOnClickListener { goTo(STEP_LOOK) }
-        binding.onboardingWelcome.welcomeRestore.setOnClickListener { backup.pickImportFile() }
-        binding.onboardingWelcome.welcomeSkip.setOnClickListener { finishOnboarding() }
+        binding.onboardingWelcome.welcomeImport.setOnClickListener { backup.pickImportFile() }
+        binding.onboardingWelcome.welcomePrivacy.setOnClickListener {
+            AboutLinks.open(this, getString(R.string.about_privacy_url))
+        }
         binding.onboardingBack.setOnClickListener { goTo(step - 1) }
         binding.onboardingSkip.setOnClickListener { goTo(STEP_DONE) }
         binding.onboardingNext.setOnClickListener {
@@ -156,10 +158,9 @@ class OnboardingActivity : AppCompatActivity() {
             when {
                 step > STEP_WELCOME -> goTo(step - 1)
                 isRerun -> finish()
-                // The first run can't be backed out of either; this points
-                // at the way to skip it.
-                else -> Toast.makeText(this@OnboardingActivity, R.string.onboarding_skip_hint, Toast.LENGTH_SHORT)
-                    .show()
+                // The first run can't be backed out of: Back stays on the
+                // welcome page.
+                else -> Unit
             }
         }
         repeat(CHOICE_STEPS) {

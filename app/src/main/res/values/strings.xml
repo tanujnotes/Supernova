@@ -1028,9 +1028,10 @@
     <string name="onboarding_welcome_to">Welcome to</string>
     <string name="onboarding_tagline">Infinitely customizable home screen</string>
     <string name="onboarding_design_home">Design my home screen</string>
-    <string name="onboarding_restore_backup">Restore backup</string>
-    <string name="onboarding_skip_setup">Skip setup</string>
-    <string name="onboarding_skip_hint">To skip setting up Supernova, tap \'Skip setup\'</string>
+    <string name="onboarding_import_lead">Coming from another launcher?</string>
+    <string name="onboarding_import_action"><u>Import your settings</u></string>
+    <string name="onboarding_privacy_line">Supernova collects no data. Nothing leaves your phone.</string>
+    <string name="onboarding_privacy_link"><u>Privacy policy</u></string>
     <string name="onboarding_animations_title">Launcher animations</string>
     <string name="onboarding_animations_message">Your phone\'s animations are turned off. Supernova\'s animations have their own switch. Keep them on? You can change this later in Settings.</string>
     <string name="onboarding_animations_keep">Keep on</string>

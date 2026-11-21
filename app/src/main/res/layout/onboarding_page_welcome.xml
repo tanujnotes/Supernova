@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The welcome page: the mark, "Welcome to" over the launcher's name and
-     its line, and along the bottom Design my homescreen with Restore backup
-     and Skip setup under it. -->
+     its line, and along the bottom the import line, Design my home screen,
+     and the privacy line with its policy link. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -59,27 +59,64 @@
         android:paddingHorizontal="16dp"
         android:paddingBottom="12dp">
 
+        <!-- One tap target: the backup picker takes other launchers'
+             backups and Supernova's own. -->
+        <LinearLayout
+            android:id="@+id/welcomeImport"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="28dp"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_horizontal"
+            android:minHeight="48dp"
+            android:orientation="vertical"
+            android:paddingVertical="@dimen/space_xs">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/onboarding_import_lead"
+                android:textColor="@color/onboardingText"
+                android:textSize="15sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_xs"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:text="@string/onboarding_import_action"
+                android:textColor="@android:color/white"
+                android:textSize="15sp" />
+        </LinearLayout>
+
         <TextView
             android:id="@+id/welcomeGetStarted"
             style="@style/OnboardingPrimaryButton"
             android:text="@string/onboarding_design_home" />
 
-        <FrameLayout
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp">
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:text="@string/onboarding_privacy_line"
+            android:textColor="@color/onboardingTextQuiet"
+            android:textSize="13sp" />
 
-            <TextView
-                android:id="@+id/welcomeRestore"
-                style="@style/OnboardingTextButton"
-                android:layout_gravity="start"
-                android:text="@string/onboarding_restore_backup" />
-
-            <TextView
-                android:id="@+id/welcomeSkip"
-                style="@style/OnboardingTextButton"
-                android:layout_gravity="end"
-                android:text="@string/onboarding_skip_setup" />
-        </FrameLayout>
+        <TextView
+            android:id="@+id/welcomePrivacy"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_gravity="center_horizontal"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:paddingHorizontal="@dimen/space_xs"
+            android:text="@string/onboarding_privacy_link"
+            android:textColor="@color/onboardingTextQuiet"
+            android:textSize="13sp" />
     </LinearLayout>
 </FrameLayout>
