@@ -422,6 +422,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             binding.settingTitle.setText(item.title)
             val current = item.get(prefs)
             max = maxOf(item.maxFor(prefs), current)
+            SettingsSeekBars.tint(binding.settingSeek)
             binding.settingSeek.max = max - item.min
             if (!binding.settingSeek.isPressed) {
                 binding.settingSeek.progress = current - item.min
@@ -670,6 +671,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             // Same contract as a Slider row: ticks preview, release commits,
             // and a rebind never yanks the thumb out from under a finger.
             val seek = binding.labelSizeSeek
+            SettingsSeekBars.tint(seek)
             seek.max = item.sizeMax - item.sizeMin
             val size = item.size(prefs)
             if (!seek.isPressed) seek.progress = size - item.sizeMin

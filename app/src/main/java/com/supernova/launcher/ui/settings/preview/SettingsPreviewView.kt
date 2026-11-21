@@ -1169,7 +1169,7 @@ class SettingsPreviewView @JvmOverloads constructor(
             .takeIf { placement != com.supernova.launcher.ui.DrawerBarPlacement.HIDDEN }
         val tabs = drawerTabs(prefs, viewModel, resolved)
         val tabsBottom = prefs.drawerTabBar == com.supernova.launcher.ui.DrawerTabBar.BOTTOM
-        val topRow = if (prefs.drawerFrequentRow) drawerTopRow(apps.drop(columns).ifEmpty { apps }, columns) else null
+        val topRow = drawerTopRow(prefs, apps.drop(columns).ifEmpty { apps }, columns)
         val sortBar = drawerSortBar(prefs, resolved, rule = topRow != null)
         val parts = listOfNotNull(
             searchRow.takeIf { searchTop },
@@ -1297,10 +1297,17 @@ class SettingsPreviewView @JvmOverloads constructor(
     }
 
     // The top row of apps over the list (FrequentAppsRowView), at the
-    // grid's columns.
-    private fun drawerTopRow(apps: List<Pair<LaunchableApp, Drawable>>, columns: Int): View {
+    // grid's columns, pulled in by the drawer's side padding as the grid is;
+    // null with the row off.
+    private fun drawerTopRow(
+        prefs: LauncherPrefs,
+        apps: List<Pair<LaunchableApp, Drawable>>,
+        columns: Int
+    ): View? {
+        if (!prefs.drawerFrequentRow) return null
         val row = newRow()
-        row.setPadding(dp(DRAWER_ROW_SIDE_DP), 0, dp(DRAWER_ROW_SIDE_DP), 0)
+        val side = dp(prefs.drawerPaddingH)
+        row.setPadding(side, 0, side, 0)
         apps.take(columns).forEach { (app, icon) ->
             row.addView(iconColumn(icon.copied(), app.label, keepInsideSlot = true), slotParams())
         }

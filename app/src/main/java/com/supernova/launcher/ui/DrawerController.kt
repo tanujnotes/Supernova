@@ -1900,6 +1900,10 @@ class DrawerController(
     private fun placeListHeader() {
         val header = listHeader
         val sheet = binding.drawerSheet
+        // In the list it takes the list's side padding; over the pages it
+        // takes the same itself, so the row lines up with the columns.
+        val side = if (currentStyle == DrawerStyle.PAGED_GRID) sidePaddingPx() else 0
+        header.setPadding(side, 0, side, 0)
         if (currentStyle == DrawerStyle.PAGED_GRID) {
             adapter.setHeader(null)
             if (header.parent !== sheet) {
