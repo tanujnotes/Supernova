@@ -146,16 +146,27 @@ object ThemeEngine {
         // The Settings style's Text rides the same override (#281).
         val text = CustomAccent.textColors(activity, CustomAccent.settingsText(activity, prefs))
         if (custom == null) {
-            CustomAccent.override(activity, text)
+            overrideColors(activity, text)
             applyAccent(activity, prefs.accentColor)
             return accentColor(activity, prefs.accentColor)
         }
-        val overlay = if (CustomAccent.override(activity, text + CustomAccent.accentColors(activity, custom))) {
+        val overlay = if (overrideColors(activity, text + CustomAccent.accentColors(activity, custom))) {
             R.style.ThemeOverlay_Supernova_Custom
         } else {
             CustomAccent.nearest(activity, custom).overlayRes
         }
         activity.theme.applyStyle(overlay, true)
         return custom
+    }
+
+    // A successful override also lays Material's PersonalizedColors overlay
+    // on the theme, pointing ~50 colours (the cursor, stock bars, ripples,
+    // text highlight, colorSurface...) at wallpaper-colour placeholders
+    // that are all white here. The app theme goes back over it; the
+    // overridden colour resources stay.
+    private fun overrideColors(activity: Activity, colors: Map<Int, Int>): Boolean {
+        val applied = CustomAccent.override(activity, colors)
+        if (applied) activity.theme.applyStyle(R.style.Theme_Supernova, true)
+        return applied
     }
 }
