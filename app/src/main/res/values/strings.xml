@@ -550,7 +550,6 @@
     <string name="about_whats_new_none">No release notes in this build.</string>
     <string name="about_report_issue">Report an issue</string>
     <string name="about_report_issue_summary">Opens a new issue on GitHub</string>
-    <string name="about_report_issue_body">\n\n---\n%1$s</string>
     <string name="about_device_details">Supernova %1$s, Android %2$s (API %3$d), %4$s</string>
     <string name="about_no_browser">No app here opens links</string>
     <string name="about_source">Source code</string>

@@ -11,6 +11,14 @@ body:
           required: true
         - label: I'm on the latest version and searched existing issues.
           required: true
+  - type: input
+    id: version
+    attributes:
+      label: Supernova version
+      description: Shown in Settings > About. Long-press it there to copy your version and device details.
+      placeholder: v0.2.8 (28)
+    validations:
+      required: true
   - type: textarea
     id: what
     attributes:
