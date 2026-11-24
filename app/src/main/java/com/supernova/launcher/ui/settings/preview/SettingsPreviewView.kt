@@ -86,6 +86,10 @@ class SettingsPreviewView @JvmOverloads constructor(
     // App drawer preview: the grid row or list rows the padding bars move,
     // and the list's icons, which have a box of their own.
     private var drawerItems: View? = null
+    // The drawer's tab bar, null without one, and whether it sits below the
+    // list: the vertical padding goes outside it (applyDrawerPadding).
+    private var drawerTabsView: View? = null
+    private var drawerTabsBelow = false
     private val listIconViews = mutableListOf<PreviewIcon>()
     // Home strip: the row its padding bar insets.
     private var homeRow: View? = null
@@ -131,6 +135,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         drawerFieldPill = null
         drawerFieldIcon = null
         drawerItems = null
+        drawerTabsView = null
         listIconViews.clear()
         homeRow = null
         dockSquareBottom = false
@@ -1161,7 +1166,6 @@ class SettingsPreviewView @JvmOverloads constructor(
             }
             items.addView(row, matchWidth())
         }
-        applyDrawerPadding(prefs)
         val listFrame = drawerListFrame(prefs, resolved, items)
 
         // Top to bottom as DrawerController stacks the sheet: the search row
@@ -1175,6 +1179,8 @@ class SettingsPreviewView @JvmOverloads constructor(
             .takeIf { placement != com.supernova.launcher.ui.DrawerBarPlacement.HIDDEN }
         val tabs = drawerTabs(prefs, viewModel, resolved)
         val tabsBottom = prefs.drawerTabBar == com.supernova.launcher.ui.DrawerTabBar.BOTTOM
+        drawerTabsView = tabs
+        drawerTabsBelow = tabsBottom
         val topRow = drawerTopRow(prefs, apps.drop(columns).ifEmpty { apps }, columns)
         val sortBar = drawerSortBar(prefs, resolved, rule = topRow != null)
         val parts = listOfNotNull(
@@ -1187,6 +1193,7 @@ class SettingsPreviewView @JvmOverloads constructor(
             searchRow.takeIf { !searchTop }
         )
         parts.forEach { content.addView(it, matchWidth()) }
+        applyDrawerPadding(prefs)
         addView(
             FitWidthFrame(context, keepsHeight = false).apply { addView(content) },
             LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL)
@@ -1364,11 +1371,21 @@ class SettingsPreviewView @JvmOverloads constructor(
         LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
 
     // The drawer's padding settings: the sides pull the columns in, the
-    // top and bottom hold the rows off the field (DrawerController).
+    // top and bottom hold the rows off the field (DrawerController). A tab
+    // bar moves in with the rows: the gap goes outside it, and the rows drop
+    // theirs on that side (#353).
     private fun applyDrawerPadding(prefs: LauncherPrefs) {
         val side = dp(prefs.drawerPaddingH)
         val end = dp(prefs.drawerPaddingV)
-        drawerItems?.setPadding(side, end, side, end + dp(DRAWER_ROW_GAP_DP))
+        val tabs = drawerTabsView
+        val top = if (tabs != null && !drawerTabsBelow) 0 else end
+        val bottom = if (tabs != null && drawerTabsBelow) 0 else end
+        drawerItems?.setPadding(side, top, side, bottom + dp(DRAWER_ROW_GAP_DP))
+        (tabs?.layoutParams as? MarginLayoutParams)?.let { lp ->
+            lp.topMargin = if (drawerTabsBelow) 0 else end
+            lp.bottomMargin = if (drawerTabsBelow) end else 0
+            tabs.layoutParams = lp
+        }
     }
 
     // The drawer's own column count: the one set, or as many automatic

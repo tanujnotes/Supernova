@@ -452,7 +452,8 @@ class DrawerController(
         // page cut in pageRows both measure inside it).
         val prefs = viewModel.state.value.prefs
         val sidePad = context.dp(prefs.drawerPaddingH)
-        val endPad = context.dp(prefs.drawerPaddingV)
+        val (topPad, bottomPad) = placeTabsInPadding(context.dp(prefs.drawerPaddingV))
+        val sheet = binding.drawerSheet
         binding.drawerSheet.setPadding(barInsets.left, barInsets.top + liftedRow, barInsets.right, keyboardInset)
         // The results pad past a keyboard that covers them (the field at the
         // top): a list that nearly fit couldn't be dragged, so the drag that
@@ -462,12 +463,12 @@ class DrawerController(
         binding.drawerSearchResults.setPadding(0, 0, 0, context.dp(18) + resultsInset)
         // clipToPadding is false, so the list scrolls under the navigation bar
         // and comes to rest above it.
-        binding.drawerRecycler.setPadding(sidePad, endPad, sidePad, context.dp(18) + listInset + endPad)
+        binding.drawerRecycler.setPadding(sidePad, topPad, sidePad, context.dp(18) + listInset + bottomPad)
         // A page doesn't scroll, so the paged style keeps its pages where the
         // list comes to rest, and cuts them to fit there (syncPages). The
         // sides pad each page instead (PageHolder), so a page effect still
         // runs edge to edge.
-        binding.drawerPager.setPadding(0, endPad, 0, context.dp(18) + listInset + endPad)
+        binding.drawerPager.setPadding(0, topPad, 0, context.dp(18) + listInset + bottomPad)
         // Rows fade out towards both ends of the list. The bottom fade takes
         // in the navigation bar the list scrolls under, so a row is all but
         // gone by the time it is behind the buttons.
@@ -475,7 +476,7 @@ class DrawerController(
             list.fadeTop = context.dp(LIST_FADE_DP)
             list.fadeBottom = context.dp(LIST_FADE_DP) + listInset
         }
-        binding.drawerFastScroller.setPadding(0, context.dp(12) + endPad, 0, context.dp(12) + listInset + endPad)
+        binding.drawerFastScroller.setPadding(0, context.dp(12) + topPad, 0, context.dp(12) + listInset + bottomPad)
         // A 44dp field, on the line the old 52dp one was centred on.
         binding.drawerSearchRow.setPadding(
             context.dp(16),
@@ -483,9 +484,29 @@ class DrawerController(
             context.dp(16),
             context.dp(10) + if (rowOnNavBar) barInsets.bottom else 0
         )
-        val tabsAtBottom = binding.drawerSheet.indexOfChild(binding.drawerTabs) ==
-            binding.drawerSheet.childCount - 1
+        val tabsAtBottom = sheet.indexOfChild(binding.drawerTabs) == sheet.childCount - 1
         binding.drawerTabs.setPadding(0, 0, 0, if (tabsAtBottom) barInsets.bottom else 0)
+    }
+
+    // A tab bar at either end moves in with the apps (#353): the vertical
+    // padding sits outside the bar, between it and the search row or the
+    // screen edge, and the list drops its own padding on that side. Returns
+    // the list's top and bottom padding.
+    private fun placeTabsInPadding(endPad: Int): Pair<Int, Int> {
+        val tabs = binding.drawerTabs
+        val sheet = binding.drawerSheet
+        val shown = tabs.visibility == View.VISIBLE
+        val below = sheet.indexOfChild(tabs) > sheet.indexOfChild(binding.drawerListContainer)
+        (tabs.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
+            val top = if (below) 0 else endPad
+            val bottom = if (below) endPad else 0
+            if (lp.topMargin != top || lp.bottomMargin != bottom) {
+                lp.topMargin = top
+                lp.bottomMargin = bottom
+                tabs.layoutParams = lp
+            }
+        }
+        return Pair(if (shown && !below) 0 else endPad, if (shown && below) 0 else endPad)
     }
 
     // The recents row scrolls away with the app list rather than sitting
@@ -2035,6 +2056,7 @@ class DrawerController(
         val nothingToTab = tabsOff || (groups.isEmpty() && !workTab)
         if (nothingToTab && !privateTab) {
             tabs.visibility = View.GONE
+            applyInsetPadding()
             shownTabIndex = -1
             if (selectedTab != null) {
                 selectedTab = null
@@ -2044,6 +2066,7 @@ class DrawerController(
         }
 
         tabs.visibility = View.VISIBLE
+        applyInsetPadding()
         // Added unselected: the one-argument addTab selects the first tab
         // it adds, and the listener then overwrote selectedTab mid-rebuild,
         // so every rebuild landed on the default tab.
