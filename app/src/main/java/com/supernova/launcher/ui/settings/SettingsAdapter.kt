@@ -85,6 +85,17 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
 
     fun isLabel(position: Int): Boolean = position in visible.indices && visible[position] is SettingItem.Header
 
+    // The group label over the row at position: the nearest Header at or
+    // before it, unless a Preview comes between (rows under a Preview have
+    // no label). 0 for none.
+    @StringRes
+    fun labelOver(position: Int): Int {
+        if (position !in visible.indices) return 0
+        val opener = (position downTo 0).asSequence().map { visible[it] }
+            .firstOrNull { it is SettingItem.Header || it is SettingItem.Preview }
+        return (opener as? SettingItem.Header)?.title ?: 0
+    }
+
     // A row nested under a switch, on the band its switch opens.
     fun isBand(position: Int): Boolean = position in visible.indices && visible[position].nestLevel > 0
 

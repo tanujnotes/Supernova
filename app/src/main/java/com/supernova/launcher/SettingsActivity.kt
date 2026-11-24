@@ -131,6 +131,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var styleSection: SettingsSection
     // The cards under the root list's and the Style tab's rows.
     private lateinit var groupCards: com.supernova.launcher.ui.settings.SettingsGroupDecoration
+    private lateinit var stickyLabels: com.supernova.launcher.ui.settings.StickyGroupLabels
 
     private var currentTab = Tab.SETTINGS
 
@@ -654,6 +655,8 @@ class SettingsActivity : AppCompatActivity() {
         binding.settingsRecycler.adapter = adapter
         groupCards = com.supernova.launcher.ui.settings.SettingsGroupDecoration(this, adapter)
         binding.settingsRecycler.addItemDecoration(groupCards)
+        stickyLabels = com.supernova.launcher.ui.settings.StickyGroupLabels(this, adapter)
+        binding.settingsRecycler.addItemDecoration(stickyLabels)
         // Watched rather than consumed: the row's own click listener still
         // runs, this only remembers where the press landed so the menu it
         // opens can appear there.
@@ -782,6 +785,12 @@ class SettingsActivity : AppCompatActivity() {
             else -> androidx.core.graphics.ColorUtils.blendARGB(surface, android.graphics.Color.WHITE, CARD_LIFT_DARK)
         }
         groupCards.dividerColor = getColor(R.color.settingsPageDivider)
+        // Labels stuck to the top sit on the page colour, opaque so the
+        // cards scroll under them unseen.
+        stickyLabels.pageColor = androidx.core.graphics.ColorUtils.compositeColors(
+            surface,
+            getColor(R.color.background) or OPAQUE
+        )
         binding.settingsRecycler.invalidateItemDecorations()
         groupsPane?.cardColor = groupCards.cardColor
     }
