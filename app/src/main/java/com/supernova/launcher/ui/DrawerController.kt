@@ -2301,8 +2301,9 @@ class DrawerController(
         )
         dateButton = null
         actionButtons.forEach { button ->
-            val view = SearchBarButtons.view(context, button, resolvedField.text) {
-                SearchBarButtons.run(context, button)
+            lateinit var view: View
+            view = SearchBarButtons.view(context, button, resolvedField.text) {
+                SearchBarButtons.run(view, button, viewModel.state.value.prefs)
             }
             view.tag = actionTag
             val size = (SearchBarButtons.BUTTON_DP * density).toInt()
