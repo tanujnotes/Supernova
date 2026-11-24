@@ -54,7 +54,12 @@ class ColorSheet(
         binding.styleTitle.setText(title)
         listOf(binding.slotGroup, binding.stripText, binding.stripAccent, binding.contrastRow)
             .forEach { it.visibility = View.GONE }
-        binding.styleDefault.setOnClickListener { pick(ColorSpec()) }
+        // Default is the whole default, its opacity included (#298, #349).
+        binding.styleDefault.setOnClickListener {
+            opacity = defaultOpacity
+            opacityMoved = false
+            pick(ColorSpec())
+        }
         binding.opacitySeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                 if (!fromUser) return
