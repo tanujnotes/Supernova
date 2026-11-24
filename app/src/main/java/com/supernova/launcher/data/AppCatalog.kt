@@ -145,9 +145,7 @@ class AppCatalog(
     // an app's own icon for an AppIconSource pick.
     fun packDrawable(packPackage: String, drawableName: String): Drawable? = runCatching {
         if (AppIconSource.isAppIcon(packPackage)) return@runCatching appIconDrawable(drawableName)
-        val res = iconPacks.resourcesFor(packPackage) ?: return@runCatching null
-        val id = res.getIdentifier(drawableName, "drawable", packPackage)
-        if (id == 0) null else res.getDrawable(id, null)
+        iconPacks.drawable(packPackage, drawableName)
     }.getOrNull()
 
     // An installed app's own icon as the app ships it: no pack, no shape.

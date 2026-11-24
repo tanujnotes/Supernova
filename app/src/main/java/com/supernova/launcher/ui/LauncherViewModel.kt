@@ -281,6 +281,10 @@ class LauncherViewModel(
                 prefsApplied = true
                 signalConfigAppliedIfReady()
                 if (!firstConfig && redraw) {
+                    // What the home screen shows draws before it rebinds, so
+                    // it changes at once rather than icon by icon; the rest
+                    // follows in the refresh's warm (#288).
+                    withContext(Dispatchers.Default) { warmHomeFirst() }
                     requestRefresh(immediate = true)
                     iconGeneration.value += 1
                 }
@@ -411,6 +415,25 @@ class LauncherViewModel(
             val cls = item.className ?: return@mapNotNull null
             LaunchableApp(pkg, cls, item.label, item.userSerial)
         }
+    }
+
+    // The home screen's front icons, drawn ahead of a redraw's rebind.
+    private suspend fun warmHomeFirst() {
+        catalog.warmIcons(firstFrameApps(repository.modelFlow.first()))
+    }
+
+    // Every app the home screen shows, on any page, in the dock or in their
+    // folders, the front ones first: a redraw warms them before the drawer.
+    private fun homeApps(model: com.supernova.launcher.data.LauncherModel): List<LaunchableApp> {
+        val rest = model.items.filter {
+            it.itemType == ItemType.APP &&
+                (it.container == ContainerType.WORKSPACE || it.container == ContainerType.FOLDER)
+        }.mapNotNull { item ->
+            val pkg = item.packageName ?: return@mapNotNull null
+            val cls = item.className ?: return@mapNotNull null
+            LaunchableApp(pkg, cls, item.label, item.userSerial)
+        }
+        return (firstFrameApps(model) + rest).distinctBy { "${it.userSerial}/${it.packageName}/${it.className}" }
     }
 
     // The single enumeration the first frame waits for. What the first frame
@@ -554,8 +577,9 @@ class LauncherViewModel(
         appListCache.save(apps)
         pruneUninstalled(apps)
         // Pre-warm off the main thread so binds become cache hits; the
-        // render lock keeps this safe alongside main-thread misses.
-        catalog.warmIcons(apps)
+        // render lock keeps this safe alongside main-thread misses. The home
+        // screen's icons first, after a redraw (#288); all hits otherwise.
+        catalog.warmIcons(homeApps(repository.modelFlow.first()) + apps)
         if (stale) iconGeneration.value += 1
     }
 
@@ -638,9 +662,16 @@ class LauncherViewModel(
             val evicted = withContext(Dispatchers.Default) {
                 val packEvicted = nightChanged && catalog.applyNight(night)
                 val (bg, fg) = themedIconColors(prefs)
-                catalog.applyThemedIcons(prefs.themedIcons, bg, fg, prefs.themedIconsAutogen) || packEvicted
+                (catalog.applyThemedIcons(prefs.themedIcons, bg, fg, prefs.themedIconsAutogen) || packEvicted)
+                    .also { if (it) warmHomeFirst() }
             }
-            if (evicted) iconGeneration.value += 1
+            if (!evicted) return@launch
+            iconGeneration.value += 1
+            // Nothing else warms after a theme flip: the drawer drew its
+            // icons one by one as it was opened.
+            withContext(Dispatchers.Default) {
+                catalog.warmIcons(homeApps(repository.modelFlow.first()) + appsFlow.value)
+            }
         }
     }
 
