@@ -500,6 +500,7 @@ class SettingsActivity : AppCompatActivity() {
         previews = PreviewController(viewModel)
         adapter = SettingsAdapter(previews)
         adapter.onRowTapped = { menuAnchor = it }
+        adapter.onShowRow = ::showRow
 
         val actions = SettingsCatalogue.Actions(
             pickColor = { title, current, default, onPick ->
@@ -1274,6 +1275,18 @@ class SettingsActivity : AppCompatActivity() {
         currentTab = tab
         currentSection = null
         render()
+    }
+
+    // A row of the open page into view, flashed as a search landing is: where
+    // a greyed row that waits on it sends a tap (#323).
+    private fun showRow(@androidx.annotation.StringRes title: Int) {
+        val position = adapter.positionOf(title)
+        if (position < 0) return
+        adapter.setHighlight(title)
+        (binding.settingsRecycler.layoutManager as? LinearLayoutManager)
+            ?.scrollToPositionWithOffset(position, dp(72))
+        // A payload rebinds the row in place, so the flash isn't crossfaded.
+        adapter.notifyItemChanged(position, SHOW_ROW)
     }
 
     private fun navigateTo(sectionTitleRes: Int, itemTitleRes: Int, flash: Boolean = true) {
@@ -2505,6 +2518,7 @@ class SettingsActivity : AppCompatActivity() {
         const val EXTRA_OPEN_SEARCH_BAR = "extra_open_search_bar"
         const val EXTRA_SECTION_TITLE_RES = "extra_section_title_res"
         const val EXTRA_HIGHLIGHT_TITLE_RES = "extra_highlight_title_res"
+        private const val SHOW_ROW = "show_row"
         const val EXTRA_DRAWER_GROUP = "extra_drawer_group"
 
         // Widest the settings content column grows in landscape, as a

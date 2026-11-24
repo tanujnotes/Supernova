@@ -32,6 +32,10 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
     // this is how a settings menu knows what to open under.
     var onRowTapped: ((View) -> Unit)? = null
 
+    // Scrolls to a row of this page and flashes it: where a greyed row's tap
+    // leads (SettingItem.waitsOn).
+    var onShowRow: ((Int) -> Unit)? = null
+
     private var items: List<SettingItem> = emptyList()
     private var visible: List<SettingItem> = emptyList()
 
@@ -220,8 +224,10 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         return when (viewType) {
-            TYPE_TOGGLE -> ToggleHolder(ItemSettingToggleBinding.inflate(inflater, parent, false), ::toggleAccordion)
-            TYPE_SLIDER -> SliderHolder(ItemSettingSliderBinding.inflate(inflater, parent, false), previews)
+            TYPE_TOGGLE -> ToggleHolder(
+                ItemSettingToggleBinding.inflate(inflater, parent, false), ::toggleAccordion, ::showRow
+            )
+            TYPE_SLIDER -> SliderHolder(ItemSettingSliderBinding.inflate(inflater, parent, false), previews, ::showRow)
             TYPE_PREVIEW -> PreviewHolder(ItemSettingPreviewBinding.inflate(inflater, parent, false), previews)
             TYPE_HEADER -> GroupLabelHolder(ItemSettingGroupLabelBinding.inflate(inflater, parent, false))
             TYPE_ACCORDION -> AccordionHolder(ItemSettingAccordionBinding.inflate(inflater, parent, false), ::toggleAccordion)
@@ -235,7 +241,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
                 ItemSettingSectionBinding.inflate(inflater, parent, false)
             ) { onRowTapped?.invoke(it) }
             else -> GroupRowHolder(
-                ItemSettingGroupRowBinding.inflate(inflater, parent, false)
+                ItemSettingGroupRowBinding.inflate(inflater, parent, false), ::showRow
             ) { onRowTapped?.invoke(it) }
         }
     }
@@ -258,6 +264,10 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
         val band = restingColor(holder.itemView, position)
         if (band == null) holder.itemView.background = null else holder.itemView.setBackgroundColor(band)
         flashIfLanding(holder, visible[position], band)
+    }
+
+    private fun showRow(@StringRes title: Int) {
+        onShowRow?.invoke(title)
     }
 
     private fun nestOf(item: SettingItem): Nest? =
@@ -325,7 +335,8 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
 
     private class ToggleHolder(
         private val binding: ItemSettingToggleBinding,
-        private val onToggleNest: (Int) -> Unit
+        private val onToggleNest: (Int) -> Unit,
+        private val onShowRow: (Int) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(item: SettingItem.Toggle, prefs: LauncherPrefs, tiled: Boolean, nest: Nest?) {
             // On a tiled page it is an option of the tiled row above (Theme's
@@ -352,8 +363,10 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             binding.settingSwitch.setOnCheckedChangeListener { _, checked -> item.set(checked) }
             val open = item.onOpen
             val opensNest = nest?.opens == true
+            val waitsFor = item.waitingOn(prefs)
             binding.root.setOnClickListener {
                 when {
+                    waitsFor != null -> onShowRow(waitsFor)
                     open != null -> open()
                     opensNest -> onToggleNest(item.title)
                     else -> binding.settingSwitch.toggle()
@@ -363,15 +376,21 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             // A row that opens something leaves the switch its own taps; on
             // the rest the whole row is the switch. Set both ways: rows are
             // reused.
-            val ownTaps = open != null || nest != null
+            val ownTaps = (open != null || nest != null) && waitsFor == null
             binding.settingSwitch.isClickable = ownTaps
             binding.settingSwitch.isFocusable = ownTaps
-            // Greyed: the title and switch fade, the reason stays readable.
-            val alpha = if (blocked != null) BLOCKED_ALPHA else 1f
+            bindGreyed(blocked != null, waitsFor != null)
+        }
+
+        // Greyed: the title and switch fade, the reason stays readable. A
+        // row waiting on another fades whole and still takes the tap.
+        private fun bindGreyed(blocked: Boolean, waiting: Boolean) {
+            val alpha = if (blocked || waiting) BLOCKED_ALPHA else 1f
             binding.settingTitle.alpha = alpha
+            binding.settingSubtitle.alpha = if (waiting) BLOCKED_ALPHA else 1f
             binding.settingSwitch.alpha = alpha
-            binding.settingSwitch.isEnabled = blocked == null
-            binding.root.isEnabled = blocked == null
+            binding.settingSwitch.isEnabled = !blocked && !waiting
+            binding.root.isEnabled = !blocked
         }
 
         // As the Label group: a chevron while there is something to open,
@@ -411,7 +430,8 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
 
     private class SliderHolder(
         private val binding: ItemSettingSliderBinding,
-        private val previews: PreviewController
+        private val previews: PreviewController,
+        private val onShowRow: (Int) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
         // The bound item's max: Big grid can raise it, and a value set while
         // it was on keeps its room after it goes off, so a step from there
@@ -430,6 +450,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             val note = item.note?.invoke(prefs)
             binding.settingNote.text = note
             binding.settingNote.visibility = if (note == null) View.GONE else View.VISIBLE
+            bindWaiting(item.waitingOn(prefs))
             // Named, and its value read as the row shows it (not a percent).
             val title = binding.root.context.getString(item.title)
             binding.settingSeek.contentDescription = title
@@ -455,8 +476,32 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
                     item.set(item.min + seekBar.progress)
                 }
             })
-            binding.stepDown.setOnClickListener { step(item, -item.step) }
-            binding.stepUp.setOnClickListener { step(item, item.step) }
+            val waitsFor = item.waitingOn(prefs)
+            if (waitsFor != null) {
+                binding.stepDown.setOnClickListener { onShowRow(waitsFor) }
+                binding.stepUp.setOnClickListener { onShowRow(waitsFor) }
+            } else {
+                binding.stepDown.setOnClickListener { step(item, -item.step) }
+                binding.stepUp.setOnClickListener { step(item, item.step) }
+            }
+        }
+
+        // Waiting on another row: all of it fades, the bar ignores touches
+        // (a disabled SeekBar passes them on) and any tap leads to that row.
+        private fun bindWaiting(waitsFor: Int?) {
+            val alpha = if (waitsFor != null) BLOCKED_ALPHA else 1f
+            for (view in listOf(binding.settingTitle, binding.settingValue, binding.settingSeek, binding.settingNote)) {
+                view.alpha = alpha
+            }
+            binding.stepDown.alpha = alpha
+            binding.stepUp.alpha = alpha
+            binding.settingSeek.isEnabled = waitsFor == null
+            if (waitsFor != null) {
+                binding.root.setOnClickListener { onShowRow(waitsFor) }
+            } else {
+                binding.root.setOnClickListener(null)
+                binding.root.isClickable = false
+            }
         }
 
         // Steppers commit immediately. The bar and label move first so rapid
@@ -479,6 +524,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
     // rows' text.
     private class GroupRowHolder(
         private val binding: ItemSettingGroupRowBinding,
+        private val onShowRow: (Int) -> Unit,
         private val onTap: (View) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
         // The layout's accent tint, which a warning's amber replaces.
@@ -512,12 +558,20 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
                     binding.root.paddingEnd, (TWO_LINE_PADDING_DP * density).toInt()
                 )
             }
-            val alpha = if (blocked != null) BLOCKED_ALPHA else 1f
+            val waitsFor = item.waitingOn(prefs)
+            val alpha = if (blocked != null || waitsFor != null) BLOCKED_ALPHA else 1f
             binding.settingTitle.alpha = alpha
             binding.groupRowTile.alpha = alpha
             binding.groupRowChevron.alpha = alpha
+            // Waiting on another row: the value fades too, and the tap leads there.
+            val valueAlpha = if (waitsFor != null) BLOCKED_ALPHA else 1f
+            binding.settingSubtitle.alpha = valueAlpha
+            binding.groupRowValue.alpha = valueAlpha
+            binding.groupRowSwatch.alpha = valueAlpha
             binding.root.isEnabled = blocked == null
-            if (item.look.tappable) {
+            if (waitsFor != null) {
+                binding.root.setOnClickListener { onShowRow(waitsFor) }
+            } else if (item.look.tappable) {
                 binding.root.setOnClickListener {
                     onTap(it)
                     item.onClick()

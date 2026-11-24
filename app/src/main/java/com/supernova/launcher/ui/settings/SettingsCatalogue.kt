@@ -349,13 +349,13 @@ object SettingsCatalogue {
     ): List<SettingsSection> {
         val rows = Rows(context, viewModel, actions)
         val motionRows = MotionChoiceSheet.Rows(context, viewModel, actions.pickChoice)
-        // The drawer field's Top/Bottom/Hidden, on its own page and on the
+        // The drawer field's Top/Bottom/None, on its own page and on the
         // App drawer page.
         val drawerBarLabel = { placement: DrawerBarPlacement ->
             when (placement) {
                 DrawerBarPlacement.TOP -> R.string.tab_bar_top
                 DrawerBarPlacement.BOTTOM -> R.string.tab_bar_bottom
-                DrawerBarPlacement.HIDDEN -> R.string.placement_hidden
+                DrawerBarPlacement.HIDDEN -> R.string.search_bar_none
             }
         }
         val drawerBarPlacement = { title: Int ->
@@ -1169,19 +1169,19 @@ object SettingsCatalogue {
                     set = { v -> rows.editDesktopBar { it.copy(radius = v) } },
                     display = { context.getString(R.string.padding_dp_value, it) },
                     preview = { p, v -> SearchBarPrefs.withDesktopBar(p) { it.copy(radius = v) } }
-                ),
+                ).waitsOnDesktopBar(),
                 SettingItem.Slider(
                     R.string.style_opacity, min = 0, max = 100, step = 5,
                     get = { (SearchBarPrefs.desktopBar(it).alpha.coerceIn(0f, 1f) * 100f).roundToInt() },
                     set = { v -> rows.editDesktopBar { it.copy(alpha = v / 100f) } },
                     display = { context.getString(R.string.opacity_percent, it) },
                     preview = { p, v -> SearchBarPrefs.withDesktopBar(p) { it.copy(alpha = v / 100f) } }
-                ),
+                ).waitsOnDesktopBar(),
                 rows.choice(
                     R.string.icon_glass, IconGlass.entries,
                     { IconGlass.fromName(SearchBarPrefs.desktopBar(it).glass) },
                     { EnumLabels.of(it) }
-                ) { glass -> rows.editDesktopBar { it.copy(glass = glass.name) } },
+                ) { glass -> rows.editDesktopBar { it.copy(glass = glass.name) } }.waitsOnDesktopBar(),
                 // Glass takes the place of wireframe and shadow; they keep
                 // their settings, out of sight, while it is on.
                 SettingItem.Toggle(
@@ -1189,20 +1189,20 @@ object SettingsCatalogue {
                     get = { SearchBarPrefs.desktopBar(it).wireframe },
                     set = { on -> rows.editDesktopBar { it.copy(wireframe = on) } },
                     subtitle = R.string.search_bar_wireframe_summary
-                ).hiddenWhen(desktopGlassHidden),
+                ).hiddenWhen(desktopGlassHidden).waitsOnDesktopBar(),
                 SettingItem.Toggle(
                     R.string.search_bar_shadow,
                     get = { SearchBarPrefs.desktopBar(it).shadow },
                     set = { on -> rows.editDesktopBar { it.copy(shadow = on) } }
-                ).hiddenWhen(desktopGlassHidden),
+                ).hiddenWhen(desktopGlassHidden).waitsOnDesktopBar(),
                 SettingItem.Toggle(
                     R.string.search_bar_hint_text,
                     get = { SearchBarPrefs.desktopBar(it).hint },
                     set = { on -> rows.editDesktopBar { it.copy(hint = on) } }
-                ),
+                ).waitsOnDesktopBar(),
                 SettingItem.Header(R.string.search_bar_chips)
                 // The same buttons as the drawer field's, in the same order.
-            ) + SearchBarButtons.ROWS.map(rows::barChip)
+            ) + SearchBarButtons.ROWS.map { rows.barChip(it).waitsOnDesktopBar() }
         ),
         // The drawer field's own page, opened from the App drawer page.
         SettingsSection(
@@ -1214,19 +1214,19 @@ object SettingsCatalogue {
                     R.string.drawer_search_global,
                     get = { SearchBarPrefs.drawerBar(it).globalOnTap },
                     set = { on -> rows.editDrawerBar { it.copy(globalOnTap = on) } }
-                ).hiddenWhen(drawerFieldHidden),
+                ).waitsOnDrawerField(),
                 SettingItem.Header(R.string.group_appearance),
                 rows.choice(
                     R.string.icon_glass, IconGlass.entries,
                     { IconGlass.fromName(SearchBarPrefs.drawerBar(it).glass) },
                     { EnumLabels.of(it) }
-                ) { glass -> rows.editDrawerBar { it.copy(glass = glass.name) } },
+                ) { glass -> rows.editDrawerBar { it.copy(glass = glass.name) } }.waitsOnDrawerField(),
                 // Glass takes the place of the filled box and the outline.
                 SettingItem.Toggle(
                     R.string.drawer_bar_filled,
                     get = { SearchBarPrefs.drawerBar(it).filled },
                     set = { on -> rows.editDrawerBar { it.copy(filled = on) } }
-                ).hiddenWhen(drawerGlassHidden),
+                ).hiddenWhen(drawerGlassHidden).waitsOnDrawerField(),
                 // An unset radius draws as the full pill, so it reads as one.
                 SettingItem.Slider(
                     R.string.style_corner_radius, min = 0, max = DrawerSearchBarConfig.MAX_RADIUS, step = 2,
@@ -1237,14 +1237,14 @@ object SettingsCatalogue {
                     set = { v -> rows.editDrawerBar { it.copy(radius = v) } },
                     display = { context.getString(R.string.padding_dp_value, it) },
                     preview = { p, v -> SearchBarPrefs.withDrawerBar(p) { it.copy(radius = v) } }
-                ),
+                ).waitsOnDrawerField(),
                 SettingItem.Toggle(
                     R.string.drawer_bar_hint_text,
                     get = { SearchBarPrefs.drawerBar(it).hint },
                     set = { on -> rows.editDrawerBar { it.copy(hint = on) } }
-                ),
+                ).waitsOnDrawerField(),
                 // The buttons inside the field, at its right end; gone with it.
-                SettingItem.Header(R.string.search_bar_chips, visibleIf = { SearchBarPrefs.drawerFieldShown(it) }),
+                SettingItem.Header(R.string.search_bar_chips),
             ) + SearchBarButtons.ROWS.map { drawerButton(viewModel, it) }
         ),
         // Feed: the page and how it opens, the search bar, then every card
@@ -2162,10 +2162,16 @@ private fun needsOff(@StringRes setting: Int, set: Boolean, @StringRes page: Int
 private fun dependsOn(@StringRes setting: Int, unmet: Boolean) =
     SettingItem.HiddenBy(setting, SettingItem.HiddenBy.Needs.OTHER).takeIf { unmet }
 
-// The drawer field's own rows go with the field.
-private val drawerFieldHidden: (LauncherPrefs) -> SettingItem.HiddenBy? = {
-    dependsOn(R.string.search_bar_placement, !SearchBarPrefs.drawerFieldShown(it))
+// A bar's own rows grey out while its placement is None, and a tap on one
+// leads to Placement (#323).
+private val drawerFieldOff: (LauncherPrefs) -> Boolean = { !SearchBarPrefs.drawerFieldShown(it) }
+private val desktopBarOff: (LauncherPrefs) -> Boolean = {
+    SearchBarPlacement.fromName(SearchBarPrefs.desktopBar(it).placement) == SearchBarPlacement.NONE
 }
+
+private fun SettingItem.waitsOnDrawerField() = waitsOn(R.string.search_bar_placement, drawerFieldOff)
+
+private fun SettingItem.waitsOnDesktopBar() = waitsOn(R.string.search_bar_placement, desktopBarOff)
 
 // One of the drawer field's buttons (drawerActionButtons), on and off. As on
 // the home bar, turning one on adds it after the others.
@@ -2186,7 +2192,7 @@ private fun drawerButton(viewModel: LauncherViewModel, button: SearchBarChip) = 
         val now = SearchBarButtons.decode(viewModel.state.value.prefs.drawerActionButtons)
         viewModel.set(Pref.drawerActionButtons, SearchBarButtons.encode(SearchBarButtons.toggled(now, button, on)))
     }
-).hiddenWhen(drawerFieldHidden)
+).waitsOnDrawerField()
 
 // The two bars' slices of the searchBarConfig JSON, for their pages' rows
 // and previews: read one, or a prefs snapshot with one changed.

@@ -31,6 +31,15 @@ sealed class SettingItem {
 
     fun blockedWhen(reason: (LauncherPrefs) -> Int?): SettingItem = apply { blockedBy = reason }
 
+    // The row on the same page this one waits on, or null while it works:
+    // it stays greyed with no reason line, and a tap scrolls to that row and
+    // flashes it (a search bar's rows while its Placement is None, #323).
+    var waitingOn: (LauncherPrefs) -> Int? = { null }
+        private set
+
+    fun waitsOn(@StringRes row: Int, waiting: (LauncherPrefs) -> Boolean): SettingItem =
+        apply { waitingOn = { prefs -> row.takeIf { waiting(prefs) } } }
+
     // The setting that hides the row while it is set one way, or null while
     // the row shows: the page leaves the row out, and the settings search
     // still lists it, says what brings it back and leads there (#133).

@@ -172,7 +172,13 @@ class SettingsPreviewView @JvmOverloads constructor(
             PreviewKind.DRAWER -> tickDrawer(prefs)
             PreviewKind.SEARCH -> tickSearch(prefs)
             PreviewKind.SEARCH_BAR -> searchBarSurface?.let { surface ->
-                searchBar?.apply(SearchBarConfig.decode(prefs.searchBarConfig).desktop, surface)
+                val config = SearchBarConfig.decode(prefs.searchBarConfig).desktop
+                // None leaves the strip empty, as the drawer's Hidden does.
+                searchBar?.visibility =
+                    if (com.supernova.launcher.ui.SearchBarPlacement.fromName(config.placement) ==
+                        com.supernova.launcher.ui.SearchBarPlacement.NONE
+                    ) INVISIBLE else VISIBLE
+                searchBar?.apply(config, surface)
             }
             PreviewKind.DRAWER_SEARCH_BAR -> styleDrawerField(prefs)
             null -> Unit
