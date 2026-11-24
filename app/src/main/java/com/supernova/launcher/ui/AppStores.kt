@@ -3,8 +3,8 @@ package com.supernova.launcher.ui
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.view.View
+import androidx.core.net.toUri
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.runLogged
 
@@ -19,7 +19,7 @@ object AppStores {
 
     fun installed(context: Context): List<Store> {
         val pm = context.packageManager
-        val probe = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}"))
+        val probe = Intent(Intent.ACTION_VIEW, "market://details?id=${context.packageName}".toUri())
         val packages = pm.queryIntentActivities(probe, PackageManager.MATCH_DEFAULT_ONLY)
             .map { it.activityInfo.packageName }
             .distinct()

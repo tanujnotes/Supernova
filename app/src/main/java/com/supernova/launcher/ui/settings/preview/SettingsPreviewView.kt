@@ -1,7 +1,6 @@
 package com.supernova.launcher.ui.settings.preview
 
 import android.content.Context
-import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
@@ -11,6 +10,7 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.graphics.drawable.toDrawable
 import com.supernova.launcher.R
 import com.supernova.launcher.data.ItemType
 import com.supernova.launcher.data.LaunchableApp
@@ -735,7 +735,7 @@ class SettingsPreviewView @JvmOverloads constructor(
     ): Pair<String, Drawable>? {
         if (own != null) {
             val (label, icon) = own[index] ?: (null to null)
-            return label.orEmpty() to (icon?.copied() ?: ColorDrawable(0))
+            return label.orEmpty() to (icon?.copied() ?: 0.toDrawable())
         }
         val apps = apps()
         return apps.getOrNull(index % apps.size.coerceAtLeast(1))?.let { (app, icon) -> app.label to icon.copied() }

@@ -6,6 +6,7 @@ import android.graphics.Paint
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.TextView
+import androidx.core.graphics.withTranslation
 import androidx.recyclerview.widget.RecyclerView
 import com.supernova.launcher.R
 
@@ -42,12 +43,10 @@ class StickyGroupLabels(context: Context, private val adapter: SettingsAdapter) 
             .filter { (at, _) -> at > position && adapter.isLabel(at) }
             .minOfOrNull { (_, child) -> child.top + child.translationY.toInt() }
         val shift = if (nextTop != null && nextTop < strip) nextTop - strip else 0
-        val save = canvas.save()
-        canvas.translate(0f, shift.toFloat())
-        canvas.drawRect(0f, 0f, parent.width.toFloat(), strip.toFloat(), stripPaint)
-        canvas.translate(gutter.toFloat(), topPad.toFloat())
-        view.draw(canvas)
-        canvas.restoreToCount(save)
+        canvas.withTranslation(0f, shift.toFloat()) {
+            drawRect(0f, 0f, parent.width.toFloat(), strip.toFloat(), stripPaint)
+            withTranslation(gutter.toFloat(), topPad.toFloat()) { view.draw(this) }
+        }
     }
 
     // The list's laid-out rows with their adapter positions.

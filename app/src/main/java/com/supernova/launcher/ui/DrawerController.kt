@@ -322,6 +322,9 @@ class DrawerController(
     // finger (the full-screen drag layer sits above it), so a swipe down on
     // the pages left the drawer open. Once a drag reads as down, the page
     // hands it to the sheet as a close pull (beginClosePull).
+    // Lint can't follow the tracker into finish(), which recycles it on
+    // every lift and cancel.
+    @android.annotation.SuppressLint("Recycle")
     private fun newPageSwipeClose(): RecyclerView.OnItemTouchListener {
         // Under the list's own slop: the page grid reports a vertical scroll
         // even with nothing to scroll, and at its slop it takes the stream.
