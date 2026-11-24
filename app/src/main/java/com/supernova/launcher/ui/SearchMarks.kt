@@ -70,7 +70,8 @@ object SearchMarks {
         renderer: IconRenderer,
         accentColor: Int
     ): Drawable {
-        val key = "${chip.name}|${renderer.iconSizePx}|${renderer.shadow}|${renderer.glass}|${renderer.reshapeLegacy}"
+        val key = "${chip.name}|${renderer.iconSizePx}|${renderer.shadow}|${renderer.glass}|" +
+            "${renderer.reshapeLegacy}|${renderer.normalizeSize}"
         val known = synchronized(rendered) { key in rendered }
         val installed = if (known) {
             synchronized(rendered) { rendered[key] }?.newDrawable(context.resources)

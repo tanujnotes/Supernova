@@ -1016,6 +1016,13 @@ class LauncherActivity :
             this, dateChangeReceiver, filter, androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
         )
         if (java.time.LocalDate.now() != iconsDrawnFor) redrawForNewDay()
+        // A listener with access but no connection a while after start is
+        // one the system dropped: no badge would ever come (#344).
+        if (viewModel.state.value.prefs.badges) {
+            binding.root.postDelayed({
+                SupernovaNotificationListener.rebindIfDropped(applicationContext)
+            }, LISTENER_REBIND_CHECK_MS)
+        }
     }
 
     override fun onStop() {
@@ -1617,6 +1624,7 @@ class LauncherActivity :
         // the drawer's keyboard setting. The bar's search chip and the
         // gestures still reach the global overlay.
         binding.desktopSearchBar.onTap = { openDrawer(forSearch = true) }
+        binding.desktopSearchBar.prefs = { viewModel.state.value.prefs }
         binding.desktopSearchBar.onLongPress = { anchor -> showSearchBarMenu(anchor) }
     }
 
@@ -3359,7 +3367,7 @@ class LauncherActivity :
         // shortcut instead, as a home icon's menu does, and the card or
         // search window it came from closes as after
         // any launch from them.
-        shortcutsFor(app.packageName, app.userSerial).take(4).forEach { shortcut ->
+        viewModel.appCatalog().appShortcuts(app.packageName, app.userSerial).take(4).forEach { shortcut ->
             menu.addShortcut(
                 shortcut.shortLabel ?: shortcut.longLabel ?: shortcut.id,
                 shortcutIcon(shortcut),
@@ -3624,7 +3632,7 @@ class LauncherActivity :
                 addExportPngRow(menu, anchor, item.label)
                 // Workspace semantics: tapping a shortcut launches it.
                 item.packageName?.let { pkg ->
-                    shortcutsFor(pkg, item.userSerial).take(4).forEach { shortcut ->
+                    viewModel.appCatalog().appShortcuts(pkg, item.userSerial).take(4).forEach { shortcut ->
                         menu.addShortcut(
                             shortcut.shortLabel ?: shortcut.longLabel ?: shortcut.id,
                             shortcutIcon(shortcut),
@@ -3738,6 +3746,14 @@ class LauncherActivity :
         } else {
             emptyList()
         }
+        // An app out of a two-app folder leaves the other in the folder's
+        // place (#345): Undo puts the whole folder back, name and icon too.
+        val dissolved = item.folderId?.takeIf { item.container == ContainerType.FOLDER }
+            ?.let { folderId ->
+                val folderMembers = viewModel.folderMembers(folderId)
+                val folder = viewModel.state.value.model.items.firstOrNull { it.id == folderId }
+                if (folder != null && folderMembers.size == 2) listOf(folder) + folderMembers else null
+            }
         viewModel.removeItem(item.id)
         if (!viewModel.state.value.prefs.undoRemove) {
             if (widget) widgets.releaseWidget(item)
@@ -3749,8 +3765,12 @@ class LauncherActivity :
             .make(host, R.string.item_removed, UNDO_DURATION_MS)
             .setAction(R.string.undo) {
                 val before = viewModel.state.value.model
-                viewModel.restoreItems(listOf(item) + members)
-                onUndo?.invoke(before)
+                if (dissolved != null) {
+                    viewModel.restoreFolder(dissolved)
+                } else {
+                    viewModel.restoreItems(listOf(item) + members)
+                    onUndo?.invoke(before)
+                }
             }
         if (host === binding.root && binding.dockBar.visibility == View.VISIBLE) {
             snackbar.anchorView = binding.dockBar
@@ -4080,12 +4100,16 @@ class LauncherActivity :
         if (!locked) {
             menu.addRow(getString(R.string.remove), R.drawable.ic_menu_remove_item) {
                 val before = viewModel.state.value.model
-                // The folder's last app takes the folder with it.
-                val last = viewModel.folderMembers(folder.id).size <= 1
+                // The folder's last app takes the folder with it, and one of
+                // two leaves the other in its place (#345).
+                val left = viewModel.folderMembers(folder.id).size
                 // A member's Undo bar shows in the folder's own window, as
-                // Sort's does; the last one closes the folder with it.
-                if (last) {
+                // Sort's does; when the folder goes, the folder closes and
+                // the bar shows on the home screen.
+                if (left <= 1) {
                     removeItemWithUndo(folder)
+                } else if (left == 2) {
+                    removeItemWithUndo(member)
                 } else {
                     removeItemWithUndo(member, memberView, applied)
                 }
@@ -4121,7 +4145,7 @@ class LauncherActivity :
         }
         addExportPngRow(menu, memberView, member.label)
         member.packageName?.let { pkg ->
-            shortcutsFor(pkg, member.userSerial).take(4).forEach { shortcut ->
+            viewModel.appCatalog().appShortcuts(pkg, member.userSerial).take(4).forEach { shortcut ->
                 // Held, a row drags out onto the home screen or the dock, as
                 // from a home icon's menu; the card closes as the drag starts.
                 menu.addShortcut(
@@ -5247,7 +5271,14 @@ class LauncherActivity :
 
     override fun onSearchBarWidgetLongPress(anchor: View) = showSearchBarMenu(anchor)
 
-    override fun onPageBound(canvas: ViewGroup) = widgets.onPageBound(canvas)
+    override fun onPageBound(canvas: ViewGroup) {
+        // In edit mode icons, folders and widgets neither launch, open nor
+        // scroll: a tap anywhere on a page closes edit mode, a long-press
+        // lifts the page (#348).
+        (canvas as? com.supernova.launcher.ui.WorkspaceCanvas)?.itemsInert =
+            { ::editMode.isInitialized && editMode.isOpen }
+        widgets.onPageBound(canvas)
+    }
 
     override fun reportWidgetSize(item: LauncherItem, view: View) = widgets.reportWidgetSize(item, view)
 
@@ -5262,6 +5293,8 @@ class LauncherActivity :
     }
 
     companion object {
+        private const val LISTENER_REBIND_CHECK_MS = 5000L
+
         // Every live launcher activity, for closeOtherLaunchers. Main thread
         // only.
         private val liveLaunchers = mutableListOf<java.lang.ref.WeakReference<LauncherActivity>>()

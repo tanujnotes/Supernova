@@ -10,7 +10,9 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.graphics.drawable.toDrawable
 import com.supernova.launcher.R
+import com.supernova.launcher.data.ItemType
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.ui.BadgeLook
@@ -56,7 +58,17 @@ class SettingsPreviewView @JvmOverloads constructor(
     // so the pinned card shows that one colour rather than a strip of it on
     // the card's (SettingsActivity sizes the card around them).
     val fillsPane: Boolean
-        get() = kind == PreviewKind.DRAWER || kind == PreviewKind.DRAWER_SEARCH_BAR || kind == PreviewKind.DOCK
+        get() = kind == PreviewKind.DRAWER || kind == PreviewKind.DRAWER_SEARCH_BAR || kind == PreviewKind.DOCK ||
+            (kind == PreviewKind.SEARCH && searchFillsScreen)
+
+    // The full-screen search window, which paints the whole card rather
+    // than sitting in it with a band of the card above and below (#334).
+    private var searchFillsScreen = false
+
+    // The dock's card is as tall as the dock and a strip of wallpaper above
+    // it, not the card's usual minimum, which left most of it empty (#334).
+    val keepsPaneHeight: Boolean
+        get() = fillsPane && kind != PreviewKind.DOCK
 
     private val iconViews = mutableListOf<PreviewIcon>()
     // The drawer's and the dock's icon size bars tick this view as they move
@@ -86,6 +98,10 @@ class SettingsPreviewView @JvmOverloads constructor(
     // App drawer preview: the grid row or list rows the padding bars move,
     // and the list's icons, which have a box of their own.
     private var drawerItems: View? = null
+    // The drawer's tab bar, null without one, and whether it sits below the
+    // list: the vertical padding goes outside it (applyDrawerPadding).
+    private var drawerTabsView: View? = null
+    private var drawerTabsBelow = false
     private val listIconViews = mutableListOf<PreviewIcon>()
     // Home strip: the row its padding bar insets.
     private var homeRow: View? = null
@@ -124,6 +140,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         folderCardBg = null
         folderTitleView = null
         searchRows.clear()
+        searchFillsScreen = false
         searchAppsSecondRow = null
         searchBar = null
         searchBarSurface = null
@@ -131,6 +148,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         drawerFieldPill = null
         drawerFieldIcon = null
         drawerItems = null
+        drawerTabsView = null
         listIconViews.clear()
         homeRow = null
         dockSquareBottom = false
@@ -172,7 +190,13 @@ class SettingsPreviewView @JvmOverloads constructor(
             PreviewKind.DRAWER -> tickDrawer(prefs)
             PreviewKind.SEARCH -> tickSearch(prefs)
             PreviewKind.SEARCH_BAR -> searchBarSurface?.let { surface ->
-                searchBar?.apply(SearchBarConfig.decode(prefs.searchBarConfig).desktop, surface)
+                val config = SearchBarConfig.decode(prefs.searchBarConfig).desktop
+                // None leaves the strip empty, as the drawer's Hidden does.
+                searchBar?.visibility =
+                    if (com.supernova.launcher.ui.SearchBarPlacement.fromName(config.placement) ==
+                        com.supernova.launcher.ui.SearchBarPlacement.NONE
+                    ) INVISIBLE else VISIBLE
+                searchBar?.apply(config, surface)
             }
             PreviewKind.DRAWER_SEARCH_BAR -> styleDrawerField(prefs)
             null -> Unit
@@ -225,7 +249,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         if (fit >= 1f) return
         for (label in labelViews) {
             label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, label.textSize * fit)
-            label.maxLines = 1
+            LabelStyler.capLines(label, 1)
         }
     }
 
@@ -248,11 +272,28 @@ class SettingsPreviewView @JvmOverloads constructor(
         if (!keepsLargestIconRoom) return
         // The tallest icon sets the strip's height. Slots split the width
         // unevenly by a pixel, so boxes held inside them can differ by one.
-        val side = iconViews.filter { it.isShown }.maxOfOrNull { it.measuredHeight } ?: return
-        val growth = ((dp(ICON_BASE_DP) * MAX_ICON_SCALE).toInt() - side).coerceAtLeast(0)
+        val shown = iconViews.filter { it.isShown }
+        val side = shown.maxOfOrNull { it.measuredHeight } ?: return
+        // The dock and the drawer are drawn at the screen's width and shrunk
+        // into the card, so the room their icons may still take shrinks
+        // too; unscaled, a bigger icon made the whole card shorter (#334).
+        val shrink = shown.firstOrNull()?.let(::drawnScale) ?: 1f
+        val growth = (((dp(ICON_BASE_DP) * MAX_ICON_SCALE).toInt() - side) * shrink).toInt().coerceAtLeast(0)
         if (growth > 0) {
             setMeasuredDimension(measuredWidth, resolveSize(measuredHeight + growth, heightMeasureSpec))
         }
+    }
+
+    // How much a view is shrunk on screen by the frames between it and
+    // this preview.
+    private fun drawnScale(view: View): Float {
+        var scale = 1f
+        var current: View? = view
+        while (current != null && current !== this) {
+            scale *= current.scaleY
+            current = current.parent as? View
+        }
+        return scale
     }
 
     // Previews sit on the settings surface, so by default a label's color
@@ -282,8 +323,9 @@ class SettingsPreviewView @JvmOverloads constructor(
             slot.visibility = if (index < prefs.dockCount) VISIBLE else GONE
         }
         sizeIcons(if (prefs.dockMatchDesktop) prefs.iconScale else prefs.dockIconScale)
-        // The dock's own switch alone, as on the real dock.
-        styleLabels(prefs, visible = prefs.dockLabels, context = LabelContext.DOCK)
+        // The dock's own switch alone, as on the real dock, and its colour:
+        // the background's text, else the wallpaper's light default.
+        styleLabels(prefs, visible = prefs.dockLabels, onWallpaper = true, context = LabelContext.DOCK)
     }
 
     private fun roundDock(radius: Float) {
@@ -665,12 +707,13 @@ class SettingsPreviewView @JvmOverloads constructor(
         // Every slot the dock can have, Big grid's included; binding shows
         // dockCount of them.
         val slots = com.supernova.launcher.data.GridLimits.DOCK_BIG
-        val apps = sampleApps(viewModel, slots)
+        val own = ownDock(prefs, viewModel)
+        val apps by lazy { sampleApps(viewModel, slots) }
         repeat(slots) { index ->
-            val (app, icon) = apps.getOrNull(index % apps.size.coerceAtLeast(1)) ?: return@repeat
+            val (label, icon) = dockSlot(index, own) { apps } ?: return@repeat
             // A dock item's own padding, which its box stays inside, so a
             // big icon stops growing where the dock's does.
-            val column = iconColumn(icon.copied(), app.label, keepInsideSlot = true)
+            val column = iconColumn(icon, label, keepInsideSlot = true)
             val padV = dp(DOCK_SLOT_PADDING_V_DP + DOCK_ITEM_PADDING_V_DP)
             column.setPadding(dp(DOCK_ITEM_PADDING_H_DP), padV, dp(DOCK_ITEM_PADDING_H_DP), padV)
             slotViews += column
@@ -683,6 +726,43 @@ class SettingsPreviewView @JvmOverloads constructor(
         })
     }
 
+    // The dock's own first page when it has anything on it, an empty slot
+    // where it has a gap; sample apps on an empty dock.
+    private fun dockSlot(
+        index: Int,
+        own: Map<Int, Pair<String?, Drawable?>>?,
+        apps: () -> List<Pair<LaunchableApp, Drawable>>
+    ): Pair<String, Drawable>? {
+        if (own != null) {
+            val (label, icon) = own[index] ?: (null to null)
+            return label.orEmpty() to (icon?.copied() ?: 0.toDrawable())
+        }
+        val apps = apps()
+        return apps.getOrNull(index % apps.size.coerceAtLeast(1))?.let { (app, icon) -> app.label to icon.copied() }
+    }
+
+    // The first dock page's items by slot, drawn as the dock draws them;
+    // null when it is empty.
+    private fun ownDock(prefs: LauncherPrefs, viewModel: LauncherViewModel): Map<Int, Pair<String?, Drawable?>>? {
+        val count = prefs.dockCount
+        val items = viewModel.dockItems().filter { it.rank in 0 until count && it.itemType != ItemType.WIDGET }
+        if (items.isEmpty()) return null
+        val catalog = viewModel.appCatalog()
+        val icons = com.supernova.launcher.ui.ItemIcons(context, viewModel)
+        val apps = viewModel.state.value.apps
+        return items.associate { item ->
+            val app = apps.firstOrNull {
+                it.packageName == item.packageName && it.className == item.className && it.userSerial == item.userSerial
+            }
+            val icon = when (item.itemType) {
+                ItemType.FOLDER -> icons.folderPreviewDrawable(item)
+                ItemType.SHORTCUT -> icons.intentItemIcon(item) ?: app?.let { catalog.iconFor(it) }
+                else -> app?.let { catalog.iconFor(it, viewModel.overrideFor(item)) }
+            }
+            item.rank to ((item.label.ifEmpty { app?.label.orEmpty() }) to icon)
+        }
+    }
+
     // The dock at the screen's width, shrunk into the card at its foot.
     private fun addDockContent(bar: View, side: Int, bottom: Int) {
         val content = LinearLayout(context).apply {
@@ -691,6 +771,7 @@ class SettingsPreviewView @JvmOverloads constructor(
             minimumWidth = resources.displayMetrics.widthPixels
         }
         content.addView(bar, matchWidth().apply {
+            topMargin = dp(DOCK_WALLPAPER_ABOVE_DP)
             leftMargin = side
             rightMargin = side
             bottomMargin = bottom
@@ -828,7 +909,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         )
         val cell = com.supernova.launcher.ui.FolderPopup.gridWidthPx(context, columns, scale) / columns
         folderColumnCount = columns
-        val apps = sampleApps(viewModel, columns * 2)
+        val apps = sampleApps(viewModel, columns)
         repeat(2) { rowIndex ->
             val cells = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -904,13 +985,18 @@ class SettingsPreviewView @JvmOverloads constructor(
     // Search demo: the window as it opens, with a stock query and
     // the result kinds each provider toggle contributes.
     private fun buildSearch(prefs: LauncherPrefs, viewModel: LauncherViewModel) {
-        val resolved = Styles.resolve(context, prefs).of(SurfaceId.SEARCH_BAR)
+        // As SearchController styles the window: the drawer's surface under
+        // the results, the search bar's on the pill (#334).
+        val styles = Styles.resolve(context, prefs)
+        val resolved = styles.of(SurfaceId.DRAWER)
+        val bar = styles.of(SurfaceId.SEARCH_BAR)
         surfaceRgb = resolved.surface and 0xFFFFFF
-        styleAlpha = StyleConfig.decode(prefs.styleConfig).styleFor(SurfaceId.SEARCH_BAR).alpha
+        styleAlpha = StyleConfig.decode(prefs.styleConfig).styleFor(SurfaceId.DRAWER).alpha
         val density = resources.displayMetrics.density
         // WINDOW floats an inset rounded card; IMMERSIVE fills the screen. Same
         // split the real overlay makes.
         val windowMode = prefs.searchWindowMode == com.supernova.launcher.data.SearchWindowMode.WINDOW
+        searchFillsScreen = !windowMode
 
         val panel = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -922,7 +1008,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         }
         surfaceBg = panel.background
 
-        panel.addView(searchField(prefs, resolved))
+        panel.addView(searchField(prefs, bar))
         panel.addView(searchAppResults(viewModel))
         searchRows["calc"] = searchResultRow(
             resolved, R.drawable.ic_menu_info, context.getString(R.string.search_demo_calc)
@@ -953,15 +1039,27 @@ class SettingsPreviewView @JvmOverloads constructor(
         )
         searchMarks(prefs, resolved)?.let { panel.addView(it, matchWidth()) }
 
+        addSearchStage(panel, windowMode)
+    }
+
+    // A window floats inset over the wallpaper; full screen runs edge to
+    // edge, the preview itself wearing the surface so it fills the card at
+    // any height.
+    private fun addSearchStage(panel: View, windowMode: Boolean) {
         val stage = FrameLayout(context)
+        val inset = if (windowMode) dp(8) else 0
+        val side = if (windowMode) dp(14) else 0
         stage.addView(
             panel,
             LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                val side = if (windowMode) dp(14) else 0
-                setMargins(side, if (windowMode) dp(8) else 0, side, if (windowMode) dp(8) else 0)
+                setMargins(side, inset, side, inset)
             }
         )
-        addView(stage, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        if (!windowMode) {
+            background = panel.background
+            panel.background = null
+        }
+        addView(stage, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL))
     }
 
     // One of the feed's own cards, when there is one to find.
@@ -992,14 +1090,22 @@ class SettingsPreviewView @JvmOverloads constructor(
             gravity = Gravity.CENTER_VERTICAL
             val pad = dp(8)
             setPadding(pad, pad, pad, pad)
+            // The window's pill: the desktop bar's radius, opacity and
+            // outline (SearchController.windowBarBackground).
+            val config = SearchBarConfig.decode(prefs.searchBarConfig).desktop
+            val alpha = (config.alpha.coerceIn(0f, 1f) * OPAQUE).toInt()
             background = GradientDrawable().apply {
-                cornerRadius = dp(24).toFloat()
-                setColor((0x24 shl 24) or (resolved.text and 0xFFFFFF))
+                cornerRadius = dp(config.radius.coerceIn(0, MAX_PILL_RADIUS_DP)).toFloat()
+                if (config.wireframe) {
+                    setStroke(dp(2), (alpha shl 24) or (resolved.text and 0xFFFFFF))
+                } else {
+                    setColor((alpha shl 24) or (resolved.surface and 0xFFFFFF))
+                }
             }
         }
         val icon = ImageView(context).apply {
             setImageResource(R.drawable.ic_search)
-            imageTintList = android.content.res.ColorStateList.valueOf(resolved.accent)
+            imageTintList = android.content.res.ColorStateList.valueOf(SearchBarButtons.iconTint(resolved.text))
         }
         row.addView(icon, LinearLayout.LayoutParams(dp(20), dp(20)).apply { marginEnd = dp(8) })
         val text = TextView(context).apply {
@@ -1138,7 +1244,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         val list = prefs.drawerStyle == com.supernova.launcher.ui.DrawerStyle.VERTICAL_LIST
         val scale = if (prefs.drawerMatchDesktop) prefs.iconScale else prefs.drawerIconScale
         val columns = drawerColumns(prefs, scale)
-        val apps = sampleApps(viewModel, columns * 2)
+        val apps = sampleApps(viewModel, columns)
         val items = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             clipChildren = false
@@ -1151,16 +1257,18 @@ class SettingsPreviewView @JvmOverloads constructor(
         } else {
             val row = newRow()
             apps.take(columns).forEach { (app, icon) ->
-                row.addView(iconColumn(icon, app.label, keepInsideSlot = true), slotParams())
+                // The drawer's labels wrap to two lines (item_drawer_app.xml)
+                // unless Single-line labels is on (#326).
+                row.addView(iconColumn(icon, app.label, labelLines = 2, keepInsideSlot = true), slotParams())
             }
             items.addView(row, matchWidth())
         }
-        applyDrawerPadding(prefs)
         val listFrame = drawerListFrame(prefs, resolved, items)
 
         // Top to bottom as DrawerController stacks the sheet: the search row
-        // and the tabs at whichever end they are set to, the top row and its
-        // rule with the sort button over the list.
+        // and the tabs at whichever end they are set to, the sort button over
+        // the list. One row of icons only: the top row stays out (it would be
+        // a second row of the same icons).
         val placement = com.supernova.launcher.ui.DrawerBarPlacement.fromConfig(
             SearchBarConfig.decode(prefs.searchBarConfig).drawer
         )
@@ -1169,18 +1277,19 @@ class SettingsPreviewView @JvmOverloads constructor(
             .takeIf { placement != com.supernova.launcher.ui.DrawerBarPlacement.HIDDEN }
         val tabs = drawerTabs(prefs, viewModel, resolved)
         val tabsBottom = prefs.drawerTabBar == com.supernova.launcher.ui.DrawerTabBar.BOTTOM
-        val topRow = drawerTopRow(prefs, apps.drop(columns).ifEmpty { apps }, columns)
-        val sortBar = drawerSortBar(prefs, resolved, rule = topRow != null)
+        drawerTabsView = tabs
+        drawerTabsBelow = tabsBottom
+        val sortBar = drawerSortBar(prefs, resolved)
         val parts = listOfNotNull(
             searchRow.takeIf { searchTop },
             tabs.takeIf { !tabsBottom },
-            topRow,
             sortBar,
             listFrame,
             tabs.takeIf { tabsBottom },
             searchRow.takeIf { !searchTop }
         )
         parts.forEach { content.addView(it, matchWidth()) }
+        applyDrawerPadding(prefs)
         addView(
             FitWidthFrame(context, keepsHeight = false).apply { addView(content) },
             LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL)
@@ -1299,58 +1408,26 @@ class SettingsPreviewView @JvmOverloads constructor(
     // The top row of apps over the list (FrequentAppsRowView), at the
     // grid's columns, pulled in by the drawer's side padding as the grid is;
     // null with the row off.
-    private fun drawerTopRow(
-        prefs: LauncherPrefs,
-        apps: List<Pair<LaunchableApp, Drawable>>,
-        columns: Int
-    ): View? {
-        if (!prefs.drawerFrequentRow) return null
-        val row = newRow()
-        val side = dp(prefs.drawerPaddingH)
-        row.setPadding(side, 0, side, 0)
-        apps.take(columns).forEach { (app, icon) ->
-            row.addView(iconColumn(icon.copied(), app.label, keepInsideSlot = true), slotParams())
-        }
-        return row
-    }
-
-    // The strip over the list (DrawerSortBars): the rule under the top row
-    // and the sort button at its end, or nothing when neither shows.
+    // The strip over the list (DrawerSortBars): the sort button at its end,
+    // or nothing when it is off.
     private fun drawerSortBar(
         prefs: LauncherPrefs,
-        resolved: com.supernova.launcher.ui.theme.ResolvedSurface,
-        rule: Boolean
+        resolved: com.supernova.launcher.ui.theme.ResolvedSurface
     ): View? {
-        if (!rule && !prefs.drawerSortButtons) return null
+        if (!prefs.drawerSortButtons) return null
         val bar = FrameLayout(context)
-        if (rule) {
-            bar.addView(
-                View(context).apply {
-                    background = GradientDrawable().apply {
-                        cornerRadius = dp(1).toFloat()
-                        setColor((DRAWER_RULE_ALPHA shl 24) or (resolved.text and 0xFFFFFF))
-                    }
-                },
-                LayoutParams(dp(DRAWER_RULE_WIDTH_DP), dp(2), Gravity.CENTER).apply {
-                    topMargin = dp(DRAWER_RULE_MARGIN_DP)
-                    bottomMargin = dp(DRAWER_RULE_MARGIN_DP)
-                }
-            )
-        }
-        if (prefs.drawerSortButtons) {
-            bar.addView(
-                ImageView(context).apply {
-                    setImageResource(R.drawable.glyph_sort)
-                    scaleType = ImageView.ScaleType.CENTER
-                    imageTintList = android.content.res.ColorStateList.valueOf(
-                        androidx.core.graphics.ColorUtils.setAlphaComponent(resolved.text, TAB_TEXT_ALPHA)
-                    )
-                },
-                LayoutParams(
-                    dp(DRAWER_SORT_BUTTON_DP), dp(DRAWER_SORT_BUTTON_DP), Gravity.END or Gravity.CENTER_VERTICAL
-                ).apply { marginEnd = dp(1) }
-            )
-        }
+        bar.addView(
+            ImageView(context).apply {
+                setImageResource(R.drawable.glyph_sort)
+                scaleType = ImageView.ScaleType.CENTER
+                imageTintList = android.content.res.ColorStateList.valueOf(
+                    androidx.core.graphics.ColorUtils.setAlphaComponent(resolved.text, TAB_TEXT_ALPHA)
+                )
+            },
+            LayoutParams(
+                dp(DRAWER_SORT_BUTTON_DP), dp(DRAWER_SORT_BUTTON_DP), Gravity.END or Gravity.CENTER_VERTICAL
+            ).apply { marginEnd = dp(1) }
+        )
         return bar
     }
 
@@ -1358,11 +1435,21 @@ class SettingsPreviewView @JvmOverloads constructor(
         LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
 
     // The drawer's padding settings: the sides pull the columns in, the
-    // top and bottom hold the rows off the field (DrawerController).
+    // top and bottom hold the rows off the field (DrawerController). A tab
+    // bar moves in with the rows: the gap goes outside it, and the rows drop
+    // theirs on that side (#353).
     private fun applyDrawerPadding(prefs: LauncherPrefs) {
         val side = dp(prefs.drawerPaddingH)
         val end = dp(prefs.drawerPaddingV)
-        drawerItems?.setPadding(side, end, side, end + dp(DRAWER_ROW_GAP_DP))
+        val tabs = drawerTabsView
+        val top = if (tabs != null && !drawerTabsBelow) 0 else end
+        val bottom = if (tabs != null && drawerTabsBelow) 0 else end
+        drawerItems?.setPadding(side, top, side, bottom + dp(DRAWER_ROW_GAP_DP))
+        (tabs?.layoutParams as? MarginLayoutParams)?.let { lp ->
+            lp.topMargin = if (drawerTabsBelow) 0 else end
+            lp.bottomMargin = if (drawerTabsBelow) end else 0
+            tabs.layoutParams = lp
+        }
     }
 
     // The drawer's own column count: the one set, or as many automatic
@@ -1415,9 +1502,12 @@ class SettingsPreviewView @JvmOverloads constructor(
     private fun Drawable.copied(): Drawable =
         constantState?.newDrawable(resources)?.mutate() ?: this
 
+    // Icons share the row's top and a two-line label hangs below its icon,
+    // as on the surfaces themselves (#346); centred, a one-line label's
+    // icon sat lower than its two-line neighbour's.
     private fun newRow(): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL
-        gravity = Gravity.CENTER
+        gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
         clipChildren = false
     }
 
@@ -1613,9 +1703,6 @@ class SettingsPreviewView @JvmOverloads constructor(
         const val TAB_BUBBLE_RADIUS_DP = 100
         const val TAB_BUBBLE_INSET_DP = 6
         const val TAB_BUBBLE_ALPHA = 0x3D
-        const val DRAWER_RULE_ALPHA = 0x33
-        const val DRAWER_RULE_WIDTH_DP = 72
-        const val DRAWER_RULE_MARGIN_DP = 10
         const val DRAWER_SORT_BUTTON_DP = 48
         const val FAST_SCROLL_TRACK_ALPHA = 30
         const val FAST_SCROLL_WIDTH_DP = 32
@@ -1644,6 +1731,9 @@ class SettingsPreviewView @JvmOverloads constructor(
         // The Home strip's height and the range of
         // desktop columns it mirrors, one icon per column.
         const val HOME_HEIGHT_DP = 144
+        const val DOCK_WALLPAPER_ABOVE_DP = 12
+        const val OPAQUE = 255
+        const val MAX_PILL_RADIUS_DP = com.supernova.launcher.ui.DesktopSearchBarConfig.MAX_RADIUS
         const val HOME_MIN_COLS = 3
         const val HOME_MAX_COLS = 7
         // A desktop icon's padding (item_icon.xml).

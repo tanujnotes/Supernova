@@ -1429,7 +1429,7 @@ class LiveDragController(
         val centerX = cells?.let { (it.left + it.right) / 2f / prefs.gridCols } ?: p[2]
         val centerY = cells?.let { (it.top + it.bottom) / 2f / prefs.gridRows } ?: p[3]
         val left = iconOrigin(centerX, canvas.width, item.width) + item.iconLeft
-        val top = iconOrigin(centerY, canvas.height, item.height) + item.iconTop
+        val top = iconOrigin(centerY, canvas.height, item.height, item.anchor) + item.iconTop
         return RectF(left.toFloat(), top.toFloat(), (left + box).toFloat(), (top + box).toFloat())
     }
 
@@ -1442,7 +1442,15 @@ class LiveDragController(
     }
 
     // A desktop item's size, and where its icon box sits inside it.
-    private class ItemFrame(val width: Int, val height: Int, val iconLeft: Int, val iconTop: Int)
+    // `anchor`: the part centred on the point, as the canvas centres it
+    // (iconAnchorHeight).
+    private class ItemFrame(
+        val width: Int,
+        val height: Int,
+        val iconLeft: Int,
+        val iconTop: Int,
+        val anchor: Int = height
+    )
 
     // The frame of the item a drop is about to lay out. An item moved on the
     // desktop brings its own view, laid out as the drop will lay it out
@@ -1453,7 +1461,11 @@ class LiveDragController(
     private fun desktopItemFrame(prefs: LauncherPrefs, box: Int, fit: Float): ItemFrame {
         val source = dragSourceView?.takeIf { it.parent is WorkspaceCanvas && it.height > 0 }
         val icon = source?.findViewById<View>(R.id.icon)
-        if (source != null && icon != null) return ItemFrame(source.width, source.height, icon.left, icon.top)
+        if (source != null && icon != null) {
+            return ItemFrame(
+                source.width, source.height, icon.left, icon.top, iconAnchorHeight(source, source.height)
+            )
+        }
         val pad = (context.dp(ICON_ITEM_PADDING_DP) * fit).roundToInt()
         val labelLift = if (prefs.showLabels) (context.dp(8) * fit).roundToInt() else 0
         val content = max(box, (host.desktopIconBasePx() * fit).roundToInt())

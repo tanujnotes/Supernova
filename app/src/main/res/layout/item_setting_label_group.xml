@@ -84,7 +84,6 @@
         android:id="@+id/labelBody"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/settingsBand"
         android:orientation="vertical"
         android:paddingVertical="@dimen/space_xs"
         android:visibility="gone">

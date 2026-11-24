@@ -20,7 +20,9 @@ import java.util.concurrent.Executors
 //
 // One folder per icon configuration (`signature`: shape, pack, shadow, glass,
 // resolution and the rest); a new configuration starts an empty folder and
-// the old ones are deleted. Each file is one cache key, headed by `stamp`:
+// the older ones are deleted, all but the one before it: a day/night icon
+// pack's dark and light icons are two configurations, and the launcher turns
+// dark and light every day (#288). Each file is one cache key, headed by `stamp`:
 // what the icon was drawn from (the app's installed package, its edit). A
 // stamp that no longer matches is a miss, and the next render overwrites it.
 class IconDiskCache(context: Context) {
@@ -80,10 +82,15 @@ class IconDiskCache(context: Context) {
         val folder = File(root, hash(signature))
         if (current != folder) {
             current = folder
-            // Icons drawn for a configuration no longer in use go.
+            // Icons drawn for a configuration no longer in use go, all but
+            // the last one used before this, to switch back to. A folder's
+            // time is when it was last switched to or written into.
             writer.execute {
                 runLogged("prune cached icons") {
-                    root.listFiles()?.filter { it != folder }?.forEach { it.deleteRecursively() }
+                    folder.mkdirs()
+                    folder.setLastModified(System.currentTimeMillis())
+                    root.listFiles()?.filter { it != folder }?.sortedByDescending { it.lastModified() }
+                        ?.drop(1)?.forEach { it.deleteRecursively() }
                 }
             }
         }

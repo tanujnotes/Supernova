@@ -32,7 +32,7 @@ object SuggestedShortcuts {
         return buildList {
             for (app in topApps) {
                 if (size >= max) break
-                catalog.shortcutsFor(app.packageName, app.userSerial).take(2).forEach { shortcut ->
+                catalog.appShortcuts(app.packageName, app.userSerial).take(2).forEach { shortcut ->
                     if (size < max) {
                         add(
                             Pill(

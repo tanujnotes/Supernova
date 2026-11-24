@@ -21,6 +21,16 @@ class IconOriginTest {
         assertEquals(800, iconOrigin(1.5f, 1000, 200))
     }
 
+    // A two-line label hangs below: the item centres on its icon and first
+    // line, so its top matches a one-line neighbour's (#346).
+    @Test
+    fun extraLabelLinesHangBelow() {
+        val oneLine = iconOrigin(0.5f, 1000, 200)
+        assertEquals(oneLine, iconOrigin(0.5f, 1000, 240, anchor = 200))
+        // Still kept inside the canvas by its full height.
+        assertEquals(760, iconOrigin(1f, 1000, 240, anchor = 200))
+    }
+
     // An icon bigger than the canvas pins to the origin rather than going
     // negative.
     @Test

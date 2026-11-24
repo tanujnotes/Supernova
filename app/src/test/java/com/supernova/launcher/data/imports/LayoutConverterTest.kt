@@ -261,4 +261,42 @@ class LayoutConverterTest {
         val result = convert(listOf(app(1, "com.a/.A")), ForeignGrid(drawerCols = 6, drawerRows = 7), base)
         assertEquals(base.copy(drawerColumns = 6, drawerRows = 7), result.prefs)
     }
+
+    @Test
+    fun drawerFoldersOnHomeAndInTheDockBecomeFoldersOfTheirApps() {
+        val group = ForeignGroup(
+            id = 5, title = "Work", folder = true, order = 0,
+            apps = listOf(ForeignApp("com.b", "com.b.B"), ForeignApp("com.a", null, userSerial = 10)),
+            icon = ByteArray(3)
+        )
+        // Kept as folders naming the place the drawer folder's apps are in.
+        val shown = IntentText.parse("#Intent;component=com.launcher/FOLDER%3A-205;end")
+        val onHome = ForeignItem(1, ForeignKind.FOLDER, ForeignPlace.DESKTOP, x = 2f, y = 3f, intent = shown)
+        val inDock = ForeignItem(2, ForeignKind.FOLDER, ForeignPlace.DOCK, x = 1f, intent = shown)
+        // Named by id, as a tab names one; this one is gone from the drawer,
+        // so it is left out rather than made an empty folder.
+        val gone = app(3, "com.launcher/FOLDER:9", x = 0f)
+        val layout = ForeignLayout(
+            listOf(onHome, inDock, gone), ForeignGrid(cols = 5, rows = 5), groups = listOf(group)
+        )
+        val result = LayoutConverter.convert(layout, LauncherPrefs(), phone.copyWith { pkg, cls -> cls ?: "$pkg.Main" })
+        val folders = result.items.filter { it.itemType == ItemType.FOLDER }
+        assertEquals(listOf(ContainerType.WORKSPACE, ContainerType.DOCK), folders.map { it.container })
+        folders.forEach { folder ->
+            assertEquals("Work", folder.label)
+            assertEquals("icon:3", folder.iconBase64)
+            val members = result.items.filter { it.folderId == folder.id }.sortedBy { it.rank }
+            assertEquals(listOf("com.b.B", "com.a.Main"), members.map { it.className })
+            assertEquals(listOf(0L, 10L), members.map { it.userSerial })
+        }
+        assertEquals(listOf(2, 3), folders.first().let { listOf(it.cellX, it.cellY) })
+        assertEquals(6, result.items.size)
+        assertEquals(1, result.skipped)
+    }
+
+    private fun LayoutConverter.Phone.copyWith(activityFor: (String, String?) -> String?) = LayoutConverter.Phone(
+        activityFor = { pkg, cls, _ -> activityFor(pkg, cls) },
+        encodeIcon = encodeIcon,
+        newId = newId
+    )
 }

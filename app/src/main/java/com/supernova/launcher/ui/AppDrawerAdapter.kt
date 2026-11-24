@@ -164,7 +164,7 @@ class AppDrawerAdapter(
             return root.measuredHeight
         }
         val content = measured()
-        binding.appLabel.maxLines = 1
+        LabelStyler.capLines(binding.appLabel, 1)
         return intArrayOf(content, measured())
     }
 
@@ -219,6 +219,19 @@ class AppDrawerAdapter(
         }
     }
 
+    // One spare tile into `list`'s pool, inflated now, unless it already
+    // holds `target`. True while it still holds fewer. The paged drawer
+    // stocks its spare pages this way, a tile per idle moment (#340). A
+    // full pool (sizePool's cap) ends it too.
+    fun stockTile(list: RecyclerView, target: Int): Boolean {
+        val pool = list.recycledViewPool
+        val had = pool.getRecycledViewCount(TYPE_TILE)
+        if (had >= target) return false
+        pool.putRecycledView(createViewHolder(list, TYPE_TILE))
+        val has = pool.getRecycledViewCount(TYPE_TILE)
+        return has > had && has < target
+    }
+
     // True when something a tile draws changed.
     fun setDisplay(
         iconScale: Float,
@@ -231,6 +244,7 @@ class AppDrawerAdapter(
                 labelPrefs?.labelShadow != prefs.labelShadow ||
                 labelPrefs?.labelFont != prefs.labelFont ||
                 labelPrefs?.labelSingleLine != prefs.labelSingleLine ||
+                labelPrefs?.labelEvenRows != prefs.labelEvenRows ||
                 labelPrefs?.labelConfig != prefs.labelConfig ||
                 // Unset, the label color is the drawer surface's text color.
                 labelPrefs?.styleConfig != prefs.styleConfig ||
@@ -612,7 +626,11 @@ class AppDrawerAdapter(
 
         fun bind(app: LaunchableApp) {
             binding.appLabel.text = app.label
-            labelPrefs?.let { LabelStyler.apply(binding.appLabel, it, onWallpaper = false, context = LabelContext.DRAWER) }
+            labelPrefs?.let {
+                LabelStyler.apply(
+                    binding.appLabel, it, onWallpaper = false, context = LabelContext.DRAWER, inGrid = false
+                )
+            }
             binding.appIcon.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             sizeIcon(binding.root, binding.appIcon, baseIconPx, keepInsideTile = false)
             bindIcon(binding.appIcon, app)
@@ -651,7 +669,11 @@ class AppDrawerAdapter(
 
         fun bind(folder: FolderEntry) {
             binding.appLabel.text = folder.group.name
-            labelPrefs?.let { LabelStyler.apply(binding.appLabel, it, onWallpaper = false, context = LabelContext.DRAWER) }
+            labelPrefs?.let {
+                LabelStyler.apply(
+                    binding.appLabel, it, onWallpaper = false, context = LabelContext.DRAWER, inGrid = false
+                )
+            }
             binding.appIcon.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             sizeIcon(binding.root, binding.appIcon, baseIconPx, keepInsideTile = false)
             binding.appIcon.setImageDrawable(decorateFolderIcon(folder.icon, folder))

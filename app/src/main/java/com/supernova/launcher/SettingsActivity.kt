@@ -131,6 +131,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var styleSection: SettingsSection
     // The cards under the root list's and the Style tab's rows.
     private lateinit var groupCards: com.supernova.launcher.ui.settings.SettingsGroupDecoration
+    private lateinit var stickyLabels: com.supernova.launcher.ui.settings.StickyGroupLabels
 
     private var currentTab = Tab.SETTINGS
 
@@ -377,13 +378,16 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private var navBottom = 0
+    private var navButtonsBottom = 0
     private var listBottomPadding = 0
 
-    // A section page has no tab bar to take the navigation bar, so its list
-    // keeps clear of it itself. The keyboard is left to cover the list: a
-    // drag on the list takes it down.
+    // A section page has no tab bar to take the navigation bar. Navigation
+    // buttons get a strip of their own under the page (the root's padding),
+    // so rows never scroll behind them (#322); a gesture handle has the rows
+    // run under it and the list only keeps its last row clear of it. The
+    // keyboard is left to cover the list: a drag on the list takes it down.
     private fun applyListBottomPadding() {
-        val covered = if (binding.settingsTabs.isVisible) 0 else navBottom
+        val covered = if (binding.settingsTabs.isVisible) 0 else navBottom - navButtonsBottom
         val padding = listBottomPadding + covered
         if (binding.settingsRecycler.paddingBottom != padding) {
             binding.settingsRecycler.updatePadding(bottom = padding)
@@ -454,7 +458,12 @@ class SettingsActivity : AppCompatActivity() {
             val bars = insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
             )
-            view.updatePadding(top = bars.top)
+            // tappableElement() is the 3-button bar's height and 0 for a
+            // gesture handle, which taps pass through.
+            val buttons = insets.getInsets(WindowInsetsCompat.Type.tappableElement()).bottom
+                .coerceAtMost(bars.bottom)
+            val tabsShown = binding.settingsTabs.isVisible
+            view.updatePadding(top = bars.top, bottom = if (tabsShown) 0 else buttons)
             // Wide-screen gutter (landscape, or a tablet in either
             // orientation): the content column is capped and centred, see
             // WideScreen. The tab bar is excluded - its background is meant
@@ -471,12 +480,14 @@ class SettingsActivity : AppCompatActivity() {
                     child.updatePadding(bottom = bottom + bars.bottom)
                 }
                 // Section pages have no tab bar to take the navigation bar,
-                // so the Drawer groups page keeps clear of it itself.
+                // so the Drawer groups page keeps clear of a gesture handle
+                // itself; the root's padding already lifts it over buttons.
                 if (child === binding.groupsPane) {
-                    child.updatePadding(bottom = bottom + if (binding.settingsTabs.isVisible) 0 else bars.bottom)
+                    child.updatePadding(bottom = bottom + if (tabsShown) 0 else bars.bottom - buttons)
                 }
             }
             navBottom = bars.bottom
+            navButtonsBottom = buttons
             applyListBottomPadding()
             insets
         }
@@ -490,6 +501,7 @@ class SettingsActivity : AppCompatActivity() {
         previews = PreviewController(viewModel)
         adapter = SettingsAdapter(previews)
         adapter.onRowTapped = { menuAnchor = it }
+        adapter.onShowRow = ::showRow
 
         val actions = SettingsCatalogue.Actions(
             pickColor = { title, current, default, onPick ->
@@ -643,6 +655,8 @@ class SettingsActivity : AppCompatActivity() {
         binding.settingsRecycler.adapter = adapter
         groupCards = com.supernova.launcher.ui.settings.SettingsGroupDecoration(this, adapter)
         binding.settingsRecycler.addItemDecoration(groupCards)
+        stickyLabels = com.supernova.launcher.ui.settings.StickyGroupLabels(this, adapter)
+        binding.settingsRecycler.addItemDecoration(stickyLabels)
         // Watched rather than consumed: the row's own click listener still
         // runs, this only remembers where the press landed so the menu it
         // opens can appear there.
@@ -771,6 +785,12 @@ class SettingsActivity : AppCompatActivity() {
             else -> androidx.core.graphics.ColorUtils.blendARGB(surface, android.graphics.Color.WHITE, CARD_LIFT_DARK)
         }
         groupCards.dividerColor = getColor(R.color.settingsPageDivider)
+        // Labels stuck to the top sit on the page colour, opaque so the
+        // cards scroll under them unseen.
+        stickyLabels.pageColor = androidx.core.graphics.ColorUtils.compositeColors(
+            surface,
+            getColor(R.color.background) or OPAQUE
+        )
         binding.settingsRecycler.invalidateItemDecorations()
         groupsPane?.cardColor = groupCards.cardColor
     }
@@ -964,7 +984,7 @@ class SettingsActivity : AppCompatActivity() {
                 R.string.settings_section_icons, R.string.gestures, R.string.settings_section_search
             ),
             R.string.settings_group_app to listOf(
-                R.string.settings_section_backup, R.string.permissions, R.string.about, R.string.labs
+                R.string.about, R.string.settings_section_backup, R.string.permissions, R.string.labs
             )
         )
         val grouped = groups.flatMap { it.second }.toSet()
@@ -1097,7 +1117,8 @@ class SettingsActivity : AppCompatActivity() {
         binding.previewPane.clipToOutline = true
         binding.previewPane.showsWallpaper =
             preview.kind == PreviewKind.HOME || preview.kind == PreviewKind.SEARCH_BAR ||
-            preview.kind == PreviewKind.DRAWER || preview.kind == PreviewKind.DOCK
+            preview.kind == PreviewKind.DRAWER || preview.kind == PreviewKind.DOCK ||
+            preview.kind == PreviewKind.SEARCH
         // Same guard as the in-list holder: never rebuild mid slider drag.
         if (!previews.isTracking) {
             val view = paneView ?: com.supernova.launcher.ui.settings.preview.SettingsPreviewView(this).also {
@@ -1117,13 +1138,20 @@ class SettingsActivity : AppCompatActivity() {
                 )
             }
             previews.attach(view, preview.kind)
-            // A preview that paints its own surface fills the card, its
-            // minimum height included; the others sit inside its padding.
-            val pad = if (view.fillsPane) 0 else resources.getDimensionPixelSize(R.dimen.space_sm)
-            binding.previewPane.setPadding(binding.previewPane.paddingLeft, pad, binding.previewPane.paddingRight, pad)
-            view.minimumHeight = if (view.fillsPane) binding.previewPane.minimumHeight else 0
+            fitPaneTo(view)
         }
         return true
+    }
+
+    // A preview that paints its own surface fills the card, its minimum
+    // height included, except the dock's, which the card hugs; the others
+    // sit inside its padding.
+    private fun fitPaneTo(view: com.supernova.launcher.ui.settings.preview.SettingsPreviewView) {
+        val pad = if (view.fillsPane) 0 else resources.getDimensionPixelSize(R.dimen.space_sm)
+        binding.previewPane.setPadding(binding.previewPane.paddingLeft, pad, binding.previewPane.paddingRight, pad)
+        val paneMin = resources.getDimensionPixelSize(R.dimen.settings_preview_min_height)
+        binding.previewPane.minimumHeight = if (view.fillsPane && !view.keepsPaneHeight) 0 else paneMin
+        view.minimumHeight = if (view.keepsPaneHeight) paneMin else 0
     }
 
     // Root-row blurbs. Long on purpose so they render under the
@@ -1264,6 +1292,18 @@ class SettingsActivity : AppCompatActivity() {
         currentTab = tab
         currentSection = null
         render()
+    }
+
+    // A row of the open page into view, flashed as a search landing is: where
+    // a greyed row that waits on it sends a tap (#323).
+    private fun showRow(@androidx.annotation.StringRes title: Int) {
+        val position = adapter.positionOf(title)
+        if (position < 0) return
+        adapter.setHighlight(title)
+        (binding.settingsRecycler.layoutManager as? LinearLayoutManager)
+            ?.scrollToPositionWithOffset(position, dp(72))
+        // A payload rebinds the row in place, so the flash isn't crossfaded.
+        adapter.notifyItemChanged(position, SHOW_ROW)
     }
 
     private fun navigateTo(sectionTitleRes: Int, itemTitleRes: Int, flash: Boolean = true) {
@@ -2048,6 +2088,15 @@ class SettingsActivity : AppCompatActivity() {
             return
         }
         val posted = com.supernova.launcher.notification.BadgeTestNotification.post(this)
+        // What the listener makes of every app's notifications, once the
+        // test has landed: the crash log is all a "only the test badges"
+        // report (#344) has to go on.
+        if (posted) {
+            val app = applicationContext
+            window.decorView.postDelayed({
+                Diagnostics.note("badge test", SupernovaNotificationListener.report(app))
+            }, BADGE_REPORT_DELAY_MS)
+        }
         when {
             !posted -> Toast.makeText(this, R.string.badge_test_blocked, Toast.LENGTH_LONG).show()
             // Posted, but nothing will show it.
@@ -2422,6 +2471,7 @@ class SettingsActivity : AppCompatActivity() {
 
     companion object {
         private const val DISABLED_ALPHA = 0.38f
+        private const val BADGE_REPORT_DELAY_MS = 2000L
 
         // Lines a tick box up with the dialog message's 24dp text edge.
         private const val TICK_LIST_SIDE_DP = 18
@@ -2495,6 +2545,7 @@ class SettingsActivity : AppCompatActivity() {
         const val EXTRA_OPEN_SEARCH_BAR = "extra_open_search_bar"
         const val EXTRA_SECTION_TITLE_RES = "extra_section_title_res"
         const val EXTRA_HIGHLIGHT_TITLE_RES = "extra_highlight_title_res"
+        private const val SHOW_ROW = "show_row"
         const val EXTRA_DRAWER_GROUP = "extra_drawer_group"
 
         // Widest the settings content column grows in landscape, as a

@@ -207,7 +207,7 @@ class ActionPickerSheet private constructor(
 
     // The app itself, or one of its own shortcuts when it has any.
     private fun pickAppOrShortcut(app: LaunchableApp) {
-        val shortcuts = viewModel.shortcutsFor(app.packageName, app.userSerial)
+        val shortcuts = viewModel.appCatalog().appShortcuts(app.packageName, app.userSerial)
         if (shortcuts.isEmpty()) {
             picked(ActionPick.App(app))
             return

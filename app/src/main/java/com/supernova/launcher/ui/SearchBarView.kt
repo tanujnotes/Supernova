@@ -84,9 +84,14 @@ class SearchBarView @JvmOverloads constructor(
     // page); true when it took the tap, else the button does its usual.
     var onChip: ((SearchBarChip) -> Boolean)? = null
 
+    // The host's prefs, for the menus a button opens (the store button's
+    // list of stores is styled as a popup).
+    var prefs: (() -> com.supernova.launcher.data.LauncherPrefs)? = null
+
     private fun addChip(chip: SearchBarChip, color: Int) {
-        val view = SearchBarButtons.view(context, chip, color) {
-            if (interactive && onChip?.invoke(chip) != true) SearchBarButtons.run(context, chip)
+        lateinit var view: View
+        view = SearchBarButtons.view(context, chip, color) {
+            if (interactive && onChip?.invoke(chip) != true) SearchBarButtons.run(view, chip, prefs?.invoke())
         }
         view.tag = CHIP_TAG
         val size = dp(SearchBarButtons.BUTTON_DP)

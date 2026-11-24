@@ -60,14 +60,9 @@ class IconPackRepository(private val context: Context) {
             .getOrDefault(packageName)
 
     fun availablePacks(): List<IconPack> {
-        // Icon packs advertise themselves through one of these theme actions.
-        val actions = listOf(
-            "org.adw.launcher.THEMES",
-            "com.gau.go.launcherex.theme"
-        )
-        return actions
-            .flatMap { action ->
-                runCatching { pm.queryIntentActivities(Intent(action), 0) }.getOrDefault(emptyList())
+        return PACK_INTENTS
+            .flatMap { intent ->
+                runCatching { pm.queryIntentActivities(intent, 0) }.getOrDefault(emptyList())
             }
             .map { it.activityInfo.packageName }
             .distinct()
@@ -86,6 +81,7 @@ class IconPackRepository(private val context: Context) {
     fun loadedPack(): String? = loadedPackage
 
     fun reload() {
+        synchronized(browsed) { browsed.evictAll() }
         val pack = loadedPackage ?: return
         loadedPackage = null
         load(pack)
@@ -99,6 +95,8 @@ class IconPackRepository(private val context: Context) {
     fun setNight(value: Boolean): Boolean {
         val changed = value != night
         night = value
+        // Packs opened for Edit's picker were opened in the other mode.
+        if (changed) synchronized(browsed) { browsed.evictAll() }
         val resources = loadedPackage?.takeIf { changed && followsNight }?.let(::openResources) ?: return false
         packResources = resources
         loadDecoration()
@@ -116,10 +114,50 @@ class IconPackRepository(private val context: Context) {
     // signature: the mode for a day/night pack, else nothing.
     fun themeKey(): String = if (followsNight) (if (night) "night" else "day") else ""
 
-    // Another package's resources under the launcher's dark or light; the
-    // loaded pack's are kept, for the per-app picks drawn from it.
-    fun resourcesFor(packageName: String): Resources? =
-        packResources?.takeIf { packageName == loadedPackage } ?: openResources(packageName)
+    // What Edit's picker and per-app pack icons read a pack through, kept
+    // for the last few packs: the resources, opened once per mode, and the
+    // pack's lists, parsed once. Opening a package's resources in a
+    // configuration of our own costs a few milliseconds, and the picker
+    // did it for every icon it showed, the drawable list and the appfilter
+    // read whole for every app it was opened for (#288).
+    private class BrowsedPack(val resources: Resources, val night: Boolean) {
+        var density: Int? = null
+        var names: List<String>? = null
+        // Name to id for the pack's drawables (PackDrawableIds), once read.
+        var ids: Map<String, Int>? = null
+        var byApp: Map<String, List<Pair<String, String>>>? = null
+    }
+
+    private val browsed = android.util.LruCache<String, BrowsedPack>(BROWSED_PACKS)
+
+    private fun browse(packageName: String): BrowsedPack? = synchronized(browsed) {
+        val loaded = packResources?.takeIf { packageName == loadedPackage }
+        browsed.get(packageName)?.takeIf { it.night == night && (loaded == null || it.resources === loaded) }
+            ?.let { return it }
+        val resources = loaded ?: openResources(packageName) ?: return null
+        BrowsedPack(resources, night).also { browsed.put(packageName, it) }
+    }
+
+    // A drawable of any installed pack by name, decoded at the density its
+    // bitmaps ship in, as the applied pack's icons are (see decodeDensity).
+    @android.annotation.SuppressLint("DiscouragedApi")
+    fun drawable(packageName: String, name: String): Drawable? {
+        val pack = browse(packageName) ?: return null
+        val known = synchronized(pack) { pack.ids }?.get(name)
+        val id = (known ?: pack.resources.getIdentifier(name, "drawable", packageName)).takeIf { it != 0 }
+        return id?.let {
+            runCatching { pack.resources.getDrawableForDensity(it, densityOf(pack, packageName, name), null) }
+                .getOrNull()
+        }
+    }
+
+    // A browsed pack's bitmap density, probed once: from its icon list once
+    // that is read, else from the icon asked for.
+    private fun densityOf(pack: BrowsedPack, packageName: String, name: String): Int =
+        pack.density ?: run {
+            val names = synchronized(pack) { pack.names } ?: listOf(name)
+            bitmapDensity(names, pack.resources, packageName).also { pack.density = it }
+        }
 
     // The package manager's copy follows the system's mode instead.
     private fun openResources(packageName: String): Resources? = runCatching {
@@ -183,7 +221,8 @@ class IconPackRepository(private val context: Context) {
         backNames = backs
         maskName = mask
         uponName = upon
-        decodeDensity = bitmapDensity(map.values, resources)
+        loadedIds = PackDrawableIds.read(resources, packageName, map.values.firstOrNull())
+        decodeDensity = bitmapDensity(map.values, resources, packageName)
         loadDecoration()
         followsNight = declaresNight(packageName) ||
             (backDrawables + listOfNotNull(maskDrawable, uponDrawable)).any(::changesByNight) ||
@@ -203,9 +242,14 @@ class IconPackRepository(private val context: Context) {
         maskName = null
         uponName = null
         followsNight = false
+        loadedIds = null
         decodeDensity = 0
         iconScale = 1f
     }
+
+    // The loaded pack's drawables by name (PackDrawableIds): a lookup per
+    // icon, where asking the pack by name cost a fifth of a millisecond.
+    private var loadedIds: Map<String, Int>? = null
 
     private var backNames: List<String> = emptyList()
     private var maskName: String? = null
@@ -247,10 +291,10 @@ class IconPackRepository(private val context: Context) {
     // adaptive icon's layers, a <bitmap>'s src), and the bucket those are in
     // when asked for the highest.
     @android.annotation.SuppressLint("DiscouragedApi")
-    private fun bitmapDensity(names: Collection<String>, resources: Resources): Int {
+    private fun bitmapDensity(names: Collection<String>, resources: Resources, packageName: String?): Int {
         val value = TypedValue()
         val found = names.asSequence().distinct().take(DENSITY_SAMPLES).flatMap { name ->
-            val id = resources.getIdentifier(name, "drawable", loadedPackage)
+            val id = resources.getIdentifier(name, "drawable", packageName)
             if (id == 0) emptySequence() else sequenceOf(id) + xmlReferences(resources, id, value)
         }.mapNotNull { id ->
             runCatching { resources.getValueForDensity(id, DisplayMetrics.DENSITY_XXXHIGH, value, true) }
@@ -331,7 +375,15 @@ class IconPackRepository(private val context: Context) {
     // generic icons no app maps to; a few packs name it drawables.xml), else
     // the appfilter entries.
     fun listDrawables(packageName: String): List<String> {
-        val resources = resourcesFor(packageName) ?: return emptyList()
+        val pack = browse(packageName) ?: return emptyList()
+        return synchronized(pack) {
+            pack.names ?: readDrawables(pack, packageName).also { pack.names = it }
+        }
+    }
+
+    @android.annotation.SuppressLint("DiscouragedApi")
+    private fun readDrawables(pack: BrowsedPack, packageName: String): List<String> {
+        val resources = pack.resources
         val names = linkedSetOf<String>()
         val collect: (XmlPullParser) -> Unit = { parser ->
             runLogged("read icon pack drawable list") {
@@ -350,33 +402,48 @@ class IconPackRepository(private val context: Context) {
         }
         if (names.isEmpty()) readPackXml(resources, packageName, "appfilter", collect)
 
-        return names.filter { resources.getIdentifier(it, "drawable", packageName) != 0 }.sorted()
+        // Only names the pack has a drawable for: checked against its ids,
+        // read once, rather than asked for one by one.
+        val ids = PackDrawableIds.read(resources, packageName, names.firstOrNull())
+        pack.ids = ids
+        val kept = if (ids != null) names.filter { it in ids } else {
+            names.filter { resources.getIdentifier(it, "drawable", packageName) != 0 }
+        }
+        return kept.sorted()
     }
 
     // A pack's icons for one app, best first (see matchOrder), for the top
     // of the picker's grid. Reads the pack's appfilter without touching the
     // loaded-pack state, so it works for any pack, applied or not.
+    @android.annotation.SuppressLint("DiscouragedApi")
     fun matchesFor(packPackage: String, packageName: String, className: String): List<String> {
-        val resources = resourcesFor(packPackage) ?: return emptyList()
-        val entries = mutableListOf<Pair<String, String>>()
+        val pack = browse(packPackage) ?: return emptyList()
+        val byApp = synchronized(pack) {
+            pack.byApp ?: readEntries(pack.resources, packPackage).also { pack.byApp = it }
+        }
+        return matchOrder(byApp[packageName].orEmpty(), "$packageName/$className")
+            .filter { pack.resources.getIdentifier(it, "drawable", packPackage) != 0 }
+    }
+
+    // The appfilter's entries (component to drawable), by app package.
+    private fun readEntries(resources: Resources, packPackage: String): Map<String, List<Pair<String, String>>> {
+        val entries = HashMap<String, MutableList<Pair<String, String>>>()
         readAppFilter(resources, packPackage) { parser ->
             runLogged("read icon pack matches") {
                 while (parser.eventType != XmlPullParser.END_DOCUMENT) {
                     if (parser.eventType == XmlPullParser.START_TAG && parser.name == "item") {
                         val component = parser.getAttributeValue(null, "component")?.let(::normalizeComponent)
                         val drawable = parser.getAttributeValue(null, "drawable")
-                        if (component != null && drawable != null &&
-                            component.substringBefore('/') == packageName
-                        ) {
-                            entries.add(component to drawable)
+                        if (component != null && drawable != null) {
+                            entries.getOrPut(component.substringBefore('/')) { mutableListOf() }
+                                .add(component to drawable)
                         }
                     }
                     parser.next()
                 }
             }
         }
-        return matchOrder(entries, "$packageName/$className")
-            .filter { resources.getIdentifier(it, "drawable", packPackage) != 0 }
+        return entries
     }
 
     private fun <T> readAppFilter(resources: Resources, packageName: String, block: (XmlPullParser) -> T): T? =
@@ -421,12 +488,24 @@ class IconPackRepository(private val context: Context) {
     private fun drawableByName(name: String, resources: Resources? = packResources): Drawable? {
         val res = resources ?: return null
         val pkg = loadedPackage ?: return null
-        val id = res.getIdentifier(name, "drawable", pkg)
+        val id = loadedIds?.get(name) ?: res.getIdentifier(name, "drawable", pkg)
         if (id == 0) return null
         return decode(res, id)
     }
 
     companion object {
+        // How icon packs advertise themselves: the ADW and GO theme actions,
+        // a third launcher's THEME action, and Apex's category on a MAIN
+        // activity. Most packs declare several; some only one of these.
+        // Each needs a matching <queries> entry in the manifest.
+        private val PACK_INTENTS
+            get() = listOf(
+                Intent("org.adw.launcher.THEMES"),
+                Intent("com.gau.go.launcherex.theme"),
+                Intent("com.novalauncher.THEME"),
+                Intent(Intent.ACTION_MAIN).addCategory("com.anddoes.launcher.THEME")
+            )
+
         // The pack's own icon list, under the names packs ship it as.
         private val DRAWABLE_LISTS = listOf("drawable", "drawables")
 
@@ -435,6 +514,9 @@ class IconPackRepository(private val context: Context) {
 
         // How many of a flagless pack's icons are tried for night variants.
         private const val NIGHT_SAMPLES = 12
+
+        // Packs kept open for Edit's picker and per-app pack icons.
+        private const val BROWSED_PACKS = 3
 
         // How many of a pack's icons are followed to find its bitmaps' density.
         private const val DENSITY_SAMPLES = 6

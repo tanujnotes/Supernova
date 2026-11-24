@@ -30,7 +30,8 @@ internal object DrawerGroupTables {
 // Groups that are each a tab or a drawer folder, and a row per app a group
 // holds. A tab can hold a drawer folder: its row names the folder by id in
 // place of an activity. A group switched off keeps its row, flagged, and
-// shows nowhere.
+// shows nowhere. A drawer folder's apps are kept in order as placed items too,
+// in a place of the folder's own (-200 less its id): the order they show in.
 private object GroupsAndApps {
     const val GROUPS = "drawer_groups"
     const val MEMBERS = "appgroups"
@@ -40,9 +41,12 @@ private object GroupsAndApps {
     private const val FOLDER = "FOLDER_APP_GROUP"
     private const val HELD_FOLDER = "FOLDER:"
     private const val SWITCHED_OFF = 128L
+    private const val PLACED = "favorites"
+    private const val PLACE_BASE = 200L
 
     fun read(tables: Map<String, List<Row>>): List<ForeignGroup> {
         val members = tables[MEMBERS].orEmpty().groupBy { it.long("groupId") }
+        val placed = tables[PLACED].orEmpty().groupBy { it.long("container") }
         return tables[GROUPS].orEmpty().filterNot(::switchedOff).mapNotNull { row ->
             val id = row.long("_id")
             val type = row.text("groupType")
@@ -55,10 +59,23 @@ private object GroupsAndApps {
                 order = row.int("tabOrder") ?: 0,
                 // Its apps leave the main list, or stay there too.
                 keepInMain = row.long("hideApps")?.let { it == 0L },
-                apps = keys.filterNot(::isFolder).mapNotNull(DrawerGroupTables::app),
+                apps = ordered(
+                    keys.filterNot(::isFolder).mapNotNull(DrawerGroupTables::app), placed[-PLACE_BASE - id]
+                ),
                 folders = keys.mapNotNull(::heldFolder),
                 icon = row.blob("icon")
             )
+        }
+    }
+
+    // The apps as the folder shows them, row by row; any it doesn't place
+    // come last, as listed.
+    private fun ordered(apps: List<ForeignApp>, placed: List<Row>?): List<ForeignApp> {
+        val shown = placed.orEmpty()
+            .sortedWith(compareBy({ it.float("cellY") ?: 0f }, { it.float("cellX") ?: 0f }))
+            .mapNotNull { IntentText.parse(it.text("intent"))?.component }
+        return apps.sortedBy { app ->
+            shown.indexOf(app.packageName to app.className).takeIf { it >= 0 } ?: Int.MAX_VALUE
         }
     }
 

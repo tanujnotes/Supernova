@@ -102,7 +102,7 @@ data class DrawerTileFit(
         }
 
         private fun fitLabel(label: TextView, fit: DrawerTileFit) {
-            if (fit.singleLine && label.maxLines != 1) label.maxLines = 1
+            if (fit.singleLine) LabelStyler.capLines(label, 1)
             val gap = (LABEL_GAP_DP * label.resources.displayMetrics.density * fit.labelScale).roundToInt()
             val params = label.layoutParams as LinearLayout.LayoutParams
             if (params.topMargin != gap) {

@@ -59,6 +59,21 @@ class IconRenderer(context: Context) {
     // behind them).
     var reshapeLegacy: ReshapeLegacy = ReshapeLegacy.OFF
 
+    // iconNormalization pref (Normalize icon size, #332): with Reshape legacy
+    // Off, a legacy icon or a pack's art drawn as it is shrinks to keep
+    // within the Material icon guidelines (IconNormalizer); one already
+    // inside them keeps its size. Reshape legacy's own resizing replaces it.
+    var normalizeSize: Boolean = false
+
+    // The scale a legacy icon or a pack's art drawn as it is gets from
+    // Normalize icon size: at most its usual footprint, smaller for one that
+    // covers more than the guidelines allow.
+    private fun asIsFraction(source: Drawable): Float {
+        val usual = 1f - LEGACY_INSET_FRACTION * 2
+        if (!normalizeSize || reshapeLegacy != ReshapeLegacy.OFF) return usual
+        return minOf(usual, IconNormalizer.scale(source, iconSizePx))
+    }
+
     // iconShadow pref: the flattened icon gets a soft drop shadow baked into
     // the cached bitmap, so binds stay free of per-frame shadow work. The
     // shadow falls outside the icon (ShadowedIconDrawable), which keeps its
@@ -193,7 +208,7 @@ class IconRenderer(context: Context) {
         val asMade = source !is AdaptiveIconDrawable && (shape == IconShape.SYSTEM || !solid(source))
         if (!asMade) return render(source, null, shape, customShape, IconGlass.OFF)
         val bitmap = createBitmap(iconSizePx, iconSizePx)
-        drawBase(Canvas(bitmap), source, 1f, hasBack = false)
+        drawBase(Canvas(bitmap), source, 1f, hasBack = false, legacyFraction = asIsFraction(source))
         return if (shadow) withShadow(bitmap) else bitmap.toDrawable(resources)
     }
 
@@ -308,7 +323,10 @@ class IconRenderer(context: Context) {
             drawShapedBase(canvas, source, scale, hasBack = decoration?.back != null)
             canvas.restore()
         } else if (glassMask == null) {
-            drawBase(canvas, source, scale, hasBack = decoration?.back != null)
+            val hasBack = decoration?.back != null
+            // A legacy icon drawn as it is: Normalize icon size can shrink it.
+            val legacyFraction = if (hasBack || source is AdaptiveIconDrawable) null else asIsFraction(source)
+            drawBase(canvas, source, scale, hasBack, legacyFraction)
         }
 
         decoration?.mask?.let { mask ->
@@ -433,13 +451,19 @@ class IconRenderer(context: Context) {
         return output
     }
 
-    private fun drawBase(canvas: Canvas, source: Drawable, packScale: Float, hasBack: Boolean) {
+    private fun drawBase(
+        canvas: Canvas,
+        source: Drawable,
+        packScale: Float,
+        hasBack: Boolean,
+        legacyFraction: Float? = null
+    ) {
         // Icon packs expect the app icon shrunk to sit inside their background
         // plate; adaptive icons already carry their own mask.
         val fraction = when {
             hasBack -> packScale.coerceIn(0.3f, 1f)
             source is AdaptiveIconDrawable -> 1f
-            else -> 1f - (LEGACY_INSET_FRACTION * 2)
+            else -> legacyFraction ?: (1f - (LEGACY_INSET_FRACTION * 2))
         }
         val drawnSize = (iconSizePx * fraction).roundToInt()
         val offset = (iconSizePx - drawnSize) / 2

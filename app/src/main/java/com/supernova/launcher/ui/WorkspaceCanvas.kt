@@ -3,8 +3,13 @@ package com.supernova.launcher.ui
 import android.content.Context
 import android.util.AttributeSet
 import android.view.Gravity
+import android.view.MotionEvent
+import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.TextView
+import androidx.core.view.isVisible
+import com.supernova.launcher.R
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -12,8 +17,19 @@ import kotlin.math.roundToInt
 // An icon's left (or top) edge along one side of the canvas: its centre at
 // `center` of `extent`, pulled back in where that would hang its `size` over
 // an edge.
-internal fun iconOrigin(center: Float, extent: Int, size: Int): Int =
-    (center.coerceIn(0f, 1f) * extent - size / 2f).roundToInt().coerceIn(0, max(0, extent - size))
+internal fun iconOrigin(center: Float, extent: Int, size: Int, anchor: Int = size): Int =
+    (center.coerceIn(0f, 1f) * extent - anchor / 2f).roundToInt().coerceIn(0, max(0, extent - size))
+
+// The part of an icon item `height` tall that is centred on its point: the
+// icon and its label's first line. Further label lines hang below (#346):
+// centring the whole item put a one-line label's icon half a line lower than
+// a two-line neighbour's, so icons in a row didn't share a top.
+internal fun iconAnchorHeight(item: View, height: Int = item.measuredHeight): Int {
+    val label = item.findViewById<TextView>(R.id.label)?.takeIf { it.isVisible }
+    val layout = label?.layout ?: return height
+    val lines = if (label.maxLines > 0) minOf(layout.lineCount, label.maxLines) else layout.lineCount
+    return if (lines <= 1) height else height - (layout.getLineTop(lines) - layout.getLineTop(1))
+}
 
 // A widget's left (or top) edge along one side of the canvas: `cell` cells of
 // the `count` across `extent`, then `inset` in. Cells are whole pixels, as the
@@ -81,6 +97,14 @@ class WorkspaceCanvas @JvmOverloads constructor(
     init {
         clipChildren = false
     }
+
+    // True while the page's icons, folders and widgets take no touches of
+    // their own (home edit mode, #348): the canvas keeps the whole stream,
+    // so a tap is a tap on the page and a long-press lifts it.
+    var itemsInert: () -> Boolean = { false }
+
+    override fun onInterceptTouchEvent(ev: MotionEvent): Boolean =
+        itemsInert() || super.onInterceptTouchEvent(ev)
 
     // A one-cell icon's room at its own size, `needW` x `needH`, its icon
     // box and padding, and how it sets its parts: the icon to `iconPx`, the
@@ -203,7 +227,7 @@ class WorkspaceCanvas @JvmOverloads constructor(
             val params = child.layoutParams as? IconParams ?: continue
             if (child.visibility == GONE) continue
             val x = iconOrigin(params.centerX, width, child.measuredWidth)
-            val y = iconOrigin(params.centerY, height, child.measuredHeight)
+            val y = iconOrigin(params.centerY, height, child.measuredHeight, iconAnchorHeight(child))
             child.layout(x, y, x + child.measuredWidth, y + child.measuredHeight)
         }
     }

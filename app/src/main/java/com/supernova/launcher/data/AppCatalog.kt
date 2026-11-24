@@ -145,9 +145,7 @@ class AppCatalog(
     // an app's own icon for an AppIconSource pick.
     fun packDrawable(packPackage: String, drawableName: String): Drawable? = runCatching {
         if (AppIconSource.isAppIcon(packPackage)) return@runCatching appIconDrawable(drawableName)
-        val res = iconPacks.resourcesFor(packPackage) ?: return@runCatching null
-        val id = res.getIdentifier(drawableName, "drawable", packPackage)
-        if (id == 0) null else res.getDrawable(id, null)
+        iconPacks.drawable(packPackage, drawableName)
     }.getOrNull()
 
     // An installed app's own icon as the app ships it: no pack, no shape.
@@ -291,7 +289,8 @@ class AppCatalog(
     // Every setting the icons share; a change starts a new disk folder.
     private fun diskSignature(): String =
         "$DISK_FORMAT|${context.resources.displayMetrics.densityDpi}|$iconShape|${customShapeSpec?.encode()}|" +
-            "${iconRenderer.reshapeLegacy}|${iconRenderer.shadow}|${iconRenderer.glass}|$themedIcons|" +
+            "${iconRenderer.reshapeLegacy}|${iconRenderer.normalizeSize}|${iconRenderer.shadow}|" +
+            "${iconRenderer.glass}|$themedIcons|" +
             "$themedIconsAutogen|${iconPacks.loadedPack()}|$packStamp|${iconPacks.themeKey()}"
 
     // The loaded pack's own install time: an updated pack draws afresh.
@@ -473,9 +472,11 @@ class AppCatalog(
         dominantColors.clear()
     }
 
-    fun applyReshapeLegacy(value: ReshapeLegacy) = synchronized(renderLock) {
-        if (iconRenderer.reshapeLegacy == value) return
+    // Reshape legacy, with Normalize icon size (#332), which works under it.
+    fun applyReshapeLegacy(value: ReshapeLegacy, normalizeSize: Boolean) = synchronized(renderLock) {
+        if (iconRenderer.reshapeLegacy == value && iconRenderer.normalizeSize == normalizeSize) return
         iconRenderer.reshapeLegacy = value
+        iconRenderer.normalizeSize = normalizeSize
         iconCache.evictAll()
         dominantColors.clear()
     }
@@ -623,6 +624,23 @@ class AppCatalog(
             .filter { it.priority >= 0 }
             .mapTo(HashSet()) { it.activityInfo.packageName }
     }.getOrDefault(emptySet())
+
+    // The app's own shortcuts, as its long-press menu lists them: published
+    // (dynamic or manifest), never pinned-only. A pin outlives its home item
+    // and the app's own dynamic entry (#324: removed contact shortcuts kept
+    // showing in search and could not be found), so pins are home items, not
+    // the app's shortcuts. shortcutsFor still finds a pinned one by id.
+    fun appShortcuts(packageName: String, userSerial: Long): List<android.content.pm.ShortcutInfo> {
+        val user = userForSerial(userSerial) ?: return emptyList()
+        val query = LauncherApps.ShortcutQuery()
+            .setPackage(packageName)
+            .setQueryFlags(
+                LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC or
+                    LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST
+            )
+        return runCatching { launcherApps.getShortcuts(query, user) ?: emptyList() }
+            .getOrElse { emptyList() }
+    }
 
     fun shortcutsFor(packageName: String, userSerial: Long): List<android.content.pm.ShortcutInfo> {
         val user = userForSerial(userSerial) ?: return emptyList()
