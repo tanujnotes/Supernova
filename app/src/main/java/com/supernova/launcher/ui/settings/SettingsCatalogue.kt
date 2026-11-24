@@ -1872,11 +1872,11 @@ object SettingsCatalogue {
                 SettingItem.Row(
                     R.string.about_version,
                     subtitle = { SupernovaApp.versionLabel(context) },
-                    onClick = {},
-                    // Information only: no chevron, and a tap does nothing.
-                    look = SettingItem.RowLook(tappable = false)
                     // The version and the phone's details on the clipboard,
-                    // for a report started on GitHub (#279).
+                    // for a report started on GitHub (#279): a tap or a long
+                    // press, with a copy glyph where a chevron would be.
+                    onClick = { AboutLinks.copyDeviceDetails(context) },
+                    look = SettingItem.RowLook(end = R.drawable.glyph_copy)
                 ).onLongPress { AboutLinks.copyDeviceDetails(context) },
                 SettingItem.Row(
                     R.string.about_whats_new,
@@ -1944,13 +1944,13 @@ object SettingsCatalogue {
                     R.string.labs_export_icons,
                     subtitle = { context.getString(R.string.labs_export_icons_summary) },
                     onClick = actions.exportIcons,
-                    look = SettingItem.RowLook(chevron = false)
+                    look = SettingItem.RowLook(end = 0)
                 ).describedBy(R.string.labs_export_icons_summary),
                 SettingItem.Row(
                     R.string.labs_clear_icon_cache,
                     subtitle = { context.getString(R.string.labs_clear_icon_cache_summary) },
                     onClick = actions.clearIconCache,
-                    look = SettingItem.RowLook(chevron = false)
+                    look = SettingItem.RowLook(end = 0)
                 ).describedBy(R.string.labs_clear_icon_cache_summary)
             )
         ),

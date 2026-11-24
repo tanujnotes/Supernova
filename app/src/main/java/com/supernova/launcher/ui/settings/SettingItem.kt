@@ -155,7 +155,9 @@ sealed class SettingItem {
     class RowLook(
         @DrawableRes val icon: Int = 0,
         val swatch: ((LauncherPrefs) -> Int?)? = null,
-        val chevron: Boolean = true,
+        // The glyph at the row's end, saying what a tap does: the chevron
+        // (opens something), another (Copy), or 0 for none.
+        @DrawableRes val end: Int = com.supernova.launcher.R.drawable.ic_settings_chevron,
         val warn: Boolean = false,
         val positive: (() -> Boolean)? = null,
         val tappable: Boolean = true

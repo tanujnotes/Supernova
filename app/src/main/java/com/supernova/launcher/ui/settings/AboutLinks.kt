@@ -44,7 +44,7 @@ object AboutLinks {
         "${Build.MANUFACTURER} ${Build.MODEL}"
     )
 
-    // The version row's long press (#279), for a report started on GitHub
+    // The version row's tap and long press (#279), for a report started on GitHub
     // rather than from Report an issue. Android 13+ confirms a copy itself.
     fun copyDeviceDetails(context: Context) {
         context.getSystemService(android.content.ClipboardManager::class.java)

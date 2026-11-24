@@ -543,8 +543,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             }
             val density = binding.root.resources.displayMetrics.density
             bindTile(item.look)
-            binding.groupRowChevron.visibility =
-                if (item.look.chevron && item.look.tappable) View.VISIBLE else View.INVISIBLE
+            bindEnd(item.look)
             val twoLines = bindValue(item, prefs)
             // Two lines get the taller row's padding: 64dp, as on the root list.
             val vertical = ((if (twoLines) TWO_LINE_PADDING_DP else ONE_LINE_PADDING_DP) * density).toInt()
@@ -599,6 +598,12 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
         }
 
         // The accent tile, or the warning's amber one.
+        private fun bindEnd(look: SettingItem.RowLook) {
+            val shows = look.end != 0 && look.tappable
+            if (shows) binding.groupRowChevron.setImageResource(look.end)
+            binding.groupRowChevron.visibility = if (shows) View.VISIBLE else View.INVISIBLE
+        }
+
         private fun bindTile(look: SettingItem.RowLook) {
             binding.groupRowTile.visibility = if (look.icon != 0) View.VISIBLE else View.GONE
             if (look.icon == 0) return

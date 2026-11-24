@@ -984,7 +984,7 @@ class SettingsActivity : AppCompatActivity() {
                 R.string.settings_section_icons, R.string.gestures, R.string.settings_section_search
             ),
             R.string.settings_group_app to listOf(
-                R.string.settings_section_backup, R.string.permissions, R.string.about, R.string.labs
+                R.string.about, R.string.settings_section_backup, R.string.permissions, R.string.labs
             )
         )
         val grouped = groups.flatMap { it.second }.toSet()
