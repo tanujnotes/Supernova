@@ -377,13 +377,16 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private var navBottom = 0
+    private var navButtonsBottom = 0
     private var listBottomPadding = 0
 
-    // A section page has no tab bar to take the navigation bar, so its list
-    // keeps clear of it itself. The keyboard is left to cover the list: a
-    // drag on the list takes it down.
+    // A section page has no tab bar to take the navigation bar. Navigation
+    // buttons get a strip of their own under the page (the root's padding),
+    // so rows never scroll behind them (#322); a gesture handle has the rows
+    // run under it and the list only keeps its last row clear of it. The
+    // keyboard is left to cover the list: a drag on the list takes it down.
     private fun applyListBottomPadding() {
-        val covered = if (binding.settingsTabs.isVisible) 0 else navBottom
+        val covered = if (binding.settingsTabs.isVisible) 0 else navBottom - navButtonsBottom
         val padding = listBottomPadding + covered
         if (binding.settingsRecycler.paddingBottom != padding) {
             binding.settingsRecycler.updatePadding(bottom = padding)
@@ -454,7 +457,12 @@ class SettingsActivity : AppCompatActivity() {
             val bars = insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
             )
-            view.updatePadding(top = bars.top)
+            // tappableElement() is the 3-button bar's height and 0 for a
+            // gesture handle, which taps pass through.
+            val buttons = insets.getInsets(WindowInsetsCompat.Type.tappableElement()).bottom
+                .coerceAtMost(bars.bottom)
+            val tabsShown = binding.settingsTabs.isVisible
+            view.updatePadding(top = bars.top, bottom = if (tabsShown) 0 else buttons)
             // Wide-screen gutter (landscape, or a tablet in either
             // orientation): the content column is capped and centred, see
             // WideScreen. The tab bar is excluded - its background is meant
@@ -471,12 +479,14 @@ class SettingsActivity : AppCompatActivity() {
                     child.updatePadding(bottom = bottom + bars.bottom)
                 }
                 // Section pages have no tab bar to take the navigation bar,
-                // so the Drawer groups page keeps clear of it itself.
+                // so the Drawer groups page keeps clear of a gesture handle
+                // itself; the root's padding already lifts it over buttons.
                 if (child === binding.groupsPane) {
-                    child.updatePadding(bottom = bottom + if (binding.settingsTabs.isVisible) 0 else bars.bottom)
+                    child.updatePadding(bottom = bottom + if (tabsShown) 0 else bars.bottom - buttons)
                 }
             }
             navBottom = bars.bottom
+            navButtonsBottom = buttons
             applyListBottomPadding()
             insets
         }
