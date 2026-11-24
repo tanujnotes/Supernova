@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.os.SystemClock
+import android.util.TypedValue
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -574,6 +575,7 @@ class DrawerController(
         // back from the pool, and the rows coming in inflated new ones.
         binding.drawerRecycler.itemAnimator = null
         binding.drawerRecycler.addOnScrollListener(newScrollKeyboardHider())
+        watchGridHeight()
         // Pages are cut to the pager's height (syncPages), which can change
         // after the cut; posted, so the re-cut isn't made inside a layout.
         binding.drawerPager.addOnLayoutChangeListener { pager, _, top, _, bottom, _, oldTop, _, oldBottom ->
@@ -1856,11 +1858,9 @@ class DrawerController(
         // The icon box the list under it draws (AppDrawerAdapter.sizeIcon):
         // the style's base icon at the drawer's icon scale, kept inside one
         // column, so the row's icons match the list's at any size.
-        val baseDp = if (currentStyle == DrawerStyle.VERTICAL_LIST) ROW_ICON_DP else TILE_ICON_DP
-        val iconSizePx = (context.dp(baseDp) * iconScale(prefs)).toInt()
-            .coerceAtMost((gridWidthPx() / columns - context.dp(TILE_SIDE_PADDING_DP)).coerceAtLeast(1))
+        val (iconSizePx, labelScale) = frequentRowSizes(prefs, columns)
         val key = apps.joinToString { "${it.userSerial}/${it.packageName}/${it.className}" } +
-            "|$columns|$textColor|$lastIconGeneration|$iconSizePx|${styleKey(prefs)}"
+            "|$columns|$textColor|$lastIconGeneration|$iconSizePx|$labelScale|${styleKey(prefs)}"
         if (key == frequentRowKey) return
         frequentRowKey = key
         // Long-pressed, each is a drawer icon like any other: its menu, and a
@@ -1891,6 +1891,7 @@ class DrawerController(
         }
         val look = FrequentAppsRowView.CellLook(iconSizePx) { label ->
             LabelStyler.apply(label, prefs, onWallpaper = false, context = LabelContext.DRAWER)
+            if (labelScale != 1f) label.setTextSize(TypedValue.COMPLEX_UNIT_PX, label.textSize * labelScale)
             label.visibility = if (prefs.drawerLabels) View.VISIBLE else View.GONE
         }
         binding.drawerFrequentRow.bindLabeled(entries, textColor, columns, sidePaddingDp = 0, look = look)
@@ -1915,6 +1916,21 @@ class DrawerController(
     // The strip and its rule are one unit: a bare divider above the list
     // reads as a stray line. The list's sort button shows with or without
     // them (list: no query is filtering the list).
+    // The top row's icon box and label scale. With Rows set, a short row
+    // shrinks the grid's icons and labels (DrawerTileFit); the row takes the
+    // same fit, or it stood over the list with bigger icons than the apps
+    // under it (#268).
+    private fun frequentRowSizes(prefs: LauncherPrefs, columns: Int): Pair<Int, Float> {
+        val tileLook = if (currentStyle == DrawerStyle.VERTICAL_GRID) adapter.tileLook(context) else null
+        if (tileLook != null) {
+            return (tileLook.iconPx * tileLook.fit.iconScale).roundToInt().coerceAtLeast(1) to tileLook.fit.labelScale
+        }
+        val baseDp = if (currentStyle == DrawerStyle.VERTICAL_LIST) ROW_ICON_DP else TILE_ICON_DP
+        val iconSizePx = (context.dp(baseDp) * iconScale(prefs)).toInt()
+            .coerceAtMost((gridWidthPx() / columns - context.dp(TILE_SIDE_PADDING_DP)).coerceAtLeast(1))
+        return iconSizePx to 1f
+    }
+
     private fun setFrequentRowVisible(prefs: LauncherPrefs, visible: Boolean, list: Boolean) {
         binding.drawerFrequentRow.visibility = if (visible) View.VISIBLE else View.GONE
         sortBars.show(prefs, topRow = visible, list = list)
@@ -2660,7 +2676,7 @@ class DrawerController(
         if (currentStyle != DrawerStyle.VERTICAL_GRID) return
         val recycler = binding.drawerRecycler
         val rows = prefs.drawerRows
-        val height = recycler.height - recycler.paddingTop - recycler.paddingBottom
+        val height = gridRowsHeight()
         if (height > 0) IconFitRoom.drawerHeightPx = height
         val measured = if (rows > 0 && height > 0) adapter.measureTile(recycler) else null
         val content = measured?.get(0) ?: 0
@@ -2675,6 +2691,42 @@ class DrawerController(
         adapter.tileContentPx = content
         adapter.tileCompactPx = compact
         adapter.notifyItemRangeChanged(0, adapter.itemCount)
+        // The top row takes the tiles' fit (updateFrequentRow).
+        frequentRowKey = null
+        updateFrequentRow()
+    }
+
+    // The height the rows share out. A keyboard pushing the list up (a
+    // search field at the bottom, or the lifted row before API 30) shrank
+    // every row while it showed, and they stayed shrunk once it went
+    // (#268): the rows take the height the list has without it.
+    private fun gridRowsHeight(): Int {
+        val recycler = binding.drawerRecycler
+        val laidOut = recycler.height - recycler.paddingTop - recycler.paddingBottom
+        gridInnerHeightPx = laidOut
+        val keyboardUp = imeVisible || keyboardHeight > 0 || searchRowLifted
+        if (!keyboardUp && laidOut > 0) keyboardFreeHeightPx = laidOut
+        return if (keyboardUp && keyboardFreeHeightPx > 0) keyboardFreeHeightPx else laidOut
+    }
+
+    // The list's height inside its padding when refreshGridRows last ran,
+    // and the last one taken with no keyboard up.
+    private var gridInnerHeightPx = 0
+    private var keyboardFreeHeightPx = 0
+
+    // The rows share out the list's height, so they follow it: insets,
+    // tab and private bars, the window. A refresh only ran on a setting
+    // change before, so a height taken mid-change stayed until the next
+    // one, a sort change for instance (#268).
+    private fun watchGridHeight() {
+        val recycler = binding.drawerRecycler
+        recycler.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            val inner = recycler.height - recycler.paddingTop - recycler.paddingBottom
+            if (inner > 0 && inner != gridInnerHeightPx && currentStyle == DrawerStyle.VERTICAL_GRID) {
+                gridInnerHeightPx = inner
+                recycler.post { refreshGridRows(viewModel.state.value.prefs) }
+            }
+        }
     }
 
     private fun pageRows(prefs: LauncherPrefs): Int {
