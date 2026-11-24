@@ -48,6 +48,7 @@
         android:textSize="@dimen/text_body" />
 
     <ImageView
+        android:id="@+id/styleTargetChevron"
         android:layout_width="20dp"
         android:layout_height="20dp"
         android:layout_marginStart="@dimen/space_md"

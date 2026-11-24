@@ -232,7 +232,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             TYPE_HEADER -> GroupLabelHolder(ItemSettingGroupLabelBinding.inflate(inflater, parent, false))
             TYPE_ACCORDION -> AccordionHolder(ItemSettingAccordionBinding.inflate(inflater, parent, false), ::toggleAccordion)
             TYPE_STYLE_TARGET -> StyleTargetHolder(
-                ItemSettingStyleTargetBinding.inflate(inflater, parent, false)
+                ItemSettingStyleTargetBinding.inflate(inflater, parent, false), ::showRow
             ) { onRowTapped?.invoke(it) }
             TYPE_LABEL_GROUP -> LabelGroupHolder(
                 ItemSettingLabelGroupBinding.inflate(inflater, parent, false), previews, ::toggleAccordion
@@ -389,6 +389,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             binding.settingTitle.alpha = alpha
             binding.settingSubtitle.alpha = if (waiting) BLOCKED_ALPHA else 1f
             binding.settingSwitch.alpha = alpha
+            binding.settingDivider.alpha = alpha
             binding.settingSwitch.isEnabled = !blocked && !waiting
             binding.root.isEnabled = !blocked
         }
@@ -671,6 +672,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
 
     private class StyleTargetHolder(
         private val binding: ItemSettingStyleTargetBinding,
+        private val onShowRow: (Int) -> Unit,
         private val onTap: (View) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(item: SettingItem.StyleTarget, prefs: LauncherPrefs) {
@@ -688,9 +690,18 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
                 shape = android.graphics.drawable.GradientDrawable.OVAL
                 setColor(resolved.accent)
             }
+            val waitsFor = item.waitingOn(prefs)
+            val alpha = if (waitsFor != null) BLOCKED_ALPHA else 1f
+            binding.settingTitle.alpha = alpha
+            binding.styleStrip.alpha = alpha
+            binding.styleTargetChevron.alpha = alpha
             binding.root.setOnClickListener {
-                onTap(it)
-                item.onClick()
+                if (waitsFor != null) {
+                    onShowRow(waitsFor)
+                } else {
+                    onTap(it)
+                    item.onClick()
+                }
             }
         }
     }
