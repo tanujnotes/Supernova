@@ -241,6 +241,7 @@ object Pref {
     val folderLabels = bool("folder_labels")
     val iconNormalize = bool("icon_normalize")
     val reshapeLegacy = text("reshape_legacy")
+    val iconNormalization = bool("icon_normalization")
     val iconShadow = bool("icon_shadow")
     val iconGlass = choice("icon_glass", IconGlass.entries)
     val iconSwipeIndicator = bool("icon_swipe_indicator")

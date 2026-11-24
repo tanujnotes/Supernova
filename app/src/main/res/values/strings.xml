@@ -659,6 +659,8 @@
     <string name="reshape_legacy">Reshape legacy icons</string>
     <string name="reshape_legacy_auto">Rescale only</string>
     <string name="reshape_legacy_on">Rescale and add background</string>
+    <string name="normalize_icon_size">Normalize icon size</string>
+    <string name="normalize_icon_size_summary">Scale large icons down to match Material guidelines</string>
     <string name="drawer_pull_to_search">Pull to search</string>
     <string name="folder_prioritize_first">Prioritize first icon</string>
     <string name="folder_prioritize_first_summary">The first app large in the folder icon, the rest small</string>

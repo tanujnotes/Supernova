@@ -1472,6 +1472,16 @@ object SettingsCatalogue {
                     { com.supernova.launcher.data.ReshapeLegacy.fromPrefs(it) }, { EnumLabels.of(it) },
                     onPick = { viewModel.set(Pref.reshapeLegacy, it.name) }
                 ),
+                // Reshape legacy's own resizing stands in for it otherwise.
+                SettingItem.Toggle(
+                    R.string.normalize_icon_size,
+                    get = { it.iconNormalization },
+                    set = { viewModel.set(Pref.iconNormalization, it) },
+                    subtitle = R.string.normalize_icon_size_summary
+                ).hiddenWhen {
+                    val reshape = com.supernova.launcher.data.ReshapeLegacy.fromPrefs(it)
+                    dependsOn(R.string.reshape_legacy, reshape != com.supernova.launcher.data.ReshapeLegacy.OFF)
+                },
                 SettingItem.Toggle(
                     R.string.icon_shadow,
                     get = { it.iconShadow },

@@ -53,6 +53,8 @@ internal class PreviewIcons(context: Context, private val source: (component: St
         if (!handles(prefs)) return
         val look = lookOf(prefs)
         renderer.reshapeLegacy = look.reshape
+        // Onboarding never changes it, so the look leaves it out.
+        renderer.normalizeSize = prefs.iconNormalization
         renderer.shadow = look.shadow
         val custom = CustomShapeSpec.decode(look.custom)
         for (component in components) {

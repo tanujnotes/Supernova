@@ -169,6 +169,7 @@ class LauncherViewModel(
     private var appliedIconShape: IconShape? = null
     private var appliedIconShapeCustom: String? = null
     private var appliedReshape: com.supernova.launcher.data.ReshapeLegacy? = null
+    private var appliedSizeNormalize: Boolean? = null
     private var appliedShadow: Boolean? = null
     private var appliedGlass: com.supernova.launcher.data.IconGlass? = null
     // Themed-icon colors depend on the whole palette, so track a signature.
@@ -215,6 +216,7 @@ class LauncherViewModel(
                     prefs.iconShapeCustom != appliedIconShapeCustom
                 val reshape = com.supernova.launcher.data.ReshapeLegacy.fromPrefs(prefs)
                 val normalizeChanged = reshape != appliedReshape
+                val sizeNormalizeChanged = prefs.iconNormalization != appliedSizeNormalize
                 val shadowChanged = prefs.iconShadow != appliedShadow
                 val glassChanged = prefs.iconGlass != appliedGlass
                 val themedSig = themedIconSignature(prefs)
@@ -226,7 +228,7 @@ class LauncherViewModel(
                 val night = isNightMode(prefs)
                 val nightChanged = night != appliedNight
                 val changes = listOf(
-                    packChanged, shapeChanged, normalizeChanged, shadowChanged,
+                    packChanged, shapeChanged, normalizeChanged, sizeNormalizeChanged, shadowChanged,
                     glassChanged, themedChanged, resolutionChanged, largeResolutionChanged, nightChanged
                 )
                 if (changes.none { it }) return@collect
@@ -236,6 +238,7 @@ class LauncherViewModel(
                 appliedIconShape = prefs.iconShape
                 appliedIconShapeCustom = prefs.iconShapeCustom
                 appliedReshape = reshape
+                appliedSizeNormalize = prefs.iconNormalization
                 appliedShadow = prefs.iconShadow
                 appliedGlass = prefs.iconGlass
                 appliedThemedSig = themedSig
@@ -252,7 +255,9 @@ class LauncherViewModel(
                             CustomShapeSpec.decode(prefs.iconShapeCustom)
                         )
                     }
-                    if (normalizeChanged) catalog.applyReshapeLegacy(reshape)
+                    if (normalizeChanged || sizeNormalizeChanged) {
+                        catalog.applyReshapeLegacy(reshape, prefs.iconNormalization)
+                    }
                     if (shadowChanged) catalog.applyIconShadow(prefs.iconShadow)
                     if (glassChanged) {
                         catalog.applyIconGlass(prefs.iconGlass)
@@ -263,7 +268,8 @@ class LauncherViewModel(
                         val (bg, fg) = themedIconColors(prefs)
                         catalog.applyThemedIcons(prefs.themedIcons, bg, fg, prefs.themedIconsAutogen)
                     }
-                    themedEvicted || nightEvicted || packChanged || shapeChanged || normalizeChanged || shadowChanged ||
+                    themedEvicted || nightEvicted || packChanged || shapeChanged || normalizeChanged ||
+                        sizeNormalizeChanged || shadowChanged ||
                         glassChanged || resolutionChanged || largeResolutionChanged
                 }
                 // The first emission is the startup configuration: it applies

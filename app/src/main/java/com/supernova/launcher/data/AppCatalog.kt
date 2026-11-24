@@ -291,7 +291,8 @@ class AppCatalog(
     // Every setting the icons share; a change starts a new disk folder.
     private fun diskSignature(): String =
         "$DISK_FORMAT|${context.resources.displayMetrics.densityDpi}|$iconShape|${customShapeSpec?.encode()}|" +
-            "${iconRenderer.reshapeLegacy}|${iconRenderer.shadow}|${iconRenderer.glass}|$themedIcons|" +
+            "${iconRenderer.reshapeLegacy}|${iconRenderer.normalizeSize}|${iconRenderer.shadow}|" +
+            "${iconRenderer.glass}|$themedIcons|" +
             "$themedIconsAutogen|${iconPacks.loadedPack()}|$packStamp|${iconPacks.themeKey()}"
 
     // The loaded pack's own install time: an updated pack draws afresh.
@@ -473,9 +474,11 @@ class AppCatalog(
         dominantColors.clear()
     }
 
-    fun applyReshapeLegacy(value: ReshapeLegacy) = synchronized(renderLock) {
-        if (iconRenderer.reshapeLegacy == value) return
+    // Reshape legacy, with Normalize icon size (#332), which works under it.
+    fun applyReshapeLegacy(value: ReshapeLegacy, normalizeSize: Boolean) = synchronized(renderLock) {
+        if (iconRenderer.reshapeLegacy == value && iconRenderer.normalizeSize == normalizeSize) return
         iconRenderer.reshapeLegacy = value
+        iconRenderer.normalizeSize = normalizeSize
         iconCache.evictAll()
         dominantColors.clear()
     }

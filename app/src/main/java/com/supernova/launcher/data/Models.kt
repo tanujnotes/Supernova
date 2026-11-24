@@ -323,6 +323,10 @@ data class LauncherPrefs(
     // ON additionally bakes a plate behind raw legacy icons
     // ("Reshape legacy icons"), on out of the box.
     val reshapeLegacy: String = "ON",
+    // Normalize icon size (#332): with Reshape legacy Off, legacy icons and
+    // a pack's art shrink to the Material icon guidelines. On out of the
+    // box, as in the reference.
+    val iconNormalization: Boolean = true,
     // On by default. The shadow falls outside the icon, which keeps
     // its size (ShadowedIconDrawable).
     val iconShadow: Boolean = true,
