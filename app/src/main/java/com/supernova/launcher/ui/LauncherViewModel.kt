@@ -1239,10 +1239,13 @@ class LauncherViewModel(
 
     // Every key a TAB-type group takes out of the All/Personal list: its
     // apps', and its drawer folders' (TabFolders).
-    fun isolatedTabKeys(): Set<String> =
-        drawerGroups()
+    // None while the tab bar is hidden: those tabs can't be opened (#327).
+    fun isolatedTabKeys(): Set<String> {
+        if (!drawerTabBarShown()) return emptySet()
+        return drawerGroups()
             .filter { it.type == DrawerGroupType.TAB && leavesMainList(it) }
             .flatMapTo(mutableSetOf()) { it.members }
+    }
 
     // The drawer folders a list shows: a tab's own, or for the main list
     // (null) every folder no tab took out of it.
@@ -1405,7 +1408,14 @@ class LauncherViewModel(
         is GroupPick.Folder -> TabFolders.keyOf(pick.group.id)
     }
 
-    fun workTabActive(): Boolean = state.value.prefs.drawerWorkTab && hasWorkApps()
+    // With the tab bar hidden there is no Work tab to hold the work apps:
+    // they stay on the drawer's one list (#327).
+    fun workTabActive(): Boolean =
+        state.value.prefs.drawerWorkTab && hasWorkApps() && drawerTabBarShown()
+
+    // Hidden, the bar leaves the drawer one list of every app: no tab, the
+    // Work tab included, can take apps out of it where nobody can reach them.
+    fun drawerTabBarShown(): Boolean = state.value.prefs.drawerTabBar != DrawerTabBar.NONE
 
     // A drawer folder's apps as the All list shows them: with the Work tab
     // on, a work app stays in that tab, out of the personal folders.
