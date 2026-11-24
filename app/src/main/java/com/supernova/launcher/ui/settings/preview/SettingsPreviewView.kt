@@ -909,7 +909,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         )
         val cell = com.supernova.launcher.ui.FolderPopup.gridWidthPx(context, columns, scale) / columns
         folderColumnCount = columns
-        val apps = sampleApps(viewModel, columns * 2)
+        val apps = sampleApps(viewModel, columns)
         repeat(2) { rowIndex ->
             val cells = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -1244,7 +1244,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         val list = prefs.drawerStyle == com.supernova.launcher.ui.DrawerStyle.VERTICAL_LIST
         val scale = if (prefs.drawerMatchDesktop) prefs.iconScale else prefs.drawerIconScale
         val columns = drawerColumns(prefs, scale)
-        val apps = sampleApps(viewModel, columns * 2)
+        val apps = sampleApps(viewModel, columns)
         val items = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             clipChildren = false
@@ -1266,8 +1266,9 @@ class SettingsPreviewView @JvmOverloads constructor(
         val listFrame = drawerListFrame(prefs, resolved, items)
 
         // Top to bottom as DrawerController stacks the sheet: the search row
-        // and the tabs at whichever end they are set to, the top row and its
-        // rule with the sort button over the list.
+        // and the tabs at whichever end they are set to, the sort button over
+        // the list. One row of icons only: the top row stays out (it would be
+        // a second row of the same icons).
         val placement = com.supernova.launcher.ui.DrawerBarPlacement.fromConfig(
             SearchBarConfig.decode(prefs.searchBarConfig).drawer
         )
@@ -1278,12 +1279,10 @@ class SettingsPreviewView @JvmOverloads constructor(
         val tabsBottom = prefs.drawerTabBar == com.supernova.launcher.ui.DrawerTabBar.BOTTOM
         drawerTabsView = tabs
         drawerTabsBelow = tabsBottom
-        val topRow = drawerTopRow(prefs, apps.drop(columns).ifEmpty { apps }, columns)
-        val sortBar = drawerSortBar(prefs, resolved, rule = topRow != null)
+        val sortBar = drawerSortBar(prefs, resolved)
         val parts = listOfNotNull(
             searchRow.takeIf { searchTop },
             tabs.takeIf { !tabsBottom },
-            topRow,
             sortBar,
             listFrame,
             tabs.takeIf { tabsBottom },
@@ -1409,58 +1408,26 @@ class SettingsPreviewView @JvmOverloads constructor(
     // The top row of apps over the list (FrequentAppsRowView), at the
     // grid's columns, pulled in by the drawer's side padding as the grid is;
     // null with the row off.
-    private fun drawerTopRow(
-        prefs: LauncherPrefs,
-        apps: List<Pair<LaunchableApp, Drawable>>,
-        columns: Int
-    ): View? {
-        if (!prefs.drawerFrequentRow) return null
-        val row = newRow()
-        val side = dp(prefs.drawerPaddingH)
-        row.setPadding(side, 0, side, 0)
-        apps.take(columns).forEach { (app, icon) ->
-            row.addView(iconColumn(icon.copied(), app.label, keepInsideSlot = true), slotParams())
-        }
-        return row
-    }
-
-    // The strip over the list (DrawerSortBars): the rule under the top row
-    // and the sort button at its end, or nothing when neither shows.
+    // The strip over the list (DrawerSortBars): the sort button at its end,
+    // or nothing when it is off.
     private fun drawerSortBar(
         prefs: LauncherPrefs,
-        resolved: com.supernova.launcher.ui.theme.ResolvedSurface,
-        rule: Boolean
+        resolved: com.supernova.launcher.ui.theme.ResolvedSurface
     ): View? {
-        if (!rule && !prefs.drawerSortButtons) return null
+        if (!prefs.drawerSortButtons) return null
         val bar = FrameLayout(context)
-        if (rule) {
-            bar.addView(
-                View(context).apply {
-                    background = GradientDrawable().apply {
-                        cornerRadius = dp(1).toFloat()
-                        setColor((DRAWER_RULE_ALPHA shl 24) or (resolved.text and 0xFFFFFF))
-                    }
-                },
-                LayoutParams(dp(DRAWER_RULE_WIDTH_DP), dp(2), Gravity.CENTER).apply {
-                    topMargin = dp(DRAWER_RULE_MARGIN_DP)
-                    bottomMargin = dp(DRAWER_RULE_MARGIN_DP)
-                }
-            )
-        }
-        if (prefs.drawerSortButtons) {
-            bar.addView(
-                ImageView(context).apply {
-                    setImageResource(R.drawable.glyph_sort)
-                    scaleType = ImageView.ScaleType.CENTER
-                    imageTintList = android.content.res.ColorStateList.valueOf(
-                        androidx.core.graphics.ColorUtils.setAlphaComponent(resolved.text, TAB_TEXT_ALPHA)
-                    )
-                },
-                LayoutParams(
-                    dp(DRAWER_SORT_BUTTON_DP), dp(DRAWER_SORT_BUTTON_DP), Gravity.END or Gravity.CENTER_VERTICAL
-                ).apply { marginEnd = dp(1) }
-            )
-        }
+        bar.addView(
+            ImageView(context).apply {
+                setImageResource(R.drawable.glyph_sort)
+                scaleType = ImageView.ScaleType.CENTER
+                imageTintList = android.content.res.ColorStateList.valueOf(
+                    androidx.core.graphics.ColorUtils.setAlphaComponent(resolved.text, TAB_TEXT_ALPHA)
+                )
+            },
+            LayoutParams(
+                dp(DRAWER_SORT_BUTTON_DP), dp(DRAWER_SORT_BUTTON_DP), Gravity.END or Gravity.CENTER_VERTICAL
+            ).apply { marginEnd = dp(1) }
+        )
         return bar
     }
 
@@ -1736,9 +1703,6 @@ class SettingsPreviewView @JvmOverloads constructor(
         const val TAB_BUBBLE_RADIUS_DP = 100
         const val TAB_BUBBLE_INSET_DP = 6
         const val TAB_BUBBLE_ALPHA = 0x3D
-        const val DRAWER_RULE_ALPHA = 0x33
-        const val DRAWER_RULE_WIDTH_DP = 72
-        const val DRAWER_RULE_MARGIN_DP = 10
         const val DRAWER_SORT_BUTTON_DP = 48
         const val FAST_SCROLL_TRACK_ALPHA = 30
         const val FAST_SCROLL_WIDTH_DP = 32
