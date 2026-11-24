@@ -1108,7 +1108,8 @@ class SettingsActivity : AppCompatActivity() {
         binding.previewPane.clipToOutline = true
         binding.previewPane.showsWallpaper =
             preview.kind == PreviewKind.HOME || preview.kind == PreviewKind.SEARCH_BAR ||
-            preview.kind == PreviewKind.DRAWER || preview.kind == PreviewKind.DOCK
+            preview.kind == PreviewKind.DRAWER || preview.kind == PreviewKind.DOCK ||
+            preview.kind == PreviewKind.SEARCH
         // Same guard as the in-list holder: never rebuild mid slider drag.
         if (!previews.isTracking) {
             val view = paneView ?: com.supernova.launcher.ui.settings.preview.SettingsPreviewView(this).also {
@@ -1128,13 +1129,20 @@ class SettingsActivity : AppCompatActivity() {
                 )
             }
             previews.attach(view, preview.kind)
-            // A preview that paints its own surface fills the card, its
-            // minimum height included; the others sit inside its padding.
-            val pad = if (view.fillsPane) 0 else resources.getDimensionPixelSize(R.dimen.space_sm)
-            binding.previewPane.setPadding(binding.previewPane.paddingLeft, pad, binding.previewPane.paddingRight, pad)
-            view.minimumHeight = if (view.fillsPane) binding.previewPane.minimumHeight else 0
+            fitPaneTo(view)
         }
         return true
+    }
+
+    // A preview that paints its own surface fills the card, its minimum
+    // height included, except the dock's, which the card hugs; the others
+    // sit inside its padding.
+    private fun fitPaneTo(view: com.supernova.launcher.ui.settings.preview.SettingsPreviewView) {
+        val pad = if (view.fillsPane) 0 else resources.getDimensionPixelSize(R.dimen.space_sm)
+        binding.previewPane.setPadding(binding.previewPane.paddingLeft, pad, binding.previewPane.paddingRight, pad)
+        val paneMin = resources.getDimensionPixelSize(R.dimen.settings_preview_min_height)
+        binding.previewPane.minimumHeight = if (view.fillsPane && !view.keepsPaneHeight) 0 else paneMin
+        view.minimumHeight = if (view.keepsPaneHeight) paneMin else 0
     }
 
     // Root-row blurbs. Long on purpose so they render under the

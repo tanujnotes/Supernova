@@ -50,7 +50,7 @@ internal class AppEditDraft(
     // The edit the sheet would save now. The name is the one typed, kept
     // only when it differs from the default.
     fun edit(): AppOverride {
-        val typed = typedLabel()
+        val typed = typedLabel
         return AppOverride(
             customLabel = typed.takeIf { it.isNotEmpty() && it != defaultLabel },
             hideLabel = binding.hideLabelSwitch.isChecked,
@@ -62,7 +62,22 @@ internal class AppEditDraft(
         )
     }
 
-    fun typedLabel(): String = binding.editLabel.text?.toString().orEmpty().trim()
+    // Reset only clears the draft: the name goes back to the default, the
+    // label shows, and the icon fields take `icon`'s (a placed copy's are
+    // the drawer's, which it follows with no edit of its own). Save stores it.
+    fun reset(icon: AppOverride) {
+        shape = icon.iconShape
+        pack = icon.iconPackPackage
+        this.icon = icon.iconDrawableName
+        photo = icon.iconBase64
+        variant = icon.iconVariant
+        binding.editLabel.setText(defaultLabel)
+        binding.hideLabelSwitch.isChecked = false
+        binding.variantGroup.check(VARIANT_IDS[variant] ?: R.id.variantDefault)
+        refresh()
+    }
+
+    val typedLabel: String get() = binding.editLabel.text?.toString().orEmpty().trim()
 
     // Wires the live parts; call once the name field and switch hold the
     // saved values.
@@ -93,7 +108,7 @@ internal class AppEditDraft(
             view.invalidate()
         }
         val hidden = binding.hideLabelSwitch.isChecked
-        binding.previewLabel.text = typedLabel().ifEmpty { defaultLabel }
+        binding.previewLabel.text = typedLabel.ifEmpty { defaultLabel }
         binding.previewLabel.visibility = if (hidden) View.INVISIBLE else View.VISIBLE
         renderChips()
         renderSave()
@@ -114,7 +129,7 @@ internal class AppEditDraft(
     // nothing does.
     private fun renderChips() {
         val changes = buildList {
-            val typed = typedLabel()
+            val typed = typedLabel
             if (typed.isNotEmpty() && typed != defaultLabel) add(context.getString(R.string.edit_change_renamed))
             if (binding.hideLabelSwitch.isChecked) add(context.getString(R.string.edit_change_hidden))
             binding.iconValue.text.takeIf { photo != null || icon != null }
@@ -162,7 +177,7 @@ internal class AppEditDraft(
     }
 
     private fun bindVariants() {
-        val ids = mapOf(null to R.id.variantDefault, THEMED to R.id.variantThemed, ORIGINAL to R.id.variantOriginal)
+        val ids = VARIANT_IDS
         binding.variantGroup.check(ids[variant] ?: R.id.variantDefault)
         binding.variantGroup.addOnButtonCheckedListener { _, id, checked ->
             if (!checked) return@addOnButtonCheckedListener
@@ -207,6 +222,11 @@ internal class AppEditDraft(
     private companion object {
         const val THEMED = "THEMED"
         const val ORIGINAL = "ORIGINAL"
+        val VARIANT_IDS = mapOf(
+            null to R.id.variantDefault,
+            THEMED to R.id.variantThemed,
+            ORIGINAL to R.id.variantOriginal
+        )
         val VARIANT_NAMES = mapOf(THEMED to R.string.variant_themed, ORIGINAL to R.string.variant_original)
         const val SWATCH_DP = 52
         const val SWATCH_GAP_DP = 4

@@ -29,7 +29,7 @@ class SupernovaWidgetHost(context: Context, hostId: Int) : AppWidgetHost(context
     ): AppWidgetHostView = SupernovaWidgetHostView(context)
 }
 
-// Two jobs the stock AppWidgetHostView can't do:
+// Jobs the stock AppWidgetHostView can't do:
 //
 // 1. Corner clip that survives updates. On API 31+ the framework re-runs its
 //    own rounded-corner enforcement on every RemoteViews apply, replacing any
@@ -50,6 +50,28 @@ class SupernovaWidgetHostView(context: Context) : AppWidgetHostView(context) {
         // its own spacing (the widgetPadding pref), so the host stays
         // edge-to-edge.
         setPadding(0, 0, 0, 0)
+        // 4. Scrolling text. A widget's marquee runs only while its TextView
+        //    holds focus (RemoteViews can't select it), and the launcher's
+        //    window has one focus: a page change, the drawer search or a
+        //    re-attach took it away and the text stopped at "..." (#325).
+        //    Selected also runs a marquee, and every widget's can at once,
+        //    so each marquee TextView is selected whenever content lands
+        //    (applies may finish later, on the inflation executor), and
+        //    selected again after a re-attach, which stops a running one.
+        setOnHierarchyChangeListener(object : OnHierarchyChangeListener {
+            override fun onChildViewAdded(parent: View?, child: View?) {
+                post { WidgetMarquees.select(this@SupernovaWidgetHostView, restart = false) }
+            }
+
+            override fun onChildViewRemoved(parent: View?, child: View?) = Unit
+        })
+        addOnAttachStateChangeListener(object : OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(v: View) {
+                post { WidgetMarquees.select(v, restart = true) }
+            }
+
+            override fun onViewDetachedFromWindow(v: View) = Unit
+        })
     }
 
     var cornerRadiusPx: Float = 0f
@@ -179,5 +201,20 @@ class SupernovaWidgetHostView(context: Context) : AppWidgetHostView(context) {
         super.cancelLongPress()
         removeCallbacks(longPressCheck)
         longPressFired = false
+    }
+}
+
+// Starts every marquee in a widget's views by selecting its TextView.
+private object WidgetMarquees {
+    fun select(view: View, restart: Boolean) {
+        if (view is android.widget.TextView) {
+            if (view.ellipsize == android.text.TextUtils.TruncateAt.MARQUEE) {
+                if (restart && view.isSelected) view.isSelected = false
+                view.isSelected = true
+            }
+            return
+        }
+        if (view !is ViewGroup) return
+        for (i in 0 until view.childCount) select(view.getChildAt(i), restart)
     }
 }

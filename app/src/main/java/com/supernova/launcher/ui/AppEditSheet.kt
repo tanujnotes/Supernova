@@ -113,13 +113,10 @@ object AppEditSheet {
         }
 
         if (shortcut != null) {
-            binding.resetButton.setOnClickListener {
-                shortcut.onSave(shortcut.originalLabel ?: shortcut.label, AppOverride())
-                dialog.dismiss()
-            }
+            binding.resetButton.setOnClickListener { draft.reset(AppOverride()) }
             binding.saveButton.setOnClickListener {
                 // A shortcut's name is saved on the item, not in the edit.
-                shortcut.onSave(draft.typedLabel().ifEmpty { defaultLabel }, draft.edit().copy(customLabel = null))
+                shortcut.onSave(draft.typedLabel.ifEmpty { defaultLabel }, draft.edit().copy(customLabel = null))
                 dialog.dismiss()
             }
             dialog.show()
@@ -130,15 +127,16 @@ object AppEditSheet {
 
         val groups = DrawerGroupsPick.forSheet(context, viewModel, app, fromDrawer, binding)
 
-        // Reset undoes the icon and name edits, not the groups: those are
-        // where the app lives, as Select apps sets them.
+        // Reset clears the icon and name edits in the sheet, not the groups:
+        // those are where the app lives, as Select apps sets them. Like
+        // every other change it lands with Save, so a stray tap costs nothing.
+        // A placed copy with no edit of its own draws the drawer's icon.
         binding.resetButton.setOnClickListener {
-            save(viewModel, app, placed, null)
-            dialog.dismiss()
+            draft.reset(if (placed != null) viewModel.overrideFor(app) else AppOverride())
         }
 
         binding.saveButton.setOnClickListener {
-            save(viewModel, app, placed, draft.edit())
+            save(viewModel, app, placed, draft.edit().takeUnless { it.isEmpty() })
             groups?.save()
             dialog.dismiss()
         }
