@@ -3,6 +3,7 @@ package com.supernova.launcher.ui
 import android.content.Context
 import android.util.AttributeSet
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import kotlin.math.max
@@ -81,6 +82,14 @@ class WorkspaceCanvas @JvmOverloads constructor(
     init {
         clipChildren = false
     }
+
+    // True while the page's icons, folders and widgets take no touches of
+    // their own (home edit mode, #348): the canvas keeps the whole stream,
+    // so a tap is a tap on the page and a long-press lifts it.
+    var itemsInert: () -> Boolean = { false }
+
+    override fun onInterceptTouchEvent(ev: MotionEvent): Boolean =
+        itemsInert() || super.onInterceptTouchEvent(ev)
 
     // A one-cell icon's room at its own size, `needW` x `needH`, its icon
     // box and padding, and how it sets its parts: the icon to `iconPx`, the

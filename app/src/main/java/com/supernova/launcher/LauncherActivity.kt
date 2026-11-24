@@ -5263,7 +5263,14 @@ class LauncherActivity :
 
     override fun onSearchBarWidgetLongPress(anchor: View) = showSearchBarMenu(anchor)
 
-    override fun onPageBound(canvas: ViewGroup) = widgets.onPageBound(canvas)
+    override fun onPageBound(canvas: ViewGroup) {
+        // In edit mode icons, folders and widgets neither launch, open nor
+        // scroll: a tap anywhere on a page closes edit mode, a long-press
+        // lifts the page (#348).
+        (canvas as? com.supernova.launcher.ui.WorkspaceCanvas)?.itemsInert =
+            { ::editMode.isInitialized && editMode.isOpen }
+        widgets.onPageBound(canvas)
+    }
 
     override fun reportWidgetSize(item: LauncherItem, view: View) = widgets.reportWidgetSize(item, view)
 
