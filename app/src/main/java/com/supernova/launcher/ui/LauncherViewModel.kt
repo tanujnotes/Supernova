@@ -975,6 +975,16 @@ class LauncherViewModel(
         }
     }
 
+    // Undo of an app's removal from a two-app folder, which dissolved it:
+    // the app left behind gives way, and the folder comes back whole.
+    fun restoreFolder(items: List<LauncherItem>) {
+        val prefs = state.value.prefs
+        viewModelScope.launch {
+            val dockSlots = prefs.dockCount * prefs.dockPages.coerceAtLeast(1)
+            repository.replaceItems(items, prefs.gridCols, prefs.gridRows, dockSlots)
+        }
+    }
+
     // A home or dock folder moved into the drawer (FolderToDrawer). Null,
     // and nothing moved, when the folder holds no app a drawer group can.
     fun moveFolderToDrawer(folder: LauncherItem, target: DrawerTarget): FolderMove? {
