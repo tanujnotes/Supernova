@@ -60,14 +60,9 @@ class IconPackRepository(private val context: Context) {
             .getOrDefault(packageName)
 
     fun availablePacks(): List<IconPack> {
-        // Icon packs advertise themselves through one of these theme actions.
-        val actions = listOf(
-            "org.adw.launcher.THEMES",
-            "com.gau.go.launcherex.theme"
-        )
-        return actions
-            .flatMap { action ->
-                runCatching { pm.queryIntentActivities(Intent(action), 0) }.getOrDefault(emptyList())
+        return PACK_INTENTS
+            .flatMap { intent ->
+                runCatching { pm.queryIntentActivities(intent, 0) }.getOrDefault(emptyList())
             }
             .map { it.activityInfo.packageName }
             .distinct()
@@ -427,6 +422,18 @@ class IconPackRepository(private val context: Context) {
     }
 
     companion object {
+        // How icon packs advertise themselves: the ADW and GO theme actions,
+        // a third launcher's THEME action, and Apex's category on a MAIN
+        // activity. Most packs declare several; some only one of these.
+        // Each needs a matching <queries> entry in the manifest.
+        private val PACK_INTENTS
+            get() = listOf(
+                Intent("org.adw.launcher.THEMES"),
+                Intent("com.gau.go.launcherex.theme"),
+                Intent("com.novalauncher.THEME"),
+                Intent(Intent.ACTION_MAIN).addCategory("com.anddoes.launcher.THEME")
+            )
+
         // The pack's own icon list, under the names packs ship it as.
         private val DRAWABLE_LISTS = listOf("drawable", "drawables")
 
