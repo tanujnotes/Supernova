@@ -1996,7 +1996,7 @@ class DrawerController(
     private fun styleKey(prefs: LauncherPrefs): String =
         listOf(
             prefs.labelSize, prefs.labelColor, prefs.labelShadow, prefs.labelFont,
-            prefs.labelSingleLine, prefs.labelConfig, prefs.drawerLabels,
+            prefs.labelSingleLine, prefs.labelEvenRows, prefs.labelConfig, prefs.drawerLabels,
             prefs.badges, prefs.badgeStyle, prefs.badgeCounts, prefs.badgeApps,
             prefs.badgeColor, prefs.badgePosition, prefs.badgeScale, prefs.badgeTextColor,
             prefs.badgeCornerRadius, prefs.badgeOutline, prefs.badgeOnCorner

@@ -696,6 +696,8 @@
     <string name="auto_add_apps">Add new apps to Home screen</string>
     <string name="label_font">Label font</string>
     <string name="label_single_line">Single-line labels</string>
+    <string name="label_even_rows">Even row spacing</string>
+    <string name="label_even_rows_summary">App drawer and folder rows keep room for two-line labels</string>
     <!-- The Home screen's Icon size bar and Label card. The card
          names its controls briefly because they sit under its "Label"
          header; search lists them by the longer names above. -->

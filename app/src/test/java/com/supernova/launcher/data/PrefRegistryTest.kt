@@ -229,7 +229,7 @@ class PrefRegistryTest {
         folder_plate_color:S folder_badges:B theme_mode:S theme_schedule_start:I
         theme_schedule_end:I accent_color:S drawer_bg_color:S folder_bg_color:S palette_source:S
         palette_seed:S style_config:S widget_corner_radius:I show_scrims:B wallpaper_zoom:B
-        auto_add_apps:B label_font:S label_single_line:B dock_infinite_scroll:B
+        auto_add_apps:B label_font:S label_single_line:B label_even_rows:B dock_infinite_scroll:B
         dock_match_desktop:B dock_overlay:B dock_auto_close:B dock_remember_position:B
         dock_padding_h:I dock_padding_v:I search_web_provider:S search_web_custom_url:S search_contacts:B
         search_shortcuts:B search_folders:B search_window_mode:S search_apps_one_row:B

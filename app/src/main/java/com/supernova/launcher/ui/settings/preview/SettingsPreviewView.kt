@@ -249,7 +249,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         if (fit >= 1f) return
         for (label in labelViews) {
             label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, label.textSize * fit)
-            label.maxLines = 1
+            LabelStyler.capLines(label, 1)
         }
     }
 

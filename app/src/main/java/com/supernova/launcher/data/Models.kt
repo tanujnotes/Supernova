@@ -415,6 +415,10 @@ data class LauncherPrefs(
     // broken word ("OpenWeathe" over "r"). Per-surface overrides in
     // labelConfig can still allow two lines.
     val labelSingleLine: Boolean = true,
+    // With two-line labels, drawer and folder rows keep room for a second
+    // line even when none of their labels wraps, so every row of icons is
+    // spaced the same (#347). Off by default.
+    val labelEvenRows: Boolean = false,
     val dockInfiniteScroll: Boolean = false,
     // When on, the dock follows iconScale and the dock scale slider hides.
     // On by default.

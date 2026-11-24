@@ -3,6 +3,7 @@ package com.supernova.launcher.ui
 import android.graphics.Color
 import android.graphics.Typeface
 import android.util.TypedValue
+import android.view.Gravity
 import android.widget.TextView
 import com.supernova.launcher.R
 import com.supernova.launcher.data.LauncherPrefs
@@ -54,7 +55,9 @@ object LabelStyler {
         view: TextView,
         prefs: LauncherPrefs,
         onWallpaper: Boolean,
-        context: LabelContext = LabelContext.DESKTOP
+        context: LabelContext = LabelContext.DESKTOP,
+        // A tile in a grid of rows (drawer, folder), not a list row.
+        inGrid: Boolean = true
     ) {
         val override = LabelConfig.decode(prefs.labelConfig).of(context)
         val surface = when (context) {
@@ -73,17 +76,22 @@ object LabelStyler {
         view.setTextSize(TypedValue.COMPLEX_UNIT_SP, size.toFloat())
         view.setTextColor(parseColor(prefs.labelColor, fallback))
         view.typeface = typefaceFor(override.font?.let(LabelFont::fromName) ?: prefs.labelFont)
+        applyLines(view, prefs, context, inGrid)
+        if (override.shadow ?: prefs.labelShadow) {
+            view.setShadowLayer(3f, 0f, 1f, 0xB3000000.toInt())
+        } else {
+            view.setShadowLayer(0f, 0f, 0f, 0)
+        }
+    }
+
+    private fun applyLines(view: TextView, prefs: LauncherPrefs, context: LabelContext, inGrid: Boolean) {
         // Each surface declares its own maxLines in XML; remember that value
         // on the view so single-line can be undone on a recycled bind.
         val surfaceMax = view.getTag(R.id.tag_default_max_lines) as? Int
             ?: view.maxLines.also { view.setTag(R.id.tag_default_max_lines, it) }
         val targetMax = if (singleLineFor(context, prefs)) 1 else surfaceMax
         if (view.maxLines != targetMax) view.maxLines = targetMax
-        if (override.shadow ?: prefs.labelShadow) {
-            view.setShadowLayer(3f, 0f, 1f, 0xB3000000.toInt())
-        } else {
-            view.setShadowLayer(0f, 0f, 0f, 0)
-        }
+        reserveLines(view, if (inGrid && evenRows(context, prefs)) targetMax else 0)
     }
 
     // Whether a surface draws its labels on one line. The dock is a row of
@@ -97,6 +105,32 @@ object LabelStyler {
     fun singleLineFor(context: LabelContext, prefs: LauncherPrefs): Boolean =
         LabelConfig.decode(prefs.labelConfig).of(context).singleLine
             ?: (context == LabelContext.DOCK || prefs.labelSingleLine)
+
+    // Whether a surface's grid rows keep room for every label line it allows
+    // (#347): rows of short names otherwise sit closer together than rows
+    // with a wrapped one. Only the drawer and folders lay labels out in rows
+    // of varying height; the desktop and dock place icons by cell.
+    fun evenRows(context: LabelContext, prefs: LauncherPrefs): Boolean =
+        prefs.labelEvenRows && (context == LabelContext.DRAWER || context == LabelContext.FOLDER)
+
+    // Holds a label at `lines` lines tall, 0 for its text's own height. A
+    // reserved label keeps its text at the top, under the icon, so a short
+    // name lines up with a wrapped neighbour's first line.
+    // Only undoes a reserve this set, so a label's own minimum stays.
+    private fun reserveLines(view: TextView, lines: Int) {
+        val old = view.minLines
+        if (old == lines || (lines <= 1 && old <= 1)) return
+        view.minLines = lines
+        val horizontal = view.gravity and Gravity.HORIZONTAL_GRAVITY_MASK
+        view.gravity = horizontal or if (lines > 1) Gravity.TOP else Gravity.CENTER_VERTICAL
+    }
+
+    // Caps a label at `lines` lines, dropping any reserve above that: a
+    // tight tile's single line must not keep a second line's room.
+    fun capLines(view: TextView, lines: Int) {
+        if (view.maxLines != lines) view.maxLines = lines
+        if (view.minLines > lines) reserveLines(view, lines)
+    }
 
     fun parseColor(raw: String, fallback: Int = Color.WHITE): Int =
         if (raw.isEmpty()) fallback else runCatching { Color.parseColor(raw) }.getOrDefault(fallback)

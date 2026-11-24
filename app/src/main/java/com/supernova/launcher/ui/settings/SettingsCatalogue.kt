@@ -431,6 +431,18 @@ object SettingsCatalogue {
                         R.string.label_shadow, R.string.label_single_line
                     )
                 ),
+                // Only does something where labels may take two lines: the
+                // drawer and folders, whose rows otherwise follow their
+                // longest label (#347).
+                SettingItem.Toggle(
+                    R.string.label_even_rows,
+                    get = { it.labelEvenRows },
+                    set = { viewModel.set(Pref.labelEvenRows, it) },
+                    subtitle = R.string.label_even_rows_summary
+                ).waitsOn(R.string.label_group) {
+                    LabelStyler.singleLineFor(LabelContext.DRAWER, it) &&
+                        LabelStyler.singleLineFor(LabelContext.FOLDER, it)
+                },
                 SettingItem.Row(
                     R.string.desktop_grid,
                     subtitle = { context.getString(R.string.grid_value, it.gridRows, it.gridCols) },
