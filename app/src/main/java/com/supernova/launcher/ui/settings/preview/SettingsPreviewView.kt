@@ -1438,9 +1438,12 @@ class SettingsPreviewView @JvmOverloads constructor(
     private fun Drawable.copied(): Drawable =
         constantState?.newDrawable(resources)?.mutate() ?: this
 
+    // Icons share the row's top and a two-line label hangs below its icon,
+    // as on the surfaces themselves (#346); centred, a one-line label's
+    // icon sat lower than its two-line neighbour's.
     private fun newRow(): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL
-        gravity = Gravity.CENTER
+        gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
         clipChildren = false
     }
 
