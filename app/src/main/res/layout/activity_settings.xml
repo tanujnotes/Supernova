@@ -121,7 +121,7 @@
 
             <!-- Pinned preview: section screens park their live
                  preview here so it stays put while the list scrolls, on a
-                 card of its own 8dp under the toolbar, in the cards' 16dp
+                 card of its own 8dp under the toolbar, in the cards'
                  gutter. The frame's padding, not margins, holds it there
                  (margins of a hidden child count toward the bar's scroll
                  range). -->
@@ -129,7 +129,7 @@
                 android:id="@+id/previewFrame"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="@dimen/space_md"
+                android:paddingHorizontal="@dimen/settings_gutter"
                 android:paddingTop="@dimen/space_sm"
                 android:visibility="gone">
 
@@ -150,7 +150,7 @@
                 android:id="@+id/rootSearch"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="@dimen/space_md"
+                android:paddingHorizontal="@dimen/settings_gutter"
                 android:paddingTop="@dimen/space_sm"
                 android:paddingBottom="@dimen/space_sm"
                 android:visibility="gone">

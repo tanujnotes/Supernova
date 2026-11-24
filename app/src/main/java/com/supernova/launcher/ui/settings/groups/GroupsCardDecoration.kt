@@ -13,7 +13,7 @@ import com.supernova.launcher.ui.dp
 
 // The Drawer groups list's cards, to the settings pages' measures
 // (SettingsGroupDecoration): each run of group rows with its New row sits on
-// one rounded card 16dp in from the sides, 4dp clear of its first and last
+// one rounded card the settings gutter in from the sides, 4dp clear of its first and last
 // row, with a hairline between rows from the text line; a label stands 24dp
 // under what is above it, and a card's help line 8dp under the card.
 //
@@ -29,7 +29,7 @@ class GroupsCardDecoration(context: Context, private val adapter: GroupListAdapt
             cardPaint.color = value
         }
 
-    private val gutter = context.dp(GUTTER_DP)
+    private val gutter = context.resources.getDimensionPixelSize(R.dimen.settings_gutter)
     private val inset = context.dp(INSET_DP)
     private val radius = context.dp(CORNER_DP).toFloat()
     private val dividerStart = context.dp(DIVIDER_START_DP)
@@ -97,7 +97,6 @@ class GroupsCardDecoration(context: Context, private val adapter: GroupListAdapt
     }
 
     private companion object {
-        const val GUTTER_DP = 16
         const val INSET_DP = 4
         const val CORNER_DP = 20
         const val DIVIDER_START_DP = 72

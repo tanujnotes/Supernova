@@ -17,6 +17,8 @@
     <dimen name="space_sm">8dp</dimen>
     <!-- The pinned settings preview card's least height; the dock's card hugs the dock. -->
     <dimen name="settings_preview_min_height">168dp</dimen>
+    <!-- Side margin of the settings pages' cards, preview and search pill. -->
+    <dimen name="settings_gutter">8dp</dimen>
     <dimen name="space_ms">12dp</dimen>
     <dimen name="space_md">16dp</dimen>
     <dimen name="space_ml">20dp</dimen>

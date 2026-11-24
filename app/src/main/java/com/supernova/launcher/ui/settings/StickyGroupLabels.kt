@@ -8,7 +8,6 @@ import android.view.View
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.supernova.launcher.R
-import com.supernova.launcher.ui.dp
 
 // A settings page's group labels stick to the top of the list while their
 // cards scroll under them, on a strip of the page colour; the next label
@@ -23,7 +22,7 @@ class StickyGroupLabels(context: Context, private val adapter: SettingsAdapter) 
             stripPaint.color = value
         }
 
-    private val gutter = context.dp(GUTTER_DP)
+    private val gutter = context.resources.getDimensionPixelSize(R.dimen.settings_gutter)
     private val topPad = context.resources.getDimensionPixelSize(R.dimen.space_sm)
     private val stripPaint = Paint()
     private var label: TextView? = null
@@ -81,7 +80,4 @@ class StickyGroupLabels(context: Context, private val adapter: SettingsAdapter) 
         return view
     }
 
-    private companion object {
-        const val GUTTER_DP = 16
-    }
 }

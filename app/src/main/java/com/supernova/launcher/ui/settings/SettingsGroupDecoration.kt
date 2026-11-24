@@ -8,10 +8,11 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.view.View
 import androidx.recyclerview.widget.RecyclerView
+import com.supernova.launcher.R
 import com.supernova.launcher.ui.dp
 
 // The cards of a settings page: each run of rows between Headers sits on
-// one rounded card, 16dp in from the sides, with a 4dp inset above its first
+// one rounded card, the settings gutter in from the sides, with a 4dp inset above its first
 // row and below its last and a hairline between rows from the text line
 // (72dp in on a tiled page, past the icon tiles; 16dp on a section page) to
 // the edge. 24dp separates a card from the next group's label, or from the
@@ -35,7 +36,7 @@ class SettingsGroupDecoration(context: Context, private val adapter: SettingsAda
             dividerPaint.color = value
         }
 
-    private val gutter = context.dp(GUTTER_DP)
+    private val gutter = context.resources.getDimensionPixelSize(R.dimen.settings_gutter)
     private val inset = context.dp(INSET_DP)
     private val groupGap = context.dp(GROUP_GAP_DP)
     // On a tiled page the search bar's own 8dp bottom padding makes up the
@@ -122,7 +123,6 @@ class SettingsGroupDecoration(context: Context, private val adapter: SettingsAda
     }
 
     private companion object {
-        const val GUTTER_DP = 16
         const val INSET_DP = 4
         const val GROUP_GAP_DP = 24
         const val SEARCH_PADDING_DP = 8
