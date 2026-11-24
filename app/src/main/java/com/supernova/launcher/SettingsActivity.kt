@@ -2071,6 +2071,15 @@ class SettingsActivity : AppCompatActivity() {
             return
         }
         val posted = com.supernova.launcher.notification.BadgeTestNotification.post(this)
+        // What the listener makes of every app's notifications, once the
+        // test has landed: the crash log is all a "only the test badges"
+        // report (#344) has to go on.
+        if (posted) {
+            val app = applicationContext
+            window.decorView.postDelayed({
+                Diagnostics.note("badge test", SupernovaNotificationListener.report(app))
+            }, BADGE_REPORT_DELAY_MS)
+        }
         when {
             !posted -> Toast.makeText(this, R.string.badge_test_blocked, Toast.LENGTH_LONG).show()
             // Posted, but nothing will show it.
@@ -2445,6 +2454,7 @@ class SettingsActivity : AppCompatActivity() {
 
     companion object {
         private const val DISABLED_ALPHA = 0.38f
+        private const val BADGE_REPORT_DELAY_MS = 2000L
 
         // Lines a tick box up with the dialog message's 24dp text edge.
         private const val TICK_LIST_SIDE_DP = 18
