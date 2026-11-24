@@ -624,6 +624,23 @@ class AppCatalog(
             .mapTo(HashSet()) { it.activityInfo.packageName }
     }.getOrDefault(emptySet())
 
+    // The app's own shortcuts, as its long-press menu lists them: published
+    // (dynamic or manifest), never pinned-only. A pin outlives its home item
+    // and the app's own dynamic entry (#324: removed contact shortcuts kept
+    // showing in search and could not be found), so pins are home items, not
+    // the app's shortcuts. shortcutsFor still finds a pinned one by id.
+    fun appShortcuts(packageName: String, userSerial: Long): List<android.content.pm.ShortcutInfo> {
+        val user = userForSerial(userSerial) ?: return emptyList()
+        val query = LauncherApps.ShortcutQuery()
+            .setPackage(packageName)
+            .setQueryFlags(
+                LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC or
+                    LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST
+            )
+        return runCatching { launcherApps.getShortcuts(query, user) ?: emptyList() }
+            .getOrElse { emptyList() }
+    }
+
     fun shortcutsFor(packageName: String, userSerial: Long): List<android.content.pm.ShortcutInfo> {
         val user = userForSerial(userSerial) ?: return emptyList()
         val query = LauncherApps.ShortcutQuery()

@@ -234,7 +234,7 @@ class PrefRegistryTest {
         dock_padding_h:I dock_padding_v:I search_web_provider:S search_web_custom_url:S search_contacts:B
         search_shortcuts:B search_folders:B search_window_mode:S search_apps_one_row:B
         search_contact_cards:B search_cards:B search_calculator:B search_hidden_apps:B
-        search_history:B search_private_keyboard:B search_query_shortcuts:B search_bar_widget_id:I
+        search_history:B search_private_keyboard:B search_window_hint:B search_query_shortcuts:B search_bar_widget_id:I
         search_bar_widget_provider:S search_chips:S home_search:B home_button_action:S
         home_button_on_main_page:B home_return_to_default_page:B search_bar_config:S popup_notifications:B popup_card_bg:B
         popup_group_shortcuts:B popup_action_icons:B popup_style:S popup_items_home:S

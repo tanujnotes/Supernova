@@ -3359,7 +3359,7 @@ class LauncherActivity :
         // shortcut instead, as a home icon's menu does, and the card or
         // search window it came from closes as after
         // any launch from them.
-        shortcutsFor(app.packageName, app.userSerial).take(4).forEach { shortcut ->
+        viewModel.appCatalog().appShortcuts(app.packageName, app.userSerial).take(4).forEach { shortcut ->
             menu.addShortcut(
                 shortcut.shortLabel ?: shortcut.longLabel ?: shortcut.id,
                 shortcutIcon(shortcut),
@@ -3624,7 +3624,7 @@ class LauncherActivity :
                 addExportPngRow(menu, anchor, item.label)
                 // Workspace semantics: tapping a shortcut launches it.
                 item.packageName?.let { pkg ->
-                    shortcutsFor(pkg, item.userSerial).take(4).forEach { shortcut ->
+                    viewModel.appCatalog().appShortcuts(pkg, item.userSerial).take(4).forEach { shortcut ->
                         menu.addShortcut(
                             shortcut.shortLabel ?: shortcut.longLabel ?: shortcut.id,
                             shortcutIcon(shortcut),
@@ -4121,7 +4121,7 @@ class LauncherActivity :
         }
         addExportPngRow(menu, memberView, member.label)
         member.packageName?.let { pkg ->
-            shortcutsFor(pkg, member.userSerial).take(4).forEach { shortcut ->
+            viewModel.appCatalog().appShortcuts(pkg, member.userSerial).take(4).forEach { shortcut ->
                 // Held, a row drags out onto the home screen or the dock, as
                 // from a home icon's menu; the card closes as the drag starts.
                 menu.addShortcut(

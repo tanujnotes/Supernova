@@ -1134,6 +1134,11 @@ object SettingsCatalogue {
                     subtitle = R.string.search_apps_one_row_summary
                 ),
                 SettingItem.Toggle(
+                    R.string.search_window_hint_text,
+                    get = { it.searchWindowHint },
+                    set = { viewModel.set(Pref.searchWindowHint, it) }
+                ),
+                SettingItem.Toggle(
                     R.string.search_contact_cards,
                     get = { it.searchContactCards },
                     set = { viewModel.set(Pref.searchContactCards, it) }

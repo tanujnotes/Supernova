@@ -449,6 +449,9 @@ data class LauncherPrefs(
     // Sets IME_FLAG_NO_PERSONALIZED_LEARNING on the search field. On by
     // default.
     val searchPrivateKeyboard: Boolean = true,
+    // The "Search" text in the search window's empty field (#324), as the
+    // drawer field's own switch. On by default.
+    val searchWindowHint: Boolean = true,
     // Long-pressing a recent search offers to keep it as a home-screen
     // shortcut that re-runs the query.
     val searchQueryShortcuts: Boolean = true,
