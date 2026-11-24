@@ -28,6 +28,7 @@ import com.supernova.launcher.search.AppSearchProvider
 import com.supernova.launcher.databinding.ActivityLauncherBinding
 import com.supernova.launcher.ui.theme.Styles
 import com.supernova.launcher.ui.theme.SurfaceId
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 // Owns the app drawer: sheet behavior, adapter, tabs, style, search, and the
@@ -313,6 +314,77 @@ class DrawerController(
 
     private fun attachPullToSearch() {
         binding.drawerRecycler.addOnItemTouchListener(newPullToSearchListener())
+    }
+
+    // The paged style's swipe down to close. The sheet behavior closes the
+    // other styles through their list's nested scrolls, but a page doesn't
+    // scroll, and the behavior's own grab never finds the sheet under the
+    // finger (the full-screen drag layer sits above it), so a swipe down on
+    // the pages left the drawer open. Once a drag reads as down, the page
+    // hands it to the sheet as a close pull (beginClosePull).
+    private fun newPageSwipeClose(): RecyclerView.OnItemTouchListener {
+        // Under the list's own slop: the page grid reports a vertical scroll
+        // even with nothing to scroll, and at its slop it takes the stream.
+        val slop = android.view.ViewConfiguration.get(context).scaledTouchSlop / 2
+        var downX = 0f
+        var downY = 0f
+        var pulling = false
+        var velocity: android.view.VelocityTracker? = null
+        // In screen coordinates: the page rides down with the sheet, so in
+        // its own the finger hardly moves and every lift read as no fling.
+        fun track(e: MotionEvent) {
+            val screen = MotionEvent.obtain(e)
+            screen.setLocation(e.rawX, e.rawY)
+            velocity?.addMovement(screen)
+            screen.recycle()
+        }
+        fun finish(rv: RecyclerView, cancelled: Boolean) {
+            val tracker = velocity
+            tracker?.computeCurrentVelocity(VELOCITY_UNITS_MS)
+            if (pulling) endPull(tracker?.yVelocity ?: 0f, cancelled)
+            pulling = false
+            tracker?.recycle()
+            velocity = null
+            rv.parent?.requestDisallowInterceptTouchEvent(false)
+        }
+        return object : RecyclerView.OnItemTouchListener {
+            override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
+                when (e.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        downX = e.rawX
+                        downY = e.rawY
+                        pulling = false
+                        velocity?.recycle()
+                        velocity = android.view.VelocityTracker.obtain()
+                        track(e)
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        track(e)
+                        val dx = e.rawX - downX
+                        val dy = e.rawY - downY
+                        if (dy > slop && dy > abs(dx) && beginClosePull()) {
+                            pulling = true
+                            rv.parent?.requestDisallowInterceptTouchEvent(true)
+                            pullTo(-dy)
+                            return true
+                        }
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> finish(rv, cancelled = false)
+                }
+                return false
+            }
+
+            override fun onTouchEvent(rv: RecyclerView, e: MotionEvent) {
+                track(e)
+                when (e.actionMasked) {
+                    MotionEvent.ACTION_MOVE -> pullTo(-(e.rawY - downY))
+                    MotionEvent.ACTION_UP -> finish(rv, cancelled = false)
+                    MotionEvent.ACTION_CANCEL -> finish(rv, cancelled = true)
+                }
+            }
+
+            override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) = Unit
+        }
     }
 
     // Built per list: the paged style's pages are their own RecyclerViews, and
@@ -1007,6 +1079,25 @@ class DrawerController(
     fun pullTo(distance: Float) {
         if (!isPulling) return
         setProgress((pullBase + distance / sheetHeight()).coerceIn(0f, 1f))
+    }
+
+    // A swipe down on the open sheet, as a pull run backwards: the sheet
+    // rides the finger from fully open, and endPull settles it either way.
+    // The paged style's (newPageSwipeClose); the other styles' lists close
+    // through the sheet behavior. Zoom and Fade have no position to hold, so
+    // the swipe closes them outright, as Back does.
+    fun beginClosePull(): Boolean {
+        val open = isVisible && !isPulling && !isClosing
+        if (open) hideKeyboard()
+        val slides = open && transition == DrawerTransition.SLIDE_UP
+        if (open && !slides) hide()
+        if (slides) {
+            isPulling = true
+            pullBase = 1f
+            binding.drawerSheet.animate().cancel()
+            progressAnimator?.cancel()
+        }
+        return slides
     }
 
     // velocityY in px/s, negative = upward. A fling decides; otherwise the
@@ -2504,6 +2595,7 @@ class DrawerController(
                 overScrollMode = View.OVER_SCROLL_NEVER
                 clipToPadding = false
                 addOnItemTouchListener(newPullToSearchListener())
+                addOnItemTouchListener(newPageSwipeClose())
                 addOnScrollListener(newScrollKeyboardHider())
             }
             return PageHolder(recycler)
@@ -2808,5 +2900,6 @@ class DrawerController(
         const val SEARCH_HOLD_MS = 160L
         const val ZOOM_FROM = DrawerOpenCurve.ZOOM_FROM
         const val PULL_TO_SEARCH_DP = 56f
+        const val VELOCITY_UNITS_MS = 1000
     }
 }
