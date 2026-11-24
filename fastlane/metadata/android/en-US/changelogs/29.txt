@@ -1,0 +1,10 @@
+Smoother paged drawer, tidier settings, and more icon pack fixes.
+
+- Paged drawer keeps pages ready before a swipe; swipe down closes it
+- Settings: sticky section titles, wider cards, greyed rows lead to their switch
+- Normalize icon size switch
+- Icons line up when labels wrap to two lines
+- Store button opens any installed app store
+- More icon packs found; day/night packs open faster
+- Removing from a two-app folder can be undone
+- Settings stay above the navigation buttons
