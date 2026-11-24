@@ -102,8 +102,8 @@ class SettingsGroupDecoration(context: Context, private val adapter: SettingsAda
         }
     }
 
-    // A nested row's band is its own background, which would cover its
-    // hairline, so those go on top.
+    // Nested rows' hairlines go on top, over anything the row draws (the
+    // search-landing wash).
     override fun onDrawOver(canvas: Canvas, parent: RecyclerView, state: RecyclerView.State) {
         val dividerStart = if (adapter.tiled) tiledDividerStart else dividerStart
         for (i in 0 until parent.childCount) {

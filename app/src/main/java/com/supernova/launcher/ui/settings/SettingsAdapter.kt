@@ -261,9 +261,8 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
                 (holder as LabelGroupHolder).bind(item, prefs, item.title in openHere)
         }
         clipToCard(holder.itemView, position)
-        val band = restingColor(holder.itemView, position)
-        if (band == null) holder.itemView.background = null else holder.itemView.setBackgroundColor(band)
-        flashIfLanding(holder, visible[position], band)
+        holder.itemView.background = null
+        flashIfLanding(holder, visible[position])
     }
 
     private fun showRow(@StringRes title: Int) {
@@ -273,16 +272,10 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
     private fun nestOf(item: SettingItem): Nest? =
         nests[item]?.let { rows -> Nest(rows.any { it.shownIn(prefs) }, item.title in openHere) }
 
-    // A nested row's band, or null for none.
-    private fun restingColor(view: View, position: Int): Int? =
-        if (isBand(position)) view.context.getColor(R.color.settingsBand) else null
-
-    private fun flashIfLanding(holder: RecyclerView.ViewHolder, item: SettingItem, band: Int?) {
+    private fun flashIfLanding(holder: RecyclerView.ViewHolder, item: SettingItem) {
         if (highlightTitle == 0 || item.title != highlightTitle) return
         highlightTitle = 0
-        // The Label group's band is its own background, which the flash
-        // would clear; its header row has none.
-        flashHighlight((holder as? LabelGroupHolder)?.header ?: holder.itemView, band)
+        flashHighlight((holder as? LabelGroupHolder)?.header ?: holder.itemView)
     }
 
     // A card's first and last rows are clipped to its rounded corners, so a
@@ -309,9 +302,9 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
     }
 
     // Search-landing cue: a translucent accent wash that fades out. Rows keep
-    // no background of their own (the ripple is a foreground) but a nested
-    // row's band, which the end puts back.
-    private fun flashHighlight(view: View, band: Int?) {
+    // no background of their own (the ripple is a foreground), nested rows
+    // included: they sit on the card like the rows around them.
+    private fun flashHighlight(view: View) {
         val accent = com.supernova.launcher.ui.theme.CustomAccent.of(view) and 0xFFFFFF
         android.animation.ValueAnimator.ofFloat(1f, 0f).apply {
             startDelay = 250
@@ -322,7 +315,7 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             }
             addListener(object : android.animation.AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: android.animation.Animator) {
-                    if (band == null) view.background = null else view.setBackgroundColor(band)
+                    view.background = null
                 }
             })
             start()
