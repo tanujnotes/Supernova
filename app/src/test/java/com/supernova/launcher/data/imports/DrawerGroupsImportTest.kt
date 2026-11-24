@@ -32,6 +32,26 @@ class DrawerGroupsImportTest {
     }
 
     @Test
+    fun drawerFolderAppsComeInTheOrderTheFolderShowsThem() {
+        fun placed(cls: String, x: Float, y: Float) = row(
+            "container" to -207L, "cellX" to x, "cellY" to y,
+            "intent" to "#Intent;action=android.intent.action.MAIN;component=$cls;end"
+        )
+        val read = groups(
+            mapOf(
+                "drawer_groups" to listOf(row("_id" to 7L, "title" to "Social", "groupType" to "FOLDER_APP_GROUP")),
+                "appgroups" to listOf("com.b/.B", "com.a/.A", "com.d/.D", "com.c/.C")
+                    .map { row("groupId" to 7L, "component" to "$it#-1") },
+                "favorites" to listOf(
+                    placed("com.c/.C", 1f, 1f), placed("com.a/.A", 0f, 0f), placed("com.b/.B", 2f, 0f)
+                )
+            )
+        )
+        // Row by row, then any the folder doesn't place.
+        assertEquals(listOf("com.a", "com.b", "com.c", "com.d"), read.single().apps.map { it.packageName })
+    }
+
+    @Test
     fun groupsTableReadsTabsAndFoldersAndSkipsBuiltInTabs() {
         val read = groups(
             mapOf(
