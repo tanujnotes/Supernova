@@ -219,6 +219,19 @@ class AppDrawerAdapter(
         }
     }
 
+    // One spare tile into `list`'s pool, inflated now, unless it already
+    // holds `target`. True while it still holds fewer. The paged drawer
+    // stocks its spare pages this way, a tile per idle moment (#340). A
+    // full pool (sizePool's cap) ends it too.
+    fun stockTile(list: RecyclerView, target: Int): Boolean {
+        val pool = list.recycledViewPool
+        val had = pool.getRecycledViewCount(TYPE_TILE)
+        if (had >= target) return false
+        pool.putRecycledView(createViewHolder(list, TYPE_TILE))
+        val has = pool.getRecycledViewCount(TYPE_TILE)
+        return has > had && has < target
+    }
+
     // True when something a tile draws changed.
     fun setDisplay(
         iconScale: Float,

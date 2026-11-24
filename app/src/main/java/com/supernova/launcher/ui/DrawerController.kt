@@ -600,6 +600,10 @@ class DrawerController(
                     ) {
                         hideKeyboard()
                     }
+                    // A swipe can take a spare page; the next is built now.
+                    if (state == androidx.viewpager2.widget.ViewPager2.SCROLL_STATE_IDLE && spareTiles > 0) {
+                        stockSparePages(spareTiles)
+                    }
                 }
             }
         )
@@ -856,6 +860,8 @@ class DrawerController(
     // scroll parked. Shared by open() and the finger pull.
     private fun prepareContent(prefs: LauncherPrefs) {
         dateButton?.text = SearchBarButtons.dateText(context)
+        // Neighbour and spare pages for the paged style (stockSparePages).
+        if (spareTiles > 0) stockSparePages(spareTiles)
         // Usage orders shift with every launch; those changes no longer
         // re-emit state, so refresh the ordering as the drawer opens.
         val byUsage = prefs.drawerSort == DrawerSort.MOST_USED || prefs.drawerSort == DrawerSort.RECENTLY_USED
@@ -2492,6 +2498,11 @@ class DrawerController(
             PageTransformers.resetTransforms(holder.itemView)
             holder.bind(pages[position % pages.size], columns)
         }
+
+        // A page put away in the pool hands its tiles to its own tile pool
+        // now. Left on it, the next page bound into it inflated a fresh set:
+        // the old ones only reached the pool after that layout (#340).
+        override fun onViewRecycled(holder: PageHolder) = holder.releaseTiles()
     }
 
     private inner class PageHolder(private val recycler: RecyclerView) :
@@ -2514,9 +2525,74 @@ class DrawerController(
             lastDisplay?.let { pageAdapter.setDisplay(it.first, it.second, it.third) }
             pageAdapter.submitPage(items)
         }
+
+        fun releaseTiles() {
+            if (recycler.childCount > 0) recycler.swapAdapter(pageAdapter, true)
+        }
+
+        // See stockSparePages.
+        fun stockTile(target: Int): Boolean = pageAdapter.stockTile(recycler, target)
     }
 
     private val pagerAdapter by lazy { DrawerPagerAdapter() }
+
+    // The pages beside the one in view are built and bound while it sits
+    // still, as the home pager's are. Built on demand, the next page
+    // inflated a whole page of tiles on the swipe's first frame, and with
+    // more icons than the icon cache holds, each one rendered after the page
+    // had already slid in: a page of blank icons until the swipe ended
+    // (#340). Spare pages, their tiles inflated, wait in the pager's pool for
+    // the pages a swipe brings in. Both are built while the main thread is
+    // idle, a tile at a time, as the list's spare tiles are
+    // (AppDrawerAdapter.prefillPool), and the neighbours only once the
+    // drawer has settled open: the pager has no pages before the first open,
+    // and binding two then slowed it.
+    private var sparePage: PageHolder? = null
+    private var stockingSpares = false
+    private var spareTiles = 0
+
+    private fun stockSparePages(tiles: Int) {
+        spareTiles = tiles
+        val outer = binding.drawerPager.getChildAt(0) as? RecyclerView ?: return
+        if (stockingSpares) return
+        stockingSpares = true
+        android.os.Looper.myQueue().addIdleHandler {
+            val more = currentStyle == DrawerStyle.PAGED_GRID && outer.isAttachedToWindow &&
+                outer.adapter === pagerAdapter && (stockSpareStep(outer) || !bindNeighbours())
+            if (!more) {
+                stockingSpares = false
+                sparePage = null
+            }
+            more
+        }
+    }
+
+    // One tile into the spare page being built, or that page into the pool
+    // once full. False when the pool holds enough spares.
+    private fun stockSpareStep(outer: RecyclerView): Boolean {
+        val pool = outer.recycledViewPool
+        val page = sparePage
+            ?: if (pool.getRecycledViewCount(PAGE_TYPE) < SPARE_PAGES) {
+                pagerAdapter.createViewHolder(outer, PAGE_TYPE).also { sparePage = it }
+            } else {
+                return false
+            }
+        if (!page.stockTile(spareTiles)) {
+            pool.putRecycledView(page)
+            sparePage = null
+        }
+        return sparePage != null || pool.getRecycledViewCount(PAGE_TYPE) < SPARE_PAGES
+    }
+
+    // False to wait: the drawer is still opening. A closed drawer gives up;
+    // the next open asks again (prepareContent).
+    private fun bindNeighbours(): Boolean {
+        val pager = binding.drawerPager
+        val settled = isExpanded && !isPulling && progressAnimator == null && progress >= 1f
+        if (settled && pager.offscreenPageLimit != 1) pager.offscreenPageLimit = 1
+        return settled || !isVisible
+    }
+
     // The rows per page of the last cut: the pager's height can change after
     // it (the header above it fills in on the first open, the tab bar comes
     // and goes), and a pager that now fits a different count is cut again.
@@ -2558,6 +2634,7 @@ class DrawerController(
         if (pagerAdapter.infinite && pages.size > 1 && (wasEmpty || pager.currentItem == 0)) {
             pager.setCurrentItem(pages.size * (INFINITE_LOOPS / 2), false)
         }
+        if (pages.size > 1) stockSparePages(perPage)
     }
 
     // Rows a page holds. 0 keeps the original derive-from-height behavior. A
@@ -2667,6 +2744,11 @@ class DrawerController(
         fun withAlpha(color: Int, alpha: Int): Int = androidx.core.graphics.ColorUtils.setAlphaComponent(color, alpha)
         // Repeats of the real page list that stand in for a wrap-around.
         const val INFINITE_LOOPS = 200
+        // The pager's one view type, and how many built pages wait in its
+        // pool: the pages it holds at rest and in a swipe (the one in view,
+        // its neighbours, the next one in) come out of these.
+        const val PAGE_TYPE = 0
+        const val SPARE_PAGES = 3
         const val TRANSITION_MS = DrawerOpenCurve.IN_PLACE_MS
         const val SLIDE_MS = DrawerOpenCurve.SLIDE_MS
         // The search window's plate opens in 160 ms; the desktop goes with it.
