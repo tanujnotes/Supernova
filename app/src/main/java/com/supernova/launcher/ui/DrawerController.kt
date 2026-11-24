@@ -162,9 +162,9 @@ class DrawerController(
     private var shownTabIndex = -1
     // +1 or -1 while a swipe's tab change is being applied, else 0 (a tap).
     private var swipeDirection = 0
-    // A swipe's lift that changed tab: how far the list was from where the
-    // next page would sit, and the finger's speed (TabSwipeDrag).
-    private var dragSettle: Pair<Float, Float>? = null
+    // Set while a swipe's landing picks the tab: the list is already where
+    // the new tab slid in, so it changes in place (TabSwipeDrag).
+    private var swipeLanding = false
     // Set while rebuildTabs picks the tab: no change the user made, no slide.
     private var rebuildingTabs = false
     private var renderedTabsKey: String? = null
@@ -201,24 +201,210 @@ class DrawerController(
     // A sideways swipe on the list moves to the neighbouring group tab (not
     // for the paged grid, which uses horizontal scroll for its pages).
     private fun attachTabSwipe() {
+        // From the first layout on, so the All tab's is known before the
+        // first swipe. The header rides in the list in a holder of its own,
+        // which is what the list stacks.
+        listHeader.addOnLayoutChangeListener { header, _, _, _, _, _, _, _, _ ->
+            val holder = header.parent as? View
+            if (holder != null && holder.parent === binding.drawerRecycler) recordHeaderHeight(holder.height)
+        }
         binding.drawerRecycler.addOnItemTouchListener(
             TabSwipeDrag(
                 binding.drawerListContainer,
-                swipeable = ::tabSwipeable,
-                hasTab = { delta -> adjacentTab(delta) != null },
-                onCommit = { delta, remaining, velocity ->
-                    dragSettle = remaining to velocity
-                    selectAdjacentTab(delta)
-                    // No change after all (the bar changed under the finger).
-                    if (dragSettle != null) {
-                        dragSettle = null
+                object : TabSwipeDrag.Host {
+                    override fun swipeable() = tabSwipeable()
+
+                    override fun hasTab(delta: Int) = adjacentTab(delta) != null
+
+                    override fun onOffset(offset: Float) = followTabSwipe(offset)
+
+                    override fun onLanded(delta: Int) {
+                        swipeLanding = true
+                        selectAdjacentTab(delta)
+                        swipeLanding = false
+                        // In place either way, also with no change after all
+                        // (the bar changed under the finger).
                         slideInTab(0)
                     }
-                },
-                animate = { Animations.enabled(viewModel.state.value.prefs) },
-                onMoving = { moving -> showFastScroller(!moving) }
+
+                    override fun animate() = Animations.enabled(viewModel.state.value.prefs)
+
+                    override fun onMoving(moving: Boolean) {
+                        if (moving) {
+                            // A tap's slide-in cut short leaves its fade and
+                            // layer, which would clip the neighbour beside it.
+                            binding.drawerListContainer.alpha = 1f
+                            binding.drawerListContainer.setLayerType(View.LAYER_TYPE_NONE, null)
+                        }
+                        showFastScroller(!moving)
+                    }
+                }
             )
         )
+    }
+
+    // The neighbouring tab's list, beside the drawer's while a swipe moves
+    // it, so the tab comes in with the finger the way a home page does. A
+    // list of its own in the list's container, a width to that side; the
+    // sheet stops clipping the container meanwhile, so it shows there.
+    private var peekList: EdgeFadeRecyclerView? = null
+    private var peekAdapter: AppDrawerAdapter? = null
+    private var peekIndex = -1
+    // The list header's height (top row, sort strip) on the All tab and on
+    // the others, as last laid out: the neighbour's list starts that far
+    // down, so its apps sit where they will once the tab lands.
+    private var allHeaderPx = 0
+    private var tabHeaderPx = 0
+
+    private fun followTabSwipe(offset: Float) {
+        val container = binding.drawerListContainer
+        val delta = if (offset < 0) 1 else -1
+        val next = if (offset == 0f) null else adjacentTab(delta)
+        if (next == null) {
+            hideTabPeek()
+            return
+        }
+        val peek = showTabPeek(next)
+        peek.translationX = delta * container.width.toFloat()
+        moveTabIndicator(next, abs(offset) / container.width.coerceAtLeast(1))
+    }
+
+    private fun showTabPeek(index: Int): EdgeFadeRecyclerView {
+        val peek = peekList ?: newTabPeek()
+        binding.drawerSheet.clipChildren = false
+        if (index != peekIndex || peek.visibility != View.VISIBLE) {
+            peekIndex = index
+            bindTabPeek(peek, binding.drawerTabs.getTabAt(index)?.tag)
+            peek.visibility = View.VISIBLE
+        }
+        return peek
+    }
+
+    private fun hideTabPeek() {
+        val peek = peekList ?: return
+        if (peek.visibility == View.GONE) return
+        peek.visibility = View.GONE
+        peekIndex = -1
+        binding.drawerSheet.clipChildren = true
+        // The bar's indicator back under the selected tab.
+        val tabs = binding.drawerTabs
+        if (tabs.selectedTabPosition >= 0) tabs.setScrollPosition(tabs.selectedTabPosition, 0f, false)
+    }
+
+    private fun newTabPeek(): EdgeFadeRecyclerView {
+        val recycler = binding.drawerRecycler
+        val peek = EdgeFadeRecyclerView(context).apply {
+            layoutParams = android.widget.FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            clipToPadding = false
+            itemAnimator = null
+            overScrollMode = View.OVER_SCROLL_NEVER
+            isVerticalScrollBarEnabled = false
+            // Only ever looked at: the touch stays with the drawer's list.
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+            visibility = View.GONE
+        }
+        val adapter = newCellAdapter()
+        peek.adapter = adapter
+        // Spare tiles made while the drawer is idle, so the neighbour doesn't
+        // inflate a screenful on a swipe's first frame. A pool of its own:
+        // a tile belongs to the adapter that made it.
+        val columns = columnCount(viewModel.state.value.prefs)
+        adapter.sizePool(peek.recycledViewPool, columns)
+        adapter.prefillPool(peek, columns)
+        binding.drawerListContainer.addView(peek, binding.drawerListContainer.indexOfChild(recycler) + 1)
+        peekList = peek
+        peekAdapter = adapter
+        return peek
+    }
+
+    // The All tab's header as it last showed, drawn as the neighbour's: the
+    // header is one view, and while another tab shows its top row is gone.
+    private var allHeaderSnapshot: android.graphics.Bitmap? = null
+    private val peekHeader by lazy {
+        android.widget.ImageView(context).apply {
+            scaleType = android.widget.ImageView.ScaleType.MATRIX
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }
+    }
+
+    // Taken as the All tab is left; kept as it was when it had scrolled
+    // out of sight.
+    private fun snapshotAllHeader() {
+        val holder = listHeader.parent as? View ?: return
+        if (holder.parent !== binding.drawerRecycler || holder.width <= 0 || holder.height <= 0) return
+        val reuse = allHeaderSnapshot?.takeIf { it.width == holder.width && it.height == holder.height }
+        val bitmap = reuse ?: android.graphics.Bitmap.createBitmap(
+            holder.width, holder.height, android.graphics.Bitmap.Config.ARGB_8888
+        )
+        bitmap.eraseColor(android.graphics.Color.TRANSPARENT)
+        holder.draw(android.graphics.Canvas(bitmap))
+        allHeaderSnapshot = bitmap
+    }
+
+    private fun recordHeaderHeight(px: Int) {
+        if (selectedTab == null) allHeaderPx = px else tabHeaderPx = px
+    }
+
+    // The tab's apps, laid out as the drawer's list lays them out, from the
+    // top, as a tab picked shows them.
+    private fun bindTabPeek(peek: EdgeFadeRecyclerView, tab: Any?) {
+        val prefs = viewModel.state.value.prefs
+        val list = binding.drawerRecycler
+        val adapter = peekAdapter ?: return
+        val columns = if (currentStyle == DrawerStyle.VERTICAL_GRID) columnCount(prefs) else 1
+        // The All tab's header from its snapshot, or room for it.
+        val snapshot = allHeaderSnapshot.takeIf { tab == null && allHeaderPx > 0 && it?.height == allHeaderPx }
+        if (snapshot != null) {
+            peekHeader.setImageBitmap(snapshot)
+            // The holder it rides in is a FrameLayout, which measures with
+            // margins.
+            peekHeader.layoutParams = android.widget.FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, snapshot.height
+            )
+        }
+        adapter.setHeader(if (snapshot != null) peekHeader else null)
+        val header = when {
+            snapshot != null -> 0
+            tab == null -> allHeaderPx
+            else -> tabHeaderPx
+        }
+        peek.setPadding(list.paddingLeft, list.paddingTop + header, list.paddingRight, list.paddingBottom)
+        peek.fadeTop = list.fadeTop
+        peek.fadeBottom = list.fadeBottom
+        adapter.displayMode = this.adapter.displayMode
+        adapter.tileWidthPx = this.adapter.tileWidthPx
+        adapter.tileHeightPx = this.adapter.tileHeightPx
+        adapter.tileContentPx = this.adapter.tileContentPx
+        adapter.tileCompactPx = this.adapter.tileCompactPx
+        lastDisplay?.let { adapter.setDisplay(it.first, it.second, it.third) }
+        val manager = peek.layoutManager as? DrawerLayoutManager
+        if (manager == null || manager.spanCount != columns) {
+            peek.layoutManager = DrawerLayoutManager(context, columns).apply {
+                spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+                    override fun getSpanSize(position: Int): Int = adapter.spanSizeAt(position, spanCount)
+                }
+            }
+        }
+        val content = tabContent(tab, prefs)
+        adapter.emptyState = content.emptyState
+        adapter.submit(content.apps, content.folders, prefs.drawerFoldersFirst, listOrder(prefs), replace = true)
+        peek.scrollToPosition(0)
+    }
+
+    // The bar's indicator slides with the swipe, as a pager's tabs do, and
+    // stays put for a wrap past the end (Loop tabs).
+    private fun moveTabIndicator(next: Int, fraction: Float) {
+        val tabs = binding.drawerTabs
+        val current = tabs.selectedTabPosition
+        if (current < 0 || abs(next - current) != 1) return
+        val f = fraction.coerceIn(0f, 1f)
+        if (next > current) {
+            tabs.setScrollPosition(current, f, false)
+        } else {
+            tabs.setScrollPosition(next, 1f - f, false)
+        }
     }
 
     // The tab that way from the selected one, or null at an end with Loop
@@ -249,21 +435,20 @@ class DrawerController(
     // an earlier one. Not while the drawer is still opening, a query
     // filters the list, or Supernova's animations are off.
     //
-    // After a swipe (TabSwipeDrag) the new tab's list comes in from where
-    // the next page would lie, the rest of the width away, in the pager's
-    // settle time for the finger's speed.
+    // A swipe's tab (TabSwipeDrag) has already slid in beside the list: the
+    // list takes its place and the neighbour goes.
     private fun slideInTab(direction: Int) {
         val prefs = viewModel.state.value.prefs
         val list = binding.drawerListContainer
-        val drag = dragSettle
-        dragSettle = null
         list.animate().cancel()
         val filtering = searchingExternally || binding.drawerSearch.text?.isNotEmpty() == true
         val still = !Animations.enabled(prefs) || progress < 1f || list.width == 0
-        if (still || filtering || direction == 0) {
+        val inPlace = swipeLanding || direction == 0
+        if (inPlace || still || filtering) {
             list.translationX = 0f
             list.alpha = 1f
             list.setLayerType(View.LAYER_TYPE_NONE, null)
+            hideTabPeek()
             showFastScroller(true)
             return
         }
@@ -271,21 +456,11 @@ class DrawerController(
         // A layer for the fade: without one, every frame drew the whole list
         // offscreen (about 20ms a frame on the Samsung).
         list.setLayerType(View.LAYER_TYPE_HARDWARE, null)
-        val animator = if (drag != null) {
-            val (remaining, velocity) = drag
-            list.translationX = direction * remaining
-            list.alpha = TAB_DRAG_START_ALPHA
-            val ms = PageFlingSettle.durationMs(
-                remaining.toInt(), list.width, velocity, list.resources.displayMetrics.density
-            )
-            list.animate().setDuration(ms.toLong()).setInterpolator(PageFlingSettle.QuinticOut)
-        } else {
-            list.translationX = direction * list.width * TAB_SLIDE_FRACTION
-            list.alpha = 0f
-            list.animate().setDuration(Animations.duration(prefs, TAB_SLIDE_MS))
-                .setInterpolator(android.view.animation.DecelerateInterpolator())
-        }
-        animator.translationX(0f).alpha(1f)
+        list.translationX = direction * list.width * TAB_SLIDE_FRACTION
+        list.alpha = 0f
+        list.animate().setDuration(Animations.duration(prefs, TAB_SLIDE_MS))
+            .setInterpolator(android.view.animation.DecelerateInterpolator())
+            .translationX(0f).alpha(1f)
             .withEndAction {
                 list.setLayerType(View.LAYER_TYPE_NONE, null)
                 showFastScroller(true)
@@ -848,6 +1023,7 @@ class DrawerController(
                 val slide = !rebuildingTabs && shownTabIndex >= 0 && direction != 0
                 swipeDirection = 0
                 shownTabIndex = tab.position
+                if (selectedTab == null) snapshotAllHeader()
                 selectedTab = tab.tag
                 // Another tab's list replaces this one outright, from its top.
                 submit(replace = true)
@@ -1855,6 +2031,33 @@ class DrawerController(
     private fun submit(replace: Boolean = false) {
         val prefs = viewModel.state.value.prefs
         val tab = selectedTab
+        val content = tabContent(tab, prefs)
+        adapter.emptyState = content.emptyState
+        val section = tab == null && privateSectionActive(prefs)
+        if (section) updatePrivateSection()
+        adapter.setPrivateSection(
+            if (section) privateSection.root else null,
+            if (section) viewModel.privateApps() else emptyList()
+        )
+        adapter.submit(content.apps, content.folders, prefs.drawerFoldersFirst, listOrder(prefs), replace)
+        revealPrivateSectionIfDue()
+        // The first apps make a tile measurable.
+        if (adapter.tileHeightPx == 0) refreshGridRows(prefs)
+        updatePrivateBar()
+        updateWorkViews()
+        syncPages()
+        updateFrequentRow()
+    }
+
+    private class TabContent(
+        val apps: List<LaunchableApp>,
+        val folders: List<AppDrawerAdapter.FolderEntry>,
+        val emptyState: AppDrawerAdapter.EmptyState?
+    )
+
+    // What a tab lists: the drawer's list for the tab showing, and the
+    // neighbour beside it while a swipe moves the list (bindTabPeek).
+    private fun tabContent(tab: Any?, prefs: LauncherPrefs): TabContent {
         // FOLDER-type groups render on the All (or Personal) list and in the
         // tabs that hold them (TabFolders); a tab that takes its apps out of
         // the main list takes its folders too.
@@ -1891,7 +2094,7 @@ class DrawerController(
                 "${it.userSerial}/${it.packageName}/${it.className}" in excluded
             }
         }
-        adapter.emptyState = (tab as? DrawerGroup)?.let { group ->
+        val emptyState = (tab as? DrawerGroup)?.let { group ->
             AppDrawerAdapter.EmptyState(
                 binding.root.context.getString(R.string.drawer_tab_empty),
                 binding.root.context.getString(R.string.select_apps),
@@ -1899,20 +2102,7 @@ class DrawerController(
                 withAlpha(Styles.resolve(binding.root.context, prefs).of(SurfaceId.DRAWER).text, TAB_TEXT_ALPHA)
             ) { onSelectTabApps(storedTab(group)) }
         }
-        val section = tab == null && privateSectionActive(prefs)
-        if (section) updatePrivateSection()
-        adapter.setPrivateSection(
-            if (section) privateSection.root else null,
-            if (section) viewModel.privateApps() else emptyList()
-        )
-        adapter.submit(apps, folders, prefs.drawerFoldersFirst, listOrder(prefs), replace)
-        revealPrivateSectionIfDue()
-        // The first apps make a tile measurable.
-        if (adapter.tileHeightPx == 0) refreshGridRows(prefs)
-        updatePrivateBar()
-        updateWorkViews()
-        syncPages()
-        updateFrequentRow()
+        return TabContent(apps, folders, emptyState)
     }
 
     private fun listOrder(prefs: LauncherPrefs): AppDrawerAdapter.Order =
@@ -2050,6 +2240,7 @@ class DrawerController(
         } else {
             if (header.parent === sheet) sheet.removeView(header)
             adapter.setHeader(if (headerVisible) header else null)
+            if (!headerVisible) recordHeaderHeight(0)
         }
     }
 
@@ -2221,6 +2412,7 @@ class DrawerController(
         }
         shownTabIndex = target
         selectedTab = tabs.getTabAt(target)?.tag
+        if (tabSwipeable()) peekList ?: newTabPeek()
     }
 
     // Reconfigures layout manager, cell sizing, background, and scrubber when
@@ -2879,7 +3071,6 @@ class DrawerController(
         const val TAB_SLIDE_FRACTION = 0.25f
         const val TAB_SLIDE_MS = 220L
         // A swiped-to tab's list fades up from here as it settles.
-        const val TAB_DRAG_START_ALPHA = 0.5f
         const val FAST_SCROLLER_FADE_MS = 150L
         // The Bubble tab type's pill: fully round, 6dp inside the bar's
         // height at top and bottom.

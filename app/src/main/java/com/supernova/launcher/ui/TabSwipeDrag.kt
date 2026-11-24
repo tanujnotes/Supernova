@@ -1,9 +1,11 @@
 package com.supernova.launcher.ui
 
+import android.animation.ValueAnimator
 import android.view.MotionEvent
 import android.view.VelocityTracker
 import android.view.View
 import android.view.ViewConfiguration
+import androidx.core.animation.doOnEnd
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.abs
 import kotlin.math.sign
@@ -15,6 +17,10 @@ import kotlin.math.sign
 // width on. Anything less springs back. Before, only a quick fling switched,
 // and a deliberate drag that slowed before the lift did nothing at all.
 //
+// The neighbouring tab rides in beside the list as it moves, as the home
+// pages do: the caller places it from onOffset, and a commit settles the
+// list a whole width over, where that tab sits, before handing over.
+//
 // Watching only, so vertical scrolling is untouched, until the gesture
 // reads as a sideways swipe. Then it is taken: the row under the finger
 // gets a cancel and drops its press, so a swipe never opens the app it
@@ -22,17 +28,29 @@ import kotlin.math.sign
 internal class TabSwipeDrag(
     // What moves with the finger: the list's container.
     private val list: View,
-    private val swipeable: () -> Boolean,
-    // Whether there is a tab that way (+1 the next, -1 the previous).
-    private val hasTab: (Int) -> Boolean,
-    // The tab that way is picked; the list is remainingPx short of where a
-    // page would sit and the finger left at velocityPxPerS.
-    private val onCommit: (delta: Int, remainingPx: Float, velocityPxPerS: Float) -> Unit,
-    private val animate: () -> Boolean,
-    // True as the list starts to move, false once a drag that changed
-    // nothing is back in place (a commit's settle is the caller's).
-    private val onMoving: (Boolean) -> Unit
+    private val host: Host
 ) : RecyclerView.SimpleOnItemTouchListener() {
+
+    interface Host {
+        fun swipeable(): Boolean
+
+        // Whether there is a tab that way (+1 the next, -1 the previous).
+        fun hasTab(delta: Int): Boolean
+
+        // The list's offset as it moves, on every frame of the drag and the
+        // settles; 0 once it is back in place.
+        fun onOffset(offset: Float)
+
+        // The tab that way has slid fully in: the caller shows it in the
+        // list and puts the list back in place.
+        fun onLanded(delta: Int)
+
+        fun animate(): Boolean
+
+        // True as the list starts to move, false once a drag that changed
+        // nothing is back in place (a landing is the caller's).
+        fun onMoving(moving: Boolean)
+    }
 
     private val config = ViewConfiguration.get(list.context)
     private val slop = config.scaledTouchSlop
@@ -47,6 +65,7 @@ internal class TabSwipeDrag(
     private var lastX = 0f
     private var dragging = false
     private var tracker: VelocityTracker? = null
+    private var settle: ValueAnimator? = null
 
     override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
         when (e.actionMasked) {
@@ -62,7 +81,7 @@ internal class TabSwipeDrag(
                 track(e)
                 val dx = abs(e.rawX - downX)
                 val dy = abs(e.rawY - downY)
-                if (dx > slop && dx > dy * SIDEWAYS_RATIO && swipeable()) start(rv, e.rawX)
+                if (dx > slop && dx > dy * SIDEWAYS_RATIO && host.swipeable()) start(rv, e.rawX)
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> release()
         }
@@ -96,27 +115,27 @@ internal class TabSwipeDrag(
         startX = x
         lastX = x
         totalMotion = 0f
+        // A settle still running finishes at once: a landing lands, a
+        // spring back is back in place.
+        settle?.end()
         list.animate().cancel()
-        onMoving(true)
-        // The fade below would otherwise redraw the whole list offscreen on
-        // every frame.
-        list.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        host.onMoving(true)
         rv.parent?.requestDisallowInterceptTouchEvent(true)
     }
 
     private fun follow(x: Float) {
         totalMotion += abs(x - lastX)
         lastX = x
-        list.translationX = offsetFor(x - startX)
-        val width = list.width.takeIf { it > 0 } ?: return
-        list.alpha = 1f - FADE * (abs(list.translationX) / width).coerceAtMost(1f)
+        val dx = x - startX
+        // Past the first or last tab (Loop tabs off) the list gives a little
+        // and comes back, like the edge of a page.
+        val delta = if (dx < 0) 1 else -1
+        moveTo(if (dx != 0f && !host.hasTab(delta)) dx * EDGE_RESISTANCE else dx)
     }
 
-    // Past the first or last tab (Loop tabs off) the list gives a little and
-    // comes back, like the edge of a page.
-    private fun offsetFor(dx: Float): Float {
-        val delta = if (dx < 0) 1 else -1
-        return if (dx != 0f && !hasTab(delta)) dx * EDGE_RESISTANCE else dx
+    private fun moveTo(offset: Float) {
+        list.translationX = offset
+        host.onOffset(offset)
     }
 
     private fun finish(x: Float, cancelled: Boolean) {
@@ -129,10 +148,12 @@ internal class TabSwipeDrag(
         // moved from where the swipe was claimed.
         val dx = x - downX
         val delta = if (cancelled || width <= 0f) 0 else target(dx, velocity, width)
-        if (delta != 0 && hasTab(delta)) {
-            onCommit(delta, (width - abs(list.translationX)).coerceAtLeast(0f), abs(velocity))
+        if (delta != 0 && host.hasTab(delta)) {
+            // On a whole width over, where the next tab sits.
+            settleTo(-delta * width, abs(velocity)) { host.onLanded(delta) }
         } else {
-            springBack(abs(velocity))
+            // Back in place.
+            settleTo(0f, abs(velocity)) { host.onMoving(false) }
         }
     }
 
@@ -151,24 +172,27 @@ internal class TabSwipeDrag(
         }
     }
 
-    // Back in the pager's settle time for the finger's speed.
-    private fun springBack(velocityPxPerS: Float) {
-        val settled = {
-            list.setLayerType(View.LAYER_TYPE_NONE, null)
-            onMoving(false)
-        }
-        if (!animate() || (list.translationX == 0f && list.alpha == 1f)) {
-            list.translationX = 0f
-            list.alpha = 1f
-            settled()
+    // In the pager's settle time for the finger's speed.
+    private fun settleTo(target: Float, velocityPxPerS: Float, done: () -> Unit) {
+        val from = list.translationX
+        if (!host.animate() || from == target) {
+            moveTo(target)
+            done()
             return
         }
-        val ms = PageFlingSettle.durationMs(abs(list.translationX).toInt(), list.width, velocityPxPerS, density)
-        list.animate().translationX(0f).alpha(1f)
-            .setDuration(ms.toLong())
-            .setInterpolator(PageFlingSettle.QuinticOut)
-            .withEndAction(settled)
-            .start()
+        val ms = PageFlingSettle.durationMs(abs(target - from).toInt(), list.width, velocityPxPerS, density)
+        settle = ValueAnimator.ofFloat(from, target).apply {
+            duration = ms.toLong()
+            interpolator = PageFlingSettle.QuinticOut
+            addUpdateListener { moveTo(it.animatedValue as Float) }
+            // On end or cancel alike: the next drag ends a running settle.
+            doOnEnd {
+                if (settle === it) settle = null
+                moveTo(target)
+                done()
+            }
+            start()
+        }
     }
 
     private fun release() {
@@ -184,8 +208,6 @@ internal class TabSwipeDrag(
         const val RETURN_THRESHOLD = 0.33f
         const val FLING_THRESHOLD_DP = 500f
         const val EDGE_RESISTANCE = 0.25f
-        // How far the leaving list fades by a full width's drag.
-        const val FADE = 0.5f
         const val MS_PER_S = 1000
     }
 }
