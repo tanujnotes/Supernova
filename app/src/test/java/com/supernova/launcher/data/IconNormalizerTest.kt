@@ -1,6 +1,9 @@
 package com.supernova.launcher.data
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.sqrt
 
@@ -49,5 +52,33 @@ class IconNormalizerTest {
     @Test
     fun emptyPictureKeepsItsSize() {
         assertEquals(1f, scale { _, _ -> false }, 0f)
+    }
+
+    // Pack art sizing (#332): how wide the art is and whether it is round.
+    private fun footprint(paint: (x: Int, y: Int) -> Boolean) = IconNormalizer.footprint(alpha(paint), size)
+
+    @Test
+    fun squareTileFootprintIsItsWidthAndNotRound() {
+        val tile = footprint { x, y -> x in 12 until 180 && y in 12 until 180 }!!
+        assertEquals(168f / size, tile.box, 0.001f)
+        assertFalse(tile.round)
+    }
+
+    @Test
+    fun ringFootprintIsRound() {
+        val ring = footprint { x, y -> inDisc(x, y, 80f) && !inDisc(x, y, 76f) }!!
+        assertEquals(160f / size, ring.box, 0.02f)
+        assertTrue(ring.round)
+    }
+
+    @Test
+    fun emptyPictureHasNoFootprint() {
+        assertNull(footprint { _, _ -> false })
+    }
+
+    @Test
+    fun roundArtMayBeWiderThanSquareArt() {
+        // A guideline circle's diameter against a guideline square's side.
+        assertEquals(0.9166f / 0.8069f, IconNormalizer.roundAllowance, 0.005f)
     }
 }

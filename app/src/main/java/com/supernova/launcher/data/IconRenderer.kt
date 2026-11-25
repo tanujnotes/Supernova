@@ -59,20 +59,58 @@ class IconRenderer(context: Context) {
     // behind them).
     var reshapeLegacy: ReshapeLegacy = ReshapeLegacy.OFF
 
-    // iconNormalization pref (Normalize icon size, #332): with Reshape legacy
-    // Off, a legacy icon or a pack's art drawn as it is shrinks to keep
+    // iconNormalization pref (Normalize icon size, #332): a pack's art drawn
+    // as it is, and with Reshape legacy Off a legacy icon, shrinks to keep
     // within the Material icon guidelines (IconNormalizer); one already
-    // inside them keeps its size. Reshape legacy's own resizing replaces it.
+    // inside them keeps its size. Reshape legacy's own resizing replaces it
+    // for legacy icons; the reference keeps it for pack art either way.
     var normalizeSize: Boolean = false
 
-    // The scale a legacy icon or a pack's art drawn as it is gets from
-    // Normalize icon size: at most its usual footprint, smaller for one that
-    // covers more than the guidelines allow.
+    // The scale a legacy icon drawn as it is gets from Normalize icon size:
+    // at most its usual footprint, smaller for one that covers more than the
+    // guidelines allow.
     private fun asIsFraction(source: Drawable): Float {
         val usual = 1f - LEGACY_INSET_FRACTION * 2
         if (!normalizeSize || reshapeLegacy != ReshapeLegacy.OFF) return usual
         return minOf(usual, IconNormalizer.scale(source, iconSizePx))
     }
+
+    // The scale a pack's art drawn as it is gets, as the reference sizes it
+    // (#332). There an adaptive icon is shrunk to the Material guidelines
+    // while pack art is drawn at the icon's full size, and Normalize icon
+    // size shrinks art only as far as it is wider than an adaptive icon of
+    // the shape: a square tile ends up as wide as the app icons around it,
+    // round art up to a guideline circle's extra width. Adaptive icons fill
+    // the icon here, so the art is drawn larger by as much as the reference
+    // shrinks them; at 92% it sat a size below them.
+    private fun packArtFraction(source: Drawable, shape: IconShape, customShape: CustomShapeSpec?): Float {
+        val (scale, maskBox) = adaptiveFootprint(shape, customShape)
+        val full = 1f / scale
+        // Measured at half opacity: a pack's soft shadow around its art
+        // doesn't count, as it doesn't in the reference.
+        val art = if (normalizeSize) IconNormalizer.footprint(source, iconSizePx, ART_ALPHA_MIN) else null
+        val allowance = if (art?.round == true) IconNormalizer.roundAllowance else 1f
+        return if (art == null) full else minOf(full, maskBox * allowance / art.box)
+    }
+
+    // How far the reference shrinks an adaptive icon of this shape (the
+    // platform's mask with System), and how wide the shape is at full size.
+    private fun adaptiveFootprint(shape: IconShape, customShape: CustomShapeSpec?): Pair<Float, Float> {
+        val size = iconSizePx
+        val key = "$size|$shape|$customShape"
+        adaptiveMemo?.let { (memoKey, footprint) -> if (memoKey == key) return footprint }
+        val mask = shape.pathFor(size.toFloat(), customShape)
+            ?: glassPainter.systemMask(AdaptiveIconDrawable(Color.BLACK.toDrawable(), null), size)
+        val pixels = maskPixels(mask, size)
+        val alpha = IntArray(pixels.size) { pixels[it] ushr ALPHA_SHIFT }
+        val scale = IconNormalizer.scale(alpha, size, size, size).coerceIn(MIN_ADAPTIVE_SCALE, 1f)
+        val box = IconNormalizer.footprint(alpha, size)?.box ?: 1f
+        val footprint = scale to box
+        adaptiveMemo = key to footprint
+        return footprint
+    }
+
+    private var adaptiveMemo: Pair<String, Pair<Float, Float>>? = null
 
     // iconShadow pref: the flattened icon gets a soft drop shadow baked into
     // the cached bitmap, so binds stay free of per-frame shadow work. The
@@ -207,9 +245,21 @@ class IconRenderer(context: Context) {
     fun renderPackArt(source: Drawable, shape: IconShape, customShape: CustomShapeSpec?): Drawable {
         val asMade = source !is AdaptiveIconDrawable && (shape == IconShape.SYSTEM || !solid(source))
         if (!asMade) return render(source, null, shape, customShape, IconGlass.OFF)
-        val bitmap = createBitmap(iconSizePx, iconSizePx)
-        drawBase(Canvas(bitmap), source, 1f, hasBack = false, legacyFraction = asIsFraction(source))
-        return if (shadow) withShadow(bitmap) else bitmap.toDrawable(resources)
+        // Art drawn past the icon's edges gets a margin of its own, drawn
+        // past the icon's bounds as a shadow is (ShadowedIconDrawable).
+        val size = iconSizePx
+        val drawn = (size * packArtFraction(source, shape, customShape)).roundToInt()
+        val margin = ((drawn - size + 1) / 2).coerceAtLeast(0)
+        val side = size + 2 * margin
+        val bitmap = createBitmap(side, side)
+        val offset = (side - drawn) / 2
+        source.setBounds(offset, offset, offset + drawn, offset + drawn)
+        source.draw(Canvas(bitmap))
+        return when {
+            shadow -> withShadow(bitmap, inset = margin)
+            margin > 0 -> ShadowedIconDrawable(bitmap, margin)
+            else -> bitmap.toDrawable(resources)
+        }
     }
 
     // Whether the drawable, drawn at the icon's size, is one solid body.
@@ -376,8 +426,10 @@ class IconRenderer(context: Context) {
     // A glass icon's shadow is cast by its outline, not its pixels - a pane
     // is mostly see-through - and only what falls outside the pane is kept,
     // since a shadow seen through glass just muddies it.
-    private fun withShadow(bitmap: Bitmap, glassMask: Path? = null): Drawable {
-        val size = iconSizePx
+    // `inset` is a margin the bitmap already has around the icon (pack art
+    // drawn past its edges); the shadow's margin goes around that.
+    private fun withShadow(bitmap: Bitmap, glassMask: Path? = null, inset: Int = 0): Drawable {
+        val size = bitmap.width
         val density = resources.displayMetrics.density * resolutionScale
         val margin = ((SHADOW_BLUR_DP + SHADOW_OFFSET_Y_DP) * density).roundToInt()
         val blurPaint = Paint().apply {
@@ -408,7 +460,7 @@ class IconRenderer(context: Context) {
             canvas.withTranslation(margin.toFloat(), margin.toFloat()) { drawPath(glassMask, clear) }
         }
         canvas.drawBitmap(bitmap, margin.toFloat(), margin.toFloat(), null)
-        return ShadowedIconDrawable(output, margin)
+        return ShadowedIconDrawable(output, margin + inset)
     }
 
     // Finds the opaque bounding box (sampled every other pixel) and rescales
@@ -524,6 +576,10 @@ class IconRenderer(context: Context) {
         private const val PLATFORM_BLEED = 0.25f
         private const val NORMALIZED_CONTENT = 0.72f
         private const val ALPHA_THRESHOLD = 40
+        private const val ALPHA_SHIFT = 24
+        private const val ART_ALPHA_MIN = 127
+        // Guards against a shape whose hull is not a mask at all.
+        private const val MIN_ADAPTIVE_SCALE = 0.7f
         // White like the platform's default adaptive plate; content sits at
         // roughly the adaptive foreground safe-zone fraction.
         private const val PLATE_COLOR = 0xFFF3F3F3.toInt()
