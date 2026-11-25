@@ -1945,7 +1945,10 @@ class LauncherActivity :
                     if (::editMode.isInitialized) editMode.onPageChanged()
                     // Snapshot once the real layout has arrived, so a bad edit
                     // later in the session is recoverable.
-                    if (state.model.items.isNotEmpty()) viewModel.writeAutoBackupOnce()
+                    if (state.model.items.isNotEmpty()) {
+                        viewModel.writeAutoBackupOnce()
+                        viewModel.repinShortcutsOnce()
+                    }
                     // Its own color, or the labels' as the swipe arrow has.
                     binding.pageIndicator.configure(
                         state.prefs.pageIndicatorStyle,
@@ -3113,7 +3116,16 @@ class LauncherActivity :
                 maybeAutoCloseDock()
                 maybeAutoCloseDrawer()
             }.onFailure {
-                Toast.makeText(this, R.string.shortcut_failed, Toast.LENGTH_SHORT).show()
+                // A pin-only shortcut (an app's "add to home screen") doesn't
+                // outlive the install that pinned it: a reinstall and restore
+                // brings the icon back but not the shortcut, and only its app
+                // can make it again.
+                if (shortcutInfo(packageName, shortcutId, userSerial) == null) {
+                    val app = installedApp(packageName, userSerial)?.label ?: packageName
+                    Toast.makeText(this, getString(R.string.shortcut_gone, app), Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(this, R.string.shortcut_failed, Toast.LENGTH_SHORT).show()
+                }
             }.isSuccess
         }
     }

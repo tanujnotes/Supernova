@@ -987,6 +987,8 @@ class LauncherRepository(private val context: Context) {
                 prefs.remove(StoreKeys.retiredFolderSortAz)
             }
         }
+        // A backup from another install comes without its shortcut pins.
+        ShortcutPins.repin(context, validated.items)
 
         return ImportResult(
             restored = validated.items.size,

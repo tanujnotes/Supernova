@@ -87,6 +87,7 @@
     <string name="backup_export_failed">Export failed: %1$s</string>
     <string name="backup_import_failed">Import failed: %1$s</string>
     <string name="shortcut_failed">Unable to launch shortcut</string>
+    <string name="shortcut_gone">This shortcut no longer exists. Add it again from %1$s.</string>
     <string name="unable_to_launch">Unable to launch %1$s</string>
     <string name="grid_rows">Rows</string>
     <string name="grid_cols">Columns</string>
