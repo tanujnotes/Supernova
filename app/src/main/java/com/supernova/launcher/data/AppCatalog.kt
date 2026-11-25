@@ -640,6 +640,13 @@ class AppCatalog(
             )
         return runCatching { launcherApps.getShortcuts(query, user) ?: emptyList() }
             .getOrElse { emptyList() }
+            // Only the shortcuts of an activity in the app list: apps that
+            // change their icon through activity-aliases declare the same set
+            // on every alias (YouTube listed four "Search"), and launchers ask
+            // for an icon's shortcuts by its activity (#361).
+            .filter { s ->
+                s.activity.let { it == null || resolveActivity(it.packageName, it.className, user) != null }
+            }
     }
 
     fun shortcutsFor(packageName: String, userSerial: Long): List<android.content.pm.ShortcutInfo> {

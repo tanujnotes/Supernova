@@ -430,7 +430,8 @@ class SearchController(
                     appProvider.search(query).mapNotNull { (it as? SearchResult.App)?.app }
                 },
                 userForSerial = { viewModel.appCatalog().userForSerial(it) },
-                searchableApps = { viewModel.searchableApps() }
+                searchableApps = { viewModel.searchableApps() },
+                otherSmsApps = { com.supernova.launcher.search.SmsApps.others(context.applicationContext) }
             ),
             ContactSearchProvider(context.applicationContext) {
                 viewModel.state.value.prefs.searchContactCards

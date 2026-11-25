@@ -25,7 +25,9 @@ sealed class SearchResult {
         val shortcutId: String,
         val label: String,
         val userSerial: Long,
-        val icon: android.graphics.drawable.Drawable?
+        val icon: android.graphics.drawable.Drawable?,
+        // The app it opens in, shown under the label in the results list.
+        val appName: String? = null
     ) : SearchResult()
     data class Contact(
         val contactId: Long,

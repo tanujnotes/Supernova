@@ -539,6 +539,7 @@ class SearchResultsAdapter(
             binding.root.alpha = 1f
             ImageViewCompat.setImageTintList(binding.resultIcon, null)
             binding.resultLabel.setTextColor(textColor)
+            binding.resultApp.visibility = View.GONE
             binding.root.setOnLongClickListener(null)
             binding.root.isLongClickable = false
             // Contact-card action buttons from a previous bind (D4).
@@ -554,7 +555,15 @@ class SearchResultsAdapter(
             binding.resultLabel.text = shortcut.label
             prefs?.let { LabelStyler.apply(binding.resultLabel, it, onWallpaper = false) }
             binding.resultLabel.setTextColor(textColor)
-            binding.root.contentDescription = shortcut.label
+            // Its app under the label: the same chat often comes from
+            // several apps under the same name (#361).
+            val appName = shortcut.appName?.takeIf { it.isNotBlank() }
+            binding.resultApp.text = appName
+            binding.resultApp.setTextColor(
+                androidx.core.graphics.ColorUtils.setAlphaComponent(textColor, APP_NAME_ALPHA)
+            )
+            binding.resultApp.visibility = if (appName != null) View.VISIBLE else View.GONE
+            binding.root.contentDescription = listOfNotNull(shortcut.label, appName).joinToString(", ")
             binding.root.setOnClickListener { callbacks.onShortcut(it, shortcut) }
             binding.root.setOnLongClickListener {
                 callbacks.onShortcutLongPress(it, shortcut)
@@ -756,5 +765,6 @@ class SearchResultsAdapter(
         const val TYPE_RECENT_HEADER = 11
         // The calculator's expression, a step back from its result.
         const val CALC_EXPRESSION_ALPHA = 0xB3
+        private const val APP_NAME_ALPHA = 0xB3
     }
 }
