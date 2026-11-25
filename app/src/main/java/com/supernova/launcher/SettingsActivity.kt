@@ -771,11 +771,12 @@ class SettingsActivity : AppCompatActivity() {
     // over the theme background, else the styled surface lifted toward white
     // (a lot on a light one, a touch on a dark one).
     private fun applySettingsSurface(prefs: LauncherPrefs) {
-        val surface = Styles.resolve(this, prefs).of(SurfaceId.SETTINGS).surface
+        val resolved = Styles.resolve(this, prefs).of(SurfaceId.SETTINGS)
+        val surface = resolved.surface
+        pageSurface = surface
         binding.root.setBackgroundColor(surface)
         // The clock sits on this background: dark icons on a light one, like
-        // a yellow Background in dark mode (#281). The navigation bar sits on
-        // the unstyled tab bar and keeps the theme's.
+        // a yellow Background in dark mode (#281).
         WindowCompat.getInsetsController(window, binding.root).isAppearanceLightStatusBars =
             androidx.core.graphics.ColorUtils.calculateLuminance(surface or OPAQUE) > HALF
         groupCards.cardColor = when {
@@ -793,6 +794,44 @@ class SettingsActivity : AppCompatActivity() {
         )
         binding.settingsRecycler.invalidateItemDecorations()
         groupsPane?.cardColor = groupCards.cardColor
+        styleTabBar(surface, resolved.text)
+    }
+
+    // The page colour the navigation bar sits on where the tab bar is hidden.
+    private var pageSurface = 0
+
+    // The theme's tab colours, kept for the selected tab's accent.
+    private val themeTabColors by lazy { binding.tabSettings.textColors }
+
+    // The Settings/Style bar takes the settings colours too (#364): a
+    // styled background gives it the cards' shade, and the tab that isn't
+    // current the settings text. Unstyled, it keeps the theme's own shade.
+    private fun styleTabBar(surface: Int, text: Int) {
+        val plate = if (surface == getColor(R.color.background)) getColor(R.color.settingsNav) else groupCards.cardColor
+        ((binding.settingsTabs.background?.mutate() as? android.graphics.drawable.LayerDrawable)
+            ?.getDrawable(0) as? android.graphics.drawable.GradientDrawable)?.setColor(plate)
+        val selected = themeTabColors.getColorForState(intArrayOf(android.R.attr.state_selected), 0)
+        val idle = androidx.core.graphics.ColorUtils.setAlphaComponent(text, TAB_TEXT_ALPHA)
+        val colors = android.content.res.ColorStateList(
+            arrayOf(intArrayOf(android.R.attr.state_selected), intArrayOf()),
+            intArrayOf(selected, idle)
+        )
+        for (tab in listOf(binding.tabSettings, binding.tabStyle)) {
+            tab.setTextColor(colors)
+            androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(tab, colors)
+        }
+        tabPlate = plate
+        applyNavButtons()
+    }
+
+    private var tabPlate = 0
+
+    // The navigation buttons read against what they sit on: the tab bar on
+    // the two root lists, the page on a section (#364).
+    private fun applyNavButtons() {
+        val under = if (binding.settingsTabs.isVisible) tabPlate else pageSurface
+        WindowCompat.getInsetsController(window, binding.root).isAppearanceLightNavigationBars =
+            androidx.core.graphics.ColorUtils.calculateLuminance(under or OPAQUE) > HALF
     }
 
     override fun onResume() {
@@ -1066,6 +1105,7 @@ class SettingsActivity : AppCompatActivity() {
         if (binding.settingsTabs.isVisible != root) {
             binding.settingsTabs.isVisible = root
             ViewCompat.requestApplyInsets(binding.root)
+            applyNavButtons()
         }
         // A page opened from the main list takes the keyboard down, whether
         // or not the pill still holds focus (a tap on a row can take it
@@ -2501,6 +2541,7 @@ class SettingsActivity : AppCompatActivity() {
         // white they are lifted from it, light or dark.
         private const val OPAQUE = 0xFF000000.toInt()
         private const val HALF = 0.5
+        private const val TAB_TEXT_ALPHA = 0xB3
         private const val CARD_LIFT_LIGHT = 0.7f
         private const val CARD_LIFT_DARK = 0.06f
         // The icon pack sheet: its rows' text inset, the preview icons, and
