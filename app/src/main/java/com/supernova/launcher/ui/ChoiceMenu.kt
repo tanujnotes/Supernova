@@ -58,6 +58,7 @@ object ChoiceMenu {
     // gutter is transparent, and the window is free to hang off the screen.
     private const val ELEVATION_DP = 8
     private const val SHADOW_PAD_DP = 22
+    private const val MIN_HEIGHT_DP = 96
 
     fun show(
         anchor: View,
@@ -174,29 +175,17 @@ object ChoiceMenu {
         val location = IntArray(2)
         anchor.getLocationInWindow(location)
 
-        // A menu belongs against its row, so it is never taller than the room
-        // on the side it opens towards - it takes the roomier side and scrolls
-        // inside whatever that side has. Sizing it first and placing it after
-        // is what stranded a long list: too tall for either side, it overflowed
-        // the screen, got clamped to the top, and ended up floating nowhere
-        // near the row it came from.
-        // The system bars are off limits too: edge to edge, the window runs
-        // under them, and a long list ended under the navigation bar.
+        // Beside the row, or over a screen-filling anchor (verticalSlot).
         val bars = androidx.core.view.ViewCompat.getRootWindowInsets(anchor)
             ?.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
-        val roomBelow = window.height - (location[1] + anchor.height) - pad - (bars?.bottom ?: 0)
-        val roomAbove = location[1] - pad - (bars?.top ?: 0)
-        val below = roomBelow >= roomAbove
-        // The fraction still applies on top of that: even with the room for
-        // it, a menu that covers the screen stops reading as a menu.
-        val maxCardHeight = minOf(
-            maxOf(roomBelow, roomAbove),
-            (window.height * MAX_HEIGHT_FRACTION).toInt()
-        ).coerceAtLeast(context.dp(96))
-        shadowRoom.measure(
-            View.MeasureSpec.makeMeasureSpec(window.width, View.MeasureSpec.AT_MOST),
-            View.MeasureSpec.makeMeasureSpec(maxCardHeight + pad * 2, View.MeasureSpec.AT_MOST)
-        )
+        val slot = verticalSlot(anchor, location[1], bars, pad) { cap ->
+            shadowRoom.measure(
+                View.MeasureSpec.makeMeasureSpec(window.width, View.MeasureSpec.AT_MOST),
+                View.MeasureSpec.makeMeasureSpec(cap + pad * 2, View.MeasureSpec.AT_MOST)
+            )
+            shadowRoom.measuredHeight - pad * 2
+        }
+        val maxCardHeight = slot.maxHeight
         val cardWidth = shadowRoom.measuredWidth - pad * 2
         val cardHeight = minOf(shadowRoom.measuredHeight - pad * 2, maxCardHeight)
 
@@ -214,8 +203,7 @@ object ChoiceMenu {
         // clipped - so a tap on the value at the far end still opens beside it.
         val cardLeft = if (alignToAnchorEnd) location[0] + anchor.width - cardWidth else touchX.toInt()
         val clampedLeft = cardLeft.coerceIn(edge, maxOf(edge, window.width - cardWidth - edge))
-        val cardTop =
-            if (below) location[1] + anchor.height else location[1] - cardHeight
+        val cardTop = slot.top(cardHeight)
         popup.showAtLocation(anchor, Gravity.NO_GRAVITY, clampedLeft - pad, cardTop - pad)
 
         // Open on the current value rather than at the top: on a long list it
@@ -225,6 +213,50 @@ object ChoiceMenu {
                 val target = content.getChildAt(selected) ?: return@post
                 card.scrollTo(0, maxOf(0, target.top - cardHeight / 2 + target.height / 2))
             }
+        }
+    }
+
+    // Where a menu goes up and down, and how tall it may be. measure takes
+    // a height cap and gives the menu's height under it.
+    private class Slot(val maxHeight: Int, val top: (cardHeight: Int) -> Int)
+
+    // A menu belongs against its row, so it is never taller than the room
+    // on the side it opens towards - it takes the roomier side and scrolls
+    // inside whatever that side has. Sizing it first and placing it after
+    // is what stranded a long list: too tall for either side, it overflowed
+    // the screen, got clamped to the top, and ended up floating nowhere
+    // near the row it came from.
+    // The system bars are off limits too: edge to edge, the window runs
+    // under them, and a long list ended under the navigation bar.
+    // An anchor that fills the screen (a feed card set to fill the page)
+    // leaves no room on either side, and the menu was squeezed into the
+    // sliver above it with its last rows cut off. When the whole menu fits
+    // over the anchor's visible part, it opens there, at its top.
+    private fun verticalSlot(
+        anchor: View,
+        anchorTop: Int,
+        bars: androidx.core.graphics.Insets?,
+        pad: Int,
+        measure: (cap: Int) -> Int
+    ): Slot {
+        val context = anchor.context
+        val windowHeight = anchor.rootView.height
+        val anchorBottom = anchorTop + anchor.height
+        val roomBelow = windowHeight - anchorBottom - pad - (bars?.bottom ?: 0)
+        val roomAbove = anchorTop - pad - (bars?.top ?: 0)
+        // The fraction still applies on top of that: even with the room for
+        // it, a menu that covers the screen stops reading as a menu.
+        val heightCap = (windowHeight * MAX_HEIGHT_FRACTION).toInt()
+        val edge = context.dp(8)
+        val overTop = maxOf(anchorTop, (bars?.top ?: 0) + edge)
+        val overBottom = minOf(anchorBottom, windowHeight - (bars?.bottom ?: 0) - edge)
+        val natural = measure(heightCap)
+        val side = maxOf(roomBelow, roomAbove)
+        return when {
+            natural > side && natural <= overBottom - overTop -> Slot(natural) { overTop }
+            roomBelow >= roomAbove ->
+                Slot(minOf(side, heightCap).coerceAtLeast(context.dp(MIN_HEIGHT_DP))) { anchorBottom }
+            else -> Slot(minOf(side, heightCap).coerceAtLeast(context.dp(MIN_HEIGHT_DP))) { anchorTop - it }
         }
     }
 
