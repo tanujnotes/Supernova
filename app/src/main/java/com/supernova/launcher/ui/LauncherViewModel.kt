@@ -1573,6 +1573,8 @@ class LauncherViewModel(
 
     fun addPage() = persist { repository.addPage() }
 
+    fun addPageFirst() = persist { repository.addPageFirst() }
+
     fun removePage(page: Int, onRemoved: (() -> Unit)? = null) {
         viewModelScope.launch { if (repository.removePage(page)) onRemoved?.invoke() }
     }

@@ -600,6 +600,25 @@ class LauncherRepository(private val context: Context) {
         }
     }
 
+    // A new empty page before the first (#376): every page and the home page
+    // move one along. Nothing at the page limit.
+    suspend fun addPageFirst() {
+        mutate { current ->
+            val shown = maxOf(
+                current.pageCount,
+                (current.items.filter { it.container == ContainerType.WORKSPACE }.maxOfOrNull { it.page } ?: -1) + 1
+            )
+            if (shown >= MAX_PAGES) return@mutate current
+            current.copy(
+                pageCount = shown + 1,
+                defaultPage = current.defaultPage + 1,
+                items = current.items.map {
+                    if (it.container == ContainerType.WORKSPACE) it.copy(page = it.page + 1) else it
+                }
+            )
+        }
+    }
+
     // False when the page wasn't removed: it holds something, or is the last.
     suspend fun removePage(page: Int): Boolean {
         var removed = false
