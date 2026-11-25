@@ -6,7 +6,7 @@ import android.content.Context
 import android.os.Build
 import androidx.core.graphics.ColorUtils
 
-// "Based on wallpaper" status bar icons: dark icons when the system says dark
+// "Automatic" status bar icons: dark icons when the system says dark
 // text reads on the home wallpaper (WallpaperColors.HINT_SUPPORTS_DARK_TEXT,
 // the hint the system's own launchers theme by), else light icons. Before
 // Android 12 the hints are hidden API, read by reflection; if that is

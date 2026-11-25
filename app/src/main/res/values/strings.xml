@@ -937,7 +937,7 @@
     <string name="hide_status_bar">Hide status bar</string>
     <string name="status_bar_icons">Status bar icon color</string>
     <string name="status_icons_auto">Follow theme</string>
-    <string name="status_icons_wallpaper">Based on wallpaper</string>
+    <string name="status_icons_wallpaper">Automatic</string>
     <string name="status_icons_dark">Dark icons</string>
     <string name="status_icons_light">Light icons</string>
     <string name="transparent_nav">Transparent navigation bar</string>
