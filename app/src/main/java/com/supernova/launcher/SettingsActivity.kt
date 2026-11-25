@@ -968,7 +968,7 @@ class SettingsActivity : AppCompatActivity() {
         adapter.submit(items, viewModel.state.value.prefs, page = section?.title ?: 0, tiled = section == null)
     }
 
-    // The root list, grouped: Set as default launcher on a card of its own,
+    // The root list, grouped: Default launcher on a card of its own,
     // then the sections in three labelled cards. A section no group names
     // (a new one) joins the last card, so it is never lost from the list.
     private fun rootItems(): List<SettingItem> {
@@ -992,7 +992,7 @@ class SettingsActivity : AppCompatActivity() {
         return buildList {
             add(
                 SettingItem.SectionLink(
-                    R.string.set_default_launcher,
+                    R.string.default_launcher,
                     icon = R.drawable.ic_settings_default,
                     subtitle = { defaultLauncherLabel() },
                     onClick = {
@@ -1031,7 +1031,7 @@ class SettingsActivity : AppCompatActivity() {
     // restart from outside, so the root list offers it directly.
     private fun restartLink(): SettingItem.SectionLink =
         SettingItem.SectionLink(
-            R.string.restart_supernova,
+            R.string.restart_link,
             icon = R.drawable.ic_settings_restart,
             subtitle = { getString(R.string.restart_supernova_subtitle) },
             onClick = ::confirmRestart

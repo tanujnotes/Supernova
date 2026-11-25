@@ -4,7 +4,7 @@
          accessibility and notification-access lists); debug builds rename it. -->
     <string name="app_label">Supernova</string>
     <string name="settings">Settings</string>
-    <string name="set_default_launcher">Set as default launcher</string>
+    <string name="default_launcher">Default launcher</string>
     <string name="add_page">Add page</string>
     <string name="remove_page">Remove this page</string>
     <string name="page_removed">Page removed</string>
@@ -1090,6 +1090,8 @@
     <string name="quick_start">Quick start</string>
     <string name="quick_start_subtitle">Run the first-run setup again</string>
     <string name="restart_supernova">Restart Supernova</string>
+    <!-- The root list sits under the Supernova header (#360); Backup keeps the long form. -->
+    <string name="restart_link">Restart</string>
     <string name="restart_supernova_subtitle">Close and reopen the launcher</string>
     <string name="restart_launcher_q">Restart Supernova?</string>
     <string name="restart_launcher_message">Settings and the home screen close and open again. Nothing is lost.</string>
