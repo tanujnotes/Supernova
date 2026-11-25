@@ -235,11 +235,23 @@ class WidgetController(
                 abortPendingWidget()
                 Toast.makeText(activity, R.string.widget_provider_missing, Toast.LENGTH_SHORT).show()
             } else {
+                (pending.target as? Target.Restored)?.let { retryRestoredBinds(it.itemId) }
                 proceedToConfigure(info)
             }
         } else {
             abortPendingWidget()
         }
+    }
+
+    // After a reinstall and a restore the bind permission is gone, so no
+    // restored widget could be bound silently (#373). Allowed on one
+    // widget's tap ("Always allow"), the rest without a setup screen are
+    // bound now rather than each on its own tap or at the next start.
+    // Without that tick each try is refused and its id dropped, as before.
+    private fun retryRestoredBinds(tappedItemId: String) {
+        rebindsTried.clear()
+        rebindsTried += tappedItemId
+        rebindRestoredWidgets(viewModel.state.value.model)
     }
 
     private val configureWidgetLauncher = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
