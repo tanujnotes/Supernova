@@ -20,8 +20,8 @@ class BadgeReportTest {
             number = 0,
             isGroupSummary = false,
             canShowBadge = canShowBadge,
-            clearable = !ongoing,
             ongoing = ongoing,
+            defaultChannel = true,
             hasContent = true
         ),
         counted = counted,
@@ -48,7 +48,7 @@ class BadgeReportTest {
         )
         assertTrue(report.contains("0/a.self: 1 seen, 1 badged\n"))
         assertTrue(report.contains("0/b.chat: 2 seen, 0 badged (system says no badge 2)"))
-        assertTrue(report.contains("0/c.music: 1 seen, 0 badged (not clearable 1, ongoing 1)"))
+        assertTrue(report.contains("0/c.music: 1 seen, 0 badged (ongoing, no channel 1)"))
     }
 
     @Test

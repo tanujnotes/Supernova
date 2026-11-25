@@ -7,8 +7,11 @@ package com.supernova.launcher.notification
 // - a group summary doesn't count while its group has children, badged or
 //   not: they are the messages, and counting both showed a chat's two
 //   messages as 3 (a summary posted alone, with no children, still counts);
-// - neither does anything ongoing or not clearable (music, downloads,
-//   navigation), nor a notification with no title and no text;
+// - neither does an ongoing notification on the "miscellaneous" channel
+//   (an app from before channels: its foreground service, a sync), nor a
+//   notification with no title and no text. An ongoing notification on a
+//   channel of its own (music, a running stopwatch, a push service) counts:
+//   the app made that channel and left its badge on (#344);
 // - one notification counts as its own number when the app set one (a
 //   "5 new messages" summary line is 5), and as 1 otherwise.
 object BadgeCounting {
@@ -20,8 +23,9 @@ object BadgeCounting {
         val number: Int,
         val isGroupSummary: Boolean,
         val canShowBadge: Boolean,
-        val clearable: Boolean,
         val ongoing: Boolean,
+        // On NotificationChannel.DEFAULT_CHANNEL_ID, "miscellaneous".
+        val defaultChannel: Boolean,
         val hasContent: Boolean,
         // StatusBarNotification.groupKey: which summary a child belongs to.
         val groupKey: String = ""
@@ -44,7 +48,6 @@ object BadgeCounting {
     // Everything but the summary rule, which needs the whole group.
     private fun eligible(candidate: Candidate): Boolean =
         candidate.canShowBadge &&
-            candidate.clearable &&
-            !candidate.ongoing &&
+            !(candidate.ongoing && candidate.defaultChannel) &&
             candidate.hasContent
 }

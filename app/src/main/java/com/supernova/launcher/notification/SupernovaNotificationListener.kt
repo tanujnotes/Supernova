@@ -1,6 +1,7 @@
 package com.supernova.launcher.notification
 
 import android.app.Notification
+import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.ComponentName
@@ -151,8 +152,8 @@ class SupernovaNotificationListener : NotificationListenerService() {
             number = notification.number,
             isGroupSummary = (notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0,
             canShowBadge = canShowBadge,
-            clearable = sbn.isClearable,
             ongoing = sbn.isOngoing,
+            defaultChannel = notification.channelId == NotificationChannel.DEFAULT_CHANNEL_ID,
             hasContent = !extras.getCharSequence(Notification.EXTRA_TITLE).isNullOrBlank() ||
                 !extras.getCharSequence(Notification.EXTRA_TEXT).isNullOrBlank(),
             groupKey = sbn.groupKey.orEmpty()

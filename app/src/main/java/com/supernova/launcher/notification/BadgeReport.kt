@@ -56,8 +56,7 @@ object BadgeReport {
         val c = seen.candidate
         val out = mutableListOf<String>()
         if (!c.canShowBadge) out += if (seen.dndHidesBadge) "dnd hides badge" else "system says no badge"
-        if (!c.clearable) out += "not clearable"
-        if (c.ongoing) out += "ongoing"
+        if (c.ongoing && c.defaultChannel) out += "ongoing, no channel"
         if (!c.hasContent) out += "no title/text"
         if (out.isEmpty()) out += if (c.isGroupSummary) "group summary" else "other"
         if (!seen.ranked) out += "unranked"

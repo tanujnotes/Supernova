@@ -13,8 +13,8 @@ class BadgeCountingTest {
         number = 0,
         isGroupSummary = false,
         canShowBadge = true,
-        clearable = true,
         ongoing = false,
+        defaultChannel = false,
         hasContent = true,
         groupKey = "g1"
     )
@@ -42,7 +42,7 @@ class BadgeCountingTest {
     // their channel) still make the summary theirs, as in Launcher3.
     @Test
     fun aSummaryOfChildrenThatDontBadgeStaysUncounted() {
-        val group = listOf(chat.copy(isGroupSummary = true), chat.copy(ongoing = true))
+        val group = listOf(chat.copy(isGroupSummary = true), chat.copy(canShowBadge = false))
         assertEquals(emptyMap<String, Int>(), BadgeCounting.counts(group))
     }
 
@@ -58,10 +58,18 @@ class BadgeCountingTest {
     }
 
     @Test
-    fun ongoingUnclearableAndEmptyNotificationsAreLeftOut() {
-        val left = listOf(chat.copy(ongoing = true), chat.copy(clearable = false), chat.copy(hasContent = false))
+    fun ongoingOnTheDefaultChannelAndEmptyNotificationsAreLeftOut() {
+        val left = listOf(chat.copy(ongoing = true, defaultChannel = true), chat.copy(hasContent = false))
         assertTrue(BadgeCounting.badged(left).isEmpty())
         assertFalse(BadgeCounting.badged(listOf(chat)).isEmpty())
+    }
+
+    // A foreground service's notification on a channel of its own (a push
+    // service, a stopwatch, music) badges, as in the reference (#344).
+    @Test
+    fun ongoingOnItsOwnChannelCounts() {
+        assertEquals(mapOf("0/com.chat" to 1), BadgeCounting.counts(listOf(chat.copy(ongoing = true))))
+        assertEquals(mapOf("0/com.chat" to 1), BadgeCounting.counts(listOf(chat.copy(defaultChannel = true))))
     }
 
     @Test
