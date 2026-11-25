@@ -608,10 +608,20 @@ class SettingsPreviewView @JvmOverloads constructor(
                 LayoutParams(LayoutParams.MATCH_PARENT, dp(HOME_SCRIM_DP), Gravity.BOTTOM))
         }
         homeRow = row
-        addView(row, LayoutParams(LayoutParams.MATCH_PARENT, dp(HOME_HEIGHT_DP)))
+        // The row sits in the middle of the strip, above the page indicator
+        // when there is one (#365); its icons keep a common top, as on the
+        // home screen, whatever their labels' lines.
+        val indicated = prefs.pageIndicatorStyle != com.supernova.launcher.ui.IndicatorStyle.NONE
+        val middle = FrameLayout(context).apply {
+            clipChildren = false
+            clipToPadding = false
+            setPadding(0, 0, 0, if (indicated) dp(HOME_INDICATOR_DP) else 0)
+            addView(row, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL))
+        }
+        addView(middle, LayoutParams(LayoutParams.MATCH_PARENT, dp(HOME_HEIGHT_DP)))
         // The page indicator under the icons, always shown here (auto-hide
         // would leave nothing to look at), on the first of a few pages.
-        if (prefs.pageIndicatorStyle != com.supernova.launcher.ui.IndicatorStyle.NONE) {
+        if (indicated) {
             val indicator = com.supernova.launcher.ui.PageIndicatorView(context)
             indicator.configure(
                 prefs.pageIndicatorStyle, HOME_PREVIEW_PAGES, false,
