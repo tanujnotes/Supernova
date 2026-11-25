@@ -35,7 +35,7 @@
             android:layout_weight="1" />
     </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
+    <com.supernova.launcher.ui.FeedRecyclerView
         android:id="@+id/feedRecycler"
         android:layout_width="match_parent"
         android:layout_height="0dp"

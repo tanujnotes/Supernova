@@ -579,8 +579,8 @@ class FeedController(
         pane.feedRecycler.adapter = adapter
         pane.feedRecycler.itemAnimator = null
         FeedFillPages(adapter, cardBinder) { cardDrag.holding }.attach(pane.feedRecycler)
-        pane.feedRecycler.layoutManager =
-            androidx.recyclerview.widget.LinearLayoutManager(context)
+        val list = pane.feedRecycler
+        list.layoutManager = FeedLayoutManager(context) { list.widgetHolds && !cardDrag.holding }
         cardDrag.attach(pane.feedRecycler)
         pane.feedSearchBar.onTap = { host.onOpenSearch() }
         pane.feedSearchBar.prefs = { viewModel.state.value.prefs }
