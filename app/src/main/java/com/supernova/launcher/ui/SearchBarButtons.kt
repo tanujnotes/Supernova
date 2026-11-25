@@ -48,7 +48,8 @@ object SearchBarButtons {
         SearchBarChip.VOICE -> R.string.search_bar_chip_voice
         SearchBarChip.ASSISTANT -> R.string.search_bar_chip_assistant
         SearchBarChip.DATE -> R.string.search_bar_chip_date
-        SearchBarChip.PLAY_STORE -> R.string.chip_play_store
+        // Any store the phone has, not the Play Store alone (AppStores, #357).
+        SearchBarChip.PLAY_STORE -> R.string.search_bar_chip_store
         SearchBarChip.SETTINGS -> R.string.settings
     }
 

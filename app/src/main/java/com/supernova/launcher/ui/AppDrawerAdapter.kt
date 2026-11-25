@@ -244,7 +244,8 @@ class AppDrawerAdapter(
                 labelPrefs?.labelShadow != prefs.labelShadow ||
                 labelPrefs?.labelFont != prefs.labelFont ||
                 labelPrefs?.labelSingleLine != prefs.labelSingleLine ||
-                labelPrefs?.labelEvenRows != prefs.labelEvenRows ||
+                labelPrefs?.let { LabelStyler.evenRows(LabelContext.DRAWER, it) } !=
+                LabelStyler.evenRows(LabelContext.DRAWER, prefs) ||
                 labelPrefs?.labelConfig != prefs.labelConfig ||
                 // Unset, the label color is the drawer surface's text color.
                 labelPrefs?.styleConfig != prefs.styleConfig ||

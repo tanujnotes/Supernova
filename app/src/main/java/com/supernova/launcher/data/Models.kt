@@ -417,8 +417,12 @@ data class LauncherPrefs(
     val labelSingleLine: Boolean = true,
     // With two-line labels, drawer and folder rows keep room for a second
     // line even when none of their labels wraps, so every row of icons is
-    // spaced the same (#347). Off by default.
+    // spaced the same (#347). Off by default. labelEvenRows is v0.2.9's one
+    // switch for both, read as both until either page's switch is used
+    // (LabelStyler.evenRowsWrites).
     val labelEvenRows: Boolean = false,
+    val drawerEvenRows: Boolean = false,
+    val folderEvenRows: Boolean = false,
     val dockInfiniteScroll: Boolean = false,
     // When on, the dock follows iconScale and the dock scale slider hides.
     // On by default.

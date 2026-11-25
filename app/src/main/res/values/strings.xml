@@ -698,7 +698,7 @@
     <string name="label_font">Label font</string>
     <string name="label_single_line">Single-line labels</string>
     <string name="label_even_rows">Even row spacing</string>
-    <string name="label_even_rows_summary">App drawer and folder rows keep room for two-line labels</string>
+    <string name="label_even_rows_summary">Rows keep room for two-line labels</string>
     <!-- The Home screen's Icon size bar and Label card. The card
          names its controls briefly because they sit under its "Label"
          header; search lists them by the longer names above. -->
@@ -842,6 +842,7 @@
     <string name="copied_to_clipboard">Copied to clipboard</string>
     <string name="contacts_permission_needed">Grant contacts permission to search contacts</string>
     <string name="chip_play_store">Play Store</string>
+    <string name="search_bar_chip_store">App store</string>
     <string name="chip_maps">Maps</string>
     <string name="chip_youtube">YouTube</string>
     <string name="chip_wikipedia">Wikipedia</string>
@@ -857,6 +858,7 @@
     <string name="needs_swipe_up_drawer">Needs Swipe up set to open the app drawer, in Gestures</string>
     <string name="needs_dock">Needs the dock, in Dock</string>
     <string name="needs_badges">Needs notification badges, in Icons &amp; labels</string>
+    <string name="needs_two_line_labels">Single-line labels are on, in Home screen</string>
     <string name="needs_animations">Animations are off, in Home screen</string>
     <string name="infinite_scroll_summary">Swipe past the last page to reach the first; turns off left/right swipe gestures</string>
     <string name="settings_search_no_matches">No settings match “%1$s”</string>

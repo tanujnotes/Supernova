@@ -7,6 +7,8 @@ import android.view.Gravity
 import android.widget.TextView
 import com.supernova.launcher.R
 import com.supernova.launcher.data.LauncherPrefs
+import com.supernova.launcher.data.Pref
+import com.supernova.launcher.data.PrefWrite
 import com.supernova.launcher.data.SettingEnumSerializer
 import com.supernova.launcher.ui.theme.Styles
 import com.supernova.launcher.ui.theme.SurfaceId
@@ -110,8 +112,24 @@ object LabelStyler {
     // (#347): rows of short names otherwise sit closer together than rows
     // with a wrapped one. Only the drawer and folders lay labels out in rows
     // of varying height; the desktop and dock place icons by cell.
-    fun evenRows(context: LabelContext, prefs: LauncherPrefs): Boolean =
-        prefs.labelEvenRows && (context == LabelContext.DRAWER || context == LabelContext.FOLDER)
+    // Each page has its own switch, under its labels.
+    fun evenRows(context: LabelContext, prefs: LauncherPrefs): Boolean = when (context) {
+        LabelContext.DRAWER -> prefs.drawerEvenRows || prefs.labelEvenRows
+        LabelContext.FOLDER -> prefs.folderEvenRows || prefs.labelEvenRows
+        else -> false
+    }
+
+    // One page's switch set to `on`. The old shared switch goes, and the
+    // other page keeps what it showed.
+    fun evenRowsWrites(context: LabelContext, on: Boolean, prefs: LauncherPrefs): List<PrefWrite<*>> {
+        val drawer = if (context == LabelContext.DRAWER) on else evenRows(LabelContext.DRAWER, prefs)
+        val folder = if (context == LabelContext.FOLDER) on else evenRows(LabelContext.FOLDER, prefs)
+        return listOf(
+            PrefWrite(Pref.labelEvenRows, false),
+            PrefWrite(Pref.drawerEvenRows, drawer),
+            PrefWrite(Pref.folderEvenRows, folder)
+        )
+    }
 
     // Holds a label at `lines` lines tall, 0 for its text's own height. A
     // reserved label keeps its text at the top, under the icon, so a short

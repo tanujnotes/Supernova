@@ -287,6 +287,8 @@ object Pref {
     val labelFont = choice("label_font", LabelFont.entries)
     val labelSingleLine = bool("label_single_line")
     val labelEvenRows = bool("label_even_rows")
+    val drawerEvenRows = bool("drawer_even_rows")
+    val folderEvenRows = bool("folder_even_rows")
     val dockInfiniteScroll = bool("dock_infinite_scroll")
     val dockMatchDesktop = bool("dock_match_desktop")
     val dockOverlay = bool("dock_overlay")
