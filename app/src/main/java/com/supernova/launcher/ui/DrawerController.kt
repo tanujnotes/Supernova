@@ -843,6 +843,18 @@ class DrawerController(
             if (right - left == oldRight - oldLeft) return@addOnLayoutChangeListener
             sheet.post { updateFrequentRow() }
         }
+        // A page effect leaves the pages out of view see-through, kept so in
+        // the pager's cache; with the effect gone nothing put them back, and a
+        // page swiped to came up blank (as on the home screen, #374).
+        (binding.drawerPager.getChildAt(0) as? RecyclerView)?.addOnChildAttachStateChangeListener(
+            object : RecyclerView.OnChildAttachStateChangeListener {
+                override fun onChildViewAttachedToWindow(view: View) {
+                    if (appliedPageEffect == ScrollEffect.NONE) PageTransformers.resetTransforms(view)
+                }
+
+                override fun onChildViewDetachedFromWindow(view: View) = Unit
+            }
+        )
         // Paging is the paged style's scrolling, so it does the same.
         binding.drawerPager.registerOnPageChangeCallback(
             object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
@@ -2645,9 +2657,7 @@ class DrawerController(
         val paged = currentStyle == DrawerStyle.PAGED_GRID
         applyListVisibility()
         placeListHeader()
-        binding.drawerPager.setPageTransformer(
-            if (paged) PageTransformers.forEffect(prefs.drawerPageEffect) else null
-        )
+        applyPageEffect(if (paged) prefs.drawerPageEffect else ScrollEffect.NONE)
         syncPages()
         adapter.notifyDataSetChanged()
 
@@ -2840,6 +2850,19 @@ class DrawerController(
     }
 
     private val pagerAdapter by lazy { DrawerPagerAdapter() }
+
+    private var appliedPageEffect: ScrollEffect? = null
+
+    // The paged drawer's page effect. The old one's leftovers (alpha,
+    // rotation) come off the pages laid out now; the rest on attach.
+    private fun applyPageEffect(effect: ScrollEffect) {
+        if (effect == appliedPageEffect) return
+        appliedPageEffect = effect
+        (binding.drawerPager.getChildAt(0) as? RecyclerView)?.let { pages ->
+            for (index in 0 until pages.childCount) PageTransformers.resetTransforms(pages.getChildAt(index))
+        }
+        binding.drawerPager.setPageTransformer(PageTransformers.forEffect(effect))
+    }
 
     // The pages beside the one in view are built and bound while it sits
     // still, as the home pager's are. Built on demand, the next page

@@ -1403,6 +1403,20 @@ class LauncherActivity :
             // settings root's reason (8dc7642).
             defaultFocusHighlightEnabled = false
             com.supernova.launcher.ui.PageFlingSettle.attach(this)
+            // A scroll effect leaves every page out of view see-through, and
+            // a page that has slid out of the list keeps that look in its
+            // cache. Turned off (None, or Disable animations), the effect
+            // resets only the pages laid out then, and with no transformer
+            // left nothing reset the rest: a page came back invisible, its
+            // widgets and icons still taking taps (#374).
+            addOnChildAttachStateChangeListener(object :
+                androidx.recyclerview.widget.RecyclerView.OnChildAttachStateChangeListener {
+                override fun onChildViewAttachedToWindow(view: View) {
+                    if (appliedScrollEffect == ScrollEffect.NONE) PageTransformers.resetTransforms(view)
+                }
+
+                override fun onChildViewDetachedFromWindow(view: View) = Unit
+            })
         }
         binding.workspacePager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
