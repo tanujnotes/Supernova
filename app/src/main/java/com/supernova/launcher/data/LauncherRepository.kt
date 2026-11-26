@@ -817,6 +817,19 @@ class LauncherRepository(private val context: Context) {
         }
     }
 
+    // The layout follows the ids Android's own restore re-bound (see
+    // WidgetHostRestore): the widgets it describes are already live and still
+    // hold their settings. False while the layout can't be read, so the map
+    // is kept for a later start rather than dropped.
+    suspend fun adoptRestoredWidgetIds(
+        oldToNew: Map<Int, Int>,
+        widgetBound: (appWidgetId: Int, provider: String?) -> Boolean
+    ): Boolean {
+        if (!modelReadable()) return false
+        mutate { current -> RestoredWidgets.withRemappedIds(current, oldToNew, widgetBound) }
+        return true
+    }
+
     // Sets a bound widget as a card's featured content. The old host id (if
     // any) is freed by the caller before this runs.
     // A widget restored without a live id has one again.

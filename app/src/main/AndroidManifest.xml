@@ -198,6 +198,18 @@
             </intent-filter>
         </activity>
 
+        <!-- Android restoring the launcher's data (a new-phone transfer, a
+             cloud backup) also restores its widgets under fresh ids, and
+             sends the host the map from the old ones. Only the system can
+             send this; the layout follows the map at the next start-up. -->
+        <receiver
+            android:name=".widget.WidgetHostRestoredReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_HOST_RESTORED" />
+            </intent-filter>
+        </receiver>
+
         <!-- Device admin (force-lock only) backing the device-admin screen
              lock method, as an alternative to the accessibility service. -->
         <receiver

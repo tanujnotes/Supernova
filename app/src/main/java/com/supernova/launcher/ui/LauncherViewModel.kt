@@ -927,6 +927,21 @@ class LauncherViewModel(
             listOfNotNull(searchBarWidget.takeIf { it != 0 })).toSet()
     }
 
+    // The widgets Android's own restore re-bound under fresh ids: the layout
+    // and the search bar's replaced widget follow the map, and come up live
+    // with the settings their apps kept. False while the layout can't be
+    // read - the map then waits for a later start instead of being dropped.
+    suspend fun adoptRestoredWidgetIds(oldToNew: Map<Int, Int>): Boolean {
+        val bound = widgetBoundCheck()
+        if (!repository.adoptRestoredWidgetIds(oldToNew, bound)) return false
+        val prefs = preferences.snapshot()
+        val moved = oldToNew[prefs.searchBarWidgetId]
+        if (moved != null && bound(moved, prefs.searchBarWidgetProvider)) {
+            preferences.setSearchBarWidget(moved, prefs.searchBarWidgetProvider)
+        }
+        return true
+    }
+
     fun setWidgetId(itemId: String, appWidgetId: Int) = persist { repository.setWidgetId(itemId, appWidgetId) }
 
     fun resizeWidget(

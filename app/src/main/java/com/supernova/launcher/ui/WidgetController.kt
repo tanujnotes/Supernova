@@ -36,6 +36,7 @@ import com.supernova.launcher.runLogged
 import com.supernova.launcher.widget.SupernovaWidgetHost
 import com.supernova.launcher.widget.SupernovaWidgetHostView
 import com.supernova.launcher.widget.WidgetFeatures
+import com.supernova.launcher.widget.WidgetHostRestore
 import com.supernova.launcher.widget.WidgetResizeFrame
 import com.supernova.launcher.widget.WidgetSizing
 import kotlinx.coroutines.flow.first
@@ -107,7 +108,7 @@ class WidgetController(
 
     // The removal is final (no Undo, or the Undo bar went): the host id goes,
     // and so do its cached view and size. One left behind by a recreate or a
-    // process death in between is reclaimed by sweepOrphanIds.
+    // process death in between is reclaimed by the start-up sweep.
     fun releaseWidget(item: LauncherItem) {
         val id = item.appWidgetId ?: return
         appWidgetHost.deleteAppWidgetId(id)
@@ -280,10 +281,19 @@ class WidgetController(
         registry.registerSavedStateProvider(PENDING_WIDGET_STATE) { pendingWidget?.toBundle() ?: Bundle() }
     }
 
-    // Reclaims host ids leaked by any interrupted add flow or by uninstall-driven
-    // item removal; deleting an already-deleted id is a no-op.
-    fun sweepOrphanIds() {
+    // Start-up widget bookkeeping, in this order because the first step is
+    // what makes the second safe.
+    //
+    // 1. Ids Android's own restore re-bound for us are adopted into the
+    //    layout (see WidgetHostRestore): widgets a new-phone transfer or a
+    //    cloud restore brought back are already bound and still hold their
+    //    settings, and nothing in the layout points at them yet.
+    // 2. Host ids leaked by an interrupted add flow or by uninstall-driven
+    //    item removal are reclaimed. Deleting an already-deleted id is a
+    //    no-op. Run before step 1 this would delete the restored widgets.
+    fun adoptRestoredIdsAndSweep() {
         activity.lifecycleScope.launch {
+            adoptHostRestoredIds()
             val referenced = viewModel.persistedWidgetIds() ?: return@launch
             appWidgetHost.appWidgetIds
                 .filter { it !in referenced && it != pendingWidget?.widgetId && it !in reboundIds }
@@ -293,6 +303,12 @@ class WidgetController(
                     cardWidgetViews.remove(it)
                 }
         }
+    }
+
+    private suspend fun adoptHostRestoredIds() {
+        val oldToNew = WidgetHostRestore.pending(activity)
+        if (oldToNew.isEmpty()) return
+        if (viewModel.adoptRestoredWidgetIds(oldToNew)) WidgetHostRestore.clear(activity)
     }
 
     // The resize frame's share of a touch, ahead of the swipe trackers. A press

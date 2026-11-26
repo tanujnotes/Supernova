@@ -705,7 +705,7 @@ class LauncherActivity :
         setupEditMode()
         observeState()
         maybeShowOnboarding()
-        widgets.sweepOrphanIds()
+        widgets.adoptRestoredIdsAndSweep()
         observeBadges()
         restoreDockPage()
 
