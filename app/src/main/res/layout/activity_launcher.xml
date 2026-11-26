@@ -532,6 +532,7 @@
             android:layout_marginBottom="@dimen/space_ms"
             android:background="@drawable/bg_search_card"
             android:drawableStart="@drawable/ic_search"
+            android:drawableTint="@color/textSecondary"
             android:drawablePadding="12dp"
             android:hint="@string/search_widgets_hint"
             android:importantForAutofill="no"

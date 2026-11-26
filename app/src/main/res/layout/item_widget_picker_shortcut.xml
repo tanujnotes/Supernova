@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- A shortcut row under an expanded app: a CREATE_SHORTCUT entry, a
-     launcher action, or the Activities picker. -->
+     launcher action, or the Activities picker. clipChildren and clipToPadding
+     off: the icon's shadow falls outside its view, past the padding's edge. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="@dimen/space_ms"
     android:layout_marginBottom="@dimen/space_xs"
     android:background="@drawable/bg_picker_card"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:foreground="?attr/selectableItemBackground"
     android:gravity="center_vertical"
     android:orientation="horizontal"
