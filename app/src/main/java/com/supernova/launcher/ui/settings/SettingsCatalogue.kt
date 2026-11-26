@@ -870,7 +870,7 @@ object SettingsCatalogue {
                 ),
                 SettingItem.Slider(
                     R.string.drawer_bg_opacity,
-                    min = 20, max = 100,
+                    min = 0, max = 100,
                     step = 5,
                     get = { SurfaceOpacity.effective(it, SurfaceId.DRAWER) },
                     set = { SurfaceOpacity.set(viewModel, SurfaceId.DRAWER, it) },

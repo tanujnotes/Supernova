@@ -303,7 +303,7 @@ object StylePickerSheet {
             } else {
                 (Styles.resolve(context, prefs).of(surfaceId).surface ushr 24) * 100 / 255
             }
-            binding.opacitySeek.min = SurfaceOpacity.min(surfaceId)
+            binding.opacitySeek.min = 0
             binding.opacitySeek.progress = initial
             binding.opacityValue.text = context.getString(R.string.opacity_percent, initial)
             binding.opacitySeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
