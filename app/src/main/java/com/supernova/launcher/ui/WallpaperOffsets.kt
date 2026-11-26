@@ -34,6 +34,22 @@ object WallpaperOffsets {
         if (!queued) handler.post(::flush)
     }
 
+    // A wallpaper command - a tap on the home screen (#379), say. A live
+    // wallpaper that takes touches, a KLWP preset among them, only hears a tap
+    // the launcher hands it: the standard COMMAND_TAP, with the tap's position
+    // on screen, as Launcher3 sends it. Every command goes, none replaces
+    // another, and like the offsets they go off the main thread: the engine
+    // handling one is not the home screen's wait.
+    fun command(context: Context, token: IBinder, name: String, x: Int, y: Int) {
+        if (manager == null) manager = WallpaperManager.getInstance(context.applicationContext)
+        val wallpaper = manager ?: return
+        handler.post {
+            runLogged("send wallpaper command") {
+                wallpaper.sendWallpaperCommand(token, name, x, y, 0, null)
+            }
+        }
+    }
+
     private class Zoom(
         val token: IBinder,
         val method: java.lang.reflect.Method,

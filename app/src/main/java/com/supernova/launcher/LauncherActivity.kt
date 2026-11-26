@@ -5301,10 +5301,57 @@ class LauncherActivity :
         // In edit mode icons, folders and widgets neither launch, open nor
         // scroll: a tap anywhere on a page closes edit mode, a long-press
         // lifts the page (#348).
-        (canvas as? com.supernova.launcher.ui.WorkspaceCanvas)?.itemsInert =
-            { ::editMode.isInitialized && editMode.isOpen }
+        (canvas as? com.supernova.launcher.ui.WorkspaceCanvas)?.let { page ->
+            page.itemsInert = { ::editMode.isInitialized && editMode.isOpen }
+            page.onPageTap = { event -> sendWallpaperTap(page, event) }
+        }
         widgets.onPageBound(canvas)
     }
+
+    // Hands a tap on the home screen to the wallpaper (#379). A live
+    // wallpaper that takes touches - a KLWP preset, say - hears nothing
+    // unless the launcher sends the standard tap command, and its own
+    // workaround for a launcher that doesn't (reading the touch screen
+    // itself) then also fires under whatever app is on top. The position is
+    // the tap's on screen, where the wallpaper draws; the command is the
+    // lifted pointer's, as Launcher3 and the reference launcher send it:
+    // COMMAND_TAP for the last finger up, COMMAND_SECONDARY_TAP for one of
+    // several.
+    private fun sendWallpaperTap(page: View, event: MotionEvent) {
+        if (!wallpaperTakesTaps()) return
+        val token = binding.root.windowToken ?: return
+        val onScreen = IntArray(2)
+        page.getLocationOnScreen(onScreen)
+        val pointer = event.actionIndex
+        val command = if (event.actionMasked == MotionEvent.ACTION_UP) {
+            android.app.WallpaperManager.COMMAND_TAP
+        } else {
+            android.app.WallpaperManager.COMMAND_SECONDARY_TAP
+        }
+        com.supernova.launcher.ui.WallpaperOffsets.command(
+            context = this,
+            token = token,
+            name = command,
+            x = onScreen[0] + event.getX(pointer).toInt(),
+            y = onScreen[1] + event.getY(pointer).toInt()
+        )
+    }
+
+    // Only a tap the home screen itself is showing for. Edit mode's own tap
+    // closes edit mode, and a tap with a widget's resize frame up takes the
+    // frame down (onCanvasTap): the launcher acted on those, so they are not
+    // the wallpaper's. The drawer, search, the feed and the previews sit over
+    // the page and take its touches themselves, and a swipe that opens one
+    // cancels the page's stream mid-gesture - but one that is already coming
+    // in as the finger lifts must not slip a tap through underneath it, as
+    // the wallpaper's own "direct touch" mode does.
+    private fun wallpaperTakesTaps(): Boolean =
+        !(::editMode.isInitialized && editMode.isOpen) &&
+            widgets.activeResizeFrame == null &&
+            !desktopPreviews.isShowing &&
+            !(::drawer.isInitialized && drawer.isVisible) &&
+            !(::search.isInitialized && search.isOpen) &&
+            !feedOpen
 
     override fun reportWidgetSize(item: LauncherItem, view: View) = widgets.reportWidgetSize(item, view)
 

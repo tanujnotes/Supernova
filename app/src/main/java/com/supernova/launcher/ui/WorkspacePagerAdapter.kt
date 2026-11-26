@@ -600,6 +600,11 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
                         if (hypot(event.x - lastTouchX, event.y - lastTouchY) > touchSlop) {
                             view.cancelLongPress()
                         }
+                    // The lift of a stream the page took itself, before the
+                    // click below runs: the wallpaper may want this tap
+                    // (#379), and the page decides (onPageTap).
+                    android.view.MotionEvent.ACTION_UP,
+                    android.view.MotionEvent.ACTION_POINTER_UP -> canvas.onPageTap(event)
                 }
                 false
             }

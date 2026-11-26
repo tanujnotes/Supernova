@@ -106,6 +106,17 @@ class WorkspaceCanvas @JvmOverloads constructor(
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean =
         itemsInert() || super.onInterceptTouchEvent(ev)
 
+    // Told about the lift of a touch stream the page itself took - a tap on
+    // empty space - so the wallpaper can be handed the tap (#379). Fed by the
+    // page's touch listener, which only hears those: a stream an icon, folder
+    // or widget took never reaches the page, and one the pager took for a
+    // page swipe, the drag layer for a drag or the drawer, search, the feed
+    // and the home swipes for themselves ends in a cancel, not a lift. That
+    // is the reference launcher's rule too: it sends the command from the
+    // workspace's own touch listener. Set by the activity, which decides
+    // whether the tap goes to the wallpaper at all.
+    var onPageTap: (MotionEvent) -> Unit = {}
+
     // A one-cell icon's room at its own size, `needW` x `needH`, its icon
     // box and padding, and how it sets its parts: the icon to `iconPx`, the
     // label and padding to `scale` of their own. A large icon shrinks as the
