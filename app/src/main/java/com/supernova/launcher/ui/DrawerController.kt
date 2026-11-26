@@ -12,7 +12,9 @@ import android.view.ViewTreeObserver
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.LinearLayout
+import androidx.core.graphics.createBitmap
 import androidx.core.view.doOnLayout
+import androidx.core.view.isGone
 import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -282,7 +284,7 @@ class DrawerController(
 
     private fun hideTabPeek() {
         val peek = peekList ?: return
-        if (peek.visibility == View.GONE) return
+        if (peek.isGone) return
         peek.visibility = View.GONE
         peekIndex = -1
         binding.drawerSheet.clipChildren = true
@@ -335,9 +337,7 @@ class DrawerController(
         val holder = listHeader.parent as? View ?: return
         if (holder.parent !== binding.drawerRecycler || holder.width <= 0 || holder.height <= 0) return
         val reuse = allHeaderSnapshot?.takeIf { it.width == holder.width && it.height == holder.height }
-        val bitmap = reuse ?: android.graphics.Bitmap.createBitmap(
-            holder.width, holder.height, android.graphics.Bitmap.Config.ARGB_8888
-        )
+        val bitmap = reuse ?: createBitmap(holder.width, holder.height)
         bitmap.eraseColor(android.graphics.Color.TRANSPARENT)
         holder.draw(android.graphics.Canvas(bitmap))
         allHeaderSnapshot = bitmap
