@@ -205,6 +205,10 @@ class WidgetController(
 
     // From a press on that frame's edge to its lift. See trackResizeDrag.
     private var resizeDragActive = false
+    // The placement grid while a handle is dragged (#377): the same cell
+    // sparkles and target outline a live drag shows, on the framed widget's
+    // page, with the outline on the cells the resize has snapped to.
+    private val resizeGrid = DragGridOverlay { viewModel.state.value.prefs }
     // A press on the framed widget, until it moves or lifts.
     private var pressOnFramedWidget = false
     private var pressStartX = 0f
@@ -306,10 +310,12 @@ class WidgetController(
                 resizeDragActive = false
                 pressOnFramedWidget = false
                 if (frame != null && !host.feedOpen) onFramePress(frame, ev, keepOnPress)
+                if (resizeDragActive && frame != null) showResizeGrid(frame, ev)
             }
             MotionEvent.ACTION_MOVE ->
                 if (resizeDragActive) {
                     frame?.dragTo(ev.rawX, ev.rawY)
+                    frame?.let { showResizeGrid(it, ev) }
                 } else if (pressOnFramedWidget && hypot(ev.rawX - pressStartX, ev.rawY - pressStartY) > touchSlop) {
                     pressOnFramedWidget = false
                     dismissResizeFrame()
@@ -318,6 +324,7 @@ class WidgetController(
                 pressOnFramedWidget = false
                 val ended = resizeDragActive
                 resizeDragActive = false
+                resizeGrid.hide(animate = true)
                 if (ended) frame?.endDrag()
                 return ended
             }
@@ -335,6 +342,15 @@ class WidgetController(
             }
             WidgetResizeFrame.Press.OUTSIDE -> if (!keepOnPress) dismissResizeFrame()
         }
+    }
+
+    // The grid on the page under the framed widget, around its canvas's
+    // cells: the sparkles brightest at the finger, the outline on the cells
+    // the frame has snapped to. Both slide to each snap in the same time, so
+    // the outline and the frame standing on it move as one.
+    private fun showResizeGrid(frame: WidgetResizeFrame, ev: MotionEvent) {
+        val canvas = frame.parent as? ViewGroup ?: return resizeGrid.hide(animate = true)
+        resizeGrid.show(canvas, frame.cellRect, ev.rawX, ev.rawY)
     }
 
     // True while the widget under the finger is handling this gesture itself.
@@ -605,6 +621,7 @@ class WidgetController(
     fun dismissResizeFrame(): Boolean {
         val frame = activeResizeFrame ?: return false
         activeResizeFrame = null
+        resizeGrid.hide(animate = true)
         (frame.parent as? ViewGroup)?.removeView(frame)
         return true
     }

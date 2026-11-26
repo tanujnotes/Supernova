@@ -52,6 +52,14 @@ class WidgetResizeFrame(
     var spanY: Int = 1
         private set
 
+    // The cells the frame covers right now, for the placement grid's outline
+    // (#377): in whole cells, however the steps are counted.
+    val cellRect: WorkspaceGeometry.CellRect
+        get() = WorkspaceGeometry.CellRect(
+            cellX / units.toFloat(), cellY / units.toFloat(),
+            (cellX + spanX) / units.toFloat(), (cellY + spanY) / units.toFloat()
+        )
+
     // The widget's host view, resized live under the frame.
     private var widgetView: View? = null
 
