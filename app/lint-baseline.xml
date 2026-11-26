@@ -8,7 +8,7 @@
         errorLine2="              ~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/LauncherViewModel.kt"
-            line="370"
+            line="554"
             column="15"/>
     </issue>
 
@@ -19,7 +19,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="39"
+            line="43"
             column="9"/>
     </issue>
 
@@ -30,7 +30,7 @@
         errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="39"
+            line="43"
             column="46"/>
     </issue>
 
@@ -41,7 +41,7 @@
         errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="40"
+            line="44"
             column="45"/>
     </issue>
 
@@ -52,7 +52,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="40"
+            line="44"
             column="9"/>
     </issue>
 
@@ -63,7 +63,7 @@
         errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="41"
+            line="45"
             column="45"/>
     </issue>
 
@@ -74,7 +74,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="41"
+            line="45"
             column="9"/>
     </issue>
 
@@ -85,7 +85,7 @@
         errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="42"
+            line="46"
             column="45"/>
     </issue>
 
@@ -96,7 +96,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="42"
+            line="46"
             column="9"/>
     </issue>
 
@@ -107,7 +107,7 @@
         errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="43"
+            line="47"
             column="45"/>
     </issue>
 
@@ -118,7 +118,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="43"
+            line="47"
             column="9"/>
     </issue>
 
@@ -129,7 +129,7 @@
         errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="44"
+            line="48"
             column="44"/>
     </issue>
 
@@ -140,7 +140,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="44"
+            line="48"
             column="9"/>
     </issue>
 
@@ -151,7 +151,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="45"
+            line="49"
             column="9"/>
     </issue>
 
@@ -162,7 +162,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="48"
+            line="52"
             column="9"/>
     </issue>
 
@@ -173,7 +173,7 @@
         errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="48"
+            line="52"
             column="47"/>
     </issue>
 
@@ -184,7 +184,7 @@
         errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="49"
+            line="53"
             column="46"/>
     </issue>
 
@@ -195,7 +195,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="49"
+            line="53"
             column="9"/>
     </issue>
 
@@ -206,7 +206,7 @@
         errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="50"
+            line="54"
             column="46"/>
     </issue>
 
@@ -217,7 +217,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="50"
+            line="54"
             column="9"/>
     </issue>
 
@@ -228,7 +228,7 @@
         errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="51"
+            line="55"
             column="46"/>
     </issue>
 
@@ -239,7 +239,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="51"
+            line="55"
             column="9"/>
     </issue>
 
@@ -250,7 +250,7 @@
         errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="52"
+            line="56"
             column="46"/>
     </issue>
 
@@ -261,7 +261,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="52"
+            line="56"
             column="9"/>
     </issue>
 
@@ -272,7 +272,7 @@
         errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="53"
+            line="57"
             column="45"/>
     </issue>
 
@@ -283,7 +283,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="53"
+            line="57"
             column="9"/>
     </issue>
 
@@ -294,7 +294,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="54"
+            line="58"
             column="9"/>
     </issue>
 
@@ -305,7 +305,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="57"
+            line="61"
             column="9"/>
     </issue>
 
@@ -316,7 +316,7 @@
         errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="57"
+            line="61"
             column="47"/>
     </issue>
 
@@ -327,7 +327,7 @@
         errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="58"
+            line="62"
             column="46"/>
     </issue>
 
@@ -338,7 +338,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="58"
+            line="62"
             column="9"/>
     </issue>
 
@@ -349,7 +349,7 @@
         errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="59"
+            line="63"
             column="46"/>
     </issue>
 
@@ -360,7 +360,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="59"
+            line="63"
             column="9"/>
     </issue>
 
@@ -371,7 +371,7 @@
         errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="60"
+            line="64"
             column="46"/>
     </issue>
 
@@ -382,7 +382,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="60"
+            line="64"
             column="9"/>
     </issue>
 
@@ -393,7 +393,7 @@
         errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="61"
+            line="65"
             column="46"/>
     </issue>
 
@@ -404,7 +404,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="61"
+            line="65"
             column="9"/>
     </issue>
 
@@ -415,7 +415,7 @@
         errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="62"
+            line="66"
             column="45"/>
     </issue>
 
@@ -426,7 +426,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="62"
+            line="66"
             column="9"/>
     </issue>
 
@@ -437,7 +437,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/PaletteSource.kt"
-            line="63"
+            line="67"
             column="9"/>
     </issue>
 
@@ -448,18 +448,18 @@
         errorLine2="        ~~~~~~~~~~~~~~">
         <location
             file="build.gradle.kts"
-            line="15"
+            line="30"
             column="9"/>
     </issue>
 
     <issue
         id="RedundantLabel"
         message="Redundant label can be removed"
-        errorLine1="            android:label=&quot;@string/app_name&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="            android:label=&quot;@string/app_label&quot;"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="219"
+            line="224"
             column="13"/>
     </issue>
 
@@ -470,85 +470,30 @@
         errorLine2="                ~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/DrawerController.kt"
-            line="447"
+            line="968"
             column="17"/>
     </issue>
 
     <issue
         id="DiscouragedApi"
         message="Use of this function is discouraged because resource reflection makes it harder to perform build optimizations and compile-time verification of code. It is much more efficient to retrieve resources by identifier (e.g. `R.foo.bar`) than by name (e.g. `getIdentifier(&quot;bar&quot;, &quot;foo&quot;, null)`)."
-        errorLine1="        val id = res.getIdentifier(drawableName, &quot;drawable&quot;, packPackage)"
-        errorLine2="                     ~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/data/AppCatalog.kt"
-            line="129"
-            column="22"/>
-    </issue>
-
-    <issue
-        id="DiscouragedApi"
-        message="Use of this function is discouraged because resource reflection makes it harder to perform build optimizations and compile-time verification of code. It is much more efficient to retrieve resources by identifier (e.g. `R.foo.bar`) than by name (e.g. `getIdentifier(&quot;bar&quot;, &quot;foo&quot;, null)`)."
-        errorLine1="        val drawablesId = resources.getIdentifier(&quot;drawables&quot;, &quot;xml&quot;, packageName)"
-        errorLine2="                                    ~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/data/IconPackRepository.kt"
-            line="187"
-            column="37"/>
-    </issue>
-
-    <issue
-        id="DiscouragedApi"
-        message="Use of this function is discouraged because resource reflection makes it harder to perform build optimizations and compile-time verification of code. It is much more efficient to retrieve resources by identifier (e.g. `R.foo.bar`) than by name (e.g. `getIdentifier(&quot;bar&quot;, &quot;foo&quot;, null)`)."
-        errorLine1="        return names.filter { resources.getIdentifier(it, &quot;drawable&quot;, packageName) != 0 }.sorted()"
-        errorLine2="                                        ~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/data/IconPackRepository.kt"
-            line="217"
-            column="41"/>
-    </issue>
-
-    <issue
-        id="DiscouragedApi"
-        message="Use of this function is discouraged because resource reflection makes it harder to perform build optimizations and compile-time verification of code. It is much more efficient to retrieve resources by identifier (e.g. `R.foo.bar`) than by name (e.g. `getIdentifier(&quot;bar&quot;, &quot;foo&quot;, null)`)."
-        errorLine1="        val xmlId = resources.getIdentifier(&quot;appfilter&quot;, &quot;xml&quot;, packageName)"
+        errorLine1="        val xmlId = resources.getIdentifier(name, &quot;xml&quot;, packageName)"
         errorLine2="                              ~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/data/IconPackRepository.kt"
-            line="224"
+            line="462"
             column="31"/>
     </issue>
 
     <issue
         id="DiscouragedApi"
         message="Use of this function is discouraged because resource reflection makes it harder to perform build optimizations and compile-time verification of code. It is much more efficient to retrieve resources by identifier (e.g. `R.foo.bar`) than by name (e.g. `getIdentifier(&quot;bar&quot;, &quot;foo&quot;, null)`)."
-        errorLine1="        val id = res.getIdentifier(name, &quot;drawable&quot;, pkg)"
-        errorLine2="                     ~~~~~~~~~~~~~">
+        errorLine1="        val rawId = resources.getIdentifier(name, &quot;raw&quot;, packageName)"
+        errorLine2="                              ~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/data/IconPackRepository.kt"
-            line="246"
-            column="22"/>
-    </issue>
-
-    <issue
-        id="DiscouragedApi"
-        message="Use of this function is discouraged because resource reflection makes it harder to perform build optimizations and compile-time verification of code. It is much more efficient to retrieve resources by identifier (e.g. `R.foo.bar`) than by name (e.g. `getIdentifier(&quot;bar&quot;, &quot;foo&quot;, null)`)."
-        errorLine1="            val id = res.getIdentifier(iconRes.resourceName, null, null)"
-        errorLine2="                         ~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="4758"
-            column="26"/>
-    </issue>
-
-    <issue
-        id="UseCompatLoadingForDrawables"
-        message="Use `ResourcesCompat.getDrawable()`"
-        errorLine1="        if (id == 0) null else res.getDrawable(id, null)"
-        errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/data/AppCatalog.kt"
-            line="130"
-            column="32"/>
+            line="473"
+            column="31"/>
     </issue>
 
     <issue
@@ -558,7 +503,7 @@
         errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/CardViewBinder.kt"
-            line="116"
+            line="174"
             column="38"/>
     </issue>
 
@@ -569,7 +514,7 @@
         errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/CardViewBinder.kt"
-            line="116"
+            line="174"
             column="38"/>
     </issue>
 
@@ -580,7 +525,7 @@
         errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/CardViewBinder.kt"
-            line="220"
+            line="282"
             column="31"/>
     </issue>
 
@@ -591,7 +536,7 @@
         errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/CardViewBinder.kt"
-            line="220"
+            line="282"
             column="31"/>
     </issue>
 
@@ -602,7 +547,7 @@
         errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/CardViewBinder.kt"
-            line="222"
+            line="284"
             column="30"/>
     </issue>
 
@@ -613,7 +558,7 @@
         errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/CardViewBinder.kt"
-            line="222"
+            line="284"
             column="30"/>
     </issue>
 
@@ -624,7 +569,7 @@
         errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/FolderMemberAdapter.kt"
-            line="79"
+            line="129"
             column="24"/>
     </issue>
 
@@ -635,7 +580,7 @@
         errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/FrequentAppsRowView.kt"
-            line="53"
+            line="56"
             column="30"/>
     </issue>
 
@@ -646,7 +591,7 @@
         errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/FrequentAppsRowView.kt"
-            line="53"
+            line="56"
             column="30"/>
     </issue>
 
@@ -657,7 +602,7 @@
         errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/FrequentAppsRowView.kt"
-            line="90"
+            line="106"
             column="30"/>
     </issue>
 
@@ -668,30 +613,8 @@
         errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/FrequentAppsRowView.kt"
-            line="90"
+            line="106"
             column="30"/>
-    </issue>
-
-    <issue
-        id="UseCompatLoadingForDrawables"
-        message="Use `ResourcesCompat.getDrawable()`"
-        errorLine1="        return runCatching { res.getDrawable(id, null) }.getOrNull()"
-        errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/data/IconPackRepository.kt"
-            line="248"
-            column="30"/>
-    </issue>
-
-    <issue
-        id="UseCompatLoadingForDrawables"
-        message="Use `AppCompatResources.getDrawable()`"
-        errorLine1="                getDrawable(com.supernova.launcher.ui.ActionIcons.of(binding.action))?.let {"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="2752"
-            column="17"/>
     </issue>
 
     <issue
@@ -701,41 +624,30 @@
         errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="4020"
+            line="4762"
             column="32"/>
     </issue>
 
     <issue
         id="UseCompatLoadingForDrawables"
         message="Use `AppCompatResources.getDrawable()`"
-        errorLine1="            ItemType.APP -> app?.let { viewModel.appCatalog().iconFor(it) } ?: getDrawable(R.drawable.ic_supernova)"
-        errorLine2="                                                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="            ItemType.APP -> if (app == null) getDrawable(R.drawable.ic_supernova) else appItemIcon(item, app, onLate)"
+        errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="4021"
-            column="80"/>
+            line="4763"
+            column="46"/>
     </issue>
 
     <issue
         id="UseCompatLoadingForDrawables"
         message="Use `AppCompatResources.getDrawable()`"
-        errorLine1="                ?: app?.let { viewModel.appCatalog().iconFor(it) } ?: getDrawable(R.drawable.ic_supernova)"
-        errorLine2="                                                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="                else -> look.icon ?: app?.let { appItemIcon(item, it, onLate) } ?: getDrawable(R.drawable.ic_supernova)"
+        errorLine2="                                                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="4023"
-            column="71"/>
-    </issue>
-
-    <issue
-        id="UseCompatLoadingForDrawables"
-        message="Use `ResourcesCompat.getDrawable()`"
-        errorLine1="            if (id != 0) res.getDrawable(id, null) else null"
-        errorLine2="                         ~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="4759"
-            column="26"/>
+            line="4766"
+            column="84"/>
     </issue>
 
     <issue
@@ -745,62 +657,51 @@
         errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/SupernovaPopupMenu.kt"
-            line="511"
+            line="623"
             column="43"/>
     </issue>
 
     <issue
         id="UseCompatLoadingForDrawables"
         message="Use `AppCompatResources.getDrawable()`"
-        errorLine1="                        ?: appContext.getDrawable(R.drawable.ic_widget)"
-        errorLine2="                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="            icon = context.getDrawable(R.mipmap.ic_launcher)?.let(renderTile),"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/supernova/launcher/ui/WidgetPickerAdapter.kt"
-            line="184"
+            file="src/main/java/com/supernova/launcher/ui/WidgetPickerGroups.kt"
+            line="273"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="UseCompatLoadingForDrawables"
+        message="Use `AppCompatResources.getDrawable()`"
+        errorLine1="                    icon = context.getDrawable(ActionIcons.of(action))?.let(renderTile),"
+        errorLine2="                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/supernova/launcher/ui/WidgetPickerGroups.kt"
+            line="281"
             column="28"/>
     </issue>
 
     <issue
         id="UseCompatLoadingForDrawables"
         message="Use `AppCompatResources.getDrawable()`"
-        errorLine1="                icon = context.getDrawable(ActionIcons.of(action)),"
-        errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="                icon = context.getDrawable(R.drawable.ic_action_drawer)?.let(renderTile),"
+        errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/WidgetPickerGroups.kt"
-            line="134"
+            line="288"
             column="24"/>
-    </issue>
-
-    <issue
-        id="UseCompatLoadingForDrawables"
-        message="Use `AppCompatResources.getDrawable()`"
-        errorLine1="            icon = context.getDrawable(R.drawable.ic_action_drawer),"
-        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/ui/WidgetPickerGroups.kt"
-            line="141"
-            column="20"/>
-    </issue>
-
-    <issue
-        id="UseCompatLoadingForDrawables"
-        message="Use `AppCompatResources.getDrawable()`"
-        errorLine1="            icon = context.getDrawable(R.drawable.ic_supernova),"
-        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/ui/WidgetPickerGroups.kt"
-            line="147"
-            column="20"/>
     </issue>
 
     <issue
         id="UseCompatTextViewDrawableXml"
         message="Use `app:drawableTopCompat` instead of `android:drawableTop`"
-        errorLine1="            android:drawableTop=&quot;@drawable/ic_menu_remove&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="            android:drawableTop=&quot;@drawable/ic_menu_remove_item&quot;"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/activity_launcher.xml"
-            line="331"
+            line="425"
             column="13"/>
     </issue>
 
@@ -811,7 +712,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/activity_launcher.xml"
-            line="333"
+            line="427"
             column="13"/>
     </issue>
 
@@ -822,7 +723,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/activity_launcher.xml"
-            line="347"
+            line="441"
             column="13"/>
     </issue>
 
@@ -833,7 +734,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/activity_launcher.xml"
-            line="349"
+            line="443"
             column="13"/>
     </issue>
 
@@ -844,7 +745,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/activity_launcher.xml"
-            line="363"
+            line="457"
             column="13"/>
     </issue>
 
@@ -855,19 +756,8 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/activity_launcher.xml"
-            line="365"
+            line="459"
             column="13"/>
-    </issue>
-
-    <issue
-        id="UseCompatTextViewDrawableXml"
-        message="Use `app:drawableEndCompat` instead of `android:drawableEnd`"
-        errorLine1="        android:drawableEnd=&quot;@drawable/ic_arrow_drop_down&quot;"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/onboarding_row_dropdown.xml"
-            line="27"
-            column="9"/>
     </issue>
 
     <issue
@@ -877,7 +767,7 @@
         errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/AppDrawerAdapter.kt"
-            line="138"
+            line="282"
             column="40"/>
     </issue>
 
@@ -888,7 +778,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/AppDrawerAdapter.kt"
-            line="164"
+            line="312"
             column="9"/>
     </issue>
 
@@ -899,18 +789,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/AppDrawerAdapter.kt"
-            line="204"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="NotifyDataSetChanged"
-        message="It will always be more efficient to use more specific change events if you can. Rely on `notifyDataSetChanged` as a last resort."
-        errorLine1="            actionsAdapter.notifyDataSetChanged()"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/ui/CustomCardEditorSheet.kt"
-            line="303"
+            line="355"
             column="13"/>
     </issue>
 
@@ -921,7 +800,7 @@
         errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/DrawerController.kt"
-            line="998"
+            line="1827"
             column="31"/>
     </issue>
 
@@ -932,7 +811,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/DrawerController.kt"
-            line="1006"
+            line="1911"
             column="9"/>
     </issue>
 
@@ -943,7 +822,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/DrawerController.kt"
-            line="1424"
+            line="2662"
             column="9"/>
     </issue>
 
@@ -954,7 +833,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/DrawerController.kt"
-            line="1623"
+            line="2958"
             column="13"/>
     </issue>
 
@@ -965,7 +844,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/FolderMemberAdapter.kt"
-            line="35"
+            line="54"
             column="9"/>
     </issue>
 
@@ -976,7 +855,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/SearchResultsAdapter.kt"
-            line="128"
+            line="144"
             column="9"/>
     </issue>
 
@@ -987,7 +866,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/settings/SettingsAdapter.kt"
-            line="127"
+            line="208"
             column="9"/>
     </issue>
 
@@ -998,7 +877,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/WidgetPickerAdapter.kt"
-            line="79"
+            line="146"
             column="9"/>
     </issue>
 
@@ -1009,7 +888,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/WorkspacePagerAdapter.kt"
-            line="199"
+            line="202"
             column="9"/>
     </issue>
 
@@ -1020,7 +899,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/WorkspacePagerAdapter.kt"
-            line="225"
+            line="228"
             column="13"/>
     </issue>
 
@@ -1031,7 +910,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/WorkspacePagerAdapter.kt"
-            line="245"
+            line="281"
             column="9"/>
     </issue>
 
@@ -1042,7 +921,7 @@
         errorLine2="         ~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/activity_launcher.xml"
-            line="408"
+            line="502"
             column="10"/>
     </issue>
 
@@ -1052,53 +931,9 @@
         errorLine1="&lt;LinearLayout xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
         errorLine2=" ~~~~~~~~~~~~">
         <location
-            file="src/main/res/layout/item_drawer_app.xml"
-            line="4"
-            column="2"/>
-    </issue>
-
-    <issue
-        id="UseCompoundDrawables"
-        message="This tag and its children can be replaced by one `&lt;TextView/>` and a compound drawable"
-        errorLine1="&lt;LinearLayout xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
-        errorLine2=" ~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/item_drawer_app_row.xml"
-            line="4"
-            column="2"/>
-    </issue>
-
-    <issue
-        id="UseCompoundDrawables"
-        message="This tag and its children can be replaced by one `&lt;TextView/>` and a compound drawable"
-        errorLine1="&lt;LinearLayout xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
-        errorLine2=" ~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/item_search_row.xml"
-            line="5"
-            column="2"/>
-    </issue>
-
-    <issue
-        id="UseCompoundDrawables"
-        message="This tag and its children can be replaced by one `&lt;TextView/>` and a compound drawable"
-        errorLine1="&lt;LinearLayout xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
-        errorLine2=" ~~~~~~~~~~~~">
-        <location
             file="src/main/res/layout/item_setting_accordion.xml"
-            line="2"
+            line="4"
             column="2"/>
-    </issue>
-
-    <issue
-        id="UseCompoundDrawables"
-        message="This tag and its children can be replaced by one `&lt;TextView/>` and a compound drawable"
-        errorLine1="    &lt;LinearLayout"
-        errorLine2="     ~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/onboarding_page_done.xml"
-            line="17"
-            column="6"/>
     </issue>
 
     <issue
@@ -1108,7 +943,7 @@
         errorLine2="         ~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/activity_launcher.xml"
-            line="129"
+            line="135"
             column="10"/>
     </issue>
 
@@ -1119,96 +954,19 @@
         errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/activity_launcher.xml"
-            line="167"
+            line="173"
             column="21"/>
     </issue>
 
     <issue
         id="NestedWeights"
         message="Nested weights are bad for performance"
-        errorLine1="                    android:layout_weight=&quot;1&quot;"
-        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="                android:layout_weight=&quot;1&quot;"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/item_setting_label_group.xml"
-            line="170"
-            column="21"/>
-    </issue>
-
-    <issue
-        id="NestedWeights"
-        message="Nested weights are bad for performance"
-        errorLine1="                    android:layout_weight=&quot;1&quot;"
-        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/item_setting_label_group.xml"
-            line="198"
-            column="21"/>
-    </issue>
-
-    <issue
-        id="Overdraw"
-        message="Possible overdraw: Root element paints background `@color/onboardingScrim` with a theme that also paints a background (inferred theme is `@style/Theme.Supernova`)"
-        errorLine1="    android:background=&quot;@color/onboardingScrim&quot;>"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/activity_onboarding.xml"
-            line="11"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="Overdraw"
-        message="Possible overdraw: Root element paints background `@color/background` with a theme that also paints a background (inferred theme is `@style/Theme.Supernova`)"
-        errorLine1="    android:background=&quot;@color/background&quot;"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/activity_settings.xml"
-            line="10"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="Overdraw"
-        message="Possible overdraw: Root element paints background `?attr/selectableItemBackground` with a theme that also paints a background (inferred theme is `@style/Theme.Supernova`)"
-        errorLine1="    android:background=&quot;?attr/selectableItemBackground&quot;"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/item_icon_pack_choice.xml"
-            line="8"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="Overdraw"
-        message="Possible overdraw: Root element paints background `?attr/selectableItemBackground` with a theme that also paints a background (inferred theme is `@style/Theme.Supernova`)"
-        errorLine1="    android:background=&quot;?attr/selectableItemBackground&quot;"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/onboarding_row_switch.xml"
-            line="7"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="Overdraw"
-        message="Possible overdraw: Root element paints background `?attr/selectableItemBackgroundBorderless` with a theme that also paints a background (inferred theme is `@style/Theme.Supernova`)"
-        errorLine1="    android:background=&quot;?attr/selectableItemBackgroundBorderless&quot;"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/onboarding_shape_tile.xml"
-            line="7"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="Overdraw"
-        message="Possible overdraw: Root element paints background `?attr/selectableItemBackground` with a theme that also paints a background (inferred theme is `@style/Theme.Supernova`)"
-        errorLine1="    android:background=&quot;?attr/selectableItemBackground&quot;"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/row_card_condition.xml"
-            line="8"
-            column="5"/>
+            line="37"
+            column="17"/>
     </issue>
 
     <issue
@@ -1218,7 +976,7 @@
         errorLine2="             ~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/activity_launcher.xml"
-            line="143"
+            line="149"
             column="14"/>
     </issue>
 
@@ -1229,7 +987,7 @@
         errorLine2="                 ~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/activity_settings.xml"
-            line="128"
+            line="158"
             column="18"/>
     </issue>
 
@@ -1240,19 +998,8 @@
         errorLine2="     ~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/popup_folder.xml"
-            line="8"
+            line="9"
             column="6"/>
-    </issue>
-
-    <issue
-        id="ButtonStyle"
-        message="Buttons in button bars should be borderless; use `style=&quot;?android:attr/buttonBarButtonStyle&quot;` (and `?android:attr/buttonBarStyle` on the parent)"
-        errorLine1="        &lt;Button"
-        errorLine2="         ~~~~~~">
-        <location
-            file="src/main/res/layout/sheet_app_edit.xml"
-            line="216"
-            column="10"/>
     </issue>
 
     <issue
@@ -1262,96 +1009,19 @@
         errorLine2="      ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/widget/WidgetResizeFrame.kt"
-            line="25"
+            line="27"
             column="7"/>
     </issue>
 
     <issue
         id="UseKtx"
         message="Use the KTX extension function `Bitmap.toDrawable` instead?"
-        errorLine1="                GalleryIconCodec.decode(data)?.let { BitmapDrawable(context.resources, it) }"
-        errorLine2="                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="            GalleryIconCodec.decode(data)?.let { BitmapDrawable(context.resources, it) }"
+        errorLine2="                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/data/AppCatalog.kt"
-            line="182"
-            column="54"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Bitmap.scale` instead?"
-        errorLine1="        val sample = android.graphics.Bitmap.createScaledBitmap(bitmap, 8, 8, true)"
-        errorLine2="                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/data/AppCatalog.kt"
-            line="239"
-            column="22"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Bitmap.get` instead?"
-        errorLine1="                val pixel = sample.getPixel(x, y)"
-        errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/data/AppCatalog.kt"
-            line="251"
-            column="29"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Int.toDrawable` instead?"
-        errorLine1="                    android.graphics.drawable.ColorDrawable(themedIconBg), fg"
-        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/data/AppCatalog.kt"
-            line="358"
-            column="21"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX function `createBitmap` instead?"
-        errorLine1="        val silhouette = android.graphics.Bitmap.createBitmap("
-        errorLine2="                         ^">
-        <location
-            file="src/main/java/com/supernova/launcher/data/AppCatalog.kt"
-            line="375"
-            column="26"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX function `createBitmap` instead?"
-        errorLine1="        val tinted = android.graphics.Bitmap.createBitmap("
-        errorLine2="                     ^">
-        <location
-            file="src/main/java/com/supernova/launcher/data/AppCatalog.kt"
-            line="387"
-            column="22"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Int.toDrawable` instead?"
-        errorLine1="            android.graphics.drawable.ColorDrawable(themedIconBg),"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/data/AppCatalog.kt"
-            line="395"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Bitmap.toDrawable` instead?"
-        errorLine1="            android.graphics.drawable.BitmapDrawable(context.resources, tinted)"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/data/AppCatalog.kt"
-            line="396"
-            column="13"/>
+            line="349"
+            column="50"/>
     </issue>
 
     <issue
@@ -1361,7 +1031,7 @@
         errorLine2="                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/data/AppCatalog.kt"
-            line="514"
+            line="823"
             column="28"/>
     </issue>
 
@@ -1372,7 +1042,7 @@
         errorLine2="                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/data/AppCatalog.kt"
-            line="514"
+            line="823"
             column="28"/>
     </issue>
 
@@ -1383,7 +1053,7 @@
         errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/data/AppCatalog.kt"
-            line="523"
+            line="832"
             column="20"/>
     </issue>
 
@@ -1394,7 +1064,7 @@
         errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/data/AppCatalog.kt"
-            line="523"
+            line="832"
             column="20"/>
     </issue>
 
@@ -1405,7 +1075,7 @@
         errorLine2="                                  ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/ChoiceMenu.kt"
-            line="131"
+            line="151"
             column="35"/>
     </issue>
 
@@ -1416,7 +1086,7 @@
         errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/search/ContactSearchProvider.kt"
-            line="90"
+            line="97"
             column="53"/>
     </issue>
 
@@ -1438,30 +1108,19 @@
         errorLine2="                ~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/DragGridView.kt"
-            line="199"
+            line="198"
             column="17"/>
     </issue>
 
     <issue
         id="UseKtx"
         message="Use the KTX extension function `ViewGroup.isNotEmpty` instead?"
-        errorLine1="            if (container.childCount > 0) container.removeAllViews()"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="            if (recycler.childCount > 0) recycler.swapAdapter(pageAdapter, true)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/DrawerController.kt"
-            line="1141"
+            line="2845"
             column="17"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `ViewGroup.isEmpty` instead?"
-        errorLine1="        if (key != cardsKey || container.childCount == 0) {"
-        errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/ui/DrawerController.kt"
-            line="1147"
-            column="32"/>
     </issue>
 
     <issue
@@ -1493,7 +1152,7 @@
         errorLine2="            ~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/FolderIconDrawable.kt"
-            line="186"
+            line="263"
             column="13"/>
     </issue>
 
@@ -1504,7 +1163,7 @@
         errorLine2="                                  ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/FolderPopup.kt"
-            line="161"
+            line="206"
             column="35"/>
     </issue>
 
@@ -1515,7 +1174,7 @@
         errorLine2="                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/data/GalleryIconCodec.kt"
-            line="74"
+            line="75"
             column="23"/>
     </issue>
 
@@ -1526,7 +1185,7 @@
         errorLine2="                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/data/GalleryIconCodec.kt"
-            line="96"
+            line="97"
             column="22"/>
     </issue>
 
@@ -1548,8 +1207,19 @@
         errorLine2="                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/data/IconRenderer.kt"
-            line="65"
+            line="133"
             column="22"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `Bitmap.toDrawable` instead?"
+        errorLine1="        return if (shadow) withShadow(flat, glassMask) else BitmapDrawable(resources, flat)"
+        errorLine2="                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/supernova/launcher/data/IconRenderer.kt"
+            line="153"
+            column="61"/>
     </issue>
 
     <issue
@@ -1559,19 +1229,8 @@
         errorLine2="            ~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/data/IconRenderer.kt"
-            line="85"
+            line="371"
             column="13"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Bitmap.toDrawable` instead?"
-        errorLine1="        return if (shadow) withShadow(flat) else BitmapDrawable(resources, flat)"
-        errorLine2="                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/data/IconRenderer.kt"
-            line="110"
-            column="50"/>
     </issue>
 
     <issue
@@ -1581,7 +1240,7 @@
         errorLine2="                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/data/IconRenderer.kt"
-            line="116"
+            line="400"
             column="22"/>
     </issue>
 
@@ -1592,7 +1251,7 @@
         errorLine2="                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/data/IconRenderer.kt"
-            line="150"
+            line="448"
             column="22"/>
     </issue>
 
@@ -1603,7 +1262,7 @@
         errorLine2="                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/data/IconRenderer.kt"
-            line="194"
+            line="496"
             column="22"/>
     </issue>
 
@@ -1614,7 +1273,7 @@
         errorLine2="                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/data/IconRenderer.kt"
-            line="249"
+            line="557"
             column="22"/>
     </issue>
 
@@ -1625,7 +1284,7 @@
         errorLine2="                                                       ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/LabelStyler.kt"
-            line="100"
+            line="154"
             column="56"/>
     </issue>
 
@@ -1647,30 +1306,19 @@
         errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="1023"
+            line="1346"
             column="27"/>
     </issue>
 
     <issue
         id="UseKtx"
         message="Use the KTX extension function `String.toUri` instead?"
-        errorLine1="            startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(uri)))"
-        errorLine2="                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="            runCatching { startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(target))) }.isSuccess"
+        errorLine2="                                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="1445"
-            column="54"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `String.toUri` instead?"
-        errorLine1="                android.net.Uri.parse(&quot;https://www.google.com/search?q=${android.net.Uri.encode(query)}&quot;)"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="1454"
-            column="17"/>
+            line="1799"
+            column="68"/>
     </issue>
 
     <issue
@@ -1680,7 +1328,7 @@
         errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="2580"
+            line="2955"
             column="44"/>
     </issue>
 
@@ -1691,30 +1339,19 @@
         errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="2580"
+            line="2955"
             column="44"/>
     </issue>
 
     <issue
         id="UseKtx"
-        message="Use the KTX extension function `Bitmap.toDrawable` instead?"
-        errorLine1="                return catalog.renderThemedDrawable(android.graphics.drawable.BitmapDrawable(resources, bmp))"
-        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="2759"
-            column="53"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
         message="Use the KTX extension property `View.isVisible` instead?"
-        errorLine1="        if (binding.dockBar.visibility == View.VISIBLE) {"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="        if (host === binding.root &amp;&amp; binding.dockBar.visibility == View.VISIBLE) {"
+        errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="3267"
-            column="13"/>
+            line="3801"
+            column="38"/>
     </issue>
 
     <issue
@@ -1724,30 +1361,8 @@
         errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="3276"
+            line="4033"
             column="44"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Context.withStyledAttributes` instead?"
-        errorLine1="            val ta = context.obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackgroundBorderless))"
-        errorLine2="                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="3567"
-            column="22"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Bitmap.toDrawable` instead?"
-        errorLine1="                val src = android.graphics.drawable.BitmapDrawable(resources, bmp)"
-        errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="3867"
-            column="27"/>
     </issue>
 
     <issue
@@ -1757,7 +1372,7 @@
         errorLine2="                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/LiveDragController.kt"
-            line="608"
+            line="913"
             column="19"/>
     </issue>
 
@@ -1790,7 +1405,7 @@
         errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/PageIndicatorView.kt"
-            line="103"
+            line="107"
             column="25"/>
     </issue>
 
@@ -1801,7 +1416,7 @@
         errorLine2="                                   ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/PageIndicatorView.kt"
-            line="131"
+            line="135"
             column="36"/>
     </issue>
 
@@ -1812,7 +1427,7 @@
         errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/SearchController.kt"
-            line="218"
+            line="287"
             column="17"/>
     </issue>
 
@@ -1823,7 +1438,7 @@
         errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/SearchController.kt"
-            line="496"
+            line="612"
             column="48"/>
     </issue>
 
@@ -1834,7 +1449,7 @@
         errorLine2="                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/SearchController.kt"
-            line="504"
+            line="620"
             column="50"/>
     </issue>
 
@@ -1845,7 +1460,7 @@
         errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/SearchGridView.kt"
-            line="31"
+            line="32"
             column="17"/>
     </issue>
 
@@ -1856,7 +1471,7 @@
         errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/SearchGridView.kt"
-            line="51"
+            line="57"
             column="17"/>
     </issue>
 
@@ -1907,12 +1522,12 @@
     <issue
         id="UseKtx"
         message="Use the KTX extension function `String.toColorInt` instead?"
-        errorLine1="                        swatch(Color.parseColor(hex), selected) { onPick(ColorSpec(fixed = hex)) },"
-        errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="                    swatch(context, Color.parseColor(hex), isSelected(spec), hex) { onPick(spec) },"
+        errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/settings/StylePickerSheet.kt"
-            line="191"
-            column="32"/>
+            line="407"
+            column="37"/>
     </issue>
 
     <issue
@@ -1922,7 +1537,7 @@
         errorLine2="                              ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/SupernovaPopupMenu.kt"
-            line="193"
+            line="199"
             column="31"/>
     </issue>
 
@@ -1933,7 +1548,7 @@
         errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/SupernovaPopupMenu.kt"
-            line="300"
+            line="386"
             column="29"/>
     </issue>
 
@@ -1944,7 +1559,7 @@
         errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/SupernovaPopupMenu.kt"
-            line="300"
+            line="386"
             column="29"/>
     </issue>
 
@@ -1955,19 +1570,19 @@
         errorLine2="                                                                        ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/SupernovaPopupMenu.kt"
-            line="313"
+            line="406"
             column="73"/>
     </issue>
 
     <issue
         id="UseKtx"
         message="Use the KTX extension property `View.isVisible` instead?"
-        errorLine1="            if (child.visibility == VISIBLE &amp;&amp; scrollsVertically(child)) return true"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="            child.visibility == View.VISIBLE &amp;&amp; scrollsVertically(child)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/widget/SupernovaWidgetHost.kt"
-            line="171"
-            column="17"/>
+            line="223"
+            column="13"/>
     </issue>
 
     <issue
@@ -1977,7 +1592,7 @@
         errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/theme/SurfaceStyleResolver.kt"
-            line="145"
+            line="207"
             column="45"/>
     </issue>
 
@@ -1988,7 +1603,7 @@
         errorLine2="        ~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/SwipeArrowDrawable.kt"
-            line="51"
+            line="50"
             column="9"/>
     </issue>
 
@@ -1999,7 +1614,7 @@
         errorLine2="                ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/WidgetController.kt"
-            line="290"
+            line="412"
             column="17"/>
     </issue>
 
@@ -2010,7 +1625,7 @@
         errorLine2="                                          ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/WidgetController.kt"
-            line="294"
+            line="416"
             column="43"/>
     </issue>
 
@@ -2021,7 +1636,7 @@
         errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/WorkspaceCanvas.kt"
-            line="98"
+            line="190"
             column="37"/>
     </issue>
 
@@ -2032,41 +1647,19 @@
         errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/WorkspaceCanvas.kt"
-            line="115"
+            line="239"
             column="17"/>
     </issue>
 
     <issue
         id="ClickableViewAccessibility"
         message="`onTouch` lambda should call `View#performClick` when a click is detected"
-        errorLine1="        val trackTouch = android.view.View.OnTouchListener { view, event ->"
-        errorLine2="                                                           ^">
+        errorLine1="            window.setTouchInterceptor { _, ev ->"
+        errorLine2="                                       ^">
         <location
-            file="src/main/java/com/supernova/launcher/ui/AppEditSheet.kt"
-            line="102"
-            column="60"/>
-    </issue>
-
-    <issue
-        id="ClickableViewAccessibility"
-        message="Custom view ``LinearLayout`` has `setOnTouchListener` called on it but does not override `performClick`"
-        errorLine1="        binding.shapeRow.setOnTouchListener(trackTouch)"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/ui/AppEditSheet.kt"
-            line="110"
-            column="9"/>
-    </issue>
-
-    <issue
-        id="ClickableViewAccessibility"
-        message="Custom view ``LinearLayout`` has `setOnTouchListener` called on it but does not override `performClick`"
-        errorLine1="        binding.variantRow.setOnTouchListener(trackTouch)"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/ui/AppEditSheet.kt"
-            line="111"
-            column="9"/>
+            file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
+            line="4349"
+            column="40"/>
     </issue>
 
     <issue
@@ -2076,18 +1669,7 @@
         errorLine2="                                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="3512"
-            column="59"/>
-    </issue>
-
-    <issue
-        id="ClickableViewAccessibility"
-        message="`onTouch` lambda should call `View#performClick` when a click is detected"
-        errorLine1="        popup?.let { window -> window.setTouchInterceptor { _, ev -> drag.routeGesture(ev, window) } }"
-        errorLine2="                                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="3756"
+            line="4545"
             column="59"/>
     </issue>
 
@@ -2098,30 +1680,8 @@
         errorLine2="                                ^">
         <location
             file="src/main/java/com/supernova/launcher/LauncherActivity.kt"
-            line="4127"
+            line="5000"
             column="33"/>
-    </issue>
-
-    <issue
-        id="ClickableViewAccessibility"
-        message="Custom view ``TextView`` has `setOnTouchListener` called on it but does not override `performClick`"
-        errorLine1="        value.setOnTouchListener { _, event ->"
-        errorLine2="        ^">
-        <location
-            file="src/main/java/com/supernova/launcher/onboarding/OnboardingActivity.kt"
-            line="571"
-            column="9"/>
-    </issue>
-
-    <issue
-        id="ClickableViewAccessibility"
-        message="`onTouch` lambda should call `View#performClick` when a click is detected"
-        errorLine1="        value.setOnTouchListener { _, event ->"
-        errorLine2="                                 ^">
-        <location
-            file="src/main/java/com/supernova/launcher/onboarding/OnboardingActivity.kt"
-            line="571"
-            column="34"/>
     </issue>
 
     <issue
@@ -2131,18 +1691,7 @@
         errorLine2="                 ~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/widget/SupernovaWidgetHost.kt"
-            line="127"
-            column="18"/>
-    </issue>
-
-    <issue
-        id="ClickableViewAccessibility"
-        message="Custom view `WidgetResizeFrame` overrides `onTouchEvent` but not `performClick`"
-        errorLine1="    override fun onTouchEvent(event: MotionEvent): Boolean {"
-        errorLine2="                 ~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/supernova/launcher/widget/WidgetResizeFrame.kt"
-            line="134"
+            line="171"
             column="18"/>
     </issue>
 
@@ -2153,7 +1702,7 @@
         errorLine2="            ^">
         <location
             file="src/main/java/com/supernova/launcher/ui/WorkspacePagerAdapter.kt"
-            line="473"
+            line="587"
             column="13"/>
     </issue>
 
@@ -2164,7 +1713,7 @@
         errorLine2="                                      ^">
         <location
             file="src/main/java/com/supernova/launcher/ui/WorkspacePagerAdapter.kt"
-            line="473"
+            line="587"
             column="39"/>
     </issue>
 
@@ -2175,7 +1724,7 @@
         errorLine2="                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/AppEditSheet.kt"
-            line="65"
+            line="74"
             column="42"/>
     </issue>
 
@@ -2208,7 +1757,7 @@
         errorLine2="                                           ~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/SettingsActivity.kt"
-            line="1367"
+            line="1626"
             column="44"/>
     </issue>
 
@@ -2219,19 +1768,8 @@
         errorLine2="                                           ~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/supernova/launcher/SettingsActivity.kt"
-            line="1368"
+            line="1627"
             column="44"/>
-    </issue>
-
-    <issue
-        id="RtlSymmetry"
-        message="When you define `paddingStart` you should probably also define `paddingEnd` for right-to-left symmetry"
-        errorLine1="                android:paddingStart=&quot;12dp&quot;>"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/item_setting_label_group.xml"
-            line="165"
-            column="17"/>
     </issue>
 
     <issue
@@ -2241,7 +1779,7 @@
         errorLine2="                                                                                                         ~~~~">
         <location
             file="src/main/java/com/supernova/launcher/ui/WorkspaceCanvas.kt"
-            line="73"
+            line="164"
             column="106"/>
     </issue>
 
