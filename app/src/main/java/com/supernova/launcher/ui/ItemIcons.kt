@@ -69,7 +69,7 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
     fun folderBadgeCount(folder: LauncherItem): Int {
         val prefs = viewModel.state.value.prefs
         if (!prefs.badges || !prefs.folderBadges) return 0
-        return viewModel.folderMembers(folder.id).sumOf { member ->
+        return viewModel.folderLeaves(folder.id).sumOf { member ->
             val pkg = member.packageName ?: return@sumOf 0
             if (prefs.badgeApps.isNotEmpty() &&
                 "${member.userSerial}/$pkg/${member.className.orEmpty()}" !in prefs.badgeApps
@@ -149,11 +149,30 @@ class ItemIcons(private val context: Context, private val viewModel: LauncherVie
             ?.let { return it }
         val late = onLate?.let { LateIcons() }
         val memberIcons = previewMembers(viewModel.folderMembers(folder.id)).mapNotNull { member ->
+            if (member.itemType == ItemType.FOLDER) {
+                return@mapNotNull innerFolderIcon(member, onLate, late)
+            }
             PausedIcon.of(previewMemberIcon(member, onLate, late), viewModel.state.value, member.userSerial)
         }
         val pending = onLate != null && late?.start(viewModel.appCatalog(), onLate) == true
         return if (pending && pendingAsNull) null else composedFolderIcon(memberIcons)
     }
+
+    // A folder inside the previewed one (#369) takes its place as its own
+    // icon, drawn from its apps alone: its own folders leave empty places,
+    // so a preview never goes more than a level deeper.
+    private fun innerFolderIcon(folder: LauncherItem, onLate: (() -> Unit)?, late: LateIcons?): Drawable =
+        customFolderIcon(
+            folder.iconBase64, folder.customIconPack, folder.customIconName, folder.iconRaw, isFolder = true
+        ) ?: composedFolderIcon(
+            previewMembers(viewModel.folderMembers(folder.id)).mapNotNull { member ->
+                if (member.itemType == ItemType.FOLDER) {
+                    emptySlot()
+                } else {
+                    PausedIcon.of(previewMemberIcon(member, onLate, late), viewModel.state.value, member.userSerial)
+                }
+            }
+        )
 
     // One member's place in a folder preview: rendered now without `late`,
     // else from the cache or an empty place while it renders.

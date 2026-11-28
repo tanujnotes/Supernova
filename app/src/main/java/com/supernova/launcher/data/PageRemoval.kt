@@ -22,8 +22,9 @@ object PageRemoval {
         val shown = shownPages(model)
         if (shown <= 1 || page !in 0 until shown) return null
         val onPage = model.items.filter { it.container == ContainerType.WORKSPACE && it.page == page }
-        val folderIds = onPage.filter { it.itemType == ItemType.FOLDER }.mapTo(mutableSetOf()) { it.id }
-        val members = model.items.filter { it.container == ContainerType.FOLDER && it.folderId in folderIds }
+        // Everything in its folders, the folders inside them included.
+        val members = onPage.filter { it.itemType == ItemType.FOLDER }
+            .flatMap { NestedFolders.contents(model.items, it.id) }
         val gone = (onPage + members).mapTo(mutableSetOf()) { it.id }
         val left = model.copy(items = model.items.filterNot { it.id in gone })
         val after = LauncherRepository.withoutPages(left.copy(pageCount = shown), listOf(page))

@@ -341,7 +341,8 @@ class LauncherRepository(private val context: Context) {
             // land beside the target instead - the caller already ruled the
             // hover outside the folder centre zone.
             val next = when {
-                mergeFolders && target != null && target.itemType == ItemType.FOLDER && isFolderEligible(moving) ->
+                mergeFolders && target != null && target.itemType == ItemType.FOLDER &&
+                    NestedFolders.canHold(current.items, target.id, moving) ->
                     moveIntoFolderModel(current, moving, target.id)
                 mergeFolders && target != null && isFolderEligible(moving) && isFolderEligible(target) ->
                     createNewFolderModel(current, moving, target)
@@ -385,7 +386,7 @@ class LauncherRepository(private val context: Context) {
     suspend fun moveItemIntoFolder(itemId: String, folderId: String) {
         mutate { current ->
             val moving = current.items.firstOrNull { it.id == itemId } ?: return@mutate current
-            if (!isFolderEligible(moving)) return@mutate current
+            if (!NestedFolders.canHold(current.items, folderId, moving)) return@mutate current
             moveIntoFolderModel(current, moving, folderId)
         }
     }
@@ -992,12 +993,9 @@ class LauncherRepository(private val context: Context) {
         }.map { it.id }.toSet()
 
         val kept = migrated.items.filterNot { it.id in missing }
-        val emptyFolders = kept.filter { folder ->
-            folder.itemType == ItemType.FOLDER && kept.none { it.folderId == folder.id }
-        }.map { it.id }.toSet()
-
+        // A folder left empty goes, and one that held only that folder too.
         val validated = RestoredWidgets.withStaleCleared(
-            migrated.copy(items = kept.filterNot { it.id in emptyFolders }),
+            migrated.copy(items = NestedFolders.withEmptyFoldersRemoved(kept)),
             widgetBound
         )
         val restoredPrefs = if (widgetBound(payload.prefs.searchBarWidgetId, payload.prefs.searchBarWidgetProvider)) {
@@ -1493,8 +1491,11 @@ class LauncherRepository(private val context: Context) {
             // now), or a folder, whose place it takes. Only the page cell is
             // the dragged item's page and cell; a dock or folder item's are
             // left over from long ago and may overlap or no longer exist.
-            if (swapTarget != null && moving.container == ContainerType.FOLDER && !isFolderEligible(swapTarget)) {
-                // A folder can't go into a folder: leave both where they are.
+            if (swapTarget != null && moving.container == ContainerType.FOLDER &&
+                !(moving.folderId?.let { NestedFolders.canHold(current.items, it, swapTarget) } ?: false)
+            ) {
+                // The slot's folder can't go where the item came from (into
+                // itself): leave both where they are.
                 return current
             }
             val moved = current.copy(
@@ -1561,11 +1562,12 @@ class LauncherRepository(private val context: Context) {
                 spanX = folder.spanX,
                 spanY = folder.spanY,
                 rank = folder.rank,
-                folderId = null
+                // Into the folder that held this one, if one did (#369).
+                folderId = folder.folderId
             )
             // In the folder's place in the list too, which is its place in
             // the page's stacking.
-            return current.copy(
+            val next = current.copy(
                 items = current.items.mapNotNull {
                     when (it.id) {
                         folder.id -> last
@@ -1574,6 +1576,13 @@ class LauncherRepository(private val context: Context) {
                     }
                 }
             )
+            // An empty folder gone from inside another leaves that one an
+            // item short, which may be too few for it as well.
+            return if (last == null && folder.container == ContainerType.FOLDER) {
+                withSparseFolderDissolved(next, folder.folderId)
+            } else {
+                next
+            }
         }
 
         private const val AUTO_BACKUP_KEEP = 5

@@ -34,11 +34,12 @@ internal object PackageRemoval {
                 !it.startsWith("$userSerial/$packageName/")
             }
         )
-        touchedFolders.forEach { next = LauncherRepository.withSparseFolderDissolved(next, it) }
-        // Any other folder found empty goes too, as it always has.
-        val emptyFolderIds = next.items.filter { folder ->
-            folder.itemType == ItemType.FOLDER && next.items.none { it.folderId == folder.id }
-        }.mapTo(HashSet()) { it.id }
-        return next.copy(items = next.items.filterNot { it.id in emptyFolderIds })
+        // Innermost first: a folder inside another that gives way changes
+        // what the outer one holds (#369).
+        touchedFolders.sortedByDescending { NestedFolders.holders(next.items, it).size }
+            .forEach { next = LauncherRepository.withSparseFolderDissolved(next, it) }
+        // Any other folder found empty goes too, as it always has, and so
+        // does one that held nothing but such folders.
+        return next.copy(items = NestedFolders.withEmptyFoldersRemoved(next.items))
     }
 }

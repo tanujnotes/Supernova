@@ -70,8 +70,10 @@ class DockSwapTest {
         assertEquals(2, displaced.rank)
     }
 
+    // Folders go inside folders (#369): the docked one trades into the
+    // folder the app came out of.
     @Test
-    fun aDockedFolderIsNeverPushedIntoAnotherFolder() {
+    fun aDockedFolderTradesIntoTheFolderTheAppLeft() {
         val model = LauncherModel(
             items = listOf(
                 LauncherItem(id = "f", itemType = ItemType.FOLDER, label = "F"),
@@ -79,7 +81,10 @@ class DockSwapTest {
                 LauncherItem(id = "g", itemType = ItemType.FOLDER, container = ContainerType.DOCK, rank = 0, label = "G")
             )
         )
-        assertSame(model, LauncherRepository.movedToDock(model, "m", 0))
+        val moved = LauncherRepository.movedToDock(model, "m", 0)
+        assertEquals(ContainerType.DOCK, moved.item("m").container)
+        assertEquals(ContainerType.FOLDER, moved.item("g").container)
+        assertEquals("f", moved.item("g").folderId)
     }
 
     @Test

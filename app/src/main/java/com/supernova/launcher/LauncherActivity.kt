@@ -855,7 +855,7 @@ class LauncherActivity :
         // folder changing - but only while folder badges are on.
         fun affected(item: LauncherItem): Boolean =
             if (item.itemType == ItemType.FOLDER) {
-                prefs.folderBadges && viewModel.folderMembers(item.id).any(::carries)
+                prefs.folderBadges && viewModel.folderLeaves(item.id).any(::carries)
             } else {
                 carries(item)
             }
@@ -2219,12 +2219,7 @@ class LauncherActivity :
                 // A folder's icon is drawn from its members, which are not
                 // dock items themselves, or from its own custom icon.
                 if (item.itemType == ItemType.FOLDER) {
-                    viewModel.folderMembers(item.id)
-                        .joinToString(",", "[", "]") {
-                            "${it.id}:${it.packageName}/${it.className}/${it.shortcutEdit?.hashCode()}" +
-                                "/${it.appEdit?.hashCode()}" +
-                                PausedIcon.mark(state, it.userSerial)
-                        }
+                    com.supernova.launcher.ui.FolderPreviewKey.of(state, item.id)
                 } else {
                     ""
                 }
@@ -3766,20 +3761,21 @@ class LauncherActivity :
     ) {
         val widget = item.itemType == ItemType.WIDGET
         if (widget) widgets.onWidgetItemRemoved(item)
-        // Capture before removal: the exact item plus folder members, so undo
-        // restores the same ids into the same cells (or the nearest free).
+        // Capture before removal: the exact item plus everything in it (the
+        // folders inside a folder too, #369), so undo restores the same ids
+        // into the same cells (or the nearest free).
         val members = if (item.itemType == ItemType.FOLDER) {
-            viewModel.folderMembers(item.id)
+            viewModel.folderContents(item.id)
         } else {
             emptyList()
         }
-        // An app out of a two-app folder leaves the other in the folder's
+        // An item out of a two-item folder leaves the other in the folder's
         // place (#345): Undo puts the whole folder back, name and icon too.
         val dissolved = item.folderId?.takeIf { item.container == ContainerType.FOLDER }
             ?.let { folderId ->
                 val folderMembers = viewModel.folderMembers(folderId)
                 val folder = viewModel.state.value.model.items.firstOrNull { it.id == folderId }
-                if (folder != null && folderMembers.size == 2) listOf(folder) + folderMembers else null
+                if (folder != null && folderMembers.size == 2) listOf(folder) + folderMembers + members else null
             }
         viewModel.removeItem(item.id)
         if (!viewModel.state.value.prefs.undoRemove) {
@@ -4160,7 +4156,7 @@ class LauncherActivity :
             // The folder closes first: as a focusable window it
             // would keep the keyboard from the sheet's name field.
             closeFolder()
-            showItemEditSheet(member, allowSwipe = !locked)
+            editFolderMember(member, allowSwipe = !locked)
         }
         if (!locked) addMoveToHomeRow(menu, folder, member, applied)
         member.toLaunchableApp()?.let { app ->
@@ -4188,6 +4184,18 @@ class LauncherActivity :
         return menu
     }
 
+    // A folder inside a folder (#369) gets a folder's Edit sheet.
+    private fun editFolderMember(member: LauncherItem, allowSwipe: Boolean) {
+        if (member.itemType == ItemType.FOLDER) {
+            FolderEditSheet.show(
+                this, lifecycleScope, viewModel, member, ::pickPhoto,
+                onEditSwipe = { down, onPicked -> showSwipeActionPicker(member, down) { onPicked(it) } }
+            )
+        } else {
+            showItemEditSheet(member, allowSwipe)
+        }
+    }
+
     private fun addMoveToHomeRow(
         menu: SupernovaPopupMenu,
         folder: LauncherItem,
@@ -4201,6 +4209,39 @@ class LauncherActivity :
                 // left with one app gives way to it here too.
                 viewModel.moveItemToWorkspace(member.id, spot.page, spot.cellX, spot.cellY, mergeFolders = false)
                 applied(before)
+            }
+        }
+    }
+
+    // A tap in a home folder's card. A folder inside opens in the card's
+    // place (#369); Back then closes it, as a drawer folder's does.
+    private fun openFolderMember(anchor: View, member: LauncherItem, closeCard: () -> Unit) {
+        if (member.itemType == ItemType.FOLDER) {
+            closeCard()
+            showFolderPopup(anchor, member)
+        } else {
+            if (viewModel.state.value.prefs.folderCloseOnLaunch) closeCard()
+            launchItem(member)
+        }
+    }
+
+    // A home folder card's icons: apps with their badges, shortcuts with
+    // their own pictures, and a folder inside (#369) as its preview, as it
+    // would show on home, with its apps' summed badge.
+    private fun drawFolderTiles(adapter: FolderMemberAdapter) {
+        adapter.decorateIcon = { icon, member ->
+            if (member.itemType == ItemType.FOLDER) {
+                val count = if (icon != null) itemIcons.folderBadgeCount(member) else 0
+                if (icon != null && count > 0) itemIcons.badgeDrawable(icon, count) else icon
+            } else {
+                itemIcons.withBadge(icon, member.packageName, member.className, member.userSerial)
+            }
+        }
+        adapter.shortcutIcon = { member ->
+            when (member.itemType) {
+                ItemType.SHORTCUT -> itemIcons.intentItemIcon(member)
+                ItemType.FOLDER -> itemIcons.folderPreviewDrawable(member)
+                else -> null
             }
         }
     }
@@ -4233,10 +4274,7 @@ class LauncherActivity :
             showLabels = folderPrefs.folderLabels,
             labelPrefs = folderPrefs,
             iconScale = if (folderPrefs.folderMatchDesktop) folderPrefs.iconScale else folderPrefs.folderIconScale,
-            onClick = {
-                if (viewModel.state.value.prefs.folderCloseOnLaunch) popup?.dismiss()
-                launchItem(it)
-            },
+            onClick = { openFolderMember(anchor, it) { popup?.dismiss() } },
             // An app in a home folder is a home icon like any other: its
             // menu while the finger is held, and a drag once it moves - to
             // another place in the folder, or out past the card's edge onto
@@ -4254,16 +4292,14 @@ class LauncherActivity :
                 reorder?.let(drag::armWindowDrag)
             }
         )
-        adapter.decorateIcon = { icon, member ->
-            itemIcons.withBadge(icon, member.packageName, member.className, member.userSerial)
-        }
-        adapter.shortcutIcon = { member ->
-            member.takeIf { it.itemType == ItemType.SHORTCUT }?.let(itemIcons::intentItemIcon)
-        }
+        drawFolderTiles(adapter)
         // An app's swipes work in the open folder too, as on the home screen.
+        // A folder inside opens on a tap, so it has none here.
         adapter.attachSwipe = { tile, member ->
-            attachIconSwipe(tile, member) {
-                if (viewModel.state.value.prefs.folderCloseOnLaunch) popup?.dismiss()
+            if (member.itemType != ItemType.FOLDER) {
+                attachIconSwipe(tile, member) {
+                    if (viewModel.state.value.prefs.folderCloseOnLaunch) popup?.dismiss()
+                }
             }
         }
         folderAdapter = adapter

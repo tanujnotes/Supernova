@@ -3,14 +3,15 @@ package com.supernova.launcher.data
 // A home item's removal and the Undo that takes it back, pure for tests.
 object ItemRemoval {
 
-    // A folder goes with its apps. An app removed from a folder can leave it
-    // with one app, which then takes the folder's place (#345); the Undo of
-    // that brings the folder back through replaced().
+    // A folder goes with everything in it, the folders inside it included
+    // (#369). An item removed from a folder can leave it with one, which
+    // then takes the folder's place (#345); the Undo of that brings the
+    // folder back through replaced().
     fun removed(current: LauncherModel, itemId: String): LauncherModel {
         val removedItem = current.items.firstOrNull { it.id == itemId }
         val removeIds = mutableSetOf(itemId)
         if (removedItem?.itemType == ItemType.FOLDER) {
-            current.items.filter { it.folderId == itemId }.forEach { removeIds.add(it.id) }
+            NestedFolders.contents(current.items, itemId).forEach { removeIds.add(it.id) }
         }
         val next = current.copy(items = current.items.filterNot { it.id in removeIds })
         return if (removedItem?.container == ContainerType.FOLDER) {

@@ -396,15 +396,7 @@ class WorkspacePagerAdapter(private val host: Host) : RecyclerView.Adapter<Recyc
     }
 
     private fun folderSignature(state: LauncherUiState, folderId: String): String =
-        state.model.items
-            .filter { it.container == ContainerType.FOLDER && it.folderId == folderId }
-            .sortedBy { it.rank }
-            .joinToString(",", prefix = "[", postfix = "]") {
-                // A shortcut member's Edit changes its tile in the preview.
-                "${it.id}:${it.packageName}/${it.className}/${it.shortcutEdit?.hashCode()}" +
-                    "/${it.appEdit?.hashCode()}" +
-                    PausedIcon.mark(state, it.userSerial)
-            }
+        FolderPreviewKey.of(state, folderId)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)

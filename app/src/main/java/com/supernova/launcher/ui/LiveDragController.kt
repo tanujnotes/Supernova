@@ -1325,9 +1325,16 @@ class LiveDragController(
         // was lifted from having gone at the pickup, and fades if that icon
         // isn't in view.
         dragSourceView = currentDragSource(payload)
-        val folderId = (payload as? DragPayload.ExistingItem)?.let { itemById(it.itemId) }
-            ?.takeIf { it.container == ContainerType.FOLDER }?.folderId
-        val source = if (folderId != null) viewsOfItem(folderId).firstOrNull(::isOnScreen) else dragSourceView
+        // From a folder inside a folder (#369), the nearest of them whose
+        // icon is in view.
+        val holders = (payload as? DragPayload.ExistingItem)
+            ?.let { com.supernova.launcher.data.NestedFolders.holders(viewModel.state.value.model.items, it.itemId) }
+            .orEmpty()
+        val source = if (holders.isNotEmpty()) {
+            holders.firstNotNullOfOrNull { holder -> viewsOfItem(holder.id).firstOrNull(::isOnScreen) }
+        } else {
+            dragSourceView
+        }
         val home = source?.takeIf {
             it.isShown && !dragFromDrawer && payload !is DragPayload.NewWidget && payload !is DragPayload.NewShortcut
         }

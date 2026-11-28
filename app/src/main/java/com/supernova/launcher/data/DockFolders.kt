@@ -7,11 +7,15 @@ internal object DockFolders {
     private fun foldable(item: LauncherItem) = item.itemType == ItemType.APP || item.itemType == ItemType.SHORTCUT
 
     // The dock item the drop goes into a folder with, or null when it can't:
-    // a folder goes into no folder, and an app already in that folder stays.
+    // a folder goes into another folder only (#369), never into one it
+    // holds, and an item already in that folder stays.
     fun target(current: LauncherModel, moving: LauncherItem, rank: Int): LauncherItem? =
         current.items.firstOrNull { it.container == ContainerType.DOCK && it.rank == rank && it.id != moving.id }
-            ?.takeIf {
-                foldable(moving) && (it.itemType == ItemType.FOLDER || foldable(it)) && moving.folderId != it.id
+            ?.takeIf { slot ->
+                moving.folderId != slot.id && when (slot.itemType) {
+                    ItemType.FOLDER -> NestedFolders.canHold(current.items, slot.id, moving)
+                    else -> foldable(moving) && foldable(slot)
+                }
             }
 
     // folderId names the folder it makes, if it makes one. An item new to

@@ -407,10 +407,10 @@ class LauncherViewModel(
             it.container == ContainerType.DOCK ||
                 (it.container == ContainerType.WORKSPACE && it.page == model.defaultPage)
         }
-        val folderIds = front.filter { it.itemType == ItemType.FOLDER }.map { it.id }.toSet()
-        val members = model.items.filter {
-            it.container == ContainerType.FOLDER && it.folderId in folderIds
-        }
+        // Those inside folders inside them too: a nested folder's preview
+        // draws its own members (#369).
+        val members = front.filter { it.itemType == ItemType.FOLDER }
+            .flatMap { com.supernova.launcher.data.NestedFolders.contents(model.items, it.id) }
         return (front + members).mapNotNull { item ->
             val pkg = item.packageName ?: return@mapNotNull null
             val cls = item.className ?: return@mapNotNull null
@@ -699,6 +699,14 @@ class LauncherViewModel(
     fun folderMembers(folderId: String): List<LauncherItem> {
         return state.value.model.items.filter { it.container == ContainerType.FOLDER && it.folderId == folderId }.sortedBy { it.rank }
     }
+
+    // Everything inside a folder, the folders inside it and theirs (#369).
+    fun folderContents(folderId: String): List<LauncherItem> =
+        com.supernova.launcher.data.NestedFolders.contents(state.value.model.items, folderId)
+
+    // The apps and shortcuts inside a folder at any depth: what its badge sums.
+    fun folderLeaves(folderId: String): List<LauncherItem> =
+        com.supernova.launcher.data.NestedFolders.leaves(state.value.model.items, folderId)
 
     // The app a swipe-to-open folder's tap launches: the first one its window
     // shows.

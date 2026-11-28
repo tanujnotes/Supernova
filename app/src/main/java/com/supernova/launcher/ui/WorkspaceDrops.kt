@@ -15,6 +15,7 @@ import com.supernova.launcher.data.ItemType
 import com.supernova.launcher.data.LaunchableApp
 import com.supernova.launcher.data.LauncherItem
 import com.supernova.launcher.data.LauncherModel
+import com.supernova.launcher.data.NestedFolders
 import com.supernova.launcher.data.WorkspaceGeometry
 import com.supernova.launcher.data.isLargeIcon
 import kotlin.math.abs
@@ -305,11 +306,17 @@ class WorkspaceDrops(
         val excludeId: String?
         when (payload) {
             is DragPayload.DrawerApp, is DragPayload.DrawerShortcut -> excludeId = null
-            // A folder goes into no folder, and makes none with an icon.
+            // A drawer folder makes a new home folder where it lands.
             is DragPayload.DrawerFolder -> return false
             is DragPayload.ExistingItem -> {
                 val item = viewModel.state.value.model.items.firstOrNull { it.id == payload.itemId } ?: return false
-                if (item.itemType != ItemType.APP && item.itemType != ItemType.SHORTCUT) return false
+                // A folder goes into another folder (#369), and makes none
+                // with an icon.
+                if (item.itemType != ItemType.APP && item.itemType != ItemType.SHORTCUT &&
+                    item.itemType != ItemType.FOLDER
+                ) {
+                    return false
+                }
                 // A large icon makes room where it lands rather than a folder.
                 if (item.isLargeIcon) return false
                 excludeId = item.id
@@ -320,12 +327,18 @@ class WorkspaceDrops(
         return folderTargetId(page, rawCellX, rawCellY, excludeId) != null
     }
 
-    // The folder-eligible item whose centre zone the hover is in, if any.
+    // The item whose centre zone the hover is in, if the dragged one (by
+    // excludeId) can go into a folder with it: any icon for an app or a
+    // shortcut, a folder that isn't inside it for a folder.
     private fun folderTargetId(page: Int, rawCellX: Float, rawCellY: Float, excludeId: String?): String? {
         val prefs = viewModel.state.value.prefs
-        return viewModel.state.value.model.items.firstOrNull { other ->
+        val items = viewModel.state.value.model.items
+        val moving = excludeId?.let { id -> items.firstOrNull { it.id == id } }
+        fun joinable(other: LauncherItem) = moving?.itemType != ItemType.FOLDER ||
+            other.itemType == ItemType.FOLDER && NestedFolders.canHold(items, other.id, moving)
+        return items.firstOrNull { other ->
             other.container == ContainerType.WORKSPACE && other.page == page && other.id != excludeId &&
-                other.itemType in FOLDER_TARGETS &&
+                other.itemType in FOLDER_TARGETS && joinable(other) &&
                 run {
                     val r = WorkspaceGeometry.itemRect(other, prefs.gridCols, prefs.gridRows)
                     abs((r.left + r.right) / 2f - rawCellX) <= FOLDER_CENTER_ZONE &&
