@@ -743,7 +743,7 @@
     <string name="style_slot_text">Text</string>
     <string name="style_slot_accent">Accent</string>
     <string name="style_fixed_colors">Fixed colors</string>
-    <string name="style_role_primary">Primary</string>
+    <string name="style_role_primary">Primary variant</string>
     <string name="style_role_neutral">Neutral</string>
     <string name="style_role_neutral_variant">Neutral variant</string>
     <string name="style_opacity">Opacity</string>

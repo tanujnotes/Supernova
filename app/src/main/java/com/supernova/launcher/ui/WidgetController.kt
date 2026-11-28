@@ -516,14 +516,16 @@ class WidgetController(
 
             override fun onStopTrackingTouch(bar: android.widget.SeekBar) = Unit
         })
-        row.stepDown.setOnClickListener {
-            value = (value - 1).coerceAtLeast(0)
+        // Held, a stepper runs on until the padding is at its limit.
+        fun nudge(delta: Int): Boolean {
+            val target = (value + delta).coerceIn(0, LauncherRepository.MAX_WIDGET_PADDING_DP)
+            if (target == value) return false
+            value = target
             render()
+            return true
         }
-        row.stepUp.setOnClickListener {
-            value = (value + 1).coerceAtMost(LauncherRepository.MAX_WIDGET_PADDING_DP)
-            render()
-        }
+        Steppers.hold(row.stepDown, { nudge(-1) })
+        Steppers.hold(row.stepUp, { nudge(1) })
         render()
         var committed = false
         MaterialAlertDialogBuilder(activity)

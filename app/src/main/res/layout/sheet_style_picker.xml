@@ -97,6 +97,73 @@
                 android:text="@string/style_slot_accent" />
         </com.google.android.material.button.MaterialButtonToggleGroup>
 
+        <!-- Opacity, then minimum contrast, over the color rows. -->
+        <LinearLayout
+            android:id="@+id/opacityRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_ms"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:labelFor="@id/opacitySeek"
+                    android:text="@string/style_opacity"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="@dimen/text_secondary" />
+
+                <TextView
+                    android:id="@+id/opacityValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/space_sm"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="@dimen/text_secondary" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_marginTop="@dimen/space_xs"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/opacityDown"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_step_circle"
+                    android:contentDescription="@string/stepper_decrease"
+                    android:padding="@dimen/space_ms"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_step_minus" />
+
+                <SeekBar
+                    android:id="@+id/opacitySeek"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:paddingHorizontal="@dimen/space_sm" />
+
+                <ImageButton
+                    android:id="@+id/opacityUp"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_step_circle"
+                    android:contentDescription="@string/stepper_increase"
+                    android:padding="@dimen/space_ms"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_step_plus" />
+            </LinearLayout>
+        </LinearLayout>
+
         <!-- Minimum contrast, shown on the Text slot. -->
         <LinearLayout
             android:id="@+id/contrastRow"
@@ -112,18 +179,18 @@
                 android:orientation="horizontal">
 
                 <TextView
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:labelFor="@id/contrastSeek"
                     android:text="@string/style_min_contrast"
-                    android:textColor="@color/textPrimary"
-                    android:textSize="@dimen/text_body" />
+                    android:textColor="@color/textSecondary"
+                    android:textSize="@dimen/text_secondary" />
 
                 <TextView
                     android:id="@+id/contrastValue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/space_sm"
                     android:textColor="@color/textSecondary"
                     android:textSize="@dimen/text_secondary" />
             </LinearLayout>
@@ -136,12 +203,43 @@
                 android:textColor="@color/textSecondary"
                 android:textSize="@dimen/text_secondary" />
 
-            <SeekBar
-                android:id="@+id/contrastSeek"
+            <!-- The bar between its minus and plus, which step it and keep
+                 stepping while held. -->
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="40dp"
                 android:layout_marginTop="@dimen/space_xs"
-                android:max="12" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/contrastDown"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_step_circle"
+                    android:contentDescription="@string/stepper_decrease"
+                    android:padding="@dimen/space_ms"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_step_minus" />
+
+                <SeekBar
+                    android:id="@+id/contrastSeek"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="12"
+                    android:paddingHorizontal="@dimen/space_sm" />
+
+                <ImageButton
+                    android:id="@+id/contrastUp"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_step_circle"
+                    android:contentDescription="@string/stepper_increase"
+                    android:padding="@dimen/space_ms"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_step_plus" />
+            </LinearLayout>
         </LinearLayout>
 
         <TextView
@@ -167,43 +265,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:visibility="gone" />
-
-        <LinearLayout
-            android:id="@+id/opacityRow"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_sm"
-            android:orientation="vertical">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:labelFor="@id/opacitySeek"
-                    android:text="@string/style_opacity"
-                    android:textColor="@color/textPrimary"
-                    android:textSize="@dimen/text_body" />
-
-                <TextView
-                    android:id="@+id/opacityValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/textSecondary"
-                    android:textSize="@dimen/text_secondary" />
-            </LinearLayout>
-
-            <SeekBar
-                android:id="@+id/opacitySeek"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_xs"
-                android:max="100" />
-        </LinearLayout>
 
         </LinearLayout>
     </LinearLayout>

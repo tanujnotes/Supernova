@@ -58,6 +58,7 @@ import com.supernova.launcher.ui.ChoiceMenu
 import com.supernova.launcher.ui.FolderPreviewStyle
 import com.supernova.launcher.ui.LabelStyler
 import com.supernova.launcher.ui.LauncherViewModel
+import com.supernova.launcher.ui.Steppers
 import com.supernova.launcher.ui.dp
 import com.supernova.launcher.ui.followLauncherAnimations
 import com.supernova.launcher.ui.settings.ColorSheet
@@ -1563,14 +1564,16 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         fun wireCorner(index: Int, minus: android.view.View, plus: android.view.View) {
-            minus.setOnClickListener {
-                radii[index] = (radii[index] - RADIUS_STEP).coerceAtLeast(0)
+            // Held, a stepper keeps going until the corner is round or square.
+            fun nudge(delta: Int): Boolean {
+                val target = (radii[index] + delta).coerceIn(0, 100)
+                if (target == radii[index]) return false
+                radii[index] = target
                 refresh()
+                return true
             }
-            plus.setOnClickListener {
-                radii[index] = (radii[index] + RADIUS_STEP).coerceAtMost(100)
-                refresh()
-            }
+            Steppers.hold(minus, { nudge(-RADIUS_STEP) })
+            Steppers.hold(plus, { nudge(RADIUS_STEP) })
             cutToggles[index].setOnClickListener {
                 cuts[index] = CornerCut.entries[(cuts[index].ordinal + 1) % CornerCut.entries.size]
                 refresh()
@@ -1632,10 +1635,17 @@ class SettingsActivity : AppCompatActivity() {
         val most = com.supernova.launcher.data.GridLimits.desktop(prefs)
         val mostRows = maxOf(most, prefs.gridRows)
         val mostCols = maxOf(most, prefs.gridCols)
-        dialogBinding.rowsUp.setOnClickListener { rows = (rows + 1).coerceAtMost(mostRows); refresh() }
-        dialogBinding.rowsDown.setOnClickListener { rows = (rows - 1).coerceAtLeast(2); refresh() }
-        dialogBinding.colsUp.setOnClickListener { cols = (cols + 1).coerceAtMost(mostCols); refresh() }
-        dialogBinding.colsDown.setOnClickListener { cols = (cols - 1).coerceAtLeast(2); refresh() }
+        fun nudge(current: Int, delta: Int, least: Int, most: Int, set: (Int) -> Unit): Boolean {
+            val target = (current + delta).coerceIn(least, most)
+            if (target == current) return false
+            set(target)
+            refresh()
+            return true
+        }
+        Steppers.hold(dialogBinding.rowsUp, { nudge(rows, 1, 2, mostRows) { rows = it } })
+        Steppers.hold(dialogBinding.rowsDown, { nudge(rows, -1, 2, mostRows) { rows = it } })
+        Steppers.hold(dialogBinding.colsUp, { nudge(cols, 1, 2, mostCols) { cols = it } })
+        Steppers.hold(dialogBinding.colsDown, { nudge(cols, -1, 2, mostCols) { cols = it } })
         dialogBinding.subgridCheck.isChecked = prefs.subgrid
         dialogBinding.subgridToggle.setOnClickListener { dialogBinding.subgridCheck.toggle() }
         refresh()
@@ -1675,10 +1685,17 @@ class SettingsActivity : AppCompatActivity() {
         }
         val mostRows = maxOf(com.supernova.launcher.data.GridLimits.drawerRows(prefs), prefs.drawerRows)
         val mostCols = maxOf(com.supernova.launcher.data.GridLimits.drawerColumns(prefs), prefs.drawerColumns)
-        dialogBinding.rowsUp.setOnClickListener { rows = (rows + 1).coerceAtMost(mostRows); refresh() }
-        dialogBinding.rowsDown.setOnClickListener { rows = (rows - 1).coerceAtLeast(0); refresh() }
-        dialogBinding.colsUp.setOnClickListener { cols = (cols + 1).coerceAtMost(mostCols); refresh() }
-        dialogBinding.colsDown.setOnClickListener { cols = (cols - 1).coerceAtLeast(0); refresh() }
+        fun nudge(current: Int, delta: Int, most: Int, set: (Int) -> Unit): Boolean {
+            val target = (current + delta).coerceIn(0, most)
+            if (target == current) return false
+            set(target)
+            refresh()
+            return true
+        }
+        Steppers.hold(dialogBinding.rowsUp, { nudge(rows, 1, mostRows) { rows = it } })
+        Steppers.hold(dialogBinding.rowsDown, { nudge(rows, -1, mostRows) { rows = it } })
+        Steppers.hold(dialogBinding.colsUp, { nudge(cols, 1, mostCols) { cols = it } })
+        Steppers.hold(dialogBinding.colsDown, { nudge(cols, -1, mostCols) { cols = it } })
         refresh()
 
         MaterialAlertDialogBuilder(this)

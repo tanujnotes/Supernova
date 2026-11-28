@@ -15,6 +15,7 @@ import com.supernova.launcher.R
 import com.supernova.launcher.data.Pref
 import com.supernova.launcher.databinding.SheetStylePickerBinding
 import com.supernova.launcher.ui.LauncherViewModel
+import com.supernova.launcher.ui.Steppers
 import com.supernova.launcher.ui.dp
 import com.supernova.launcher.ui.textSizeOf
 import com.supernova.launcher.ui.theme.AccentColor
@@ -225,6 +226,21 @@ object StylePickerSheet {
             override fun onStopTrackingTouch(seekBar: SeekBar) = Unit
         })
 
+        // The bar's minus and plus: a tone at a time, held to run on, and
+        // the write waits for the press to end.
+        fun stepContrast(delta: Int): Boolean {
+            val current = style.minContrast ?: 0
+            val target = (current + delta).coerceIn(0, binding.contrastSeek.max * CONTRAST_STEP)
+            if (target == current) return false
+            style = style.copy(minContrast = target.takeIf { it > 0 })
+            renderContrast()
+            renderStrip()
+            return true
+        }
+        nameSteppers(context, binding.contrastDown, binding.contrastUp, R.string.style_min_contrast)
+        Steppers.hold(binding.contrastDown, { stepContrast(-CONTRAST_STEP) }, { persist() })
+        Steppers.hold(binding.contrastUp, { stepContrast(CONTRAST_STEP) }, { persist() })
+
         fun selectSlot(target: Slot) {
             slot = target
             renderSlotButtons()
@@ -315,6 +331,12 @@ object StylePickerSheet {
 
                 override fun onStopTrackingTouch(seekBar: SeekBar) = applyOpacity(seekBar.progress)
             })
+            // A percent a tap, or held; the bar's own listener keeps the
+            // label, and the write waits for the press to end.
+            nameSteppers(context, binding.opacityDown, binding.opacityUp, R.string.style_opacity)
+            val settleOpacity = { applyOpacity(binding.opacitySeek.progress) }
+            Steppers.bar(binding.opacityDown, binding.opacitySeek, -1, settleOpacity) { renderStrip() }
+            Steppers.bar(binding.opacityUp, binding.opacitySeek, 1, settleOpacity) { renderStrip() }
         } else {
             binding.opacityRow.visibility = android.view.View.GONE
         }
@@ -343,6 +365,18 @@ object StylePickerSheet {
         renderStrip()
         showCustom()
         dialog.show()
+    }
+
+    // A stepper pair read out as the bar it belongs to.
+    internal fun nameSteppers(
+        context: Context,
+        down: android.view.View,
+        up: android.view.View,
+        @androidx.annotation.StringRes label: Int
+    ) {
+        val name = context.getString(label)
+        down.contentDescription = context.getString(R.string.a11y_decrease, name)
+        up.contentDescription = context.getString(R.string.a11y_increase, name)
     }
 
     // The palette's tone rows and the fixed colors, a check on the selected one.

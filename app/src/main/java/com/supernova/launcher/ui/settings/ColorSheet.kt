@@ -9,6 +9,7 @@ import androidx.core.graphics.toColorInt
 import com.supernova.launcher.R
 import com.supernova.launcher.databinding.SheetStylePickerBinding
 import com.supernova.launcher.ui.Sheets
+import com.supernova.launcher.ui.Steppers
 import com.supernova.launcher.ui.dp
 import com.supernova.launcher.ui.theme.ColorSpec
 import com.supernova.launcher.ui.theme.SurfaceShapes
@@ -72,12 +73,29 @@ class ColorSheet(
             override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
             override fun onStopTrackingTouch(seekBar: SeekBar) = onPick(value())
         })
+        StylePickerSheet.nameSteppers(context, binding.opacityDown, binding.opacityUp, R.string.style_opacity)
+        val settle = { onPick(value()) }
+        Steppers.hold(binding.opacityDown, { stepOpacity(-1) }, settle)
+        Steppers.hold(binding.opacityUp, { stepOpacity(1) }, settle)
         render()
         custom.show(rgb ?: defaultColor)
         val dialog = Sheets.open(context)
         dialog.setContentView(binding.root)
         dialog.setOnDismissListener { custom.remember() }
         dialog.show()
+    }
+
+    // The opacity bar's minus and plus: a percent a tap, more while held,
+    // and the pick goes out when the press ends.
+    private fun stepOpacity(delta: Int): Boolean {
+        val target = (opacity + delta).coerceIn(0, FULL)
+        if (target == opacity) return false
+        opacity = target
+        opacityMoved = true
+        binding.opacitySeek.progress = target
+        binding.opacityValue.text = context.getString(R.string.opacity_percent, target)
+        renderStrip()
+        return true
     }
 
     // Default at its own opacity is stored as "": a percent can't carry

@@ -21,6 +21,7 @@ import com.supernova.launcher.databinding.ItemSettingSectionBinding
 import com.supernova.launcher.databinding.ItemSettingSliderBinding
 import com.supernova.launcher.databinding.ItemSettingStyleTargetBinding
 import com.supernova.launcher.databinding.ItemSettingToggleBinding
+import com.supernova.launcher.ui.Steppers
 
 // Renders SettingItems from the latest LauncherPrefs snapshot. Prefs updates
 // rebind rows; controls the user is actively touching are left alone so a
@@ -483,11 +484,12 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             })
             val waitsFor = item.waitingOn(prefs)
             if (waitsFor != null) {
-                binding.stepDown.setOnClickListener { onShowRow(waitsFor) }
-                binding.stepUp.setOnClickListener { onShowRow(waitsFor) }
+                Steppers.tap(binding.stepDown) { onShowRow(waitsFor) }
+                Steppers.tap(binding.stepUp) { onShowRow(waitsFor) }
             } else {
-                binding.stepDown.setOnClickListener { step(item, -item.step) }
-                binding.stepUp.setOnClickListener { step(item, item.step) }
+                val commit = { item.set(item.min + binding.settingSeek.progress) }
+                Steppers.hold(binding.stepDown, { step(item, -item.step) }, commit)
+                Steppers.hold(binding.stepUp, { step(item, item.step) }, commit)
             }
         }
 
@@ -509,17 +511,21 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             }
         }
 
-        // Steppers commit immediately. The bar and label move first so rapid
-        // taps compose before the DataStore write round-trips.
-        private fun step(item: SettingItem.Slider, delta: Int) {
-            val raw = item.min + binding.settingSeek.progress + delta
+        // The bar, the label and the preview move on every step; the value is
+        // written when the press ends, so a hold saves once. Says whether it
+        // moved, which stops a hold at the end of the range.
+        private fun step(item: SettingItem.Slider, delta: Int): Boolean {
+            val current = item.min + binding.settingSeek.progress
+            val raw = current + delta
             // Snap onto the step grid so a value that drifted off it (e.g.
             // old float-truncation writes) recovers instead of staying offset.
             val snapped = item.min + (raw - item.min + item.step / 2) / item.step * item.step
             val target = snapped.coerceIn(item.min, max)
+            if (target == current) return false
             binding.settingSeek.progress = target - item.min
             binding.settingValue.text = item.display(target)
-            item.set(target)
+            previews.onTick(item, target)
+            return true
         }
     }
 
@@ -765,8 +771,9 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
                 }
             })
 
-            binding.labelSizeDown.setOnClickListener { stepSize(item, -1) }
-            binding.labelSizeUp.setOnClickListener { stepSize(item, 1) }
+            val commitSize = { item.setSize(item.sizeMin + binding.labelSizeSeek.progress) }
+            Steppers.hold(binding.labelSizeDown, { stepSize(item, -1) }, commitSize)
+            Steppers.hold(binding.labelSizeUp, { stepSize(item, 1) }, commitSize)
 
             binding.labelFontValue.text = item.font(prefs)
             // The font menu drops out of the box itself.
@@ -781,13 +788,16 @@ class SettingsAdapter(private val previews: PreviewController) : RecyclerView.Ad
             binding.labelSingleLineCell.setOnClickListener { binding.labelSingleLineCheck.toggle() }
         }
 
-        // As a Slider row's steppers: the bar and value move first, then the
-        // size commits.
-        private fun stepSize(item: SettingItem.LabelGroup, delta: Int) {
-            val target = (item.sizeMin + binding.labelSizeSeek.progress + delta).coerceIn(item.sizeMin, item.sizeMax)
+        // As a Slider row's steppers: the bar and value move on every step,
+        // and the size commits once the press ends.
+        private fun stepSize(item: SettingItem.LabelGroup, delta: Int): Boolean {
+            val current = item.sizeMin + binding.labelSizeSeek.progress
+            val target = (current + delta).coerceIn(item.sizeMin, item.sizeMax)
+            if (target == current) return false
             binding.labelSizeSeek.progress = target - item.sizeMin
             binding.labelSizeValue.text = item.sizeDisplay(target)
-            item.setSize(target)
+            previews.onTick(item.previewSize, target)
+            return true
         }
 
         // Detached while syncing, so a rebind never reports a phantom toggle.
