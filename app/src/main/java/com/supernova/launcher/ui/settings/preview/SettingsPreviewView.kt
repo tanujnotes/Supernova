@@ -241,10 +241,7 @@ class SettingsPreviewView @JvmOverloads constructor(
         // inset from the screen's edges), hold the icons too, or neighbours
         // touch.
         val slot = (strip - 2 * inset).takeIf { it > 0 }?.let { cellSize(it, homeColumns(prefs)) } ?: cell.first
-        val line = labelViews.firstOrNull()?.takeIf { prefs.showLabels }?.lineHeight ?: 0
-        val fit = IconFitRoom.desktopFitScale(
-            minOf(cell.first, slot), cell.second, box, dp(HOME_ITEM_PADDING_DP), line
-        )
+        val fit = IconFitRoom.desktopFitScale(minOf(cell.first, slot), cell.second, box, dp(HOME_ITEM_PADDING_DP))
         sizeIcons(prefs.iconScale * fit)
         if (fit >= 1f) return
         for (label in labelViews) {
@@ -322,10 +319,23 @@ class SettingsPreviewView @JvmOverloads constructor(
         slotViews.forEachIndexed { index, slot ->
             slot.visibility = if (index < prefs.dockCount) VISIBLE else GONE
         }
-        sizeIcons(if (prefs.dockMatchDesktop) prefs.iconScale else prefs.dockIconScale)
+        sizeIcons(
+            if (prefs.dockMatchDesktop) prefs.iconScale * desktopDrawnFit(prefs) else prefs.dockIconScale
+        )
         // The dock's own switch alone, as on the real dock, and its colour:
         // the background's text, else the wallpaper's light default.
         styleLabels(prefs, visible = prefs.dockLabels, onWallpaper = true, context = LabelContext.DOCK)
+    }
+
+    // Every surface that follows the desktop size draws the desktop's DRAWN
+    // icon, which a cell too small for the icon size has shrunk
+    // (LauncherActivity.desktopDrawnIconBoxPx, #383), so those previews
+    // shrink by the same scale. 1 before the home screen has been laid out.
+    private fun desktopDrawnFit(prefs: LauncherPrefs): Float {
+        val cell = IconFitRoom.desktopCell(prefs.gridCols, prefs.gridRows) ?: return 1f
+        return IconFitRoom.desktopFitScale(
+            cell.first, cell.second, (dp(ICON_BASE_DP) * prefs.iconScale).toInt(), dp(HOME_ITEM_PADDING_DP)
+        )
     }
 
     private fun roundDock(radius: Float) {
@@ -378,7 +388,11 @@ class SettingsPreviewView @JvmOverloads constructor(
         com.supernova.launcher.ui.theme.SurfaceShapes.setColor(
             surfaceBg, withAlpha(storedAlpha(prefs, SurfaceId.DRAWER) ?: prefs.drawerBgOpacity)
         )
-        val scale = if (prefs.drawerMatchDesktop) prefs.iconScale else prefs.drawerIconScale
+        val scale = if (prefs.drawerMatchDesktop) {
+            prefs.iconScale * desktopDrawnFit(prefs)
+        } else {
+            prefs.drawerIconScale
+        }
         sizeIcons(scale)
         val listBox = (dp(DRAWER_LIST_ICON_DP) * scale).toInt()
         for (icon in listIconViews) icon.box = listBox

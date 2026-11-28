@@ -44,13 +44,16 @@ internal fun widgetSize(span: Float, count: Int, extent: Int, inset: Int): Int =
 // One of the `count` whole-pixel cells across `extent`.
 internal fun cellSize(extent: Int, count: Int): Int = max(1, extent / max(1, count))
 
-// How far an icon shrinks to fit its cell: 1 at its own size, less where the
-// cell is narrower or shorter than the `needW` x `needH` it takes there. A
-// dense grid's cells are smaller than an icon, and icons in neighbouring
-// cells drew over each other.
-internal fun iconFitScale(cellW: Int, cellH: Int, needW: Int, needH: Int): Float {
-    if (min(cellW, cellH) <= 0 || min(needW, needH) <= 0) return 1f
-    return minOf(1f, cellW / needW.toFloat(), cellH / needH.toFloat())
+// The box an icon `boxPx` square is drawn at in a `cellW` x `cellH` cell it
+// keeps `padPx` of to every edge: its own size wherever that fits, and the
+// cell less that padding where it does not, because a dense grid's cells
+// are smaller than an icon and neighbours drew over each other. The label
+// is not in it and nor is the padding scaled: one icon size is one icon
+// size on the home screen, in the dock and in the drawer, labels or no
+// labels (#383).
+internal fun fittedIconPx(cellW: Int, cellH: Int, boxPx: Int, padPx: Int): Int {
+    if (min(cellW, cellH) <= 0 || boxPx <= 0) return boxPx
+    return minOf(boxPx, cellW - padPx * 2, cellH - padPx * 2).coerceAtLeast(1)
 }
 
 // A large icon's box, `span` cells a side: it fills its block rather than
@@ -117,17 +120,27 @@ class WorkspaceCanvas @JvmOverloads constructor(
     // whether the tap goes to the wallpaper at all.
     var onPageTap: (MotionEvent) -> Unit = {}
 
-    // A one-cell icon's room at its own size, `needW` x `needH`, its icon
-    // box and padding, and how it sets its parts: the icon to `iconPx`, the
-    // label and padding to `scale` of their own. A large icon shrinks as the
-    // grid's one-cell icons do and grows its icon to fill its block
+    // The canvas has a new size, so the cell its icons are fitted into has
+    // one too. Surfaces drawn at the size the desktop's icons end up at -
+    // a dock that matches the desktop size (#383) - are told, since nothing
+    // in the prefs changed. Posted from the measure that found the new size,
+    // so a listener can lay views out. Set by the activity when the page
+    // binds, so a recycled canvas keeps one listener, not one per bind.
+    var onRoomChanged: () -> Unit = {}
+
+    private var roomWidth = 0
+    private var roomHeight = 0
+
+    // A one-cell icon's box at the size its bar asks for, the padding it
+    // keeps to its cell, and how it sets its parts: the icon to `iconPx`
+    // (its own size unless the cell is too small for it) and the label into
+    // `labelRoomPx`, what the icon leaves of the cell. A large icon shrinks
+    // as the grid's one-cell icons do and grows its icon to fill its block
     // (largeIconBoxPx).
     class IconFit(
-        val needW: Int,
-        val needH: Int,
         val boxPx: Int,
         val padPx: Int,
-        val apply: (scale: Float, iconPx: Int) -> Unit
+        val apply: (iconPx: Int, labelRoomPx: Int) -> Unit
     )
 
     // `cols` x `rows` is the grid, which sets the cell an icon widens to and,
@@ -141,9 +154,10 @@ class WorkspaceCanvas @JvmOverloads constructor(
         val fit: IconFit? = null,
         val span: Int = 1
     ) : FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT) {
-        // The scale the icon was last shrunk to, and its icon's size then.
-        var fitScale = 1f
+        // The size the icon was last drawn at, and the room that left the
+        // label.
         var fitIconPx = -1
+        var fitLabelRoomPx = -1
     }
 
     // `spanX` x `spanY` cells of the `cols` x `rows` grid from (`cellX`,
@@ -205,6 +219,16 @@ class WorkspaceCanvas @JvmOverloads constructor(
         IconFitRoom.desktopMarginVPx = margins.topMargin
     }
 
+    // A size this canvas has not had before, told to whoever draws at the
+    // size the icons end up at (onRoomChanged). Posted, since this runs in
+    // the middle of the measure that found it.
+    private fun recordRoom(width: Int, height: Int) {
+        if (width == roomWidth && height == roomHeight) return
+        roomWidth = width
+        roomHeight = height
+        post { onRoomChanged() }
+    }
+
     // Before the children are measured, so they are measured as they will
     // draw. Nothing while the canvas has no size yet.
     private fun fitIcons(width: Int, height: Int) {
@@ -212,21 +236,26 @@ class WorkspaceCanvas @JvmOverloads constructor(
         IconFitRoom.desktopWidthPx = width
         IconFitRoom.desktopHeightPx = height
         recordMargins()
+        recordRoom(width, height)
         for (i in 0 until childCount) {
             val params = getChildAt(i).layoutParams as? IconParams ?: continue
-            val fit = params.fit ?: continue
             if (params.cols <= 0 || params.rows <= 0) continue
-            val cellW = cellSize(width, params.cols)
-            val cellH = cellSize(height, params.rows)
-            val scale = iconFitScale(cellW, cellH, fit.needW, fit.needH)
-            val iconPx = largeIconBoxPx(
-                params.span, cellW, cellH, (fit.boxPx * scale).roundToInt(), (fit.padPx * scale).roundToInt()
-            )
-            if (scale == params.fitScale && iconPx == params.fitIconPx) continue
-            params.fitScale = scale
-            params.fitIconPx = iconPx
-            fit.apply(scale, iconPx)
+            fitIcon(params, cellSize(width, params.cols), cellSize(height, params.rows))
         }
+    }
+
+    // One icon into its cell: the icon and its padding by the cell's own
+    // scale, and the label into what they leave of the block. Nothing when
+    // the icon already has that size and that much room.
+    private fun fitIcon(params: IconParams, cellW: Int, cellH: Int) {
+        val fit = params.fit ?: return
+        val fitted = fittedIconPx(cellW, cellH, fit.boxPx, fit.padPx)
+        val iconPx = largeIconBoxPx(params.span, cellW, cellH, fitted, fit.padPx)
+        val labelRoom = (cellH * params.span - iconPx - fit.padPx * 2).coerceAtLeast(0)
+        if (iconPx == params.fitIconPx && labelRoom == params.fitLabelRoomPx) return
+        params.fitIconPx = iconPx
+        params.fitLabelRoomPx = labelRoom
+        fit.apply(iconPx, labelRoom)
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {

@@ -126,10 +126,9 @@ class LiveDragController(
         // Geometry the settle needs: cell size, icon boxes, the dock icon's
         // top inset, the desktop icon base and the pixel padding of an item.
         fun currentCellSizePx(): Pair<Int, Int>
+        // The box an icon is asked to draw at, before a cell too small for
+        // it shrinks it (fittedIconPx).
         fun desktopIconBoxPx(prefs: LauncherPrefs): Int
-        // The room a desktop icon needs at its own size, which a smaller
-        // cell shrinks it to fit (WorkspaceCanvas.IconFit).
-        fun desktopIconNeedPx(prefs: LauncherPrefs): android.util.Size
         fun dockIconBoxPx(prefs: LauncherPrefs): Int
         fun dockIconTopInsetPx(): Int
         fun desktopIconBasePx(): Int
@@ -1404,15 +1403,12 @@ class LiveDragController(
         // A large icon lands on the 2x2 cells the hover outlined, at its
         // own size: it brings its own view.
         val (span, cells) = largeIconCells(payload, p)
-        val need = host.desktopIconNeedPx(prefs)
         val iconCellW = cellSize(canvas.width, prefs.gridCols)
         val iconCellH = cellSize(canvas.height, prefs.gridRows)
-        val fit = iconFitScale(iconCellW, iconCellH, need.width, need.height)
-        val box = largeIconBoxPx(
-            span, iconCellW, iconCellH, (host.desktopIconBoxPx(prefs) * fit).roundToInt(),
-            (context.dp(ICON_ITEM_PADDING_DP) * fit).roundToInt()
-        )
-        val item = desktopItemFrame(prefs, box, fit)
+        val padPx = context.dp(ICON_ITEM_PADDING_DP)
+        val fitted = fittedIconPx(iconCellW, iconCellH, host.desktopIconBoxPx(prefs), padPx)
+        val box = largeIconBoxPx(span, iconCellW, iconCellH, fitted, padPx)
+        val item = desktopItemFrame(prefs, box)
         val centerX = cells?.let { (it.left + it.right) / 2f / prefs.gridCols } ?: p[2]
         val centerY = cells?.let { (it.top + it.bottom) / 2f / prefs.gridRows } ?: p[3]
         val left = iconOrigin(centerX, canvas.width, item.width) + item.iconLeft
@@ -1445,7 +1441,7 @@ class LiveDragController(
     // box over one line of label (twice labelLift, about 16dp at the default
     // size), padded all round, so the icon sits labelLift above the item's
     // centre.
-    private fun desktopItemFrame(prefs: LauncherPrefs, box: Int, fit: Float): ItemFrame {
+    private fun desktopItemFrame(prefs: LauncherPrefs, box: Int): ItemFrame {
         val source = dragSourceView?.takeIf { it.parent is WorkspaceCanvas && it.height > 0 }
         val icon = source?.findViewById<View>(R.id.icon)
         if (source != null && icon != null) {
@@ -1453,9 +1449,9 @@ class LiveDragController(
                 source.width, source.height, icon.left, icon.top, iconAnchorHeight(source, source.height)
             )
         }
-        val pad = (context.dp(ICON_ITEM_PADDING_DP) * fit).roundToInt()
-        val labelLift = if (prefs.showLabels) (context.dp(8) * fit).roundToInt() else 0
-        val content = max(box, (host.desktopIconBasePx() * fit).roundToInt())
+        val pad = context.dp(ICON_ITEM_PADDING_DP)
+        val labelLift = if (prefs.showLabels) context.dp(8) else 0
+        val content = max(box, host.desktopIconBasePx())
         return ItemFrame(content + pad * 2, box + labelLift * 2 + pad * 2, pad + (content - box) / 2, pad)
     }
 

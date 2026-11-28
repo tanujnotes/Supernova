@@ -60,22 +60,23 @@ class DrawerTileFitTest {
     private val icon = 135
 
     @Test
-    fun thenTheIconAloneShrinks() {
+    fun thenTheLabelShrinksAndTheIconKeepsItsSize() {
         val fit = DrawerTileFit.of(150, pad, content, compact, icon)
         assertTrue(fit.singleLine)
-        assertEquals(1f, fit.labelScale)
-        // The 50px it is short comes off the icon.
-        assertEquals(85f, icon * fit.iconScale, 0.5f)
+        // The icon is the size the bar asked for; the 50px the row is short
+        // comes off the label (#383).
+        assertEquals(1f, fit.iconScale)
+        assertEquals(15f / (compact - icon), fit.labelScale, 0.0001f)
+        // Scaled, the one-line tile is the row's height.
+        assertEquals(150f, icon + (compact - icon) * fit.labelScale, 0.5f)
     }
 
     @Test
-    fun belowHalfAnIconTheLabelShrinksWithIt() {
+    fun aRowShorterThanTheIconShrinksTheIcon() {
         val fit = DrawerTileFit.of(100, pad, content, compact, icon)
-        val rest = compact - icon
-        assertTrue(fit.labelScale < 1f)
-        assertEquals(DrawerTileFit.ICON_ALONE_MIN * fit.labelScale, fit.iconScale, 0.0001f)
-        // Scaled, the one-line tile is the row's height.
-        assertEquals(100f, icon * fit.iconScale + rest * fit.labelScale, 0.5f)
+        assertEquals(100f, icon * fit.iconScale, 0.5f)
+        // Nothing left for a label beside it.
+        assertEquals(0f, fit.labelScale)
     }
 
     @Test

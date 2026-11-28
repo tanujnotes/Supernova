@@ -13,13 +13,13 @@ import kotlin.math.roundToInt
 // Rows set shares the list's height out between that many rows. A row with
 // room keeps the tile's padding around its icon and label, centred. A
 // shorter one gives the padding up first, then puts the label on one line,
-// then shrinks the icon alone, down to half its size, and below that the
-// icon, the gap and the label together until the tile fits, as icons do in
-// a dense home grid. The icon goes first because a few wide columns give it
-// a big box: shrinking everything alike left labels too small to read
-// beside large icons. Before, the row stopped shrinking at the tile's own
-// height, so a dense grid showed fewer rows than it was set to and left
-// gaps between them.
+// then shrinks the label into what the icon leaves. The icon holds the size
+// the Icon size bar asked for throughout - the size the home screen and the
+// dock draw it at, labels or no labels (#383) - and only a row shorter than
+// the icon itself shrinks the icon, as a too-small cell does on the home
+// screen. Before, the row stopped shrinking at the tile's own height, so a
+// dense grid showed fewer rows than it was set to and left gaps between
+// them.
 data class DrawerTileFit(
     // The tile's top and bottom padding.
     val paddingPx: Int,
@@ -60,22 +60,28 @@ data class DrawerTileFit(
             }
         }
 
-        // A one-line tile `compact` tall into a shorter row.
+        // A one-line tile `compact` tall into a shorter row. The label gives
+        // way first and the icon keeps the size the Icon size bar asked for,
+        // the size the home screen and the dock draw it at (#383); only a
+        // row too short for the icon itself shrinks the icon, and then there
+        // is no room for a label at all.
         private fun shrunk(rowPx: Int, compact: Int, iconPx: Int): DrawerTileFit {
-            val deficit = compact - rowPx
-            val iconGive = iconPx * (1f - ICON_ALONE_MIN)
-            if (iconPx > 0 && deficit <= iconGive) {
-                val iconScale = (iconPx - deficit).toFloat() / iconPx
-                return DrawerTileFit(0, singleLine = true, iconScale = iconScale, labelScale = 1f)
+            val label = (compact - iconPx).toFloat()
+            return when {
+                // No icon box measured: everything shrinks alike.
+                iconPx <= 0 -> DrawerTileFit(0, singleLine = true, iconScale = rowPx.toFloat() / compact)
+                // Shorter than the icon itself: the icon fits the row and
+                // there is nothing left for a label beside it.
+                rowPx < iconPx ->
+                    DrawerTileFit(0, singleLine = true, iconScale = rowPx.toFloat() / iconPx, labelScale = 0f)
+                // Otherwise the label takes what the icon leaves.
+                else -> DrawerTileFit(
+                    0,
+                    singleLine = true,
+                    iconScale = 1f,
+                    labelScale = if (label > 0f) ((rowPx - iconPx) / label).coerceIn(0f, 1f) else 1f
+                )
             }
-            val rest = compact - iconGive
-            val scale = rowPx / rest
-            return DrawerTileFit(
-                0,
-                singleLine = true,
-                iconScale = (if (iconPx > 0) ICON_ALONE_MIN else 1f) * scale,
-                labelScale = scale
-            )
         }
 
         // Puts a tile (item_drawer_app) into a grid row: `rowPx` tall, or its
@@ -121,7 +127,5 @@ data class DrawerTileFit(
 
         // item_drawer_app's gap between icon and label.
         const val LABEL_GAP_DP = 7
-        // How far the icon shrinks before the label shrinks with it.
-        const val ICON_ALONE_MIN = 0.5f
     }
 }

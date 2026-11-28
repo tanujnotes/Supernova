@@ -1801,7 +1801,7 @@ class DrawerController(
         applyStyle(state.prefs)
         applyImeOptions(state.prefs)
         pullToSearch = state.prefs.drawerPullToSearch
-        val drawerScale = iconScale(state.prefs)
+        val drawerScale = drawnIconScale(state.prefs)
         lastDisplay = Triple(drawerScale, state.prefs.drawerLabels, state.prefs)
         // A tile's content height follows the icon size and the labels.
         if (adapter.setDisplay(drawerScale, state.prefs.drawerLabels, state.prefs)) refreshGridRows(state.prefs)
@@ -2223,7 +2223,7 @@ class DrawerController(
             return (tileLook.iconPx * tileLook.fit.iconScale).roundToInt().coerceAtLeast(1) to tileLook.fit.labelScale
         }
         val baseDp = if (currentStyle == DrawerStyle.VERTICAL_LIST) ROW_ICON_DP else TILE_ICON_DP
-        val iconSizePx = (context.dp(baseDp) * iconScale(prefs)).toInt()
+        val iconSizePx = (context.dp(baseDp) * drawnIconScale(prefs)).toInt()
             .coerceAtMost((gridWidthPx() / columns - context.dp(TILE_SIDE_PADDING_DP)).coerceAtLeast(1))
         return iconSizePx to 1f
     }
@@ -2755,8 +2755,32 @@ class DrawerController(
         if (currentStyle == DrawerStyle.VERTICAL_GRID) adapter.tileLook(context) else null
 
     // The drawer's own icon size, or the desktop's when it follows that.
+    // This is the size asked for: the grid is laid out against it, so a
+    // home cell shrinking an icon never moves the drawer's columns or rows.
     private fun iconScale(prefs: LauncherPrefs): Float =
         if (prefs.drawerMatchDesktop) prefs.iconScale else prefs.drawerIconScale
+
+    // The size the drawer DRAWS an icon at: while it follows the desktop,
+    // the desktop's drawn icon, which a cell too small for the size has
+    // shrunk (IconFitRoom). One Icon size value is then one icon size on
+    // the home screen, in the dock and here, labels or no labels (#383).
+    private fun drawnIconScale(prefs: LauncherPrefs): Float {
+        val scale = iconScale(prefs)
+        if (!prefs.drawerMatchDesktop) return scale
+        val box = (context.dp(IconFitRoom.BASE_DP) * scale).toInt()
+        val fit = IconFitRoom.desktopFit(
+            prefs.gridCols, prefs.gridRows, box, context.dp(IconFitRoom.PADDING_DP)
+        )
+        return scale * fit
+    }
+
+    // The desktop's cell changed size while the prefs did not, so the icon
+    // the drawer draws changed with it (#383).
+    fun onDesktopRoomChanged() {
+        val prefs = viewModel.state.value.prefs
+        if (!prefs.drawerMatchDesktop) return
+        if (adapter.setDisplay(drawnIconScale(prefs), prefs.drawerLabels, prefs)) refreshGridRows(prefs)
+    }
 
     private fun isLandscape(): Boolean =
         context.resources.configuration.orientation ==

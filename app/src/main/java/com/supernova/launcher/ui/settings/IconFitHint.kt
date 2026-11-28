@@ -1,20 +1,17 @@
 package com.supernova.launcher.ui.settings
 
 import android.content.Context
-import android.widget.TextView
 import com.supernova.launcher.R
 import com.supernova.launcher.data.DeviceProfile
 import com.supernova.launcher.data.LauncherPrefs
 import com.supernova.launcher.ui.DrawerStyle
-import com.supernova.launcher.ui.DrawerTileFit
 import com.supernova.launcher.ui.IconFitRoom
-import com.supernova.launcher.ui.LabelContext
-import com.supernova.launcher.ui.LabelStyler
 
 // The note under an Icon size row when icons at that size don't fit their
 // grid cells and are drawn smaller (IconFitRoom), so a larger size seemingly
 // does nothing; null when they fit. Worked out against the room the home
-// screen and the drawer last had, with this row's grid and label settings.
+// screen and the drawer last had, with this row's grid. Labels are not in
+// it: they never change an icon's size (#383).
 class IconFitHint(private val context: Context) {
 
     private val density get() = context.resources.displayMetrics.density
@@ -23,10 +20,9 @@ class IconFitHint(private val context: Context) {
 
     // The desktop's icons, and the drawer's while it follows the desktop.
     fun desktop(prefs: LauncherPrefs): CharSequence? {
-        val label = if (prefs.showLabels) labelLine(prefs, LabelContext.DESKTOP, onWallpaper = true) else 0
         val cell = IconFitRoom.desktopCell(prefs.gridCols, prefs.gridRows)
         val fitted = cell != null && IconFitRoom.desktopFitted(
-            cell.first, cell.second, (dp(ICON_BASE_DP) * prefs.iconScale).toInt(), dp(ICON_PADDING_DP), label
+            cell.first, cell.second, (dp(ICON_BASE_DP) * prefs.iconScale).toInt(), dp(ICON_PADDING_DP)
         )
         return note(fitted || (prefs.drawerMatchDesktop && drawerFitted(prefs, prefs.iconScale)))
     }
@@ -50,28 +46,17 @@ class IconFitHint(private val context: Context) {
         val rows = prefs.drawerRows
         val height = IconFitRoom.drawerHeightPx
         val rowPx = if (prefs.drawerStyle == DrawerStyle.VERTICAL_GRID && rows > 0 && height > 0) height / rows else 0
-        val label = if (prefs.drawerLabels) {
-            dp(DrawerTileFit.LABEL_GAP_DP) + labelLine(prefs, LabelContext.DRAWER, onWallpaper = false)
-        } else {
-            0
-        }
         return IconFitRoom.drawerFitted(
-            width / columns, dp(TILE_PADDING_H_DP), rowPx, (dp(ICON_BASE_DP) * scale).toInt(), label
+            width / columns, dp(TILE_PADDING_H_DP), rowPx, (dp(ICON_BASE_DP) * scale).toInt()
         )
-    }
-
-    private fun labelLine(prefs: LauncherPrefs, labelContext: LabelContext, onWallpaper: Boolean): Int {
-        val probe = TextView(context)
-        LabelStyler.apply(probe, prefs, onWallpaper, labelContext)
-        return probe.lineHeight
     }
 
     private companion object {
         // LauncherActivity's icon box and item padding, and the drawer's
         // tile side padding and automatic cell (DrawerController).
-        const val ICON_BASE_DP = 48
-        const val ICON_PADDING_DP = 4
-        const val TILE_PADDING_H_DP = 4
+        const val ICON_BASE_DP = IconFitRoom.BASE_DP
+        const val ICON_PADDING_DP = IconFitRoom.PADDING_DP
+        const val TILE_PADDING_H_DP = IconFitRoom.PADDING_DP
         const val MIN_CELL_DP = 72f
         const val WIDE_CELL_DP = 96f
         const val MIN_COLUMNS = 3

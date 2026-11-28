@@ -704,7 +704,7 @@
          header; search lists them by the longer names above. -->
     <string name="icon_size">Icon size</string>
     <!-- Under an Icon size bar when icons are drawn smaller to fit the grid. -->
-    <string name="icon_size_fitted">Icons are at the largest this grid fits. Use fewer rows or columns, or turn labels off, for larger icons.</string>
+    <string name="icon_size_fitted">Icons are at the largest this grid fits. Use fewer rows or columns for larger icons.</string>
     <string name="label_group">Icon labels</string>
     <string name="label_card_size">Size</string>
     <string name="label_card_font">Font</string>

@@ -32,6 +32,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.children
+import androidx.core.view.isGone
 import androidx.core.view.updateLayoutParams
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -119,6 +120,7 @@ import com.supernova.launcher.ui.CustomCardEditorSheet
 import com.supernova.launcher.ui.DockBgStyle
 import com.supernova.launcher.ui.DrawerController
 import com.supernova.launcher.ui.FeedController
+import com.supernova.launcher.ui.IconFitRoom
 import com.supernova.launcher.ui.IndicatorStyle
 import com.supernova.launcher.ui.SearchBarConfig
 import com.supernova.launcher.ui.SearchBarPlacement
@@ -396,6 +398,8 @@ class LauncherActivity :
     private var lastRenderedState: LauncherUiState? = null
     // What the dock currently shows; see dockSignature. Null forces a rebuild.
     private var renderedDock: List<Any?>? = null
+    // The icon box the dock last drew at (#383).
+    private var drawnDockIconBox = 0
     // The badge state the icons were last drawn from, so a replay of the same
     // state - which arrives on every return to the home screen - does nothing.
     private var renderedBadges: com.supernova.launcher.notification.BadgeState? = null
@@ -2144,9 +2148,10 @@ class LauncherActivity :
         // authoritative once there is one; before that the window minus the
         // dock's own margins is the same number.
         dockSlotWidthPx = dockContentWidth(prefs) / prefs.dockCount.coerceAtLeast(1)
+        drawnDockIconBox = dockIconBoxPx(prefs)
         // An empty dock still has to be a drop target, so it never collapses
         // below a bare icon column even with every slot empty.
-        binding.dockBar.minimumHeight = dockIconBoxPx(prefs) +
+        binding.dockBar.minimumHeight = drawnDockIconBox +
             dp(DOCK_ITEM_PADDING_V_DP * 2 + DOCK_SLOT_PADDING_V_DP * 2)
 
         repeat(prefs.dockCount) { slotIndex ->
@@ -2231,6 +2236,10 @@ class LauncherActivity :
             drag.settlingItemId,
             isLandscape,
             binding.dockBar.width,
+            // A matched dock draws the desktop's drawn icon, which the home
+            // screen's cell decides (#383): the box changes while the prefs
+            // do not, and a page resize ticks this signature.
+            dockIconBoxPx(state.prefs),
             items
         )
     }
@@ -2336,11 +2345,26 @@ class LauncherActivity :
     // box never outgrows its slot - a seven-icon dock hands out slots narrower
     // than the 42dp base, and an oversized icon used to be clipped to them.
     override fun dockIconBoxPx(prefs: LauncherPrefs): Int {
-        val scale = if (prefs.dockMatchDesktop) prefs.iconScale else prefs.dockIconScale
-        val box = (dp(ICON_BASE_DP) * scale).toInt()
+        val box = if (prefs.dockMatchDesktop) {
+            desktopDrawnIconBoxPx(prefs)
+        } else {
+            (dp(ICON_BASE_DP) * prefs.dockIconScale).toInt()
+        }
         val slotLimit = dockSlotWidthPx - dp(DOCK_ITEM_PADDING_H_DP * 2)
         return if (slotLimit > 0) minOf(box, slotLimit) else box
     }
+
+    // The desktop icon as the home screen actually draws it: a cell too small
+    // for the icon size shrinks it into the cell (WorkspaceCanvas.IconFit),
+    // and "Match desktop size" means the drawn size, not the size the bar
+    // asks for - a matched dock kept the full size beside shrunken home icons
+    // and looked a size larger (#383). The same arithmetic as the canvas, so
+    // the two land on the same pixel. Before the home screen has been laid
+    // out there is no cell to fit into; renderDock runs again once there is
+    // (onCanvasRoomChanged).
+    fun desktopDrawnIconBoxPx(prefs: LauncherPrefs): Int = IconFitRoom.desktopDrawnBoxPx(
+        prefs.gridCols, prefs.gridRows, desktopIconBoxPx(prefs), dp(ICON_ITEM_PADDING_DP)
+    )
 
     // The icon box a desktop item draws in, sized for the same reason. It has
     // no slot to stay inside: the canvas places an item by its centre, and a
@@ -2350,29 +2374,6 @@ class LauncherActivity :
     // How many cells a side a desktop icon takes, and how many times the
     // desktop size its icon is drawn: 2 for a large icon.
     private fun iconSpan(item: LauncherItem): Int = if (item.isLargeIcon) LARGE_ICON_SPAN else 1
-
-    // The room a desktop icon takes at its own size: its box inside the
-    // item's padding, over a line of label when labels show. A cell smaller
-    // than that shrinks the icon into it (WorkspaceCanvas.IconFit).
-    private var desktopNeedPrefs: LauncherPrefs? = null
-    private var desktopNeed = android.util.Size(0, 0)
-    override fun desktopIconNeedPx(prefs: LauncherPrefs): android.util.Size {
-        if (prefs !== desktopNeedPrefs) {
-            val box = desktopIconBoxPx(prefs) + dp(ICON_ITEM_PADDING_DP) * 2
-            val label = if (prefs.showLabels) {
-                val probe = android.widget.TextView(this)
-                LabelStyler.apply(
-                    probe, prefs, onWallpaper = true, context = com.supernova.launcher.ui.LabelContext.DESKTOP
-                )
-                probe.lineHeight
-            } else {
-                0
-            }
-            desktopNeed = android.util.Size(box, box + label)
-            desktopNeedPrefs = prefs
-        }
-        return desktopNeed
-    }
 
     // Dock visibility, background, scrims, the desktop search bar, and the
     // workspace/indicator insets that depend on them; guarded so repeat
@@ -4932,16 +4933,26 @@ class LauncherActivity :
     // neighbours. Scale 1 puts it back as bound.
     private fun desktopIconFit(iconBinding: ItemIconBinding, prefs: LauncherPrefs): WorkspaceCanvas.IconFit {
         val textPx = iconBinding.label.textSize
+        val linePx = iconBinding.label.lineHeight
         val lines = iconBinding.label.maxLines
         val pad = iconBinding.root.paddingTop
-        val need = desktopIconNeedPx(prefs)
-        return WorkspaceCanvas.IconFit(need.width, need.height, desktopIconBoxPx(prefs), pad) { scale, size ->
+        return WorkspaceCanvas.IconFit(desktopIconBoxPx(prefs), pad) { size, room ->
             iconBinding.icon.updateLayoutParams { width = size; height = size }
-            iconBinding.label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, textPx * scale)
-            iconBinding.label.maxLines = if (scale < 1f) 1 else lines
-            val padding = (pad * scale).roundToInt()
-            iconBinding.root.setPadding(padding, padding, padding, padding)
+            fitDesktopLabel(iconBinding.label, textPx, linePx, lines, room)
         }
+    }
+
+    // The label under a fitted desktop icon. The icon has taken its size
+    // from the Icon size bar alone (#383), so the label takes what it left
+    // of the cell: its own size while a line fits, wrapping only where two
+    // do, and squeezed down to LABEL_FIT_MIN of its size where one does not.
+    private fun fitDesktopLabel(label: android.widget.TextView, textPx: Float, linePx: Int, lines: Int, roomPx: Int) {
+        if (label.isGone || linePx <= 0) return
+        val fit = (roomPx.toFloat() / linePx).coerceAtMost(1f)
+        val size = if (fit >= 1f) textPx else textPx * fit.coerceAtLeast(LABEL_FIT_MIN)
+        if (label.textSize != size) label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, size)
+        val wanted = if (roomPx >= linePx * 2) lines else 1
+        if (label.maxLines != wanted) label.maxLines = wanted
     }
 
     // Wallpapers: the installed wallpaper apps, or an image from any folder.
@@ -5297,6 +5308,24 @@ class LauncherActivity :
 
     override fun onSearchBarWidgetLongPress(anchor: View) = showSearchBarMenu(anchor)
 
+    // A page's canvas has a new size, so the cell a desktop icon is fitted
+    // into has one too. A dock that matches the desktop size draws that
+    // fitted icon (#383), so it is built again at the new size; its
+    // signature drops the rebuild when the box is unchanged, which also
+    // settles the round trip through the dock's own height.
+    private fun onCanvasRoomChanged() {
+        if (isFinishing || isDestroyed) return
+        val state = viewModel.state.value
+        // A shorter dock leaves the page taller, which can make the fitted
+        // icon a pixel larger again: rounding could otherwise leave the two
+        // swapping that pixel back and forth for as long as the home screen
+        // is up. A pixel of growth is dropped, so the swap settles on the
+        // smaller icon and the dock is never the row that looks a size up.
+        val grew = dockIconBoxPx(state.prefs) - drawnDockIconBox
+        if (state.prefs.dockMatchDesktop && (grew < 0 || grew > 1)) renderDock(state)
+        if (::drawer.isInitialized) drawer.onDesktopRoomChanged()
+    }
+
     override fun onPageBound(canvas: ViewGroup) {
         // In edit mode icons, folders and widgets neither launch, open nor
         // scroll: a tap anywhere on a page closes edit mode, a long-press
@@ -5304,6 +5333,7 @@ class LauncherActivity :
         (canvas as? com.supernova.launcher.ui.WorkspaceCanvas)?.let { page ->
             page.itemsInert = { ::editMode.isInitialized && editMode.isOpen }
             page.onPageTap = { event -> sendWallpaperTap(page, event) }
+            page.onRoomChanged = { onCanvasRoomChanged() }
         }
         widgets.onPageBound(canvas)
     }
@@ -5401,11 +5431,16 @@ class LauncherActivity :
         // dock derives its own height from them rather than from a fixed bar
         // height, and a drop's settle works out where a desktop item's icon
         // will sit from them.
-        private const val ICON_BASE_DP = 48
-        // item_icon's padding, all round.
-        private const val ICON_ITEM_PADDING_DP = 4
-        private const val DOCK_ITEM_PADDING_H_DP = 2
-        private const val DOCK_ITEM_PADDING_V_DP = 4
+        private const val ICON_BASE_DP = IconFitRoom.BASE_DP
+        // item_icon's padding, all round. The dock keeps the same padding
+        // around its icons, so one icon size leaves the same gap between
+        // neighbours on the home screen and in the dock (#383).
+        private const val ICON_ITEM_PADDING_DP = IconFitRoom.PADDING_DP
+        private const val DOCK_ITEM_PADDING_H_DP = IconFitRoom.PADDING_DP
+        private const val DOCK_ITEM_PADDING_V_DP = IconFitRoom.PADDING_DP
+        // The smallest a desktop label is squeezed to when the icon leaves
+        // it less than a line of the cell.
+        private const val LABEL_FIT_MIN = 0.6f
         private const val DOCK_SLOT_PADDING_V_DP = 2
         // A dock page turn; Launcher3 settles a flicked page in about this.
         private const val DOCK_SLIDE_MS = 300L

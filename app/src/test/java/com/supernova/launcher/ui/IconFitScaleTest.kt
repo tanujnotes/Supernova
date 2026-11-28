@@ -3,35 +3,49 @@ package com.supernova.launcher.ui
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-// An icon shrinks into a cell smaller than the room it needs, and never grows.
+// An icon is the size its bar asks for until the cell cannot hold it with
+// its padding, and it never grows. A label is never part of that (#383).
 class IconFitScaleTest {
+
+    // 48dp at 117% and 4dp padding on the Galaxy: a 157px icon keeping 11px.
+    private val box = 157
+    private val pad = 11
 
     @Test
     fun aRoomyCellKeepsTheIconsOwnSize() {
-        // The Galaxy's 5 x 6 grid: 216 x 243px cells, a 157 x 202px icon.
-        assertEquals(1f, iconFitScale(216, 243, 157, 202), 0f)
+        // The Galaxy's 5 x 6 grid: 216 x 243px cells.
+        assertEquals(box, fittedIconPx(216, 243, box, pad))
     }
 
     @Test
     fun aNarrowCellShrinksTheIconToItsWidth() {
-        // 12 columns: 90px cells. The icon and its padding fit the width.
-        assertEquals(90f / 157f, iconFitScale(90, 400, 157, 202), 1e-6f)
+        // 12 columns: 90px cells, less the padding either side.
+        assertEquals(68, fittedIconPx(90, 400, box, pad))
     }
 
     @Test
     fun aShortCellShrinksTheIconToItsHeight() {
-        // Landscape rows: icon and label fit the height.
-        assertEquals(0.5f, iconFitScale(300, 101, 157, 202), 1e-6f)
+        assertEquals(79, fittedIconPx(300, 101, box, pad))
     }
 
     @Test
     fun theTighterSideWins() {
-        assertEquals(90f / 157f, iconFitScale(90, 121, 157, 202), 1e-6f)
+        assertEquals(68, fittedIconPx(90, 121, box, pad))
+    }
+
+    @Test
+    fun labelsNeverChangeIt() {
+        // Whatever the labels do, the same cell draws the same icon: the
+        // label takes what the icon leaves.
+        assertEquals(fittedIconPx(216, 243, box, pad), fittedIconPx(216, 243, box, pad))
+        assertEquals(box, fittedIconPx(216, 400, box, pad))
+        // A cell 194px wide inside its padding caps a bigger icon there.
+        assertEquals(194, fittedIconPx(216, 243, 202, pad))
     }
 
     @Test
     fun noSizeYetLeavesTheIconAlone() {
-        assertEquals(1f, iconFitScale(0, 0, 157, 202), 0f)
-        assertEquals(1f, iconFitScale(90, 120, 0, 0), 0f)
+        assertEquals(box, fittedIconPx(0, 0, box, pad))
+        assertEquals(0, fittedIconPx(90, 120, 0, pad))
     }
 }
