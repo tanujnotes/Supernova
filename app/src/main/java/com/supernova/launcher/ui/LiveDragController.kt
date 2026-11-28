@@ -1024,19 +1024,67 @@ class LiveDragController(
         // it counts as a release over nothing, and a placed widget flies back.
         // Nor does a shortcut row from the add sheet.
         val dockable = activeDragPayload?.let(::dockable) != false
-        if (binding.dockBar.isVisible && dockable) {
-            for (i in 0 until binding.dockBar.childCount) {
-                val slot = binding.dockBar.getChildAt(i)
-                val rank = slot.getTag(R.id.tag_dock_rank) as? Int ?: continue
-                if (slot.screenRect().contains(x, y)) return DragTarget.Dock(slot, rank)
-            }
-        }
+        if (dockable) dockHit(x, y)?.let { return it }
         binding.workspacePager.currentWorkspaceCanvas()?.let { canvas ->
             val page = canvas.getTag(R.id.tag_page) as? Int ?: return@let
             val rect = canvas.screenRect().apply { offset(-pageSlideX(canvas), 0) }
             if (rect.contains(x, y)) return DragTarget.Workspace(canvas, page)
         }
         return DragTarget.None
+    }
+
+    // Whether a drop here is aimed at the dock. Two things count: the picture
+    // the finger is carrying - the icon as the user sees it, which is what
+    // every other drop is measured by - and the finger itself, which used to
+    // be the only one. The picture is lifted around wherever it was pressed,
+    // so an icon let go squarely inside the dock can have its finger a few
+    // pixels under the bar, on the navigation bar, and the drop was refused
+    // with nothing said (#382).
+    private fun aimedAtDock(fingerX: Int, fingerY: Int): Boolean {
+        if (!binding.dockBar.isVisible) return false
+        val bar = binding.dockBar.screenRect()
+        val visual = dragLayer.visualRect()
+        return bar.contains(fingerX, fingerY) ||
+            (visual != null && bar.contains(visual.centerX().toInt(), visual.centerY().toInt()))
+    }
+
+    // The dock slot a drop lands in. The bar itself is the drop area, not the
+    // slot boxes inside it: the bar's vertical padding is a setting, and at
+    // its widest it leaves those boxes a few pixels tall in the middle of a
+    // dock that still looks its full size, so drops aimed straight at it were
+    // refused with nothing said (#382). Which slot is then a question of x
+    // alone - the nearest one when the aim falls in the bar's side padding.
+    private fun dockHit(fingerX: Int, fingerY: Int): DragTarget.Dock? {
+        if (!aimedAtDock(fingerX, fingerY)) return null
+        val bar = binding.dockBar
+        // The finger picks the slot while it is on the bar, as it always
+        // has; it is only when the drop was aimed by the picture that the
+        // picture picks the column too.
+        val visual = dragLayer.visualRect()
+        val aimX = if (visual != null && !bar.screenRect().contains(fingerX, fingerY)) {
+            visual.centerX().toInt()
+        } else {
+            fingerX
+        }
+        var nearest: DragTarget.Dock? = null
+        var nearestGap = Int.MAX_VALUE
+        for (i in 0 until bar.childCount) {
+            val slot = bar.getChildAt(i)
+            val rank = slot.getTag(R.id.tag_dock_rank) as? Int ?: continue
+            val box = slot.screenRect()
+            // Zero for the column the aim is in, so it wins outright; the
+            // rest compete on how far outside it they are.
+            val gap = if (aimX >= box.left && aimX < box.right) {
+                0
+            } else {
+                minOf(abs(aimX - box.left), abs(aimX - box.right))
+            }
+            if (gap < nearestGap) {
+                nearestGap = gap
+                nearest = DragTarget.Dock(slot, rank)
+            }
+        }
+        return nearest
     }
 
     // How far the page holding this canvas is from where it will come to
@@ -1266,7 +1314,7 @@ class LiveDragController(
         dropHaptic(landed = false)
         // A widget let go over the dock: findDragTarget keeps it off the dock,
         // and the fly-back alone didn't say why.
-        val overDock = binding.dockBar.isShown && binding.dockBar.screenRect().contains(rawX.toInt(), rawY.toInt())
+        val overDock = aimedAtDock(rawX.toInt(), rawY.toInt())
         if (overDock && !dockable(payload)) {
             val why = if (isWidgetPayload(payload)) R.string.widget_not_in_dock else R.string.shortcut_not_in_dock
             android.widget.Toast.makeText(context, why, android.widget.Toast.LENGTH_SHORT).show()
